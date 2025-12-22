@@ -1,0 +1,118 @@
+{
+	"common": {
+		"metaTitle": "目标系统",
+		"metaDescription": "一个帮助你实现梦想的个人目标管理系统。",
+		"loading": "加载中...",
+		"save": "保存",
+		"cancel": "取消",
+		"delete": "删除",
+		"edit": "编辑",
+		"create": "创建",
+		"back": "返回",
+		"submit": "提交",
+		"error": "错误",
+		"success": "成功",
+		"noDescription": "无描述",
+		"timeProgress": "时间进度"
+	},
+	"sidebar": {
+		"brand": "目标系统",
+		"dashboard": "仪表盘",
+		"today": "今日行动",
+		"goals": "目标管理",
+		"profile": "个人中心",
+		"signOut": "退出登录"
+	},
+	"login": {
+		"title": "登录 / 注册",
+		"description": "输入邮箱以登录或创建账号",
+		"emailLabel": "邮箱",
+		"emailPlaceholder": "m@example.com",
+		"nameLabel": "姓名 (注册时填写)",
+		"namePlaceholder": "您的姓名",
+		"passwordLabel": "密码",
+		"loginButton": "登录",
+		"signupButton": "注册",
+		"successMessage": "注册成功！请检查您的邮箱以确认账号。"
+	},
+	"dashboard": {
+		"title": "仪表盘",
+		"todayCoreAction": "今日核心行动",
+		"setCoreAction": "设置核心行动",
+		"dailyScore": "每日评分",
+		"scorePlaceholder": "选择评分 (0-5)",
+		"submitScore": "评分",
+		"activeGoals": "进行中的目标",
+		"currentStreak": "当前连续天数",
+		"days": "天",
+		"recentTrend": "最近30天趋势",
+		"noCoreAction": "今日未设置核心行动。",
+		"keepMomentum": "保持这一势头！"
+	},
+	"today": {
+		"title": "今日行动",
+		"noActions": "今日暂无计划行动。",
+		"addActionTitle": "添加今日行动",
+		"goalLabel": "所属目标",
+		"selectGoal": "选择一个目标",
+		"actionTitleLabel": "行动标题",
+		"actionTitlePlaceholder": "要做什么？",
+		"typeLabel": "类型",
+		"types": {
+			"core": "核心",
+			"maintain": "维持",
+			"explore": "探索"
+		},
+		"addActionBtn": "添加行动",
+		"goalPrefix": "目标: "
+	},
+	"goals": {
+		"title": "目标列表",
+		"newGoal": "新建目标",
+		"noGoals": "您还没有设定任何目标。",
+		"createFirst": "创建您的第一个目标",
+		"status": {
+			"active": "进行中",
+			"completed": "已完成",
+			"abandoned": "已放弃"
+		},
+		"start": "开始",
+		"end": "结束",
+		"new": {
+			"title": "创建新目标",
+			"details": "目标详情",
+			"titleLabel": "目标标题",
+			"titlePlaceholder": "例如：今年读12本书",
+			"descriptionLabel": "描述",
+			"descriptionPlaceholder": "为什么这个目标很重要？",
+			"startDate": "开始日期",
+			"endDate": "结束日期",
+			"successCriteriaLabel": "成功标准",
+			"successCriteriaPlaceholder": "你怎么知道你已经达成了？",
+			"abandonCriteriaLabel": "放弃标准",
+			"abandonCriteriaPlaceholder": "什么时候应该放弃？",
+			"submit": "创建目标"
+		},
+		"detail": {
+			"notFound": "目标未找到",
+			"details": "详细信息",
+			"description": "描述",
+			"startDate": "开始日期",
+			"endDate": "结束日期",
+			"successCriteria": "成功标准",
+			"abandonCriteria": "放弃标准",
+			"actions": "行动记录",
+			"noActions": "暂无行动记录。",
+			"addAction": "添加行动",
+			"date": "日期"
+		}
+	},
+	"profile": {
+		"title": "个人中心",
+		"email": "邮箱",
+		"name": "姓名",
+		"language": "语言",
+		"joined": "加入时间",
+		"switchLanguage": "切换语言"
+	}
+}
