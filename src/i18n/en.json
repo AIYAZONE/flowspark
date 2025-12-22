@@ -1,0 +1,118 @@
+{
+	"common": {
+		"metaTitle": "Goal System",
+		"metaDescription": "A personal goal management system to help you achieve your dreams.",
+		"loading": "Loading...",
+		"save": "Save",
+		"cancel": "Cancel",
+		"delete": "Delete",
+		"edit": "Edit",
+		"create": "Create",
+		"back": "Back",
+		"submit": "Submit",
+		"error": "Error",
+		"success": "Success",
+		"noDescription": "No description",
+		"timeProgress": "Time Progress"
+	},
+	"sidebar": {
+		"brand": "Goal System",
+		"dashboard": "Dashboard",
+		"today": "Today",
+		"goals": "Goals",
+		"profile": "Profile",
+		"signOut": "Sign Out"
+	},
+	"login": {
+		"title": "Login / Sign Up",
+		"description": "Enter your email below to login or create your account",
+		"emailLabel": "Email",
+		"emailPlaceholder": "m@example.com",
+		"nameLabel": "Name (for Sign Up)",
+		"namePlaceholder": "Your Name",
+		"passwordLabel": "Password",
+		"loginButton": "Log in",
+		"signupButton": "Sign up",
+		"successMessage": "Registration successful! Please check your email to confirm your account."
+	},
+	"dashboard": {
+		"title": "Dashboard",
+		"todayCoreAction": "Today's Core Action",
+		"setCoreAction": "Set Core Action",
+		"dailyScore": "Daily Score",
+		"scorePlaceholder": "Select score (0-5)",
+		"submitScore": "Score",
+		"activeGoals": "Active Goals",
+		"currentStreak": "Current Streak",
+		"days": "days",
+		"recentTrend": "Recent 30 Days Trend",
+		"noCoreAction": "No core action set for today.",
+		"keepMomentum": "Keep the momentum going!"
+	},
+	"today": {
+		"title": "Today's Actions",
+		"noActions": "No actions planned for today.",
+		"addActionTitle": "Add Action for Today",
+		"goalLabel": "Goal",
+		"selectGoal": "Select a goal",
+		"actionTitleLabel": "Action Title",
+		"actionTitlePlaceholder": "What to do?",
+		"typeLabel": "Type",
+		"types": {
+			"core": "Core",
+			"maintain": "Maintain",
+			"explore": "Explore"
+		},
+		"addActionBtn": "Add Action",
+		"goalPrefix": "Goal: "
+	},
+	"goals": {
+		"title": "Goals",
+		"newGoal": "New Goal",
+		"noGoals": "You haven't set any goals yet.",
+		"createFirst": "Create your first goal",
+		"status": {
+			"active": "Active",
+			"completed": "Completed",
+			"abandoned": "Abandoned"
+		},
+		"start": "Start",
+		"end": "End",
+		"new": {
+			"title": "Create New Goal",
+			"details": "Goal Details",
+			"titleLabel": "Goal Title",
+			"titlePlaceholder": "e.g., Read 12 books this year",
+			"descriptionLabel": "Description",
+			"descriptionPlaceholder": "Why is this goal important?",
+			"startDate": "Start Date",
+			"endDate": "End Date",
+			"successCriteriaLabel": "Success Criteria",
+			"successCriteriaPlaceholder": "How will you know you've achieved it?",
+			"abandonCriteriaLabel": "Abandon Criteria",
+			"abandonCriteriaPlaceholder": "When should you give up?",
+			"submit": "Create Goal"
+		},
+		"detail": {
+			"notFound": "Goal not found",
+			"details": "Details",
+			"description": "Description",
+			"startDate": "Start Date",
+			"endDate": "End Date",
+			"successCriteria": "Success Criteria",
+			"abandonCriteria": "Abandon Criteria",
+			"actions": "Actions",
+			"noActions": "No actions yet.",
+			"addAction": "Add Action",
+			"date": "Date"
+		}
+	},
+	"profile": {
+		"title": "Profile",
+		"email": "Email",
+		"name": "Name",
+		"language": "Language",
+		"joined": "Joined",
+		"switchLanguage": "Switch Language"
+	}
+}
