@@ -23,6 +23,30 @@
 		"profile": "个人中心",
 		"signOut": "退出登录"
 	},
+	"landing": {
+		"hero": {
+			"badge": "个人成长操作系统 v1.0",
+			"title": "让野心成为现实",
+			"subtitle": "极简、聚焦、可视化。我们重新定义了目标管理，帮助你在纷繁复杂的世界中，找回掌控感。",
+			"start": "立即开始",
+			"login": "登录账号"
+		},
+		"features": {
+			"focus": {
+				"title": "极简聚焦",
+				"desc": "每天只做最重要的事。拒绝无效忙碌，体验心流带来的高效与宁静。"
+			},
+			"growth": {
+				"title": "可视化成长",
+				"desc": "看见每一天的进步。通过直观的数据图表，让坚持变得上瘾。"
+			},
+			"insight": {
+				"title": "深度洞察",
+				"desc": "基于行为数据的智能分析，帮助你持续优化行为模式，突破瓶颈。"
+			}
+		},
+		"footer": "© 2025 Goal System. All rights reserved."
+	},
 	"login": {
 		"title": "登录 / 注册",
 		"description": "输入邮箱以登录或创建账号",

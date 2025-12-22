@@ -36,9 +36,9 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
             <div className="flex items-center justify-between">
                 <h1 className="text-3xl font-bold tracking-tight">{goal.title}</h1>
                 <div className="flex gap-2">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${goal.status === 'active' ? 'bg-green-100 text-green-800' :
-                        goal.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                            'bg-gray-100 text-gray-800'
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${goal.status === 'active' ? 'bg-primary/10 text-primary' :
+                        goal.status === 'completed' ? 'bg-blue-500/10 text-blue-500' :
+                            'bg-muted text-muted-foreground'
                         }`}>
                         {dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
                     </span>
@@ -92,7 +92,7 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
                                                 <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
                                                 <button type="submit" className="focus:outline-none">
                                                     {action.completed ? (
-                                                        <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                                        <CheckCircle2 className="h-5 w-5 text-primary" />
                                                     ) : (
                                                         <Circle className="h-5 w-5 text-muted-foreground" />
                                                     )}

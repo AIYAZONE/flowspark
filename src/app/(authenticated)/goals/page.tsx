@@ -35,9 +35,9 @@ export default async function GoalsPage() {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-xl">{goal.title}</CardTitle>
-                  <span className={`text-xs px-2 py-1 rounded-full ${goal.status === 'active' ? 'bg-green-100 text-green-800' :
-                    goal.status === 'completed' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
+                  <span className={`text-xs px-2 py-1 rounded-full ${goal.status === 'active' ? 'bg-primary/10 text-primary' :
+                    goal.status === 'completed' ? 'bg-blue-500/10 text-blue-500' :
+                      'bg-muted text-muted-foreground'
                     }`}>
                     {dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
                   </span>
@@ -56,7 +56,7 @@ export default async function GoalsPage() {
           </Link>
         ))}
         {goals?.length === 0 && (
-          <div className="col-span-full flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-lg bg-gray-50 text-muted-foreground">
+          <div className="col-span-full flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-lg bg-card text-muted-foreground">
             <p className="mb-4">{dict.goals.noGoals}</p>
             <Link href="/goals/new">
               <Button variant="outline">{dict.goals.createFirst}</Button>

@@ -33,7 +33,7 @@ export default async function TodayPage() {
                 {/* Actions List */}
                 <div className="md:col-span-2 space-y-4">
                     {actions?.map((action) => (
-                        <Card key={action.id} className={action.type === 'core' ? 'border-green-200 bg-green-50' : ''}>
+                        <Card key={action.id} className={action.type === 'core' ? 'border-primary/20 bg-primary/5' : ''}>
                             <CardContent className="p-4 flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <form action={toggleAction}>
@@ -41,9 +41,9 @@ export default async function TodayPage() {
                                         <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
                                         <button type="submit" className="focus:outline-none">
                                             {action.completed ? (
-                                                <CheckCircle2 className={`h-6 w-6 ${action.type === 'core' ? 'text-green-600' : 'text-primary'}`} />
+                                                <CheckCircle2 className={`h-6 w-6 ${action.type === 'core' ? 'text-primary' : 'text-primary'}`} />
                                             ) : (
-                                                <Circle className={`h-6 w-6 ${action.type === 'core' ? 'text-green-600' : 'text-muted-foreground'}`} />
+                                                <Circle className={`h-6 w-6 ${action.type === 'core' ? 'text-primary' : 'text-muted-foreground'}`} />
                                             )}
                                         </button>
                                     </form>
@@ -52,7 +52,7 @@ export default async function TodayPage() {
                                             {action.title}
                                         </p>
                                         <div className="flex gap-2 text-xs text-muted-foreground">
-                                            <span className="capitalize px-1.5 py-0.5 rounded bg-black/5 font-medium text-black/60">
+                                            <span className="capitalize px-1.5 py-0.5 rounded bg-secondary font-medium text-secondary-foreground">
                                                 {dict.today.types[action.type as keyof typeof dict.today.types] || action.type}
                                             </span>
                                             <span>{dict.today.goalPrefix}{action.goals?.title}</span>
@@ -63,7 +63,7 @@ export default async function TodayPage() {
                         </Card>
                     ))}
                     {actions?.length === 0 && (
-                        <div className="text-center py-10 text-muted-foreground bg-white rounded-lg border border-dashed">
+                        <div className="text-center py-10 text-muted-foreground bg-card rounded-lg border border-dashed">
                             {dict.today.noActions}
                         </div>
                     )}

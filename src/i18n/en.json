@@ -23,6 +23,30 @@
 		"profile": "Profile",
 		"signOut": "Sign Out"
 	},
+	"landing": {
+		"hero": {
+			"badge": "Personal Growth OS v1.0",
+			"title": "Turn Ambition into Reality",
+			"subtitle": "Minimalist, Focused, Visualized. We redefined goal management to help you regain control in a complex world.",
+			"start": "Get Started",
+			"login": "Login"
+		},
+		"features": {
+			"focus": {
+				"title": "Laser Focus",
+				"desc": "Do only what matters today. Reject busywork and experience the efficiency of flow."
+			},
+			"growth": {
+				"title": "Visual Growth",
+				"desc": "See your progress every day. Make persistence addictive with intuitive data charts."
+			},
+			"insight": {
+				"title": "Deep Insights",
+				"desc": "Intelligent analysis based on behavioral data helps you optimize patterns and break through bottlenecks."
+			}
+		},
+		"footer": "© 2025 Goal System. All rights reserved."
+	},
 	"login": {
 		"title": "Login / Sign Up",
 		"description": "Enter your email below to login or create your account",

@@ -1,26 +1,139 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+:root {
+  /* Ceramic White / Deep Grey */
+  --background: hsl(0 0% 98%); /* #FAFAFA */
+  --foreground: hsl(217 19% 27%); /* #374151 */
+
+  /* Card: Pure White with Micro-border intent */
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(217 19% 27%);
+
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(217 19% 27%);
+
+  /* Electric Emerald */
+  --primary: hsl(161 94% 30%); /* #059669 */
+  --primary-foreground: hsl(0 0% 100%);
+
+  /* Aux Grey */
+  --secondary: hsl(220 13% 96%); /* #F3F4F6 */
+  --secondary-foreground: hsl(222.2 47.4% 11.2%);
+
+  --muted: hsl(210 40% 96.1%);
+  --muted-foreground: hsl(215 16% 47%); /* #6B7280 */
+
+  --accent: hsl(210 40% 96.1%);
+  --accent-foreground: hsl(222.2 47.4% 11.2%);
+
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(210 40% 98%);
+
+  /* Micro-border */
+  --border: hsl(214 32% 91%); /* #E2E8F0 */
+  --input: hsl(214 32% 91%);
+  --ring: hsl(161 94% 30%);
+
+  --radius: 0.5rem; /* 8px - Micro rounded */
+
+  /* Custom Design Spec Colors */
+  --color-emerald: #059669;
+  --color-blue-holographic: #3B82F6;
+  --color-purple-nebula: #8B5CF6;
+  --color-orange-vitality: #F97316;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Slate Grey / Light Text */
+    --background: hsl(222 47% 11%); /* #0F172A */
+    --foreground: hsl(210 40% 98%); /* #F8FAFC */
+
+    /* Card: Slightly lighter slate */
+    --card: hsl(215 28% 17%); /* #1E293B */
+    --card-foreground: hsl(210 40% 98%);
+
+    --popover: hsl(222 47% 11%);
+    --popover-foreground: hsl(210 40% 98%);
+
+    /* Electric Emerald Light Mode for Dark Background */
+    --primary: hsl(158 64% 52%); /* #34D399 */
+    --primary-foreground: hsl(222 47.4% 11.2%);
+
+    --secondary: hsl(217.2 32.6% 17.5%);
+    --secondary-foreground: hsl(210 40% 98%);
+
+    --muted: hsl(217.2 32.6% 17.5%);
+    --muted-foreground: hsl(215 20.2% 65.1%);
+
+    --accent: hsl(217.2 32.6% 17.5%);
+    --accent-foreground: hsl(210 40% 98%);
+
+    --destructive: hsl(0 62.8% 30.6%);
+    --destructive-foreground: hsl(210 40% 98%);
+
+    --border: hsl(217 33% 17%); /* #1E293B - blended */
+    --input: hsl(217.2 32.6% 17.5%);
+    --ring: hsl(158 64% 52%);
+    
+    /* Custom Design Spec Colors Dark Mode Adjustments if needed */
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
 }

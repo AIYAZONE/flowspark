@@ -37,15 +37,15 @@ export function ScoreTrendChart({ data, title }: { data: { date: string, score: 
                 ticks={[0, 1, 2, 3, 4, 5]}
               />
               <Tooltip
-                contentStyle={{ background: '#fff', border: '1px solid #ccc', borderRadius: '4px' }}
-                labelStyle={{ color: '#333' }}
+                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+                labelStyle={{ color: 'hsl(var(--foreground))' }}
               />
               <Line
                 type="monotone"
                 dataKey="score"
-                stroke="#10B981"
+                stroke="hsl(var(--primary))"
                 strokeWidth={2}
-                dot={{ r: 4, fill: "#10B981" }}
+                dot={{ r: 4, fill: "hsl(var(--primary))" }}
                 activeDot={{ r: 6 }}
               />
             </LineChart>
