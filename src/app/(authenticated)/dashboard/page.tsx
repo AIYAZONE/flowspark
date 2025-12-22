@@ -76,30 +76,30 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {/* Core Action Card */}
-        <Card className="col-span-2 bg-green-50 border-green-200">
+        <Card className="col-span-2 bg-primary/5 border-primary/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-medium text-green-900">{dict.dashboard.todayCoreAction}</CardTitle>
+            <CardTitle className="text-lg font-medium text-primary">{dict.dashboard.todayCoreAction}</CardTitle>
           </CardHeader>
           <CardContent>
             {coreAction ? (
               <div className="flex items-center justify-between">
-                <span className="text-xl font-semibold text-green-800">{coreAction.title}</span>
+                <span className="text-xl font-semibold text-foreground">{coreAction.title}</span>
                 <form action={toggleAction}>
                   <input type="hidden" name="id" value={coreAction.id} />
                   <input type="hidden" name="completed" value={coreAction.completed ? 'true' : 'false'} />
                   <Button
                     size="icon"
                     variant={coreAction.completed ? "default" : "outline"}
-                    className={coreAction.completed ? "bg-green-600 hover:bg-green-700" : "border-green-600 text-green-600 hover:bg-green-100"}
+                    className={coreAction.completed ? "bg-primary hover:bg-primary/90" : "border-primary text-primary hover:bg-primary/10"}
                   >
                     {coreAction.completed ? <CheckCircle2 className="h-6 w-6" /> : <Circle className="h-6 w-6" />}
                   </Button>
                 </form>
               </div>
             ) : (
-              <div className="text-green-700">
+              <div className="text-muted-foreground">
                 {dict.dashboard.noCoreAction}
-                <Button variant="link" className="px-0 text-green-800 underline">{dict.dashboard.setCoreAction}</Button>
+                <Button variant="link" className="px-0 text-primary underline">{dict.dashboard.setCoreAction}</Button>
               </div>
             )}
           </CardContent>
