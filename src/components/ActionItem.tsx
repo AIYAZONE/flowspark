@@ -122,7 +122,7 @@ export function ActionItem({ action, dict, showGoalTitle = false }: ActionItemPr
         )
     }
 
-    const isDelayed = new Date(action.action_date) < new Date(new Date().toISOString().split('T')[0]) && !action.completed
+    const isDelayed = new Date(action.start_date) < new Date(new Date().toISOString().split('T')[0]) && !action.completed
 
     return (
         <div className="group flex items-center justify-between p-4 border rounded-lg hover:border-primary/20 hover:bg-muted/30 transition-all">
@@ -152,9 +152,9 @@ export function ActionItem({ action, dict, showGoalTitle = false }: ActionItemPr
                             {dict.today.types[action.type as keyof typeof dict.today.types] || action.type}
                         </span>
                         <span>
-                            {format(new Date(action.start_date), 'MMM d')} - {format(new Date(action.end_date ?? action.start_date), 'MMM d')}
+                            {format(new Date(action.start_date), 'yyyy-MM-dd')} - {format(new Date(action.end_date ?? action.start_date), 'yyyy-MM-dd')}
                         </span>
-                        {showGoalTitle && action.goals?.title && (
+                        {action.goals?.title && (
                             <span>• {dict.today.goalPrefix}{action.goals.title}</span>
                         )}
                     </div>
