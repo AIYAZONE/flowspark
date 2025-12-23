@@ -6,21 +6,35 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 
 export async function login(formData: FormData) {
-	const supabase = await createClient();
+	try {
+		const supabase = await createClient();
 
-	const email = formData.get('email') as string;
-	const password = formData.get('password') as string;
+		const email = formData.get('email') as string;
+		const password = formData.get('password') as string;
 
-	const { error } = await supabase.auth.signInWithPassword({
-		email,
-		password
-	});
+		if (!email || !password) {
+			redirect('/login?error=' + encodeURIComponent('Email and password are required'));
+		}
 
-	if (error) {
-		redirect('/login?error=' + encodeURIComponent(error.message));
+		const { error } = await supabase.auth.signInWithPassword({
+			email,
+			password
+		});
+
+		if (error) {
+			console.error('Login error:', error);
+			redirect('/login?error=' + encodeURIComponent(error.message));
+		}
+
+		revalidatePath('/', 'layout');
+	} catch (error) {
+		console.error('Unexpected error during login:', error);
+		if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) {
+			throw error;
+		}
+		redirect('/login?error=' + encodeURIComponent('An unexpected error occurred'));
 	}
-
-	revalidatePath('/', 'layout');
+	
 	redirect('/dashboard');
 }
 
