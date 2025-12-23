@@ -82,13 +82,16 @@
 		"actionTitleLabel": "Action Title",
 		"actionTitlePlaceholder": "What to do?",
 		"typeLabel": "Type",
+        "startTime": "Start Date",
+        "endTime": "End Date",
 		"types": {
 			"core": "Core",
 			"maintain": "Maintain",
 			"explore": "Explore"
 		},
 		"addActionBtn": "Add Action",
-		"goalPrefix": "Goal: "
+		"goalPrefix": "Goal: ",
+		"delayed": "Delayed"
 	},
 	"goals": {
 		"title": "Goals",

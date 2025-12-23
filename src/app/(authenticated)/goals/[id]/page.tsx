@@ -1,5 +1,6 @@
 import { format } from 'date-fns'
-import { Plus, CheckCircle2, Circle } from 'lucide-react'
+import { Plus, CheckCircle2, Circle, ArrowLeft } from 'lucide-react'
+import Link from 'next/link'
 
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
@@ -9,6 +10,9 @@ import { Label } from '@/components/ui/label'
 import { createAction } from '../actions'
 import { toggleAction } from '../../dashboard/actions'
 import { getDictionary } from '@/i18n/get-dictionary'
+
+import { GoalDetailsCard } from '@/components/GoalDetailsCard'
+import { ActionItem } from '@/components/ActionItem'
 
 export default async function GoalDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -29,12 +33,26 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
         .from('actions')
         .select('*')
         .eq('goal_id', id)
-        .order('action_date', { ascending: true })
+        .order('start_date', { ascending: true })
 
     return (
         <div className="space-y-6">
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold tracking-tight">{goal.title}</h1>
+                <div className="flex items-center gap-4">
+                    <Link href="/goals">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                        >
+                            <div className="rounded-full bg-background/80 p-1 group-hover:bg-background transition-colors">
+                                <ArrowLeft className="h-4 w-4" />
+                            </div>
+                            <span className="text-sm font-medium">{dict.common.back}</span>
+                        </Button>
+                    </Link>
+                    <h1 className="text-3xl font-bold tracking-tight">{goal.title}</h1>
+                </div>
                 <div className="flex gap-2">
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${goal.status === 'active' ? 'bg-primary/10 text-primary' :
                         goal.status === 'completed' ? 'bg-blue-500/10 text-blue-500' :
@@ -48,35 +66,7 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
             <div className="grid gap-6 md:grid-cols-3">
                 {/* Goal Info */}
                 <div className="md:col-span-2 space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{dict.goals.detail.details}</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div>
-                                <h3 className="font-semibold text-sm text-muted-foreground">{dict.goals.detail.description}</h3>
-                                <p className="mt-1">{goal.description}</p>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <h3 className="font-semibold text-sm text-muted-foreground">{dict.goals.detail.startDate}</h3>
-                                    <p className="mt-1">{format(new Date(goal.start_date), 'PPP')}</p>
-                                </div>
-                                <div>
-                                    <h3 className="font-semibold text-sm text-muted-foreground">{dict.goals.detail.endDate}</h3>
-                                    <p className="mt-1">{format(new Date(goal.end_date), 'PPP')}</p>
-                                </div>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-sm text-muted-foreground">{dict.goals.detail.successCriteria}</h3>
-                                <p className="mt-1 whitespace-pre-wrap">{goal.success_criteria}</p>
-                            </div>
-                            <div>
-                                <h3 className="font-semibold text-sm text-muted-foreground">{dict.goals.detail.abandonCriteria}</h3>
-                                <p className="mt-1 whitespace-pre-wrap">{goal.stop_criteria}</p>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    <GoalDetailsCard goal={goal} dict={dict} />
 
                     <Card>
                         <CardHeader>
@@ -85,30 +75,7 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
                         <CardContent>
                             <div className="space-y-4">
                                 {actions?.map((action) => (
-                                    <div key={action.id} className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <form action={toggleAction}>
-                                                <input type="hidden" name="id" value={action.id} />
-                                                <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
-                                                <button type="submit" className="focus:outline-none">
-                                                    {action.completed ? (
-                                                        <CheckCircle2 className="h-5 w-5 text-primary" />
-                                                    ) : (
-                                                        <Circle className="h-5 w-5 text-muted-foreground" />
-                                                    )}
-                                                </button>
-                                            </form>
-                                            <div>
-                                                <p className={`font-medium ${action.completed ? 'line-through text-muted-foreground' : ''}`}>
-                                                    {action.title}
-                                                </p>
-                                                <div className="flex gap-2 text-xs text-muted-foreground">
-                                                    <span>{format(new Date(action.action_date), 'MMM d')}</span>
-                                                    <span className="capitalize">• {dict.today.types[action.type as keyof typeof dict.today.types] || action.type}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <ActionItem key={action.id} action={action} dict={dict} />
                                 ))}
                                 {actions?.length === 0 && (
                                     <div className="text-center py-6 text-muted-foreground">
@@ -148,15 +115,25 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
                                     </select>
                                 </div>
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="action_date">{dict.goals.detail.date}</Label>
-                                    <Input
-                                        id="action_date"
-                                        name="action_date"
-                                        type="date"
-                                        defaultValue={new Date().toISOString().split('T')[0]}
-                                        required
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="start_date">{dict.today.startTime}</Label>
+                                        <Input
+                                            id="start_date"
+                                            name="start_date"
+                                            type="date"
+                                            defaultValue={new Date().toISOString().split('T')[0]}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="end_date">{dict.today.endTime}</Label>
+                                        <Input
+                                            id="end_date"
+                                            name="end_date"
+                                            type="date"
+                                        />
+                                    </div>
                                 </div>
 
                                 <Button type="submit" className="w-full">
