@@ -82,13 +82,16 @@
 		"actionTitleLabel": "行动标题",
 		"actionTitlePlaceholder": "要做什么？",
 		"typeLabel": "类型",
+        "startTime": "开始日期",
+        "endTime": "结束日期",
 		"types": {
 			"core": "核心",
 			"maintain": "维持",
 			"explore": "探索"
 		},
 		"addActionBtn": "添加行动",
-		"goalPrefix": "目标: "
+		"goalPrefix": "目标: ",
+		"delayed": "已延期"
 	},
 	"goals": {
 		"title": "目标列表",

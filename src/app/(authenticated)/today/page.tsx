@@ -9,6 +9,8 @@ import { toggleAction } from '../dashboard/actions'
 import { createAction } from '../goals/actions'
 import { getDictionary } from '@/i18n/get-dictionary'
 
+import { ActionItem } from '@/components/ActionItem'
+
 export default async function TodayPage() {
     const supabase = await createClient()
     const dict = await getDictionary()
@@ -17,7 +19,8 @@ export default async function TodayPage() {
     const { data: actions } = await supabase
         .from('actions')
         .select('*, goals(title)')
-        .eq('action_date', today)
+        .or(`start_date.eq.${today},and(start_date.lt.${today},completed.eq.false)`)
+        .order('start_date', { ascending: true })
         .order('type', { ascending: true }) // core first
 
     const { data: activeGoals } = await supabase
@@ -33,34 +36,7 @@ export default async function TodayPage() {
                 {/* Actions List */}
                 <div className="md:col-span-2 space-y-4">
                     {actions?.map((action) => (
-                        <Card key={action.id} className={action.type === 'core' ? 'border-primary/20 bg-primary/5' : ''}>
-                            <CardContent className="p-4 flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <form action={toggleAction}>
-                                        <input type="hidden" name="id" value={action.id} />
-                                        <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
-                                        <button type="submit" className="focus:outline-none">
-                                            {action.completed ? (
-                                                <CheckCircle2 className={`h-6 w-6 ${action.type === 'core' ? 'text-primary' : 'text-primary'}`} />
-                                            ) : (
-                                                <Circle className={`h-6 w-6 ${action.type === 'core' ? 'text-primary' : 'text-muted-foreground'}`} />
-                                            )}
-                                        </button>
-                                    </form>
-                                    <div>
-                                        <p className={`font-medium ${action.completed ? 'line-through text-muted-foreground' : ''}`}>
-                                            {action.title}
-                                        </p>
-                                        <div className="flex gap-2 text-xs text-muted-foreground">
-                                            <span className="capitalize px-1.5 py-0.5 rounded bg-secondary font-medium text-secondary-foreground">
-                                                {dict.today.types[action.type as keyof typeof dict.today.types] || action.type}
-                                            </span>
-                                            <span>{dict.today.goalPrefix}{action.goals?.title}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={true} />
                     ))}
                     {actions?.length === 0 && (
                         <div className="text-center py-10 text-muted-foreground bg-card rounded-lg border border-dashed">
@@ -77,7 +53,6 @@ export default async function TodayPage() {
                         </CardHeader>
                         <CardContent>
                             <form action={createAction} className="space-y-4">
-                                <input type="hidden" name="action_date" value={today} />
 
                                 <div className="grid gap-2">
                                     <Label htmlFor="goal_id">{dict.today.goalLabel}</Label>
@@ -112,6 +87,23 @@ export default async function TodayPage() {
                                         <option value="maintain">{dict.today.types.maintain}</option>
                                         <option value="explore">{dict.today.types.explore}</option>
                                     </select>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="start_date">{dict.today.startTime}</Label>
+                                        <Input
+                                            id="start_date"
+                                            name="start_date"
+                                            type="date"
+                                            defaultValue={today}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="end_date">{dict.today.endTime}</Label>
+                                        <Input id="end_date" name="end_date" type="date" />
+                                    </div>
                                 </div>
 
                                 <Button type="submit" className="w-full">

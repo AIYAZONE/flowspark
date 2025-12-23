@@ -1,0 +1,175 @@
+'use client'
+
+import { useState } from 'react'
+import { format } from 'date-fns'
+import { CheckCircle2, Circle, Pencil, Save, X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { toggleAction } from '@/app/(authenticated)/dashboard/actions'
+import { updateAction } from '@/app/(authenticated)/goals/actions'
+import type en from '@/i18n/en.json'
+
+interface Action {
+    id: string
+    title: string
+    completed: boolean
+    type: string
+    start_date: string
+    end_date?: string | null
+    goal_id: string
+    goals?: {
+        title: string
+    } | null
+}
+
+interface ActionItemProps {
+    action: Action
+    dict: typeof en
+    showGoalTitle?: boolean
+}
+
+export function ActionItem({ action, dict, showGoalTitle = false }: ActionItemProps) {
+    const [isEditing, setIsEditing] = useState(false)
+    const [isLoading, setIsLoading] = useState(false)
+
+    async function handleUpdate(formData: FormData) {
+        setIsLoading(true)
+        try {
+            await updateAction(formData)
+            setIsEditing(false)
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    if (isEditing) {
+        return (
+            <div className="p-4 border rounded-lg bg-background/50 backdrop-blur-sm border-primary/20">
+                <form action={handleUpdate} className="space-y-4">
+                    <input type="hidden" name="id" value={action.id} />
+                    <input type="hidden" name="goal_id" value={action.goal_id} />
+
+                    <div className="flex gap-2">
+                        <Input
+                            name="title"
+                            defaultValue={action.title}
+                            required
+                            className="flex-1 bg-background/50"
+                            placeholder={dict.today.actionTitlePlaceholder}
+                        />
+                        <select
+                            name="type"
+                            defaultValue={action.type}
+                            className="flex h-10 w-[120px] items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            <option value="core">{dict.today.types.core}</option>
+                            <option value="maintain">{dict.today.types.maintain}</option>
+                            <option value="explore">{dict.today.types.explore}</option>
+                        </select>
+                    </div>
+
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <Label htmlFor="start_date" className="text-xs text-muted-foreground mb-1 block">{dict.today.startTime}</Label>
+                            <Input
+                                id="start_date"
+                                type="date"
+                                name="start_date"
+                                defaultValue={new Date(action.start_date).toISOString().split('T')[0]}
+                                required
+                                className="bg-background/50"
+                                placeholder={dict.today.startTime}
+                            />
+                        </div>
+                        <div className="flex-1">
+                            <Label htmlFor="end_date" className="text-xs text-muted-foreground mb-1 block">{dict.today.endTime}</Label>
+                            <Input
+                                id="end_date"
+                                type="date"
+                                name="end_date"
+                                defaultValue={(action.end_date ? new Date(action.end_date) : new Date(action.start_date)).toISOString().split('T')[0]}
+                                className="bg-background/50"
+                                placeholder={dict.today.endTime}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setIsEditing(false)}
+                            disabled={isLoading}
+                        >
+                            <X className="h-4 w-4 mr-1" />
+                            {dict.common.cancel}
+                        </Button>
+                        <Button
+                            type="submit"
+                            size="sm"
+                            disabled={isLoading}
+                        >
+                            <Save className="h-4 w-4 mr-1" />
+                            {dict.common.save}
+                        </Button>
+                    </div>
+                </form>
+            </div>
+        )
+    }
+
+    const isDelayed = new Date(action.action_date) < new Date(new Date().toISOString().split('T')[0]) && !action.completed
+
+    return (
+        <div className="group flex items-center justify-between p-4 border rounded-lg hover:border-primary/20 hover:bg-muted/30 transition-all">
+            <div className="flex items-center gap-3 flex-1">
+                <form action={toggleAction}>
+                    <input type="hidden" name="id" value={action.id} />
+                    <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
+                    <button type="submit" className="focus:outline-none transition-transform hover:scale-110">
+                        {action.completed ? (
+                            <CheckCircle2 className={`h-5 w-5 ${action.type === 'core' ? 'text-primary' : 'text-primary'}`} />
+                        ) : (
+                            <Circle className={`h-5 w-5 ${action.type === 'core' ? 'text-primary' : 'text-muted-foreground'}`} />
+                        )}
+                    </button>
+                </form>
+                <div className="flex-1">
+                    <p className={`font-medium ${action.completed ? 'line-through text-muted-foreground' : ''}`}>
+                        {action.title}
+                    </p>
+                    <div className="flex gap-2 text-xs text-muted-foreground items-center mt-1">
+                        {isDelayed && (
+                            <span className="px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-medium">
+                                {dict.today.delayed}
+                            </span>
+                        )}
+                        <span className="capitalize px-1.5 py-0.5 rounded bg-secondary font-medium text-secondary-foreground">
+                            {dict.today.types[action.type as keyof typeof dict.today.types] || action.type}
+                        </span>
+                        <span>
+                            {format(new Date(action.start_date), 'MMM d')} - {format(new Date(action.end_date ?? action.start_date), 'MMM d')}
+                        </span>
+                        {showGoalTitle && action.goals?.title && (
+                            <span>• {dict.today.goalPrefix}{action.goals.title}</span>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsEditing(true)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary h-8 w-8"
+            >
+                <Pencil className="h-4 w-4" />
+                <span className="sr-only">{dict.common.edit}</span>
+            </Button>
+        </div>
+    )
+}
