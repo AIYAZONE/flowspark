@@ -11,12 +11,12 @@ export function ScoreTrendChart({ data, title }: { data: { date: string, score: 
     const date = subDays(today, 29 - i)
     const dateStr = format(date, 'yyyy-MM-dd')
     const dataPoint = data.find(d => {
-      // Handle both ISO strings and YYYY-MM-DD
-      const dDate = d.date.includes('T') ? parseISO(d.date) : parseISO(d.date + 'T00:00:00')
-      // simpler: just compare string if we know format, but safe is check same day
-      return isSameDay(parseISO(d.date), date)
+        // Handle both ISO strings and YYYY-MM-DD
+        const dDate = d.date.includes('T') ? parseISO(d.date) : parseISO(d.date + 'T00:00:00') 
+        // simpler: just compare string if we know format, but safe is check same day
+        return isSameDay(parseISO(d.date), date)
     })
-
+    
     return {
       date: dateStr,
       score: dataPoint ? dataPoint.score : undefined

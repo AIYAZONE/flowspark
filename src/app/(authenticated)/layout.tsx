@@ -20,7 +20,7 @@ export default async function AuthenticatedLayout({
   }
 
   return (
-    <div className="flex h-screen w-full">
+    <div className="flex h-screen w-full overflow-x-hidden">
       <Sidebar dict={dict} />
       <main className="flex-1 overflow-auto bg-gray-50 p-6">
         {children}

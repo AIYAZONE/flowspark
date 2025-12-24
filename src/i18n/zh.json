@@ -12,6 +12,7 @@
 		"submit": "提交",
 		"error": "错误",
 		"success": "成功",
+		"confirmDelete": "您确定要删除吗？此操作无法撤销。",
 		"noDescription": "无描述",
 		"timeProgress": "时间进度"
 	},

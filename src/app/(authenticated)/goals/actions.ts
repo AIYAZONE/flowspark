@@ -180,3 +180,66 @@ export async function updateAction(formData: FormData) {
 		revalidatePath(`/goals/${goal_id}`);
 	}
 }
+
+export async function deleteAction(formData: FormData) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) return;
+
+	const id = formData.get('id') as string;
+	const goal_id = formData.get('goal_id') as string | null;
+
+	const { error } = await supabase
+		.from('actions')
+		.delete()
+		.eq('id', id)
+		.eq('user_id', user.id);
+
+	if (error) {
+		console.error('Error deleting action:', error);
+		throw new Error('Failed to delete action');
+	}
+
+	revalidatePath('/dashboard');
+	revalidatePath('/today');
+	if (goal_id) revalidatePath(`/goals/${goal_id}`);
+}
+
+export async function deleteGoal(formData: FormData) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) return;
+
+	const id = formData.get('id') as string;
+
+	const { error: deleteActionsError } = await supabase
+		.from('actions')
+		.delete()
+		.eq('goal_id', id)
+		.eq('user_id', user.id);
+
+	if (deleteActionsError) {
+		console.error('Error deleting goal actions:', deleteActionsError);
+		throw new Error('Failed to delete goal actions');
+	}
+
+	const { error: deleteGoalError } = await supabase
+		.from('goals')
+		.delete()
+		.eq('id', id)
+		.eq('user_id', user.id);
+
+	if (deleteGoalError) {
+		console.error('Error deleting goal:', deleteGoalError);
+		throw new Error('Failed to delete goal');
+	}
+
+	revalidatePath('/dashboard');
+	revalidatePath('/today');
+	revalidatePath('/goals');
+	redirect('/goals');
+}

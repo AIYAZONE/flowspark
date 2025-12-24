@@ -1,13 +1,33 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Target, CalendarCheck, User, LogOut } from 'lucide-react'
+import { LayoutDashboard, Target, CalendarCheck, User, LogOut, ChevronLeft, ChevronRight, Aperture } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+
+function SidebarFloatingTooltip({ label, top, left }: { label: string; top: number; left: number }) {
+  return (
+    <div className="pointer-events-none fixed z-50" style={{ top, left }}>
+      <div className="relative -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-xs font-medium text-popover-foreground shadow-md">
+        {label}
+        <div className="absolute left-[-4px] top-1/2 h-2 w-2 -translate-y-1/2 rotate-45 border-b border-l border-border bg-popover" />
+      </div>
+    </div>
+  )
+}
+
+function BrandMark() {
+  return (
+    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 shadow-sm">
+      <Aperture className="h-5 w-5 text-primary" strokeWidth={2} />
+    </div>
+  )
+}
 
 interface SidebarProps {
   dict: {
@@ -26,6 +46,19 @@ export function Sidebar({ dict }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
+  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [tooltip, setTooltip] = useState<{ label: string; top: number; left: number } | null>(null)
+
+  const showTooltip = (label: string, el: HTMLElement) => {
+    const rect = el.getBoundingClientRect()
+    setTooltip({
+      label,
+      top: rect.top + rect.height / 2,
+      left: rect.right + 12,
+    })
+  }
+
+  const hideTooltip = () => setTooltip(null)
 
   const sidebarItems = [
     {
@@ -57,15 +90,44 @@ export function Sidebar({ dict }: SidebarProps) {
   }
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r border-border/40 bg-background/95 backdrop-blur-xl">
-      <div className="flex h-16 items-center border-b border-border/40 px-6">
-        <Link href="/dashboard" className="flex items-center gap-2 font-bold text-lg tracking-tight text-primary">
-          <Target className="h-6 w-6" strokeWidth={2} />
-          <span>{dict.sidebar.brand}</span>
+    <div
+      className={cn(
+        "flex h-screen flex-col border-r border-border/40 bg-background/95 backdrop-blur-xl transition-all duration-300 ease-in-out relative",
+        isCollapsed ? "w-16" : "w-64"
+      )}
+    >
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        className="absolute -right-3 top-1/2 z-50 h-8 w-8 -translate-y-1/2 rounded-full border-border/60 bg-background p-0 shadow-sm hover:bg-muted"
+        onClick={() => {
+          setTooltip(null)
+          setIsCollapsed(v => !v)
+        }}
+        aria-label="Toggle sidebar"
+      >
+        {isCollapsed ? <ChevronRight className="block h-4 w-4" /> : <ChevronLeft className="block h-4 w-4" />}
+      </Button>
+
+      <div className={cn(
+        "flex h-16 items-center border-b border-border/40 px-4",
+        isCollapsed ? "justify-center" : "px-6"
+      )}>
+        <Link
+          href="/dashboard"
+          className={cn(
+            "flex items-center font-bold text-lg tracking-tight text-primary overflow-hidden whitespace-nowrap",
+            isCollapsed ? "justify-center" : "gap-2"
+          )}
+        >
+          <BrandMark />
+          {!isCollapsed && <span>{dict.sidebar.brand}</span>}
         </Link>
       </div>
-      <div className="flex-1 overflow-auto py-4">
-        <nav className="grid items-start px-3 text-sm font-medium gap-1">
+
+      <div className="flex-1 overflow-y-auto overflow-x-hidden py-4" onScroll={() => setTooltip(null)}>
+        <nav className="grid items-start px-2 text-sm font-medium gap-1">
           {sidebarItems.map((item, index) => {
             const isActive = pathname.startsWith(item.href)
             return (
@@ -74,35 +136,61 @@ export function Sidebar({ dict }: SidebarProps) {
                 href={item.href}
                 prefetch={false}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2.5 transition-all duration-200 group",
+                  "group relative flex items-center rounded-md transition-all duration-200",
+                  isCollapsed ? "mx-auto h-10 w-12 justify-center" : "gap-3 px-3 py-2.5",
                   isActive
                     ? "bg-primary/10 text-primary font-semibold"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
+                onMouseEnter={(e) => {
+                  if (!isCollapsed) return
+                  showTooltip(item.title, e.currentTarget)
+                }}
+                onMouseLeave={hideTooltip}
+                onClick={hideTooltip}
               >
-                <item.icon 
+                <item.icon
                   className={cn(
-                    "h-5 w-5 transition-colors",
+                    "h-5 w-5 shrink-0 transition-colors",
                     isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground"
-                  )} 
-                  strokeWidth={1.5} 
+                  )}
+                  strokeWidth={1.5}
                 />
-                {item.title}
+                {!isCollapsed && <span className="whitespace-nowrap">{item.title}</span>}
               </Link>
             )
           })}
         </nav>
       </div>
-      <div className="border-t border-border/40 p-4">
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-muted" 
-          onClick={handleSignOut}
-        >
-          <LogOut className="h-4 w-4" strokeWidth={1.5} />
-          {dict.sidebar.signOut}
-        </Button>
+
+      <div className="border-t border-border/40 p-2 space-y-2">
+        {isCollapsed ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="group relative mx-auto h-10 w-12 text-muted-foreground hover:text-foreground hover:bg-muted"
+            onClick={handleSignOut}
+            onMouseEnter={(e) => showTooltip(dict.sidebar.signOut, e.currentTarget)}
+            onMouseLeave={hideTooltip}
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+          </Button>
+        ) : (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-start gap-2 px-4 text-muted-foreground hover:text-foreground hover:bg-muted"
+            onClick={handleSignOut}
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            <span className="whitespace-nowrap">{dict.sidebar.signOut}</span>
+          </Button>
+        )}
       </div>
+
+      {isCollapsed && tooltip && (
+        <SidebarFloatingTooltip label={tooltip.label} top={tooltip.top} left={tooltip.left} />
+      )}
     </div>
   )
 }
