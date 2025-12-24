@@ -1,5 +1,4 @@
-import { format } from 'date-fns'
-import { Plus, CheckCircle2, Circle, ArrowLeft } from 'lucide-react'
+import { Plus, ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 import { createClient } from '@/lib/supabase/server'
@@ -8,12 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createAction } from '../actions'
-import { toggleAction } from '../../dashboard/actions'
 import { getDictionary } from '@/i18n/get-dictionary'
 
 import { GoalDetailsCard } from '@/components/GoalDetailsCard'
 import { ActionItem } from '@/components/ActionItem'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
+import { DeleteGoalButton } from '@/components/DeleteGoalButton'
 
 export default async function GoalDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -54,11 +53,12 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
                     </Link>
                     <h1 className="text-3xl font-bold tracking-tight">{goal.title}</h1>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                     <GoalStatusBadge
                         status={goal.status}
                         label={dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
                     />
+                    <DeleteGoalButton id={goal.id} title={goal.title} dict={dict} />
                 </div>
             </div>
 

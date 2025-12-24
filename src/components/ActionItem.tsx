@@ -2,12 +2,23 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { CheckCircle2, Circle, Pencil, Save, X } from 'lucide-react'
+import { CheckCircle2, Circle, Pencil, Save, Trash2, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { toggleAction } from '@/app/(authenticated)/dashboard/actions'
-import { updateAction } from '@/app/(authenticated)/goals/actions'
+import { deleteAction, updateAction } from '@/app/(authenticated)/goals/actions'
 import type en from '@/i18n/en.json'
 
 interface Action {
@@ -38,6 +49,20 @@ export function ActionItem({ action, dict, showGoalTitle = false }: ActionItemPr
         try {
             await updateAction(formData)
             setIsEditing(false)
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    async function handleDelete() {
+        setIsLoading(true)
+        try {
+            const formData = new FormData()
+            formData.set('id', action.id)
+            formData.set('goal_id', action.goal_id)
+            await deleteAction(formData)
         } catch (error) {
             console.error(error)
         } finally {
@@ -162,14 +187,45 @@ export function ActionItem({ action, dict, showGoalTitle = false }: ActionItemPr
             </div>
 
             <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsEditing(true)}
                 className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary h-8 w-8"
+                disabled={isLoading}
             >
                 <Pencil className="h-4 w-4" />
                 <span className="sr-only">{dict.common.edit}</span>
             </Button>
+
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive h-8 w-8"
+                        disabled={isLoading}
+                    >
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">{dict.common.delete || '删除'}</span>
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{dict.common.delete} {action.title}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {dict.common.confirmDelete}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{dict.common.cancel}</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            {dict.common.delete || '删除'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

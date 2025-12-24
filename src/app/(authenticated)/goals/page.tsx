@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
+import { DeleteGoalButton } from '@/components/DeleteGoalButton'
 
 export default async function GoalsPage() {
   const supabase = await createClient()
@@ -31,19 +32,25 @@ export default async function GoalsPage() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {goals?.map((goal) => (
-          <Link href={`/goals/${goal.id}`} key={goal.id} className="block h-full">
-            <Card className="h-full transition-colors hover:bg-muted/50 cursor-pointer">
-              <CardHeader>
-                <div className="flex justify-between items-start gap-4">
-                  <CardTitle className="text-xl leading-normal">{goal.title}</CardTitle>
+          <Card key={goal.id} className="group h-full transition-colors hover:bg-muted/50">
+            <CardHeader>
+              <div className="flex justify-between items-start gap-4">
+                <Link href={`/goals/${goal.id}`} className="flex-1 min-w-0">
+                  <CardTitle className="text-xl leading-normal hover:underline underline-offset-4">
+                    {goal.title}
+                  </CardTitle>
+                </Link>
+                <div className="flex items-center gap-2 shrink-0">
                   <GoalStatusBadge
-                    className="shrink-0"
                     status={goal.status}
                     label={dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
                   />
+                  <DeleteGoalButton id={goal.id} title={goal.title} dict={dict} />
                 </div>
-              </CardHeader>
-              <CardContent>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Link href={`/goals/${goal.id}`} className="block">
                 <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
                   {goal.description || dict.common.noDescription}
                 </p>
@@ -51,9 +58,9 @@ export default async function GoalsPage() {
                   <div>{dict.goals.start}: {format(new Date(goal.start_date), 'MMM d, yyyy')}</div>
                   <div>{dict.goals.end}: {format(new Date(goal.end_date), 'MMM d, yyyy')}</div>
                 </div>
-              </CardContent>
-            </Card>
-          </Link>
+              </Link>
+            </CardContent>
+          </Card>
         ))}
         {goals?.length === 0 && (
           <div className="col-span-full flex flex-col items-center justify-center p-12 border-2 border-dashed rounded-lg bg-card text-muted-foreground">
