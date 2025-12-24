@@ -13,6 +13,7 @@ import { getDictionary } from '@/i18n/get-dictionary'
 
 import { GoalDetailsCard } from '@/components/GoalDetailsCard'
 import { ActionItem } from '@/components/ActionItem'
+import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 
 export default async function GoalDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params
@@ -54,12 +55,10 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
                     <h1 className="text-3xl font-bold tracking-tight">{goal.title}</h1>
                 </div>
                 <div className="flex gap-2">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${goal.status === 'active' ? 'bg-primary/10 text-primary' :
-                        goal.status === 'completed' ? 'bg-blue-500/10 text-blue-500' :
-                            'bg-muted text-muted-foreground'
-                        }`}>
-                        {dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
-                    </span>
+                    <GoalStatusBadge
+                        status={goal.status}
+                        label={dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
+                    />
                 </div>
             </div>
 

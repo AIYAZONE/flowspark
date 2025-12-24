@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getDictionary } from '@/i18n/get-dictionary'
+import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 
 export default async function GoalsPage() {
   const supabase = await createClient()
@@ -33,14 +34,13 @@ export default async function GoalsPage() {
           <Link href={`/goals/${goal.id}`} key={goal.id} className="block h-full">
             <Card className="h-full transition-colors hover:bg-muted/50 cursor-pointer">
               <CardHeader>
-                <div className="flex justify-between items-start">
-                  <CardTitle className="text-xl">{goal.title}</CardTitle>
-                  <span className={`text-xs px-2 py-1 rounded-full ${goal.status === 'active' ? 'bg-primary/10 text-primary' :
-                    goal.status === 'completed' ? 'bg-blue-500/10 text-blue-500' :
-                      'bg-muted text-muted-foreground'
-                    }`}>
-                    {dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
-                  </span>
+                <div className="flex justify-between items-start gap-4">
+                  <CardTitle className="text-xl leading-normal">{goal.title}</CardTitle>
+                  <GoalStatusBadge
+                    className="shrink-0"
+                    status={goal.status}
+                    label={dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
+                  />
                 </div>
               </CardHeader>
               <CardContent>

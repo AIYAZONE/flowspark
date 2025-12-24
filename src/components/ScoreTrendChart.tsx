@@ -1,12 +1,27 @@
 'use client'
 
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { subDays, format, isSameDay, parseISO } from "date-fns"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function ScoreTrendChart({ data, title }: { data: { date: string, score: number }[], title: string }) {
-  // Reverse data to show oldest to newest if needed, but assuming data passed is already sorted or needs sorting
-  // Recharts expects array.
-  const chartData = [...data].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+  // Generate last 30 days to ensure consistent X-axis spacing
+  const today = new Date()
+  const chartData = Array.from({ length: 30 }).map((_, i) => {
+    const date = subDays(today, 29 - i)
+    const dateStr = format(date, 'yyyy-MM-dd')
+    const dataPoint = data.find(d => {
+      // Handle both ISO strings and YYYY-MM-DD
+      const dDate = d.date.includes('T') ? parseISO(d.date) : parseISO(d.date + 'T00:00:00')
+      // simpler: just compare string if we know format, but safe is check same day
+      return isSameDay(parseISO(d.date), date)
+    })
+
+    return {
+      date: dateStr,
+      score: dataPoint ? dataPoint.score : undefined
+    }
+  })
 
   return (
     <Card className="col-span-4">
@@ -27,6 +42,7 @@ export function ScoreTrendChart({ data, title }: { data: { date: string, score: 
                   const date = new Date(value)
                   return `${date.getMonth() + 1}/${date.getDate()}`
                 }}
+                interval={4} // Show fewer ticks to avoid clutter
               />
               <YAxis
                 stroke="#888888"
@@ -47,6 +63,7 @@ export function ScoreTrendChart({ data, title }: { data: { date: string, score: 
                 strokeWidth={2}
                 dot={{ r: 4, fill: "hsl(var(--primary))" }}
                 activeDot={{ r: 6 }}
+                connectNulls
               />
             </LineChart>
           </ResponsiveContainer>
