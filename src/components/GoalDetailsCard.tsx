@@ -96,6 +96,20 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                             />
                         </div>
 
+                        <div className="space-y-2">
+                            <Label htmlFor="status">{dict.goals.status.label}</Label>
+                            <select
+                                id="status"
+                                name="status"
+                                defaultValue={goal.status}
+                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="active">{dict.goals.status.active}</option>
+                                <option value="completed">{dict.goals.status.completed}</option>
+                                <option value="abandoned">{dict.goals.status.abandoned}</option>
+                            </select>
+                        </div>
+
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
                                 <Label htmlFor="start_date">{dict.goals.detail.startDate}</Label>
