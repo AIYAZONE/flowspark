@@ -92,7 +92,7 @@ export function Sidebar({ dict }: SidebarProps) {
   return (
     <div
       className={cn(
-        "flex h-screen flex-col border-r border-border/40 bg-background/95 backdrop-blur-xl transition-all duration-300 ease-in-out relative",
+        "hidden md:flex h-screen flex-col border-r border-border/40 bg-background/95 backdrop-blur-xl transition-all duration-300 ease-in-out relative",
         isCollapsed ? "w-16" : "w-64"
       )}
     >

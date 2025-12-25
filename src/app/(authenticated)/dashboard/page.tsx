@@ -2,6 +2,7 @@ import { format, differenceInDays } from 'date-fns'
 import { CheckCircle2, Circle, Flame } from 'lucide-react'
 
 import { createClient } from '@/lib/supabase/server'
+import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ScoreTrendChart } from '@/components/ScoreTrendChart'
@@ -74,9 +75,9 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">{dict.dashboard.title}</h1>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {/* Core Action Card */}
-        <Card className="col-span-2 bg-primary/5 border-primary/20">
+        <Card className="col-span-1 sm:col-span-2 bg-primary/5 border-primary/20">
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium text-primary">{dict.dashboard.todayCoreAction}</CardTitle>
           </CardHeader>
@@ -106,24 +107,32 @@ export default async function DashboardPage() {
         </Card>
 
         {/* Daily Score Card */}
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="overflow-hidden relative shadow-sm hover:shadow-md transition-shadow">
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent pointer-events-none dark:from-blue-950/20" />
+          <CardHeader className="pb-2 relative">
             <CardTitle className="text-sm font-medium text-muted-foreground">{dict.dashboard.dailyScore}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {dailyScore !== undefined ? dailyScore : '-'} / 5
+          <CardContent className="relative">
+            <div className="flex items-baseline gap-1 mb-5">
+              <span className="text-4xl font-bold tracking-tight text-foreground">
+                {dailyScore !== undefined ? dailyScore : '-'}
+              </span>
+              <span className="text-muted-foreground font-medium text-lg">/ 5</span>
             </div>
-            <div className="mt-4 flex justify-between">
+            <div className="flex justify-between items-center gap-2">
               {[1, 2, 3, 4, 5].map((score) => (
-                <form key={score} action={submitScore}>
+                <form key={score} action={submitScore} className="flex-1">
                   <input type="hidden" name="score" value={score} />
                   <input type="hidden" name="date" value={today} />
                   <Button
                     type="submit"
                     variant={dailyScore === score ? "default" : "outline"}
-                    size="sm"
-                    className="h-8 w-8 p-0"
+                    className={cn(
+                      "w-full h-10 p-0 rounded-xl transition-all duration-200",
+                      dailyScore === score
+                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105 font-bold"
+                        : "hover:bg-primary/5 hover:text-primary hover:border-primary/30 text-muted-foreground font-medium"
+                    )}
                   >
                     {score}
                   </Button>
@@ -134,16 +143,24 @@ export default async function DashboardPage() {
         </Card>
 
         {/* Streak Card */}
-        <Card>
-          <CardHeader className="pb-2">
+        <Card className="overflow-hidden relative shadow-sm hover:shadow-md transition-shadow border-orange-200/40 dark:border-orange-900/40">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 to-transparent pointer-events-none dark:from-orange-950/20" />
+          <CardHeader className="pb-2 relative">
             <CardTitle className="text-sm font-medium text-muted-foreground">{dict.dashboard.currentStreak}</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Flame className="h-8 w-8 text-orange-500" />
-              <div className="text-2xl font-bold">{streak} {dict.dashboard.days}</div>
+          <CardContent className="relative">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-orange-100/80 dark:bg-orange-900/30 rounded-full ring-4 ring-orange-50 dark:ring-orange-900/10">
+                <Flame className="h-6 w-6 text-orange-500 fill-orange-500 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-3xl font-bold tracking-tight text-foreground">{streak}</span>
+                  <span className="text-sm font-medium text-muted-foreground">{dict.dashboard.days}</span>
+                </div>
+                <p className="text-xs text-muted-foreground/80 mt-1 font-medium">{dict.dashboard.keepMomentum}</p>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">{dict.dashboard.keepMomentum}</p>
           </CardContent>
         </Card>
 
@@ -153,7 +170,7 @@ export default async function DashboardPage() {
 
       {/* Active Goals Progress */}
       <h2 className="text-xl font-semibold mt-8 mb-4">{dict.dashboard.activeGoals}</h2>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {goals?.map((goal) => {
           const startDate = new Date(goal.start_date)
           const endDate = new Date(goal.end_date)
