@@ -105,6 +105,7 @@ export async function updateGoal(formData: FormData) {
 	const end_date = formData.get('end_date') as string;
 	const success_criteria = formData.get('success_criteria') as string;
 	const stop_criteria = formData.get('stop_criteria') as string;
+	const status = formData.get('status') as string;
 
 	const { error } = await supabase
 		.from('goals')
@@ -114,7 +115,8 @@ export async function updateGoal(formData: FormData) {
 			start_date,
 			end_date,
 			success_criteria,
-			stop_criteria
+			stop_criteria,
+			status
 		})
 		.eq('id', id)
 		.eq('user_id', user.id);
