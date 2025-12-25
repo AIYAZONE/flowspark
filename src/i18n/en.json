@@ -83,8 +83,8 @@
 		"actionTitleLabel": "Action Title",
 		"actionTitlePlaceholder": "What to do?",
 		"typeLabel": "Type",
-        "startTime": "Start Date",
-        "endTime": "End Date",
+		"startTime": "Start Date",
+		"endTime": "End Date",
 		"types": {
 			"core": "Core",
 			"maintain": "Maintain",
@@ -104,6 +104,22 @@
 			"active": "Active",
 			"completed": "Completed",
 			"abandoned": "Abandoned"
+		},
+		"priority": {
+			"label": "Priority",
+			"high": "High",
+			"medium": "Medium",
+			"low": "Low"
+		},
+		"category": {
+			"label": "Category",
+			"health": "Health",
+			"career": "Career",
+			"learning": "Learning",
+			"finance": "Finance",
+			"lifestyle": "Lifestyle",
+			"social": "Social",
+			"other": "Other"
 		},
 		"start": "Start",
 		"end": "End",

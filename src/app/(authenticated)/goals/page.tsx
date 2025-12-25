@@ -48,13 +48,36 @@ export default async function GoalsPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <Link href={`/goals/${goal.id}`} className="block">
-                <p className="text-sm text-muted-foreground line-clamp-3 mb-4">
+              <Link href={`/goals/${goal.id}`} className="block space-y-4">
+                <p className="text-sm text-muted-foreground line-clamp-2 h-10">
                   {goal.description || dict.common.noDescription}
                 </p>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <div>{dict.goals.start}: {format(new Date(goal.start_date), 'MMM d, yyyy')}</div>
-                  <div>{dict.goals.end}: {format(new Date(goal.end_date), 'MMM d, yyyy')}</div>
+
+                <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-4 rounded-lg bg-muted/40 p-4">
+                  <div className="space-y-1">
+                    <h3 className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.startDate}</h3>
+                    <p className="text-xs font-medium text-foreground/90 font-mono">
+                      {format(new Date(goal.start_date), 'yyyy-MM-dd')}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.endDate}</h3>
+                    <p className="text-xs font-medium text-foreground/90 font-mono">
+                      {format(new Date(goal.end_date), 'yyyy-MM-dd')}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.priority.label}</h3>
+                    <p className="text-xs font-medium text-foreground/90 capitalize">
+                      {dict.goals.priority[goal.priority as keyof typeof dict.goals.priority] || goal.priority || dict.goals.priority.medium}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.category.label}</h3>
+                    <p className="text-xs font-medium text-foreground/90 capitalize">
+                      {dict.goals.category[goal.category as keyof typeof dict.goals.category] || goal.category || dict.goals.category.other}
+                    </p>
+                  </div>
                 </div>
               </Link>
             </CardContent>

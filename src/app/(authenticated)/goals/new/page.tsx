@@ -36,6 +36,38 @@ export default async function NewGoalPage() {
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
+                    <Label htmlFor="category">{dict.goals.category.label}</Label>
+                    <select 
+                        id="category" 
+                        name="category" 
+                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <option value="other">{dict.goals.category.other}</option>
+                        <option value="health">{dict.goals.category.health}</option>
+                        <option value="career">{dict.goals.category.career}</option>
+                        <option value="learning">{dict.goals.category.learning}</option>
+                        <option value="finance">{dict.goals.category.finance}</option>
+                        <option value="lifestyle">{dict.goals.category.lifestyle}</option>
+                        <option value="social">{dict.goals.category.social}</option>
+                    </select>
+                </div>
+                <div className="grid gap-2">
+                    <Label htmlFor="priority">{dict.goals.priority.label}</Label>
+                    <select 
+                        id="priority" 
+                        name="priority" 
+                        defaultValue="medium"
+                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        <option value="high">{dict.goals.priority.high}</option>
+                        <option value="medium">{dict.goals.priority.medium}</option>
+                        <option value="low">{dict.goals.priority.low}</option>
+                    </select>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
                     <Label htmlFor="start_date">{dict.goals.new.startDate}</Label>
                     <Input id="start_date" name="start_date" type="date" required />
                 </div>

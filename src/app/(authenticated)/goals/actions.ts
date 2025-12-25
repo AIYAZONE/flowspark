@@ -18,6 +18,8 @@ export async function createGoal(formData: FormData) {
 	const end_date = formData.get('end_date') as string;
 	const success_criteria = formData.get('success_criteria') as string;
 	const stop_criteria = formData.get('stop_criteria') as string;
+	const priority = (formData.get('priority') as string) || 'medium';
+	const category = (formData.get('category') as string) || 'other';
 
 	const { error } = await supabase.from('goals').insert({
 		user_id: user.id,
@@ -27,14 +29,43 @@ export async function createGoal(formData: FormData) {
 		end_date,
 		success_criteria,
 		stop_criteria,
-		status: 'active'
+		status: 'active',
+		priority,
+		category
 	});
 
 	if (error) {
 		console.error('Error creating goal:', error);
-		// Handle error (e.g. return it to the form)
-		// For MVP, simplistic error handling
-		return;
+
+		// Fallback for missing columns (schema mismatch)
+		if (
+			error.message?.includes('Could not find') ||
+			error.code === '42703' ||
+			error.message?.includes('column')
+		) {
+			console.warn(
+				'Database schema missing columns, falling back to basic fields.'
+			);
+			const { error: legacyError } = await supabase.from('goals').insert({
+				user_id: user.id,
+				title,
+				description,
+				start_date,
+				end_date,
+				success_criteria,
+				stop_criteria,
+				status: 'active'
+			});
+
+			if (legacyError) {
+				throw new Error(
+					`Failed to create goal: ${legacyError.message}`
+				);
+			}
+			// Success with legacy payload - no error thrown, user continues but new fields aren't saved
+		} else {
+			throw new Error(`Failed to create goal: ${error.message}`);
+		}
 	}
 
 	revalidatePath('/goals');
@@ -51,7 +82,9 @@ export async function createAction(formData: FormData) {
 	const goal_id = formData.get('goal_id') as string;
 	const title = formData.get('title') as string;
 	const type = formData.get('type') as string;
-	const start_date = formData.get('start_date') as string || (formData.get('action_date') as string);
+	const start_date =
+		(formData.get('start_date') as string) ||
+		(formData.get('action_date') as string);
 	const end_date = formData.get('end_date') as string;
 
 	// Try insert using start_date/end_date, fall back to legacy action_date if column doesn't exist
@@ -80,7 +113,9 @@ export async function createAction(formData: FormData) {
 			action_date: start_date
 		};
 		if (end_date) legacyPayload.end_date = end_date;
-		const { error: fallbackError } = await supabase.from('actions').insert(legacyPayload);
+		const { error: fallbackError } = await supabase
+			.from('actions')
+			.insert(legacyPayload);
 		if (fallbackError) {
 			console.error('Fallback createAction error:', fallbackError);
 			return;
@@ -106,6 +141,8 @@ export async function updateGoal(formData: FormData) {
 	const success_criteria = formData.get('success_criteria') as string;
 	const stop_criteria = formData.get('stop_criteria') as string;
 	const status = formData.get('status') as string;
+	const priority = formData.get('priority') as string;
+	const category = formData.get('category') as string;
 
 	const { error } = await supabase
 		.from('goals')
@@ -116,14 +153,47 @@ export async function updateGoal(formData: FormData) {
 			end_date,
 			success_criteria,
 			stop_criteria,
-			status
+			status,
+			priority,
+			category
 		})
 		.eq('id', id)
 		.eq('user_id', user.id);
 
 	if (error) {
 		console.error('Error updating goal:', error);
-		throw new Error('Failed to update goal');
+
+		// Fallback for missing columns (schema mismatch)
+		if (
+			error.message?.includes('Could not find') ||
+			error.code === '42703' ||
+			error.message?.includes('column')
+		) {
+			console.warn(
+				'Database schema missing columns, falling back to basic fields.'
+			);
+			const { error: legacyError } = await supabase
+				.from('goals')
+				.update({
+					title,
+					description,
+					start_date,
+					end_date,
+					success_criteria,
+					stop_criteria,
+					status
+				})
+				.eq('id', id)
+				.eq('user_id', user.id);
+
+			if (legacyError) {
+				throw new Error(
+					`Failed to update goal: ${legacyError.message}`
+				);
+			}
+		} else {
+			throw new Error(`Failed to update goal: ${error.message}`);
+		}
 	}
 
 	revalidatePath(`/goals/${id}`);
@@ -140,7 +210,9 @@ export async function updateAction(formData: FormData) {
 	const id = formData.get('id') as string;
 	const title = formData.get('title') as string;
 	const type = formData.get('type') as string;
-	const start_date = formData.get('start_date') as string || (formData.get('action_date') as string);
+	const start_date =
+		(formData.get('start_date') as string) ||
+		(formData.get('action_date') as string);
 	const end_date = formData.get('end_date') as string;
 	const goal_id = formData.get('goal_id') as string;
 
@@ -173,7 +245,9 @@ export async function updateAction(formData: FormData) {
 			.eq('user_id', user.id);
 		if (fallbackError) {
 			console.error('Fallback updateAction error:', fallbackError);
-			throw new Error('Failed to update action');
+			throw new Error(
+				`Failed to update action: ${fallbackError.message}`
+			);
 		}
 	}
 

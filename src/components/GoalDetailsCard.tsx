@@ -22,6 +22,8 @@ interface Goal {
     success_criteria: string
     stop_criteria: string
     status: string
+    priority?: string
+    category?: string
 }
 
 interface GoalDetailsCardProps {
@@ -94,6 +96,39 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                                 defaultValue={goal.description}
                                 className="min-h-[100px] bg-background/50"
                             />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="category">{dict.goals.category.label}</Label>
+                                <select
+                                    id="category"
+                                    name="category"
+                                    defaultValue={goal.category || 'other'}
+                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="other">{dict.goals.category.other}</option>
+                                    <option value="health">{dict.goals.category.health}</option>
+                                    <option value="career">{dict.goals.category.career}</option>
+                                    <option value="learning">{dict.goals.category.learning}</option>
+                                    <option value="finance">{dict.goals.category.finance}</option>
+                                    <option value="lifestyle">{dict.goals.category.lifestyle}</option>
+                                    <option value="social">{dict.goals.category.social}</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="priority">{dict.goals.priority.label}</Label>
+                                <select
+                                    id="priority"
+                                    name="priority"
+                                    defaultValue={goal.priority || 'medium'}
+                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="high">{dict.goals.priority.high}</option>
+                                    <option value="medium">{dict.goals.priority.medium}</option>
+                                    <option value="low">{dict.goals.priority.low}</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div className="space-y-2">
@@ -200,13 +235,27 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                     </div>
                 </div>
 
-                <div className="space-y-1.5">
-                    <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.status.label}</h3>
-                    <div className="flex">
-                        <GoalStatusBadge
-                            status={goal.status}
-                            label={dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
-                        />
+                <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.priority.label}</h3>
+                        <p className="text-sm font-medium text-foreground/90 capitalize">
+                            {dict.goals.priority[goal.priority as keyof typeof dict.goals.priority] || goal.priority || dict.goals.priority.medium}
+                        </p>
+                    </div>
+                    <div className="space-y-1.5">
+                        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.category.label}</h3>
+                        <p className="text-sm font-medium text-foreground/90 capitalize">
+                            {dict.goals.category[goal.category as keyof typeof dict.goals.category] || goal.category || dict.goals.category.other}
+                        </p>
+                    </div>
+                    <div className="space-y-1.5">
+                        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.status.label}</h3>
+                        <div className="flex">
+                            <GoalStatusBadge
+                                status={goal.status}
+                                label={dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
+                            />
+                        </div>
                     </div>
                 </div>
 
