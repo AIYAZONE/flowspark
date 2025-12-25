@@ -18,11 +18,10 @@ export default async function DashboardPage() {
   const { data: actions } = await supabase
     .from('actions')
     .select('*')
-    .eq('action_date', today)
     .eq('type', 'core')
-    .limit(1)
-
-  const coreAction = actions?.[0]
+    .or(`start_date.eq.${today},and(start_date.lt.${today},completed.eq.false)`)
+    .order('completed', { ascending: true })
+    .order('start_date', { ascending: true })
 
   // Fetch daily score
   const { data: scores } = await supabase
@@ -82,20 +81,24 @@ export default async function DashboardPage() {
             <CardTitle className="text-lg font-medium text-primary">{dict.dashboard.todayCoreAction}</CardTitle>
           </CardHeader>
           <CardContent>
-            {coreAction ? (
-              <div className="flex items-center justify-between">
-                <span className="text-xl font-semibold text-foreground">{coreAction.title}</span>
-                <form action={toggleAction}>
-                  <input type="hidden" name="id" value={coreAction.id} />
-                  <input type="hidden" name="completed" value={coreAction.completed ? 'true' : 'false'} />
-                  <Button
-                    size="icon"
-                    variant={coreAction.completed ? "default" : "outline"}
-                    className={coreAction.completed ? "bg-primary hover:bg-primary/90" : "border-primary text-primary hover:bg-primary/10"}
-                  >
-                    {coreAction.completed ? <CheckCircle2 className="h-6 w-6" /> : <Circle className="h-6 w-6" />}
-                  </Button>
-                </form>
+            {actions && actions.length > 0 ? (
+              <div className="space-y-4">
+                {actions.map((action) => (
+                  <div key={action.id} className="flex items-center justify-between border-b border-primary/10 last:border-0 pb-3 last:pb-0">
+                    <span className={cn("text-lg font-semibold text-foreground", action.completed && "line-through text-muted-foreground")}>{action.title}</span>
+                    <form action={toggleAction}>
+                      <input type="hidden" name="id" value={action.id} />
+                      <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
+                      <Button
+                        size="icon"
+                        variant={action.completed ? "default" : "outline"}
+                        className={action.completed ? "bg-primary hover:bg-primary/90 h-8 w-8" : "border-primary text-primary hover:bg-primary/10 h-8 w-8"}
+                      >
+                        {action.completed ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
+                      </Button>
+                    </form>
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="text-muted-foreground">
