@@ -150,82 +150,90 @@ export function ActionItem({ action, dict, showGoalTitle = false }: ActionItemPr
     const isDelayed = new Date(action.start_date) < new Date(new Date().toISOString().split('T')[0]) && !action.completed
 
     return (
-        <div className="group flex items-center justify-between p-4 border rounded-lg hover:border-primary/20 hover:bg-muted/30 transition-all">
-            <div className="flex items-center gap-3 flex-1">
+        <div className="group flex items-center justify-between p-4 border border-border/40 rounded-xl bg-card/50 hover:bg-card hover:shadow-sm hover:border-primary/20 transition-all duration-300">
+            <div className="flex items-center gap-4 flex-1">
                 <form action={toggleAction}>
                     <input type="hidden" name="id" value={action.id} />
                     <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
-                    <button type="submit" className="focus:outline-none transition-transform hover:scale-110">
+                    <button type="submit" className="focus:outline-none transition-transform hover:scale-110 flex items-center justify-center">
                         {action.completed ? (
-                            <CheckCircle2 className={`h-5 w-5 ${action.type === 'core' ? 'text-primary' : 'text-primary'}`} />
+                            <div className="rounded-full bg-primary/10 p-1">
+                                <CheckCircle2 className={`h-5 w-5 ${action.type === 'core' ? 'text-primary' : 'text-primary'}`} />
+                            </div>
                         ) : (
-                            <Circle className={`h-5 w-5 ${action.type === 'core' ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <Circle className={`h-5 w-5 ${action.type === 'core' ? 'text-primary/70' : 'text-muted-foreground'}`} />
                         )}
                     </button>
                 </form>
-                <div className="flex-1">
-                    <p className={`font-medium ${action.completed ? 'line-through text-muted-foreground' : ''}`}>
+                <div className="flex-1 space-y-1">
+                    <p className={`font-medium text-sm ${action.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                         {action.title}
                     </p>
-                    <div className="flex gap-2 text-xs text-muted-foreground items-center mt-1">
+                    <div className="flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
                         {isDelayed && (
-                            <span className="px-1.5 py-0.5 rounded bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 font-medium">
+                            <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 font-medium border border-red-500/20">
                                 {dict.today.delayed}
                             </span>
                         )}
-                        <span className="capitalize px-1.5 py-0.5 rounded bg-secondary font-medium text-secondary-foreground">
+                        <span className="capitalize px-2 py-0.5 rounded-full bg-secondary/50 font-medium text-secondary-foreground border border-border/50">
                             {dict.today.types[action.type as keyof typeof dict.today.types] || action.type}
                         </span>
-                        <span>
-                            {format(new Date(action.start_date), 'yyyy-MM-dd')} - {format(new Date(action.end_date ?? action.start_date), 'yyyy-MM-dd')}
+                        <span className="font-mono text-[10px] opacity-70">
+                            {format(new Date(action.start_date), 'yyyy-MM-dd')}
+                            {action.end_date && action.end_date !== action.start_date && ` - ${format(new Date(action.end_date), 'yyyy-MM-dd')}`}
                         </span>
-                        {action.goals?.title && (
-                            <span>• {dict.today.goalPrefix}{action.goals.title}</span>
+                        {action.goals?.title && showGoalTitle && (
+                            <span className="flex items-center gap-1 opacity-70">
+                                <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+                                {action.goals.title}
+                            </span>
                         )}
                     </div>
                 </div>
             </div>
 
-            <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsEditing(true)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary h-8 w-8"
-                disabled={isLoading}
-            >
-                <Pencil className="h-4 w-4" />
-                <span className="sr-only">{dict.common.edit}</span>
-            </Button>
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsEditing(true)}
+                    className="h-8 w-8 rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                    disabled={isLoading}
+                >
+                    <Pencil className="h-3.5 w-3.5" />
+                    <span className="sr-only">{dict.common.edit}</span>
+                </Button>
 
-            <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive h-8 w-8"
-                        disabled={isLoading}
-                    >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">{dict.common.delete || '删除'}</span>
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{dict.common.delete} {action.title}?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {dict.common.confirmDelete}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{dict.common.cancel}</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                            {dict.common.delete || '删除'}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                            disabled={isLoading}
+                        >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span className="sr-only">{dict.common.delete || '删除'}</span>
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>{dict.common.delete} {action.title}?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                {dict.common.confirmDelete}
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>{dict.common.cancel}</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                {dict.common.delete || '删除'}
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
         </div>
     )
 }
