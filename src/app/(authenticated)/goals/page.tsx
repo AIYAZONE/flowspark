@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
-import { DeleteGoalButton } from '@/components/DeleteGoalButton'
 
 export default async function GoalsPage() {
   const supabase = await createClient()
@@ -45,7 +44,6 @@ export default async function GoalsPage() {
                     status={goal.status}
                     label={dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
                   />
-                  <DeleteGoalButton id={goal.id} title={goal.title} dict={dict} />
                 </div>
               </div>
             </CardHeader>
