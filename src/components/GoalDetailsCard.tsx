@@ -145,39 +145,52 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
     }
 
     return (
-        <Card className="group relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm transition-all hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle>{dict.goals.detail.details}</CardTitle>
+        <Card className="group relative overflow-hidden border-border/40 bg-card/80 backdrop-blur-xl shadow-sm transition-all hover:shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border/40 pb-4">
+                <CardTitle className="text-lg font-semibold tracking-tight">{dict.goals.detail.details}</CardTitle>
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsEditing(true)}
-                    className="text-muted-foreground hover:text-primary transition-colors"
+                    className="h-8 rounded-full px-3 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-300"
                 >
-                    <Pencil className="h-4 w-4 mr-2" />
+                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
                     {dict.common.edit}
                 </Button>
             </CardHeader>
-            <CardContent className="space-y-4 pt-4">
-                <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground">{dict.goals.detail.description}</h3>
-                    <p className="mt-1">{goal.description || dict.common.noDescription}</p>
+            <CardContent className="space-y-6 pt-6">
+                <div className="space-y-1.5">
+                    <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.description}</h3>
+                    <p className="text-sm leading-relaxed text-foreground/90">{goal.description || dict.common.noDescription}</p>
                 </div>
-                <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground">
-                        {dict.goals.detail.startDate} - {dict.goals.detail.endDate}
-                    </h3>
-                    <p className="mt-1">
-                        {format(new Date(goal.start_date), 'yyyy-MM-dd')} - {format(new Date(goal.end_date), 'yyyy-MM-dd')}
-                    </p>
+                
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.startDate}</h3>
+                        <p className="text-sm font-medium text-foreground/90 font-mono">
+                            {format(new Date(goal.start_date), 'yyyy-MM-dd')}
+                        </p>
+                    </div>
+                    <div className="space-y-1.5">
+                        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.endDate}</h3>
+                        <p className="text-sm font-medium text-foreground/90 font-mono">
+                            {format(new Date(goal.end_date), 'yyyy-MM-dd')}
+                        </p>
+                    </div>
                 </div>
-                <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground">{dict.goals.detail.successCriteria}</h3>
-                    <p className="mt-1 whitespace-pre-wrap">{goal.success_criteria}</p>
+
+                <div className="space-y-1.5">
+                    <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.successCriteria}</h3>
+                    <div className="rounded-lg bg-muted/30 p-3 text-sm leading-relaxed text-foreground/90 border border-border/40">
+                        <p className="whitespace-pre-wrap">{goal.success_criteria}</p>
+                    </div>
                 </div>
-                <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground">{dict.goals.detail.abandonCriteria}</h3>
-                    <p className="mt-1 whitespace-pre-wrap">{goal.stop_criteria}</p>
+
+                <div className="space-y-1.5">
+                    <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.abandonCriteria}</h3>
+                    <div className="rounded-lg bg-destructive/5 p-3 text-sm leading-relaxed text-foreground/90 border border-destructive/10">
+                        <p className="whitespace-pre-wrap">{goal.stop_criteria}</p>
+                    </div>
                 </div>
             </CardContent>
         </Card>
