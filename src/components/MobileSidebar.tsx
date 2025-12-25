@@ -12,6 +12,7 @@ import {
   Sheet,
   SheetContent,
   SheetTrigger,
+  SheetTitle,
 } from '@/components/ui/sheet'
 
 interface MobileSidebarProps {
@@ -71,6 +72,7 @@ export function MobileSidebar({ dict }: MobileSidebarProps) {
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-[240px] sm:w-[300px] p-0 flex flex-col">
+        <SheetTitle className="sr-only">{dict.sidebar.brand}</SheetTitle>
         <div className="flex h-16 items-center border-b px-6">
           <Link
             href="/dashboard"
