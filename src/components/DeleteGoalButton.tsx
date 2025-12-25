@@ -49,12 +49,14 @@ export function DeleteGoalButton({ id, title, dict }: DeleteGoalButtonProps) {
             <AlertDialogTrigger asChild>
                 <Button
                     variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive h-8 w-8"
-                    aria-label={dict.common.delete}
+                    size="sm"
+                    className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-destructive/10 hover:text-destructive transition-all duration-300"
                     disabled={isLoading}
                 >
-                    <Trash2 className="h-4 w-4" />
+                    <div className="rounded-full bg-background/80 p-1 group-hover:bg-background transition-colors">
+                        <Trash2 className="h-4 w-4" />
+                    </div>
+                    <span className="text-sm font-medium">{dict.common.delete}</span>
                 </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
