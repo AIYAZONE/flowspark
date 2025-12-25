@@ -83,8 +83,8 @@
 		"actionTitleLabel": "行动标题",
 		"actionTitlePlaceholder": "要做什么？",
 		"typeLabel": "类型",
-        "startTime": "开始日期",
-        "endTime": "结束日期",
+		"startTime": "开始日期",
+		"endTime": "结束日期",
 		"types": {
 			"core": "核心",
 			"maintain": "维持",
@@ -104,6 +104,22 @@
 			"active": "进行中",
 			"completed": "已完成",
 			"abandoned": "已放弃"
+		},
+		"priority": {
+			"label": "优先级",
+			"high": "高",
+			"medium": "中",
+			"low": "低"
+		},
+		"category": {
+			"label": "分类",
+			"health": "健康",
+			"career": "事业",
+			"learning": "学习",
+			"finance": "财务",
+			"lifestyle": "生活",
+			"social": "社交",
+			"other": "其他"
 		},
 		"start": "开始",
 		"end": "结束",
