@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { updateGoal } from '@/app/(authenticated)/goals/actions'
+import { DeleteGoalButton } from '@/components/DeleteGoalButton'
+import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import type en from '@/i18n/en.json'
 
 interface Goal {
@@ -148,22 +150,27 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
         <Card className="group relative overflow-hidden border-border/40 bg-card/80 backdrop-blur-xl shadow-sm transition-all hover:shadow-md">
             <CardHeader className="flex flex-row items-center justify-between border-b border-border/40 pb-4">
                 <CardTitle className="text-lg font-semibold tracking-tight">{dict.goals.detail.details}</CardTitle>
-                <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setIsEditing(true)}
-                    className="h-8 rounded-full px-3 text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all duration-300"
-                >
-                    <Pencil className="h-3.5 w-3.5 mr-1.5" />
-                    {dict.common.edit}
-                </Button>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsEditing(true)}
+                        className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                    >
+                        <div className="rounded-full bg-background/80 p-1 group-hover:bg-background transition-colors">
+                            <Pencil className="h-4 w-4" />
+                        </div>
+                        <span className="text-sm font-medium">{dict.common.edit}</span>
+                    </Button>
+                    <DeleteGoalButton id={goal.id} title={goal.title} dict={dict} />
+                </div>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
                 <div className="space-y-1.5">
                     <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.description}</h3>
                     <p className="text-sm leading-relaxed text-foreground/90">{goal.description || dict.common.noDescription}</p>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                         <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.startDate}</h3>
@@ -176,6 +183,16 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                         <p className="text-sm font-medium text-foreground/90 font-mono">
                             {format(new Date(goal.end_date), 'yyyy-MM-dd')}
                         </p>
+                    </div>
+                </div>
+
+                <div className="space-y-1.5">
+                    <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.status.label}</h3>
+                    <div className="flex">
+                        <GoalStatusBadge
+                            status={goal.status}
+                            label={dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
+                        />
                     </div>
                 </div>
 

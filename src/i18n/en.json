@@ -100,6 +100,7 @@
 		"noGoals": "You haven't set any goals yet.",
 		"createFirst": "Create your first goal",
 		"status": {
+			"label": "Status",
 			"active": "Active",
 			"completed": "Completed",
 			"abandoned": "Abandoned"

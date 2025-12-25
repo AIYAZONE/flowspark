@@ -34,8 +34,8 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
 
     return (
         <div className="space-y-8 max-w-[1600px] mx-auto px-4 sm:px-6 py-8">
-            {/* Top Navigation & Actions */}
-            <div className="flex items-center justify-between">
+            {/* Top Navigation & Header */}
+            <div className="flex items-center justify-between gap-4">
                 <Link href="/goals">
                     <Button
                         variant="ghost"
@@ -49,18 +49,7 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
                     </Button>
                 </Link>
 
-                <div className="flex items-center gap-2">
-                    <DeleteGoalButton id={goal.id} title={goal.title} dict={dict} />
-                </div>
-            </div>
-
-            {/* Title */}
-            <div className="flex items-center justify-between gap-4">
-                <h1 className="text-4xl font-bold tracking-tight text-foreground">{goal.title}</h1>
-                <GoalStatusBadge
-                    status={goal.status}
-                    label={dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
-                />
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">{goal.title}</h1>
             </div>
 
             <div className="grid gap-8 lg:grid-cols-3">
