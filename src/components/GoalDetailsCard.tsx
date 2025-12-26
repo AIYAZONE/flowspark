@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { Pencil, Save, X } from 'lucide-react'
+import { Pencil, Save, X, Calendar, Tag, Flag, Target, AlertCircle, LayoutDashboard, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -100,53 +100,6 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="category">{dict.goals.category.label}</Label>
-                                <select
-                                    id="category"
-                                    name="category"
-                                    defaultValue={goal.category || 'other'}
-                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    <option value="other">{dict.goals.category.other}</option>
-                                    <option value="health">{dict.goals.category.health}</option>
-                                    <option value="career">{dict.goals.category.career}</option>
-                                    <option value="learning">{dict.goals.category.learning}</option>
-                                    <option value="finance">{dict.goals.category.finance}</option>
-                                    <option value="lifestyle">{dict.goals.category.lifestyle}</option>
-                                    <option value="social">{dict.goals.category.social}</option>
-                                </select>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="priority">{dict.goals.priority.label}</Label>
-                                <select
-                                    id="priority"
-                                    name="priority"
-                                    defaultValue={goal.priority || 'medium'}
-                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                >
-                                    <option value="high">{dict.goals.priority.high}</option>
-                                    <option value="medium">{dict.goals.priority.medium}</option>
-                                    <option value="low">{dict.goals.priority.low}</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="status">{dict.goals.status.label}</Label>
-                            <select
-                                id="status"
-                                name="status"
-                                defaultValue={goal.status}
-                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                                <option value="active">{dict.goals.status.active}</option>
-                                <option value="completed">{dict.goals.status.completed}</option>
-                                <option value="abandoned">{dict.goals.status.abandoned}</option>
-                            </select>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
                                 <Label htmlFor="start_date">{dict.goals.detail.startDate}</Label>
                                 <Input
                                     id="start_date"
@@ -167,6 +120,52 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                                     required
                                     className="bg-background/50"
                                 />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="status">{dict.goals.status.label}</Label>
+                                <select
+                                    id="status"
+                                    name="status"
+                                    defaultValue={goal.status}
+                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="active">{dict.goals.status.active}</option>
+                                    <option value="completed">{dict.goals.status.completed}</option>
+                                    <option value="abandoned">{dict.goals.status.abandoned}</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="priority">{dict.goals.priority.label}</Label>
+                                <select
+                                    id="priority"
+                                    name="priority"
+                                    defaultValue={goal.priority || 'medium'}
+                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="high">{dict.goals.priority.high}</option>
+                                    <option value="medium">{dict.goals.priority.medium}</option>
+                                    <option value="low">{dict.goals.priority.low}</option>
+                                </select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="category">{dict.goals.category.label}</Label>
+                                <select
+                                    id="category"
+                                    name="category"
+                                    defaultValue={goal.category || 'other'}
+                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option value="other">{dict.goals.category.other}</option>
+                                    <option value="health">{dict.goals.category.health}</option>
+                                    <option value="career">{dict.goals.category.career}</option>
+                                    <option value="learning">{dict.goals.category.learning}</option>
+                                    <option value="finance">{dict.goals.category.finance}</option>
+                                    <option value="lifestyle">{dict.goals.category.lifestyle}</option>
+                                    <option value="social">{dict.goals.category.social}</option>
+                                </select>
                             </div>
                         </div>
 
@@ -196,80 +195,127 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
     }
 
     return (
-        <Card className="group relative overflow-hidden border-border/40 bg-card/80 backdrop-blur-xl shadow-sm transition-all hover:shadow-md">
-            <CardHeader className="flex flex-row items-center justify-between border-b border-border/40 pb-4">
-                <CardTitle className="text-lg font-semibold tracking-tight">{dict.goals.detail.details}</CardTitle>
+        <Card className="group relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-xl shadow-sm transition-all hover:shadow-md">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 pb-6">
+                <h3 className="text-lg font-semibold tracking-tight text-foreground">{dict.goals.detail.details}</h3>
                 <div className="flex items-center gap-2">
                     <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
                         onClick={() => setIsEditing(true)}
-                        className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                        className="h-8 gap-2"
                     >
-                        <div className="rounded-full bg-background/80 p-1 group-hover:bg-background transition-colors">
-                            <Pencil className="h-4 w-4" />
-                        </div>
-                        <span className="text-sm font-medium">{dict.common.edit}</span>
+                        <Pencil className="h-3.5 w-3.5" />
+                        <span className="text-xs">{dict.common.edit}</span>
                     </Button>
                     <DeleteGoalButton id={goal.id} title={goal.title} dict={dict} />
                 </div>
             </CardHeader>
-            <CardContent className="space-y-6 pt-6">
-                <div className="space-y-1.5">
-                    <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.description}</h3>
-                    <p className="text-sm leading-relaxed text-foreground/90">{goal.description || dict.common.noDescription}</p>
-                </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.startDate}</h3>
-                        <p className="text-sm font-medium text-foreground/90 font-mono">
-                            {format(new Date(goal.start_date), 'yyyy-MM-dd')}
-                        </p>
-                    </div>
-                    <div className="space-y-1.5">
-                        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.endDate}</h3>
-                        <p className="text-sm font-medium text-foreground/90 font-mono">
-                            {format(new Date(goal.end_date), 'yyyy-MM-dd')}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                    <div className="space-y-1.5">
-                        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.priority.label}</h3>
-                        <p className="text-sm font-medium text-foreground/90 capitalize">
-                            {dict.goals.priority[goal.priority as keyof typeof dict.goals.priority] || goal.priority || dict.goals.priority.medium}
-                        </p>
-                    </div>
-                    <div className="space-y-1.5">
-                        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.category.label}</h3>
-                        <p className="text-sm font-medium text-foreground/90 capitalize">
-                            {dict.goals.category[goal.category as keyof typeof dict.goals.category] || goal.category || dict.goals.category.other}
-                        </p>
-                    </div>
-                    <div className="space-y-1.5">
-                        <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.status.label}</h3>
-                        <div className="flex">
-                            <GoalStatusBadge
-                                status={goal.status}
-                                label={dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
-                            />
+            <CardContent className="p-6">
+                <div className="flex flex-col gap-8">
+                    {/* Main Content */}
+                    <div className="space-y-8">
+                        {/* Description */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <LayoutDashboard className="h-4 w-4" />
+                                <h3 className="text-sm font-medium uppercase tracking-wider">{dict.goals.detail.description}</h3>
+                            </div>
+                            <div className="rounded-xl bg-secondary/20 p-4 text-base leading-relaxed text-foreground/90 border border-border/50">
+                                <p className="whitespace-pre-wrap">{goal.description || dict.common.noDescription}</p>
+                            </div>
                         </div>
-                    </div>
-                </div>
 
-                <div className="space-y-1.5">
-                    <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.successCriteria}</h3>
-                    <div className="rounded-lg bg-muted/30 p-3 text-sm leading-relaxed text-foreground/90 border border-border/40">
-                        <p className="whitespace-pre-wrap">{goal.success_criteria}</p>
-                    </div>
-                </div>
+                        {/* Dates */}
+                        <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 flex flex-row justify-between gap-8">
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 rounded-md bg-primary/10 p-1.5 text-primary">
+                                    <Calendar className="h-4 w-4" />
+                                </div>
+                                <div className="space-y-0.5">
+                                    <p className="text-xs text-muted-foreground">{dict.goals.detail.startDate}</p>
+                                    <p className="text-sm font-medium font-mono">
+                                        {format(new Date(goal.start_date), dict.goals.detail.dateFormat)}
+                                    </p>
+                                </div>
+                            </div>
 
-                <div className="space-y-1.5">
-                    <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">{dict.goals.detail.abandonCriteria}</h3>
-                    <div className="rounded-lg bg-destructive/5 p-3 text-sm leading-relaxed text-foreground/90 border border-destructive/10">
-                        <p className="whitespace-pre-wrap">{goal.stop_criteria}</p>
+                            <div className="flex items-start gap-3">
+                                <div className="mt-0.5 rounded-md bg-primary/10 p-1.5 text-primary">
+                                    <Clock className="h-4 w-4" />
+                                </div>
+                                <div className="space-y-0.5">
+                                    <p className="text-xs text-muted-foreground">{dict.goals.detail.endDate}</p>
+                                    <p className="text-sm font-medium font-mono">
+                                        {format(new Date(goal.end_date), dict.goals.detail.dateFormat)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sidebar Metadata */}
+                        <div className="w-full">
+                            {/* Status & Priority Card */}
+                            <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-4 min-w-[280px]">
+                                <div className="space-y-1">
+                                    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <Target className="h-4 w-4" />
+                                            <span>{dict.goals.status.label}</span>
+                                        </div>
+                                        <div className="scale-90 origin-right">
+                                            <GoalStatusBadge
+                                                status={goal.status}
+                                                label={dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <Flag className="h-4 w-4" />
+                                            <span>{dict.goals.priority.label}</span>
+                                        </div>
+                                        <span className="text-sm font-medium capitalize px-2 py-0.5 rounded-md bg-secondary">
+                                            {dict.goals.priority[goal.priority as keyof typeof dict.goals.priority] || goal.priority || 'Medium'}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                            <Tag className="h-4 w-4" />
+                                            <span>{dict.goals.category.label}</span>
+                                        </div>
+                                        <span className="text-sm font-medium capitalize">
+                                            {dict.goals.category[goal.category as keyof typeof dict.goals.category] || goal.category || 'Other'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Success Criteria */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Target className="h-4 w-4" />
+                                <h3 className="text-sm font-medium uppercase tracking-wider">{dict.goals.detail.successCriteria}</h3>
+                            </div>
+                            <div className="rounded-xl bg-emerald-500/5 p-4 text-sm leading-relaxed text-foreground/90 border border-emerald-500/10">
+                                <p className="whitespace-pre-wrap">{goal.success_criteria || '-'}</p>
+                            </div>
+                        </div>
+
+                        {/* Stop Criteria */}
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <AlertCircle className="h-4 w-4" />
+                                <h3 className="text-sm font-medium uppercase tracking-wider">{dict.goals.detail.abandonCriteria}</h3>
+                            </div>
+                            <div className="rounded-xl bg-destructive/5 p-4 text-sm leading-relaxed text-foreground/90 border border-destructive/10">
+                                <p className="whitespace-pre-wrap">{goal.stop_criteria || '-'}</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </CardContent>

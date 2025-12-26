@@ -28,8 +28,10 @@ export default async function AuthenticatedLayout({
           <MobileSidebar dict={dict} />
           <div className="font-semibold">{dict.sidebar.brand}</div>
         </header>
-        <main className="flex-1 overflow-auto p-4 md:p-6">
-          {children}
+        <main className="flex-1 overflow-auto">
+          <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 pt-8 md:pt-10">
+            {children}
+          </div>
         </main>
       </div>
     </div>

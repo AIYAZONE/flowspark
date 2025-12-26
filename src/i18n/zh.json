@@ -141,6 +141,8 @@
 		"detail": {
 			"notFound": "目标未找到",
 			"details": "详细信息",
+			"timeline": "时间轴",
+			"dateFormat": "yyyy-MM-dd",
 			"description": "描述",
 			"startDate": "开始日期",
 			"endDate": "结束日期",
