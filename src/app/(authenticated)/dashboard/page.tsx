@@ -1,4 +1,5 @@
 import { format, differenceInDays } from 'date-fns'
+import Link from 'next/link'
 import { CheckCircle2, Circle, Flame } from 'lucide-react'
 
 import { createClient } from '@/lib/supabase/server'
@@ -183,29 +184,31 @@ export default async function DashboardPage() {
           const progress = Math.min(100, Math.max(0, Math.round((elapsed / totalDuration) * 100)))
 
           return (
-            <Card key={goal.id}>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">{goal.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm text-muted-foreground mb-2 line-clamp-2 min-h-[40px]">
-                  {goal.description || dict.common.noDescription}
-                </div>
-                <div className="space-y-1">
-                  <div className="flex justify-between text-xs font-medium">
-                    <span>{dict.common.timeProgress}</span>
-                    <span>{progress}%</span>
+            <Link key={goal.id} href={`/goals/${goal.id}`} className="block h-full">
+              <Card className="h-full hover:bg-muted/50 transition-colors">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">{goal.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-muted-foreground mb-2 line-clamp-2 min-h-[40px]">
+                    {goal.description || dict.common.noDescription}
                   </div>
-                  <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                    <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${progress}%` }}></div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs font-medium">
+                      <span>{dict.common.timeProgress}</span>
+                      <span>{progress}%</span>
+                    </div>
+                    <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
+                      <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${progress}%` }}></div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                  <span>{dict.goals.start}: {format(startDate, 'MMM d')}</span>
-                  <span>{dict.goals.end}: {format(endDate, 'MMM d')}</span>
-                </div>
-              </CardContent>
-            </Card>
+                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                    <span>{dict.goals.start}: {format(startDate, 'MMM d')}</span>
+                    <span>{dict.goals.end}: {format(endDate, 'MMM d')}</span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
           )
         })}
         {goals?.length === 0 && (
