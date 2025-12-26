@@ -16,7 +16,25 @@ import { createAction } from '@/app/(authenticated)/goals/actions'
 
 interface AddActionDialogProps {
     goalId: string
-    dict: any
+    dict: {
+        goals: {
+            detail: {
+                addAction: string
+            }
+        }
+        today: {
+            actionTitleLabel: string
+            actionTitlePlaceholder: string
+            typeLabel: string
+            startTime: string
+            endTime: string
+            types: {
+                core: string
+                maintain: string
+                explore: string
+            }
+        }
+    }
 }
 
 export function AddActionDialog({ goalId, dict }: AddActionDialogProps) {

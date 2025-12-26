@@ -35,7 +35,7 @@ export default async function ProfilePage() {
           </div>
           <div className="grid gap-2">
             <Label>{dict.profile.name}</Label>
-            <Input value={profile?.name || ''} disabled placeholder={dict.login.namePlaceholder} />
+            <Input value={profile?.name || ''} disabled />
           </div>
         </CardContent>
       </Card>
