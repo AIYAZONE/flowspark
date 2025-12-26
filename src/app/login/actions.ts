@@ -56,12 +56,12 @@ export async function signup(formData: FormData) {
 	});
 
 	if (error) {
-		redirect('/login?error=' + encodeURIComponent(error.message));
+		redirect('/signup?error=' + encodeURIComponent(error.message));
 	}
 
 	if (data.user && !data.session) {
 		redirect(
-			'/login?message=' +
+			'/signup?message=' +
 				encodeURIComponent(
 					'Registration successful! Please check your email to confirm your account.'
 				)

@@ -49,15 +49,26 @@
 		"footer": "© 2025 Goal System. All rights reserved."
 	},
 	"login": {
-		"title": "Login / Sign Up",
-		"description": "Enter your email below to login or create your account",
+		"title": "Login",
+		"description": "Enter your email and password to login",
 		"emailLabel": "Email",
 		"emailPlaceholder": "m@example.com",
-		"nameLabel": "Name (for Sign Up)",
-		"namePlaceholder": "Your Name",
 		"passwordLabel": "Password",
 		"loginButton": "Log in",
+		"toSignupPrefix": "No account?",
+		"toSignup": "Sign up"
+	},
+	"signup": {
+		"title": "Sign Up",
+		"description": "Create a new account",
+		"nameLabel": "Name",
+		"namePlaceholder": "Your Name",
+		"emailLabel": "Email",
+		"emailPlaceholder": "m@example.com",
+		"passwordLabel": "Password",
 		"signupButton": "Sign up",
+		"toLoginPrefix": "Already have an account?",
+		"toLogin": "Login",
 		"successMessage": "Registration successful! Please check your email to confirm your account."
 	},
 	"dashboard": {
