@@ -50,7 +50,7 @@ export async function updateSession(request: NextRequest) {
 	}
 
 	// Redirect to dashboard if logged in
-	if (request.nextUrl.pathname === '/login') {
+	if (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup') {
 		if (user) {
 			return NextResponse.redirect(new URL('/dashboard', request.url));
 		}

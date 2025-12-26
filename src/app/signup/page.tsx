@@ -1,4 +1,4 @@
-import { login, signup } from './actions'
+import { signup } from '../login/actions'
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getDictionary } from '@/i18n/get-dictionary'
 
-export default async function LoginPage({
+export default async function SignupPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; message?: string }>
@@ -18,9 +18,9 @@ export default async function LoginPage({
     <div className="auth-bg flex min-h-screen w-full items-center justify-center px-4">
       <Card className="relative z-10 w-full max-w-sm rounded-xl border border-border/50 bg-secondary/20 shadow-none">
         <CardHeader>
-          <CardTitle className="text-2xl">{dict.login.title}</CardTitle>
+          <CardTitle className="text-2xl">{dict.signup.title}</CardTitle>
           <CardDescription>
-            {dict.login.description}
+            {dict.signup.description}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -36,25 +36,35 @@ export default async function LoginPage({
           )}
           <form className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="email">{dict.login.emailLabel}</Label>
+              <Label htmlFor="name">{dict.signup.nameLabel}</Label>
               <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder={dict.login.emailPlaceholder}
+                id="name"
+                name="name"
+                type="text"
+                placeholder={dict.signup.namePlaceholder}
                 required
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="password">{dict.login.passwordLabel}</Label>
+              <Label htmlFor="email">{dict.signup.emailLabel}</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder={dict.signup.emailPlaceholder}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">{dict.signup.passwordLabel}</Label>
               <Input id="password" name="password" type="password" required />
             </div>
             <div className="flex flex-col gap-2">
-              <Button formAction={login} className="w-full">{dict.login.loginButton}</Button>
+              <Button formAction={signup} className="w-full">{dict.signup.signupButton}</Button>
               <div className="text-sm text-muted-foreground text-center">
-                {dict.login.toSignupPrefix}{' '}
-                <Link href="/signup" className="text-primary hover:underline">
-                  {dict.login.toSignup}
+                {dict.signup.toLoginPrefix}{' '}
+                <Link href="/login" className="text-primary hover:underline">
+                  {dict.signup.toLogin}
                 </Link>
               </div>
             </div>
