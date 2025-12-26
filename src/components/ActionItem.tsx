@@ -147,7 +147,10 @@ export function ActionItem({ action, dict, showGoalTitle = false }: ActionItemPr
         )
     }
 
-    const isDelayed = new Date(action.start_date) < new Date(new Date().toISOString().split('T')[0]) && !action.completed
+    const endDateStr = action.end_date || action.start_date
+    const endDateVal = endDateStr.split('T')[0]
+    const todayVal = format(new Date(), 'yyyy-MM-dd')
+    const isDelayed = endDateVal < todayVal && !action.completed
 
     return (
         <div className="group flex items-center justify-between p-4 border border-border/40 rounded-xl bg-card/50 hover:bg-card hover:shadow-sm hover:border-primary/20 transition-all duration-300">
