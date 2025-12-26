@@ -141,6 +141,8 @@
 		"detail": {
 			"notFound": "Goal not found",
 			"details": "Details",
+			"timeline": "Timeline",
+			"dateFormat": "PPP",
 			"description": "Description",
 			"startDate": "Start Date",
 			"endDate": "End Date",

@@ -33,7 +33,7 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
         .order('start_date', { ascending: true })
 
     return (
-        <div className="space-y-8 max-w-[1600px] mx-auto px-4 sm:px-6 py-8">
+        <div className="space-y-8">
             {/* Top Navigation & Header */}
             <div className="flex items-center justify-between gap-4">
                 <Link href="/goals">
