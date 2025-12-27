@@ -28,10 +28,11 @@ export async function submitScore(formData: FormData) {
   await supabase
     .from('daily_scores')
     .upsert({ 
+        owner_id: user.id,
         user_id: user.id,
         score_date: date,
         score: score 
-    }, { onConflict: 'user_id, score_date' })
+    }, { onConflict: 'owner_id, score_date' })
 
   revalidatePath('/dashboard')
 }

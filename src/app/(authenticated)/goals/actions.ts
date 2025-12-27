@@ -22,7 +22,7 @@ export async function createGoal(formData: FormData) {
 	const category = (formData.get('category') as string) || 'other';
 
 	const { error } = await supabase.from('goals').insert({
-		user_id: user.id,
+		owner_id: user.id,
 		title,
 		description,
 		start_date,
@@ -48,6 +48,7 @@ export async function createGoal(formData: FormData) {
 			);
 			const { error: legacyError } = await supabase.from('goals').insert({
 				user_id: user.id,
+				owner_id: user.id,
 				title,
 				description,
 				start_date,
@@ -89,7 +90,7 @@ export async function createAction(formData: FormData) {
 
 	// Try insert using start_date/end_date, fall back to legacy action_date if column doesn't exist
 	const insertPayload: Record<string, string | null> = {
-		user_id: user.id,
+		owner_id: user.id,
 		goal_id,
 		title,
 		type,
@@ -107,6 +108,7 @@ export async function createAction(formData: FormData) {
 		// Fallback: attempt legacy insert with action_date
 		const legacyPayload: Record<string, string | null> = {
 			user_id: user.id,
+			owner_id: user.id,
 			goal_id,
 			title,
 			type,
@@ -158,7 +160,7 @@ export async function updateGoal(formData: FormData) {
 			category
 		})
 		.eq('id', id)
-		.eq('user_id', user.id);
+		.eq('owner_id', user.id);
 
 	if (error) {
 		console.error('Error updating goal:', error);
@@ -228,7 +230,7 @@ export async function updateAction(formData: FormData) {
 		.from('actions')
 		.update(updatePayload)
 		.eq('id', id)
-		.eq('user_id', user.id);
+		.eq('owner_id', user.id);
 
 	if (updateError) {
 		console.error('Error updating action:', updateError);
@@ -271,7 +273,7 @@ export async function deleteAction(formData: FormData) {
 		.from('actions')
 		.delete()
 		.eq('id', id)
-		.eq('user_id', user.id);
+		.eq('owner_id', user.id);
 
 	if (error) {
 		console.error('Error deleting action:', error);
