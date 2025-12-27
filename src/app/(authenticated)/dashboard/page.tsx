@@ -28,12 +28,21 @@ export default async function DashboardPage() {
     .order('start_date', { ascending: true })
 
   // Fetch daily score
-  const { data: scores } = await supabase
+  let { data: scores } = await supabase
     .from('daily_scores')
     .select('score')
     .eq('score_date', today)
-    .eq('user_id', user.id)
+    .eq('owner_id', user.id)
     .maybeSingle()
+  if (!scores) {
+    const fallback = await supabase
+      .from('daily_scores')
+      .select('score')
+      .eq('score_date', today)
+      .eq('user_id', user.id)
+      .maybeSingle()
+    scores = fallback.data ?? null
+  }
 
   const dailyScore = scores?.score
 
@@ -45,12 +54,21 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
 
   // Fetch recent scores for trend and streak
-  const { data: recentScores } = await supabase
+  let { data: recentScores } = await supabase
     .from('daily_scores')
     .select('score_date, score')
-    .eq('user_id', user.id)
+    .eq('owner_id', user.id)
     .order('score_date', { ascending: false })
     .limit(30)
+  if (!recentScores || recentScores.length === 0) {
+    const fallbackRecent = await supabase
+      .from('daily_scores')
+      .select('score_date, score')
+      .eq('user_id', user.id)
+      .order('score_date', { ascending: false })
+      .limit(30)
+    recentScores = fallbackRecent.data ?? []
+  }
 
   // Simple streak calculation
   let streak = 0
@@ -93,13 +111,14 @@ export default async function DashboardPage() {
                 {actions.map((action) => (
                   <div key={action.id} className="flex items-center justify-between border-b border-primary/10 last:border-0 pb-3 last:pb-0">
                     <span className={cn("text-lg font-semibold text-foreground", action.completed && "line-through text-muted-foreground")}>{action.title}</span>
-                    <form action={toggleAction}>
+                    <form>
                       <input type="hidden" name="id" value={action.id} />
                       <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
                       <Button
                         size="icon"
                         variant={action.completed ? "default" : "outline"}
                         className={action.completed ? "bg-primary hover:bg-primary/90 h-8 w-8" : "border-primary text-primary hover:bg-primary/10 h-8 w-8"}
+                        formAction={toggleAction}
                       >
                         {action.completed ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
                       </Button>
@@ -131,7 +150,7 @@ export default async function DashboardPage() {
             </div>
             <div className="flex justify-between items-center gap-2">
               {[1, 2, 3, 4, 5].map((score) => (
-                <form key={score} action={submitScore} className="flex-1">
+                <form key={score} className="flex-1">
                   <input type="hidden" name="score" value={score} />
                   <input type="hidden" name="date" value={today} />
                   <Button
@@ -143,6 +162,7 @@ export default async function DashboardPage() {
                         ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105 font-bold"
                         : "hover:bg-primary/5 hover:text-primary hover:border-primary/30 text-muted-foreground font-medium"
                     )}
+                    formAction={submitScore}
                   >
                     {score}
                   </Button>
