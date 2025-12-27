@@ -209,6 +209,9 @@
 		"email": "Email",
 		"name": "Name",
 		"language": "Language",
+		"avatar": "Avatar URL",
+		"timezone": "Timezone",
+		"updateProfile": "Update Profile",
 		"joined": "Joined",
 		"switchLanguage": "Switch Language"
 	}

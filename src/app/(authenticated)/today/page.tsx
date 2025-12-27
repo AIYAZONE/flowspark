@@ -15,10 +15,13 @@ export default async function TodayPage() {
     const supabase = await createClient()
     const dict = await getDictionary()
     const today = new Date().toISOString().split('T')[0]
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
 
     const { data: actions } = await supabase
         .from('actions')
         .select('*, goals(title)')
+        .eq('user_id', user.id)
         .or(`start_date.eq.${today},and(start_date.lt.${today},completed.eq.false)`)
         .order('start_date', { ascending: true })
         .order('type', { ascending: true }) // core first
@@ -27,6 +30,7 @@ export default async function TodayPage() {
         .from('goals')
         .select('id, title')
         .eq('status', 'active')
+        .eq('user_id', user.id)
 
     return (
         <div className="space-y-6">

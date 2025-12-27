@@ -4,6 +4,9 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { getDictionary, getCurrentLocale } from '@/i18n/get-dictionary'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
+import { updateProfile } from './actions'
+import { ProfileCard } from '@/components/ProfileCard'
+import { DEFAULT_AVATAR_URL } from '@/lib/constants'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -20,25 +23,29 @@ export default async function ProfilePage() {
     .eq('id', user.id)
     .single()
 
+  if (!profile?.avatar_url) {
+    const { error } = await supabase
+      .from('user_profiles')
+      .upsert({ id: user.id, avatar_url: DEFAULT_AVATAR_URL })
+    if (error) {
+      await supabase.auth.updateUser({ data: { avatar_url: DEFAULT_AVATAR_URL } })
+    }
+  }
+
   return (
     <div className="space-y-6 max-w-2xl">
       <h1 className="text-3xl font-bold tracking-tight">{dict.profile.title}</h1>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{dict.profile.title}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-2">
-            <Label>{dict.profile.email}</Label>
-            <Input value={user.email} disabled />
-          </div>
-          <div className="grid gap-2">
-            <Label>{dict.profile.name}</Label>
-            <Input value={profile?.name || ''} disabled />
-          </div>
-        </CardContent>
-      </Card>
+      <ProfileCard
+        dict={dict}
+        userEmail={user.email ?? ''}
+        userId={user.id}
+        initialName={profile?.name ?? (user.user_metadata?.name as string) ?? ''}
+        initialTimezone={profile?.timezone ?? 'UTC'}
+        initialAvatarUrl={profile?.avatar_url ?? (user.user_metadata?.avatar_url as string) ?? ''}
+        currentLocale={currentLocale}
+        updateAction={updateProfile}
+      />
 
       <Card>
         <CardHeader>

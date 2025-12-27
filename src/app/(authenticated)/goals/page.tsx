@@ -11,10 +11,13 @@ import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 export default async function GoalsPage() {
   const supabase = await createClient()
   const dict = await getDictionary()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
 
   const { data: goals } = await supabase
     .from('goals')
     .select('*')
+    .eq('user_id', user.id)
     .order('created_at', { ascending: false })
 
   return (
