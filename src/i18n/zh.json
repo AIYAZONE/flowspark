@@ -209,6 +209,9 @@
 		"email": "邮箱",
 		"name": "姓名",
 		"language": "语言",
+		"avatar": "头像地址",
+		"timezone": "时区",
+		"updateProfile": "更新资料",
 		"joined": "加入时间",
 		"switchLanguage": "切换语言"
 	}

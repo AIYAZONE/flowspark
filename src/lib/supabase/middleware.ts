@@ -47,10 +47,15 @@ export async function updateSession(request: NextRequest) {
 		if (!user) {
 			return NextResponse.redirect(new URL('/login', request.url));
 		}
+		// Require email confirmation
+		// @ts-ignore
+		if (!user.email_confirmed_at) {
+			return NextResponse.redirect(new URL('/login?error=' + encodeURIComponent('Please verify your email before accessing the app'), request.url));
+		}
 	}
 
 	// Redirect to dashboard if logged in
-	if (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup') {
+	if (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup' || request.nextUrl.pathname === '/forgot' || request.nextUrl.pathname === '/reset') {
 		if (user) {
 			return NextResponse.redirect(new URL('/dashboard', request.url));
 		}

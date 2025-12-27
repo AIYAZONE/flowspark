@@ -15,11 +15,14 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
     const { id } = await params
     const supabase = await createClient()
     const dict = await getDictionary()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return null
 
     const { data: goal } = await supabase
         .from('goals')
         .select('*')
         .eq('id', id)
+        .eq('user_id', user.id)
         .single()
 
     if (!goal) {
@@ -30,6 +33,7 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
         .from('actions')
         .select('*')
         .eq('goal_id', id)
+        .eq('user_id', user.id)
         .order('start_date', { ascending: true })
 
     return (

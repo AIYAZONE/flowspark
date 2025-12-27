@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { cookies } from 'next/headers'
 
 export async function requestReset(formData: FormData) {
   const email = (formData.get('email') as string || '').trim()
@@ -12,6 +13,17 @@ export async function requestReset(formData: FormData) {
 
   const supabase = await createClient()
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const cookieStore = await cookies()
+  const last = cookieStore.get('PW_RESET_LAST')?.value
+  if (last) {
+    const lastTs = Number(last)
+    if (!Number.isNaN(lastTs)) {
+      const now = Date.now()
+      if (now - lastTs < 60_000) {
+        redirect('/forgot?error=' + encodeURIComponent('Please wait before requesting again'))
+      }
+    }
+  }
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${siteUrl}/reset`,
@@ -21,6 +33,7 @@ export async function requestReset(formData: FormData) {
     redirect('/forgot?error=' + encodeURIComponent(error.message))
   }
 
+  cookieStore.set('PW_RESET_LAST', String(Date.now()))
   revalidatePath('/', 'layout')
   redirect('/forgot?message=' + encodeURIComponent('Reset email sent'))
 }

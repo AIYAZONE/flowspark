@@ -14,12 +14,15 @@ export default async function DashboardPage() {
   const supabase = await createClient()
   const dict = await getDictionary()
   const today = new Date().toISOString().split('T')[0]
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
 
   // Fetch today's core action
   const { data: actions } = await supabase
     .from('actions')
     .select('*')
     .eq('type', 'core')
+    .eq('user_id', user.id)
     .or(`start_date.eq.${today},and(start_date.lt.${today},completed.eq.false)`)
     .order('completed', { ascending: true })
     .order('start_date', { ascending: true })
@@ -29,6 +32,7 @@ export default async function DashboardPage() {
     .from('daily_scores')
     .select('score')
     .eq('score_date', today)
+    .eq('user_id', user.id)
     .maybeSingle()
 
   const dailyScore = scores?.score
@@ -38,11 +42,13 @@ export default async function DashboardPage() {
     .from('goals')
     .select('*, actions(count)')
     .eq('status', 'active')
+    .eq('user_id', user.id)
 
   // Fetch recent scores for trend and streak
   const { data: recentScores } = await supabase
     .from('daily_scores')
     .select('score_date, score')
+    .eq('user_id', user.id)
     .order('score_date', { ascending: false })
     .limit(30)
 
