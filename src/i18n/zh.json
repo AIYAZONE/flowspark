@@ -56,7 +56,46 @@
 		"passwordLabel": "密码",
 		"loginButton": "登录",
 		"toSignupPrefix": "没有账号？",
-		"toSignup": "去注册"
+		"toSignup": "去注册",
+		"forgot": "忘记密码？"
+	},
+	"forgot": {
+		"title": "找回密码",
+		"description": "输入邮箱以接收重置密码的链接",
+		"emailLabel": "邮箱",
+		"emailPlaceholder": "m@example.com",
+		"submit": "发送重置邮件",
+		"success": "重置邮件已发送，请查收邮箱",
+		"error": "发送失败，请稍后重试"
+	},
+	"reset": {
+		"title": "重置密码",
+		"description": "设置一个新的密码",
+		"passwordLabel": "新密码",
+		"confirmLabel": "确认密码",
+		"submit": "更新密码",
+		"success": "密码已更新",
+		"redirecting": "3秒后将跳转到登录页面",
+		"error": "更新失败，请稍后重试",
+		"mismatch": "两次输入的密码不一致",
+		"tooShort": "密码至少需要8位长度",
+		"needUpper": "密码需包含至少一个大写字母",
+		"needLower": "密码需包含至少一个小写字母",
+		"needNumber": "密码需包含至少一个数字",
+		"needSymbol": "密码需包含至少一个特殊符号",
+		"backToLogin": "返回登录"
+	},
+	"reset_requirements": {
+		"title": "密码要求",
+		"length": "至少8位长度",
+		"upper": "至少一个大写字母",
+		"lower": "至少一个小写字母",
+		"number": "至少一个数字",
+		"symbol": "至少一个特殊符号",
+		"strength": "密码强度",
+		"weak": "弱",
+		"medium": "中",
+		"strong": "强"
 	},
 	"signup": {
 		"title": "注册",

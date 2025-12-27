@@ -1,12 +1,12 @@
-import { login, signup } from './actions'
 import Link from 'next/link'
+import { requestReset } from './actions'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getDictionary } from '@/i18n/get-dictionary'
 
-export default async function LoginPage({
+export default async function ForgotPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; message?: string }>
@@ -18,9 +18,9 @@ export default async function LoginPage({
     <div className="auth-bg flex min-h-screen w-full items-center justify-center px-4">
       <Card className="relative z-10 w-full max-w-sm rounded-xl border border-border/50 bg-secondary/20 shadow-none">
         <CardHeader>
-          <CardTitle className="text-2xl">{dict.login.title}</CardTitle>
+          <CardTitle className="text-2xl">{dict.forgot.title}</CardTitle>
           <CardDescription>
-            {dict.login.description}
+            {dict.forgot.description}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -31,33 +31,25 @@ export default async function LoginPage({
           )}
           {message && (
             <div className="mb-4 text-sm text-green-600 font-medium bg-green-50 p-3 rounded-md border border-green-200">
-              {message}
+              {dict.forgot.success}
             </div>
           )}
-          <form className="grid gap-4">
+          <form action={requestReset} className="grid gap-4">
             <div className="grid gap-2">
-              <Label htmlFor="email">{dict.login.emailLabel}</Label>
+              <Label htmlFor="email">{dict.forgot.emailLabel}</Label>
               <Input
                 id="email"
                 name="email"
                 type="email"
-                placeholder={dict.login.emailPlaceholder}
+                placeholder={dict.forgot.emailPlaceholder}
                 required
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">{dict.login.passwordLabel}</Label>
-              <Input id="password" name="password" type="password" required />
-              <div className="flex justify-end">
-                <Link href="/forgot" className="text-xs text-primary hover:underline">{dict.login.forgot}</Link>
-              </div>
-            </div>
             <div className="flex flex-col gap-2">
-              <Button formAction={login} className="w-full">{dict.login.loginButton}</Button>
+              <Button type="submit" className="w-full">{dict.forgot.submit}</Button>
               <div className="text-sm text-muted-foreground text-center">
-                {dict.login.toSignupPrefix}{' '}
-                <Link href="/signup" className="text-primary hover:underline">
-                  {dict.login.toSignup}
+                <Link href="/login" className="text-primary hover:underline">
+                  {dict.reset.backToLogin}
                 </Link>
               </div>
             </div>

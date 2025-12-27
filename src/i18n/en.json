@@ -56,7 +56,46 @@
 		"passwordLabel": "Password",
 		"loginButton": "Log in",
 		"toSignupPrefix": "No account?",
-		"toSignup": "Sign up"
+		"toSignup": "Sign up",
+		"forgot": "Forgot password?"
+	},
+	"forgot": {
+		"title": "Forgot Password",
+		"description": "Enter your email to receive a reset link",
+		"emailLabel": "Email",
+		"emailPlaceholder": "m@example.com",
+		"submit": "Send reset email",
+		"success": "Reset email sent. Please check your inbox.",
+		"error": "Failed to send. Please try again later."
+	},
+	"reset": {
+		"title": "Reset Password",
+		"description": "Set a new password",
+		"passwordLabel": "New password",
+		"confirmLabel": "Confirm password",
+		"submit": "Update password",
+		"success": "Password updated.",
+		"redirecting": "Redirecting to login in 3s.",
+		"error": "Update failed. Please try again later.",
+		"mismatch": "Passwords do not match",
+		"tooShort": "Password must be at least 8 characters",
+		"needUpper": "Password must include at least one uppercase letter",
+		"needLower": "Password must include at least one lowercase letter",
+		"needNumber": "Password must include at least one number",
+		"needSymbol": "Password must include at least one special character",
+		"backToLogin": "Back to Login"
+	},
+	"reset_requirements": {
+		"title": "Password requirements",
+		"length": "At least 8 characters",
+		"upper": "At least one uppercase letter",
+		"lower": "At least one lowercase letter",
+		"number": "At least one number",
+		"symbol": "At least one special character",
+		"strength": "Password strength",
+		"weak": "Weak",
+		"medium": "Medium",
+		"strong": "Strong"
 	},
 	"signup": {
 		"title": "Sign Up",
