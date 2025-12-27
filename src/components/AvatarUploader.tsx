@@ -40,6 +40,16 @@ export function AvatarUploader({
     const file = e.target.files?.[0]
     if (!file) return
     setError(null)
+    const MAX_SIZE = 2 * 1024 * 1024
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/webp']
+    if (file.size > MAX_SIZE) {
+      setError('图片大小超过 2MB')
+      return
+    }
+    if (!allowedTypes.includes(file.type)) {
+      setError('仅支持 PNG、JPG、WebP 格式')
+      return
+    }
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl)
       setPreviewUrl(null)
@@ -108,6 +118,9 @@ export function AvatarUploader({
             <UploadCloud className="h-4 w-4" />
             上传/更换
           </Button>
+        </div>
+        <div className="text-xs text-muted-foreground">
+          建议尺寸 256×256，支持 PNG/JPG/WebP，最大 2MB
         </div>
       </div>
       {error && (

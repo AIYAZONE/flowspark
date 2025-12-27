@@ -77,6 +77,10 @@ export function ProfileCard({
       const res = await updateAction(fd)
       setToast({ type: 'success', message: dict.common.success })
       setEditing(false)
+      if (pendingAvatarUrl) {
+        setAvatarUrl(pendingAvatarUrl)
+      }
+      setPendingAvatarUrl(null)
       setSelectedFile(null)
       router.refresh()
     } catch (err: unknown) {
@@ -98,6 +102,7 @@ export function ProfileCard({
             <div className="flex items-center gap-4">
               {avatarUrl ? (
                 <img
+                  key={avatarUrl}
                   src={avatarUrl}
                   alt="avatar"
                   className="h-16 w-16 rounded-full ring-2 ring-border object-cover"
