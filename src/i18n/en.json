@@ -1,22 +1,22 @@
 {
-  "common": {
-    "metaTitle": "Goal System",
-    "metaDescription": "A personal goal management system to help you achieve your dreams.",
-    "loading": "Loading...",
-    "save": "Save",
-    "cancel": "Cancel",
-    "delete": "Delete",
-    "edit": "Edit",
-    "create": "Create",
-    "back": "Back",
-    "submit": "Submit",
-    "error": "Error",
-    "success": "Success",
-    "confirmDelete": "Are you sure you want to delete this? This action cannot be undone.",
-    "noDescription": "No description",
-    "timeProgress": "Time Progress",
-    "dateRangeInvalid": "End date cannot be earlier than start date"
-  },
+	"common": {
+		"metaTitle": "Goal System",
+		"metaDescription": "A personal goal management system to help you achieve your dreams.",
+		"loading": "Loading...",
+		"save": "Save",
+		"cancel": "Cancel",
+		"delete": "Delete",
+		"edit": "Edit",
+		"create": "Create",
+		"back": "Back",
+		"submit": "Submit",
+		"error": "Error",
+		"success": "Success",
+		"confirmDelete": "Are you sure you want to delete this? This action cannot be undone.",
+		"noDescription": "No description",
+		"timeProgress": "Time Progress",
+		"dateRangeInvalid": "End date cannot be earlier than start date"
+	},
 	"sidebar": {
 		"brand": "Goal System",
 		"dashboard": "Dashboard",
@@ -58,7 +58,11 @@
 		"loginButton": "Log in",
 		"toSignupPrefix": "No account?",
 		"toSignup": "Sign up",
-		"forgot": "Forgot password?"
+		"forgot": "Forgot password?",
+		"errors": {
+			"missing_credentials": "Email and password are required",
+			"unexpected_error": "An unexpected error occurred"
+		}
 	},
 	"forgot": {
 		"title": "Forgot Password",
@@ -109,7 +113,14 @@
 		"signupButton": "Sign up",
 		"toLoginPrefix": "Already have an account?",
 		"toLogin": "Login",
-		"successMessage": "Registration successful! Please check your email to confirm your account."
+		"successMessage": "Registration successful! Please check your email to confirm your account.",
+		"messages": {
+			"registration_success": "Registration successful! Please check your email to confirm your account."
+		},
+		"errors": {
+			"missing_credentials": "Email and password are required",
+			"unexpected_error": "An unexpected error occurred"
+		}
 	},
 	"dashboard": {
 		"title": "Dashboard",
@@ -219,5 +230,11 @@
 		"uploadHint": "Recommended size 256x256, supports PNG/JPG/WebP, max 2MB",
 		"uploadErrorSize": "Image size exceeds 2MB",
 		"uploadErrorType": "Only PNG, JPG, WebP formats are supported"
+	},
+	"verified": {
+		"title": "Email Verified Successfully",
+		"description": "Your email has been verified. Redirecting you...",
+		"toLogin": "Login Now",
+		"redirecting": "seconds to redirect"
 	}
 }

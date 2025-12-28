@@ -14,7 +14,7 @@ export async function login(formData: FormData) {
 		const password = formData.get('password') as string;
 
 		if (!email || !password) {
-			redirect('/login?error=' + encodeURIComponent('Email and password are required'));
+			redirect('/login?error=missing_credentials');
 		}
 
 		const { error } = await supabase.auth.signInWithPassword({
@@ -33,9 +33,9 @@ export async function login(formData: FormData) {
 		if (error instanceof Error && error.message.includes('NEXT_REDIRECT')) {
 			throw error;
 		}
-		redirect('/login?error=' + encodeURIComponent('An unexpected error occurred'));
+		redirect('/login?error=unexpected_error');
 	}
-	
+
 	redirect('/dashboard');
 }
 
@@ -54,7 +54,7 @@ export async function signup(formData: FormData) {
 			data: {
 				name
 			},
-			emailRedirectTo: siteUrl
+			emailRedirectTo: `${siteUrl}auth/callback?next=/verified`
 		}
 	});
 
@@ -63,12 +63,7 @@ export async function signup(formData: FormData) {
 	}
 
 	if (data.user && !data.session) {
-		redirect(
-			'/signup?message=' +
-				encodeURIComponent(
-					'Registration successful! Please check your email to confirm your account.'
-				)
-		);
+		redirect('/signup?message=registration_success');
 	}
 
 	if (data.user) {
