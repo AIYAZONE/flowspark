@@ -116,3 +116,15 @@ graph TD
 * **趋势图**: 使用 Recharts 绘制最近评分趋势，支持交互查看具体数值。
 
 * **完成率**: 统计面板显示周期内的行动完成情况。
+
+## 6. 非功能性与验收标准
+
+- 性能目标：LCP ≤ 2.5s，CLS ≤ 0.1；仪表盘首屏加载 ≤ 1s（缓存命中）
+- 可用性：关键流程（登录→创建目标→打卡）E2E 通过率 ≥ 99%
+- 安全：RLS 全覆盖；错误不泄露敏感信息；密码强度校验一致
+- 验收清单：页面与流程对照表；边界与“不做什么”明确记录
+
+## 关联文档
+
+- 非功能性需求：[07 非功能性需求规范.md](file:///Users/brucewang/Documents/AIYA/goals/.trae/documents/技术/07%20非功能性需求规范.md)
+- API 契约与数据字典：[08 API与数据字典.md](file:///Users/brucewang/Documents/AIYA/goals/.trae/documents/技术/08%20API与数据字典.md)
