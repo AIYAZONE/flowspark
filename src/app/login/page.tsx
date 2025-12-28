@@ -1,10 +1,6 @@
-import { login, signup } from './actions'
-import Link from 'next/link'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getDictionary } from '@/i18n/get-dictionary'
+import { LoginForm } from '@/components/LoginForm'
 
 export default async function LoginPage({
   searchParams,
@@ -24,44 +20,7 @@ export default async function LoginPage({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {error && (
-            <div className="mb-4 text-sm text-red-500 font-medium bg-red-50 p-3 rounded-md border border-red-200">
-              {dict.common.error}: {error}
-            </div>
-          )}
-          {message && (
-            <div className="mb-4 text-sm text-green-600 font-medium bg-green-50 p-3 rounded-md border border-green-200">
-              {message}
-            </div>
-          )}
-          <form className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="email">{dict.login.emailLabel}</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder={dict.login.emailPlaceholder}
-                required
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="password">{dict.login.passwordLabel}</Label>
-              <Input id="password" name="password" type="password" required />
-              <div className="flex justify-end">
-                <Link href="/forgot" className="text-xs text-primary hover:underline">{dict.login.forgot}</Link>
-              </div>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Button formAction={login} className="w-full">{dict.login.loginButton}</Button>
-              <div className="text-sm text-muted-foreground text-center">
-                {dict.login.toSignupPrefix}{' '}
-                <Link href="/signup" className="text-primary hover:underline">
-                  {dict.login.toSignup}
-                </Link>
-              </div>
-            </div>
-          </form>
+          <LoginForm dict={dict} error={error} message={message} />
         </CardContent>
       </Card>
     </div>

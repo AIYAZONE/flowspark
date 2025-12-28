@@ -1,22 +1,22 @@
 {
-  "common": {
-    "metaTitle": "目标系统",
-    "metaDescription": "一个帮助你实现梦想的个人目标管理系统。",
-    "loading": "加载中...",
-    "save": "保存",
-    "cancel": "取消",
-    "delete": "删除",
-    "edit": "编辑",
-    "create": "创建",
-    "back": "返回",
-    "submit": "提交",
-    "error": "错误",
-    "success": "成功",
-    "confirmDelete": "您确定要删除吗？此操作无法撤销。",
-    "noDescription": "无描述",
-    "timeProgress": "时间进度",
-    "dateRangeInvalid": "结束日期不得早于开始日期"
-  },
+	"common": {
+		"metaTitle": "目标系统",
+		"metaDescription": "一个帮助你实现梦想的个人目标管理系统。",
+		"loading": "加载中...",
+		"save": "保存",
+		"cancel": "取消",
+		"delete": "删除",
+		"edit": "编辑",
+		"create": "创建",
+		"back": "返回",
+		"submit": "提交",
+		"error": "错误",
+		"success": "成功",
+		"confirmDelete": "您确定要删除吗？此操作无法撤销。",
+		"noDescription": "无描述",
+		"timeProgress": "时间进度",
+		"dateRangeInvalid": "结束日期不得早于开始日期"
+	},
 	"sidebar": {
 		"brand": "目标系统",
 		"dashboard": "仪表盘",
@@ -58,7 +58,11 @@
 		"loginButton": "登录",
 		"toSignupPrefix": "没有账号？",
 		"toSignup": "去注册",
-		"forgot": "忘记密码？"
+		"forgot": "忘记密码？",
+		"errors": {
+			"missing_credentials": "邮箱和密码均为必填项",
+			"unexpected_error": "发生了意外错误"
+		}
 	},
 	"forgot": {
 		"title": "找回密码",
@@ -109,7 +113,14 @@
 		"signupButton": "注册",
 		"toLoginPrefix": "已有账号？",
 		"toLogin": "去登录",
-		"successMessage": "注册成功！请检查您的邮箱以确认账号。"
+		"successMessage": "注册成功！请检查您的邮箱以确认账号。",
+		"messages": {
+			"registration_success": "注册成功！请检查您的邮箱以确认账号。"
+		},
+		"errors": {
+			"missing_credentials": "邮箱和密码均为必填项",
+			"unexpected_error": "发生了意外错误"
+		}
 	},
 	"dashboard": {
 		"title": "仪表盘",
@@ -219,5 +230,11 @@
 		"uploadHint": "建议尺寸 256×256，支持 PNG/JPG/WebP，最大 2MB",
 		"uploadErrorSize": "图片大小超过 2MB",
 		"uploadErrorType": "仅支持 PNG、JPG、WebP 格式"
+	},
+	"verified": {
+		"title": "邮箱验证成功",
+		"description": "您的邮箱已成功验证，正在为您跳转...",
+		"toLogin": "立即登录",
+		"redirecting": "秒后自动跳转"
 	}
 }
