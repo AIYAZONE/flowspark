@@ -109,7 +109,9 @@ export function ProfileCard({
                   onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR_URL }}
                 />
               ) : (
-                <div className="h-16 w-16 rounded-full ring-2 ring-border bg-muted" />
+                <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-foreground ring-2 ring-border text-xl font-semibold">
+                  {(userEmail?.[0] || '-').toUpperCase()}
+                </div>
               )}
               <div className="space-y-1">
                 <div className="text-lg font-semibold">{name || '-'}</div>

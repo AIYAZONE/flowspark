@@ -71,7 +71,7 @@ export async function signup(formData: FormData) {
 	if (data.user) {
 		const { error: profileError } = await supabase
 			.from('user_profiles')
-			.insert({ id: data.user.id, name: name });
+			.insert({ id: data.user.id, name: name, avatar_url: null });
 
 		if (profileError) {
 			console.error('Error creating profile:', profileError);
@@ -80,4 +80,11 @@ export async function signup(formData: FormData) {
 
 	revalidatePath('/', 'layout');
 	redirect('/dashboard');
+}
+
+export async function signOut() {
+	const supabase = await createClient();
+	await supabase.auth.signOut();
+	revalidatePath('/', 'layout');
+	redirect('/');
 }
