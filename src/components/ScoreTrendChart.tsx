@@ -53,7 +53,7 @@ export function ScoreTrendChart({ data, title, scoreLabel = 'Score' }: { data: {
                 ticks={[0, 1, 2, 3, 4, 5]}
               />
               <Tooltip
-                contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
+                contentStyle={{ background: '#fff', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)' }}
                 labelStyle={{ color: 'hsl(var(--foreground))' }}
                 labelFormatter={(label) => {
                   const d = new Date(label as string)
