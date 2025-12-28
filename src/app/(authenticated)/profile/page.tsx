@@ -6,7 +6,6 @@ import { getDictionary, getCurrentLocale } from '@/i18n/get-dictionary'
 import { LanguageSwitcher } from '@/components/LanguageSwitcher'
 import { updateProfile } from './actions'
 import { ProfileCard } from '@/components/ProfileCard'
-import { DEFAULT_AVATAR_URL } from '@/lib/constants'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -23,14 +22,7 @@ export default async function ProfilePage() {
     .eq('id', user.id)
     .single()
 
-  if (!profile?.avatar_url) {
-    const { error } = await supabase
-      .from('user_profiles')
-      .upsert({ id: user.id, avatar_url: DEFAULT_AVATAR_URL })
-    if (error) {
-      await supabase.auth.updateUser({ data: { avatar_url: DEFAULT_AVATAR_URL } })
-    }
-  }
+  // 无头像时不写入默认图片，交由 UI 首字母头像渲染
 
   return (
     <div className="space-y-6 max-w-2xl">

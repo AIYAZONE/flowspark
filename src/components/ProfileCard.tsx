@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { AvatarUploader } from '@/components/AvatarUploader'
 import { Pencil, Mail, Globe } from 'lucide-react'
-import { DEFAULT_AVATAR_URL } from '@/lib/constants'
 
 interface Dict {
   profile: {
@@ -106,7 +105,7 @@ export function ProfileCard({
                   src={avatarUrl}
                   alt="avatar"
                   className="h-16 w-16 rounded-full ring-2 ring-border object-cover"
-                  onError={(e) => { e.currentTarget.src = DEFAULT_AVATAR_URL }}
+                  onError={() => { setAvatarUrl('') }}
                 />
               ) : (
                 <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-foreground ring-2 ring-border text-xl font-semibold">
