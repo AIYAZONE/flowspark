@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
+import { getSiteUrl } from '@/lib/get-site-url'
 
 export async function requestReset(formData: FormData) {
   const email = (formData.get('email') as string || '').trim()
@@ -12,7 +13,7 @@ export async function requestReset(formData: FormData) {
   }
 
   const supabase = await createClient()
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+  const siteUrl = getSiteUrl()
   const cookieStore = await cookies()
   const last = cookieStore.get('PW_RESET_LAST')?.value
   if (last) {
@@ -26,7 +27,7 @@ export async function requestReset(formData: FormData) {
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl}/reset`,
+    redirectTo: `${siteUrl}reset`,
   })
 
   if (error) {

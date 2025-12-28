@@ -214,6 +214,10 @@
 		"timezone": "Timezone",
 		"updateProfile": "Update Profile",
 		"joined": "Joined",
-		"switchLanguage": "Switch Language"
+		"switchLanguage": "Switch Language",
+		"uploadOrChange": "Upload/Change",
+		"uploadHint": "Recommended size 256x256, supports PNG/JPG/WebP, max 2MB",
+		"uploadErrorSize": "Image size exceeds 2MB",
+		"uploadErrorType": "Only PNG, JPG, WebP formats are supported"
 	}
 }

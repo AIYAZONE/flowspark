@@ -214,6 +214,10 @@
 		"timezone": "时区",
 		"updateProfile": "更新资料",
 		"joined": "加入时间",
-		"switchLanguage": "切换语言"
+		"switchLanguage": "切换语言",
+		"uploadOrChange": "上传/更换",
+		"uploadHint": "建议尺寸 256×256，支持 PNG/JPG/WebP，最大 2MB",
+		"uploadErrorSize": "图片大小超过 2MB",
+		"uploadErrorType": "仅支持 PNG、JPG、WebP 格式"
 	}
 }

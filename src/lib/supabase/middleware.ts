@@ -61,5 +61,12 @@ export async function updateSession(request: NextRequest) {
 		}
 	}
 
+	// i18n: Set default locale if not present
+	if (!request.cookies.has('NEXT_LOCALE')) {
+		const acceptLanguage = request.headers.get('accept-language') || '';
+		const locale = acceptLanguage.includes('zh') ? 'zh' : 'en';
+		response.cookies.set('NEXT_LOCALE', locale);
+	}
+
 	return response;
 }
