@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { UploadCloud, Camera } from 'lucide-react'
-import { DEFAULT_AVATAR_URL } from '@/lib/constants'
 import { createClient } from '@/lib/supabase/client'
 
 interface UploaderDict {
@@ -105,7 +104,8 @@ export function AvatarUploader({
                 className="h-full w-full object-cover"
                 onError={() => {
                   setPreviewUrl(null)
-                  setAvatarUrl(DEFAULT_AVATAR_URL)
+                  setAvatarUrl('')
+                  onChangeUrl(null)
                 }}
               />
             ) : (
