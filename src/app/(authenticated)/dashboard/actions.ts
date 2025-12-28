@@ -18,13 +18,17 @@ export async function toggleAction(formData: FormData) {
 
 export async function submitScore(formData: FormData) {
 	const supabase = await createClient();
-	const score = parseInt(formData.get('score') as string);
-	const date = formData.get('date') as string;
+	const rawScore = formData.get('score') as string;
+	const rawDate = formData.get('date') as string;
+	const score = Math.min(5, Math.max(0, Number.parseInt(rawScore, 10)));
+	const date = (rawDate || '').slice(0, 10);
 
 	const {
 		data: { user }
 	} = await supabase.auth.getUser();
 	if (!user) return;
+	if (!Number.isFinite(score)) return;
+	if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
 
 	// Upsert score
 	const { error } = await supabase.from('daily_scores').upsert(

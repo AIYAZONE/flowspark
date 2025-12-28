@@ -4,7 +4,7 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "rec
 import { subDays, format, isSameDay, parseISO } from "date-fns"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-export function ScoreTrendChart({ data, title }: { data: { date: string, score: number }[], title: string }) {
+export function ScoreTrendChart({ data, title, scoreLabel = 'Score' }: { data: { date: string, score: number }[], title: string, scoreLabel?: string }) {
   // Generate last 30 days to ensure consistent X-axis spacing
   const today = new Date()
   const chartData = Array.from({ length: 30 }).map((_, i) => {
@@ -55,6 +55,16 @@ export function ScoreTrendChart({ data, title }: { data: { date: string, score: 
               <Tooltip
                 contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)' }}
                 labelStyle={{ color: 'hsl(var(--foreground))' }}
+                labelFormatter={(label) => {
+                  const d = new Date(label as string)
+                  return `${d.getMonth() + 1}/${d.getDate()}`
+                }}
+                formatter={(value) => {
+                  if (typeof value === 'number') {
+                    return [value, scoreLabel]
+                  }
+                  return [value as unknown as number, scoreLabel]
+                }}
               />
               <Line
                 type="monotone"

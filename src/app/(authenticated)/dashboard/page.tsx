@@ -163,6 +163,7 @@ export default async function DashboardPage() {
                         ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105 font-bold"
                         : "hover:bg-primary/5 hover:text-primary hover:border-primary/30 text-muted-foreground font-medium"
                     )}
+                    disabled={dailyScore === score}
                     formAction={submitScore}
                   >
                     {score}
@@ -196,7 +197,7 @@ export default async function DashboardPage() {
         </Card>
 
         {/* Trend Chart */}
-        <ScoreTrendChart data={chartData} title={dict.dashboard.recentTrend} />
+        <ScoreTrendChart data={chartData} title={dict.dashboard.recentTrend} scoreLabel={dict.dashboard.submitScore} />
       </div>
 
       {/* Active Goals Progress */}
