@@ -10,6 +10,10 @@ import { createClient } from '@/lib/supabase/client'
 interface UploaderDict {
   profile: {
     avatar: string
+    uploadOrChange: string
+    uploadHint: string
+    uploadErrorSize: string
+    uploadErrorType: string
   }
   common: {
     error: string
@@ -42,11 +46,11 @@ export function AvatarUploader({
     const MAX_SIZE = 2 * 1024 * 1024
     const allowedTypes = ['image/png', 'image/jpeg', 'image/webp']
     if (file.size > MAX_SIZE) {
-      setError('图片大小超过 2MB')
+      setError(dict.profile.uploadErrorSize)
       return
     }
     if (!allowedTypes.includes(file.type)) {
-      setError('仅支持 PNG、JPG、WebP 格式')
+      setError(dict.profile.uploadErrorType)
       return
     }
     if (previewUrl) {
@@ -116,11 +120,11 @@ export function AvatarUploader({
           </div>
           <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-1">
             <UploadCloud className="h-4 w-4" />
-            上传/更换
+            {dict.profile.uploadOrChange}
           </Button>
         </div>
         <div className="text-xs text-muted-foreground">
-          建议尺寸 256×256，支持 PNG/JPG/WebP，最大 2MB
+          {dict.profile.uploadHint}
         </div>
       </div>
       {error && (

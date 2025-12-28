@@ -17,10 +17,16 @@ interface Dict {
     timezone: string
     updateProfile: string
     avatar: string
+    uploadOrChange: string
+    uploadHint: string
+    uploadErrorSize: string
+    uploadErrorType: string
   }
   common: {
     success: string
     error: string
+    edit: string
+    cancel: string
   }
 }
 
@@ -122,7 +128,7 @@ export function ProfileCard({
             </div>
             <Button type="button" variant="outline" onClick={() => setEditing(true)} className="gap-1">
               <Pencil className="h-4 w-4" />
-              编辑
+              {dict.common.edit}
             </Button>
           </div>
         )}
@@ -156,7 +162,7 @@ export function ProfileCard({
             </div>
             <div className="flex gap-2">
               <Button type="submit">{dict.profile.updateProfile}</Button>
-              <Button type="button" variant="outline" onClick={() => { setEditing(false); setSelectedFile(null); setName(initialName || ''); setTimezone(initialTimezone || 'UTC') }}>取消</Button>
+              <Button type="button" variant="outline" onClick={() => { setEditing(false); setSelectedFile(null); setName(initialName || ''); setTimezone(initialTimezone || 'UTC') }}>{dict.common.cancel}</Button>
             </div>
           </form>
         ) : null}
