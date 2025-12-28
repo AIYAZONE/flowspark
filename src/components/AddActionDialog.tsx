@@ -35,6 +35,9 @@ interface AddActionDialogProps {
                 explore: string
             }
         }
+        common: {
+            dateRangeInvalid: string
+        }
     }
 }
 
