@@ -2,7 +2,7 @@
   "common": {
     "metaTitle": "Goal System",
     "metaDescription": "A personal goal management system to help you achieve your dreams.",
-    "Loading": "Loading...",
+    "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel",
     "delete": "Delete",
