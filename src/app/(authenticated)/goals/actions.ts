@@ -21,6 +21,10 @@ export async function createGoal(formData: FormData) {
 	const priority = (formData.get('priority') as string) || 'medium';
 	const category = (formData.get('category') as string) || 'other';
 
+	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
+		throw new Error('End date cannot be earlier than start date');
+	}
+
 	const { error } = await supabase.from('goals').insert({
 		owner_id: user.id,
 		title,
@@ -88,9 +92,14 @@ export async function createAction(formData: FormData) {
 		(formData.get('action_date') as string);
 	const end_date = formData.get('end_date') as string;
 
+	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
+		throw new Error('End date cannot be earlier than start date');
+	}
+
 	// Try insert using start_date/end_date, fall back to legacy action_date if column doesn't exist
 	const insertPayload: Record<string, string | null> = {
 		owner_id: user.id,
+		user_id: user.id,
 		goal_id,
 		title,
 		type,
@@ -126,6 +135,7 @@ export async function createAction(formData: FormData) {
 
 	revalidatePath(`/goals/${goal_id}`);
 	revalidatePath('/today');
+	revalidatePath('/dashboard');
 }
 
 export async function updateGoal(formData: FormData) {
@@ -145,6 +155,10 @@ export async function updateGoal(formData: FormData) {
 	const status = formData.get('status') as string;
 	const priority = formData.get('priority') as string;
 	const category = formData.get('category') as string;
+
+	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
+		throw new Error('End date cannot be earlier than start date');
+	}
 
 	const { error } = await supabase
 		.from('goals')
@@ -217,6 +231,10 @@ export async function updateAction(formData: FormData) {
 		(formData.get('action_date') as string);
 	const end_date = formData.get('end_date') as string;
 	const goal_id = formData.get('goal_id') as string;
+
+	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
+		throw new Error('End date cannot be earlier than start date');
+	}
 
 	// Try update with start_date/end_date; on error retry legacy update with action_date
 	const updatePayload: Record<string, string | null> = {

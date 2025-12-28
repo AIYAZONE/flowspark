@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ScoreTrendChart } from '@/components/ScoreTrendChart'
+import { SetCoreActionSheet } from '@/components/SetCoreActionSheet'
 import { toggleAction, submitScore } from './actions'
 import { getDictionary } from '@/i18n/get-dictionary'
 
@@ -129,7 +130,7 @@ export default async function DashboardPage() {
             ) : (
               <div className="text-muted-foreground">
                 {dict.dashboard.noCoreAction}
-                <Button variant="link" className="px-0 text-primary underline">{dict.dashboard.setCoreAction}</Button>
+                <SetCoreActionSheet goals={goals || []} dict={dict} defaultDate={today} />
               </div>
             )}
           </CardContent>

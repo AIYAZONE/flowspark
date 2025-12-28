@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DateRangeFields } from '@/components/DateRangeFields'
 import {
     Dialog,
     DialogContent,
@@ -40,6 +41,7 @@ interface AddActionDialogProps {
 export function AddActionDialog({ goalId, dict }: AddActionDialogProps) {
     const [open, setOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [valid, setValid] = useState(true)
 
     async function handleSubmit(formData: FormData) {
         setIsLoading(true)
@@ -86,28 +88,14 @@ export function AddActionDialog({ goalId, dict }: AddActionDialogProps) {
                         </select>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="start_date">{dict.today.startTime}</Label>
-                            <Input
-                                id="start_date"
-                                name="start_date"
-                                type="date"
-                                defaultValue={new Date().toISOString().split('T')[0]}
-                                required
-                            />
-                        </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="end_date">{dict.today.endTime}</Label>
-                            <Input
-                                id="end_date"
-                                name="end_date"
-                                type="date"
-                            />
-                        </div>
-                    </div>
+                    <DateRangeFields
+                        defaultStart={new Date().toISOString().split('T')[0]}
+                        defaultEnd={new Date().toISOString().split('T')[0]}
+                        labels={{ start: dict.today.startTime, end: dict.today.endTime, error: dict.common.dateRangeInvalid }}
+                        onValidityChange={setValid}
+                    />
 
-                    <Button type="submit" className="w-full" disabled={isLoading}>
+                    <Button type="submit" className="w-full" disabled={isLoading || !valid}>
                         {isLoading ? "Saving..." : dict.goals.detail.addAction}
                     </Button>
                 </form>
