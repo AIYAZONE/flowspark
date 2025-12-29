@@ -6,18 +6,22 @@ import { Button } from '@/components/ui/button'
 import { getDictionary } from '@/i18n/get-dictionary'
 
 import { GoalDetailsCard } from '@/components/GoalDetailsCard'
-import { ActionItem } from '@/components/ActionItem'
-import { GoalStatusBadge } from '@/components/GoalStatusBadge'
-import { DeleteGoalButton } from '@/components/DeleteGoalButton'
+import { ActionListFilter } from '@/components/ActionListFilter'
 import { AddActionDialog } from '@/components/AddActionDialog'
 
-export default async function GoalDetailPage({ params }: { params: Promise<{ id: string }> }) {
+interface PageProps {
+    params: Promise<{ id: string }>
+}
+
+export default async function GoalDetailPage({ params }: PageProps) {
     const { id } = await params
     const supabase = await createClient()
     const dict = await getDictionary()
     const { data: { user } } = await supabase.auth.getUser()
+
     if (!user) return null
 
+    // Get goal details
     const { data: goal } = await supabase
         .from('goals')
         .select('*')
@@ -25,35 +29,20 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
         .eq('user_id', user.id)
         .single()
 
-    if (!goal) {
-        return <div>{dict.goals.detail.notFound}</div>
-    }
+    if (!goal) return <div>{dict.goals.detail.notFound}</div>
 
+    // Get actions for this goal
     const { data: actions } = await supabase
         .from('actions')
-        .select('*, goals(title)')
+        .select('*')
         .eq('goal_id', id)
         .eq('user_id', user.id)
-        .order('start_date', { ascending: true })
-
-    // Sort priority logic: high > medium > low
-    const priorityOrder: Record<string, number> = {
-        high: 1,
-        medium: 2,
-        low: 3
-    }
-
-    actions?.sort((a, b) => {
-        const pA = priorityOrder[a.priority as string || 'medium'] || 2
-        const pB = priorityOrder[b.priority as string || 'medium'] || 2
-        if (pA !== pB) return pA - pB
-        return 0
-    })
+        .order('completed', { ascending: true }) // Uncompleted first
+        .order('priority', { ascending: false }) // High priority first
 
     return (
-        <div className="space-y-8">
-            {/* Top Navigation & Header */}
-            <div className="flex items-center justify-between gap-4">
+        <div className="space-y-6">
+            <div className="flex items-center gap-4">
                 <Link href="/goals">
                     <Button
                         variant="ghost"
@@ -66,37 +55,29 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
                         <span className="text-sm font-medium">{dict.common.back}</span>
                     </Button>
                 </Link>
-
-                <h1 className="text-2xl font-bold tracking-tight text-foreground">{goal.title}</h1>
+                <h1 className="text-2xl font-bold tracking-tight">{goal.title}</h1>
             </div>
 
-            <div className="grid gap-8 lg:grid-cols-3">
+            <div className="grid gap-6 lg:grid-cols-3">
                 {/* Left Column: Goal Details */}
                 <div className="lg:col-span-1">
-                    <div className="sticky top-8">
+                    <div className="sticky top-6">
                         <GoalDetailsCard goal={goal} dict={dict} />
                     </div>
                 </div>
 
                 {/* Right Column: Actions */}
-                <div className="lg:col-span-2">
-                    <div className="rounded-xl border border-border/40 bg-card/80 backdrop-blur-xl shadow-sm p-6 space-y-6">
-                        <div className="flex items-center justify-between border-b border-border/40 pb-4">
-                            <h2 className="text-lg font-semibold tracking-tight">{dict.goals.detail.actions}</h2>
-                            <AddActionDialog goalId={goal.id} dict={dict} />
-                        </div>
-
-                        <div className="space-y-3">
-                            {actions?.map((action) => (
-                                <ActionItem key={action.id} action={action} dict={dict} />
-                            ))}
-                            {actions?.length === 0 && (
-                                <div className="text-center py-16 border rounded-xl border-dashed border-border/60 bg-muted/5">
-                                    <p className="text-muted-foreground">{dict.goals.detail.noActions}</p>
-                                </div>
-                            )}
-                        </div>
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-semibold">{dict.goals.detail.actions}</h2>
+                        <AddActionDialog goalId={goal.id} dict={dict} />
                     </div>
+
+                    <ActionListFilter
+                        initialActions={actions || []}
+                        dict={dict}
+                        showGoalTitle={false}
+                    />
                 </div>
             </div>
         </div>

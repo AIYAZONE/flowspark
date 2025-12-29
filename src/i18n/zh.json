@@ -170,12 +170,17 @@
 		"createFirst": "创建您的第一个目标",
 		"filter": {
 			"searchPlaceholder": "搜索目标...",
+			"searchActionsPlaceholder": "搜索行动...",
 			"allStatus": "全部状态",
 			"allPriority": "全部优先级",
 			"allCategory": "全部分类",
+			"allType": "全部类型",
 			"status": "状态",
 			"priority": "优先级",
-			"category": "分类"
+			"category": "分类",
+			"type": "类型",
+			"completed": "已完成",
+			"incomplete": "未完成"
 		},
 		"status": {
 			"label": "状态",
