@@ -150,9 +150,11 @@
 		"startTime": "Start Date",
 		"endTime": "End Date",
 		"types": {
-			"core": "Core",
-			"growth": "Growth",
-			"routine": "Routine"
+			"core": "Core/Deep Work",
+			"maintenance": "Maintenance",
+			"learning": "Learning",
+			"review": "Review",
+			"rest": "Rest/Health"
 		},
 		"priorityLabel": "Priority",
 		"descriptionLabel": "Description",

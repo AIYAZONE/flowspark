@@ -150,9 +150,11 @@
 		"startTime": "开始日期",
 		"endTime": "结束日期",
 		"types": {
-			"core": "核心",
-			"growth": "成长",
-			"routine": "日常"
+			"core": "核心攻坚",
+			"maintenance": "日常维持",
+			"learning": "学习探索",
+			"review": "复盘思考",
+			"rest": "休息恢复"
 		},
 		"priorityLabel": "优先级",
 		"descriptionLabel": "描述",
