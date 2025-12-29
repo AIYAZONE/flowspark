@@ -99,6 +99,7 @@ export async function createAction(formData: FormData) {
 
   const { error } = await supabase.from('actions').insert({
      user_id: user.id,
+     owner_id: user.id,
      goal_id,
      title,
      type,
