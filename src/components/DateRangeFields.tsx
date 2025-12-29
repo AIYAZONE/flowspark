@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { cn } from '@/lib/utils'
 
 interface Labels {
   start: string
@@ -15,9 +16,10 @@ interface Props {
   defaultEnd: string
   labels: Labels
   onValidityChange?: (valid: boolean) => void
+  className?: string
 }
 
-export function DateRangeFields({ defaultStart, defaultEnd, labels, onValidityChange }: Props) {
+export function DateRangeFields({ defaultStart, defaultEnd, labels, onValidityChange, className }: Props) {
   const [start, setStart] = useState(defaultStart)
   const [end, setEnd] = useState(defaultEnd)
   const valid = !end || end >= start
@@ -27,7 +29,7 @@ export function DateRangeFields({ defaultStart, defaultEnd, labels, onValidityCh
   }, [valid, onValidityChange])
 
   return (
-    <div className="grid grid-cols-2 gap-4">
+    <div className={cn("grid grid-cols-2 gap-4", className)}>
       <div className="grid gap-2">
         <Label htmlFor="start_date">{labels.start}</Label>
         <Input
