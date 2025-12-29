@@ -20,7 +20,7 @@ export interface Dict {
     actionTitleLabel: string
     actionTitlePlaceholder: string
     typeLabel: string
-    types: { core: string; growth: string; routine: string }
+    types: { core: string; maintenance: string; learning: string; review: string; rest: string }
     priorityLabel: string
     descriptionLabel: string
     descriptionPlaceholder: string
@@ -74,8 +74,10 @@ export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[
             defaultValue="core"
           >
             <option value="core">{dict.today.types.core}</option>
-            <option value="growth">{dict.today.types.growth}</option>
-            <option value="routine">{dict.today.types.routine}</option>
+            <option value="maintenance">{dict.today.types.maintenance}</option>
+            <option value="learning">{dict.today.types.learning}</option>
+            <option value="review">{dict.today.types.review}</option>
+            <option value="rest">{dict.today.types.rest}</option>
           </select>
         </div>
         <div className="space-y-2">

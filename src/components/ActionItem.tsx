@@ -126,8 +126,10 @@ export function ActionItem({ action, dict, showGoalTitle = false }: ActionItemPr
                                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                                 <option value="core">{dict.today.types.core}</option>
-                                <option value="growth">{dict.today.types.growth}</option>
-                                <option value="routine">{dict.today.types.routine}</option>
+                                <option value="maintenance">{dict.today.types.maintenance}</option>
+                                <option value="learning">{dict.today.types.learning}</option>
+                                <option value="review">{dict.today.types.review}</option>
+                                <option value="rest">{dict.today.types.rest}</option>
                             </select>
                         </div>
                         <div className="space-y-1">
