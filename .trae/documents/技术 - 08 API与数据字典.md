@@ -20,8 +20,8 @@
   - 输出：{ deleted: true }
   - 错误：NOT_FOUND, RLS_DENIED, DB_ERROR
 - actions/createAction
-  - 输入：goal_id, title, type, start_date, end_date
-  - 约束：start_date≤end_date；type∈{core,maintain,explore}
+  - 输入：goal_id, title, type, start_date, end_date, priority?, description?
+  - 约束：start_date≤end_date；type∈{core,maintenance,learning,review,rest}
   - 输出：action对象
   - 错误：VALIDATION_ERROR, RLS_DENIED, DB_ERROR
 - actions/updateAction
@@ -38,9 +38,9 @@
   - 输出：action对象
   - 错误：NOT_FOUND, RLS_DENIED, DB_ERROR（示例：无权限切换他人记录）
 - dashboard/submitScore
-  - 输入：score_date, score
+  - 输入：date(YYYY-MM-DD), score
   - 约束：score∈[0,5] 且为整数
-  - 输出：daily_score对象（upsert）
+  - 输出：daily_scores 对象（upsert，唯一键 owner_id+score_date，兼容 user_id+score_date）
   - 错误：VALIDATION_ERROR, DB_ERROR
 
 ## 错误码
@@ -57,12 +57,16 @@
 ## 枚举值
 - goal.priority：low | medium | high
 - goal.status：active | completed | abandoned
-- action.type：core | maintain | explore
+- action.type：core | maintenance | learning | review | rest
 
 ## 数据字典（字段）
 - goal：id(uuid), user_id(uuid), title, description, start_date, end_date, priority, category, status, created_at, updated_at
-- action：id(uuid), goal_id(uuid), title, type, start_date, end_date, completed, created_at, updated_at
-- daily_score：id(uuid), user_id(uuid), score_date, score
+- action：id(uuid), goal_id(uuid), title, type, priority?, description?, start_date, end_date, completed, created_at, updated_at
+- daily_scores：id(uuid), owner_id(uuid), user_id(uuid), score_date(date), score(int)
+
+## i18n 字典键（前端约定）
+- common：metaTitle, metaDescription, loading, save, cancel, delete, edit, create, back, submit, error, success, confirmDelete, noDescription, timeProgress, dateRangeInvalid, showMore, showLess, noData, tryAdjustFilter, locale
+- today：title, noActions, addActionTitle, goalLabel, selectGoal, actionTitleLabel, actionTitlePlaceholder, typeLabel, startTime, endTime, types(core|maintenance|learning|review|rest), priorityLabel, descriptionLabel, descriptionPlaceholder, addActionBtn, goalPrefix, delayed, scoreLabels(5), alreadyScored, updateScore, recent7Trend
 
 ## 分页与排序（约定）
 - 分页：page, page_size（默认 20，最大 100）
