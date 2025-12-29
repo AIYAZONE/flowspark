@@ -107,11 +107,15 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {/* Core Action Card */}
-        <Card className="col-span-1 sm:col-span-2 bg-primary/5 border-primary/20">
+        <Card className="col-span-1 sm:col-span-2 relative overflow-hidden bg-primary/5 border-primary/20">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/60 to-transparent pointer-events-none dark:from-emerald-950/30" />
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-medium text-primary">{dict.dashboard.todayCoreAction}</CardTitle>
-              <span className="text-xs rounded-full bg-primary/10 text-primary px-2 py-0.5">
+              <CardTitle className="text-lg font-semibold text-emerald-700 dark:text-emerald-300">{dict.dashboard.todayCoreAction}</CardTitle>
+              <span className={`text-xs rounded-full px-2 py-0.5 ${((actions?.filter(a => !a.completed).length ?? 0) > 0)
+                  ? 'bg-amber-100 text-amber-700'
+                  : 'bg-emerald-100 text-emerald-700'
+                }`}>
                 {(actions?.filter(a => !a.completed).length ?? 0)} / {(actions?.length ?? 0)}
               </span>
             </div>
