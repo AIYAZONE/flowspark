@@ -21,7 +21,7 @@ export default async function AuthenticatedLayout({
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-muted/40">
+    <div className="fixed inset-0 flex h-full w-full overflow-hidden bg-muted/40">
       <Sidebar dict={dict} />
       <div className="flex flex-col flex-1 h-full overflow-hidden">
         <header className="flex h-14 items-center gap-4 border-b bg-background px-4 md:hidden shrink-0">
@@ -29,7 +29,7 @@ export default async function AuthenticatedLayout({
           <div className="font-semibold">{dict.sidebar.brand}</div>
         </header>
         <main className="flex-1 overflow-auto">
-          <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 pt-8 md:pt-10">
+          <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8 pt-8 md:pt-10 pb-12">
             {children}
           </div>
         </main>

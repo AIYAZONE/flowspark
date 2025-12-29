@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { Pencil, Save, X, Calendar, Tag, Flag, Target, AlertCircle, LayoutDashboard, Clock } from 'lucide-react'
+import { Pencil, Save, X, Calendar, Tag, Flag, Target, AlertCircle, LayoutDashboard, Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -34,6 +34,7 @@ interface GoalDetailsCardProps {
 export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [isExpanded, setIsExpanded] = useState(false)
 
     async function handleSubmit(formData: FormData) {
         setIsLoading(true)
@@ -222,8 +223,30 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                                 <LayoutDashboard className="h-4 w-4" />
                                 <h3 className="text-sm font-medium uppercase tracking-wider">{dict.goals.detail.description}</h3>
                             </div>
-                            <div className="rounded-xl bg-secondary/20 p-4 text-base leading-relaxed text-foreground/90 border border-border/50">
-                                <p className="whitespace-pre-wrap">{goal.description || dict.common.noDescription}</p>
+                            <div className="rounded-xl bg-secondary/20 p-4 text-base leading-relaxed text-foreground/90 border border-border/50 relative">
+                                <p className={`whitespace-pre-wrap ${!isExpanded && (goal.description?.length || 0) > 200 ? 'line-clamp-3' : ''}`}>
+                                    {goal.description || dict.common.noDescription}
+                                </p>
+                                {(goal.description?.length || 0) > 200 && (
+                                    <div className="mt-3 flex justify-center">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => setIsExpanded(!isExpanded)}
+                                            className="h-8 gap-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
+                                        >
+                                            {isExpanded ? (
+                                                <>
+                                                    {dict.common.showLess} <ChevronUp className="h-3 w-3" />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    {dict.common.showMore} <ChevronDown className="h-3 w-3" />
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </div>
 

@@ -15,7 +15,9 @@
 		"confirmDelete": "您确定要删除吗？此操作无法撤销。",
 		"noDescription": "无描述",
 		"timeProgress": "时间进度",
-		"dateRangeInvalid": "结束日期不得早于开始日期"
+		"dateRangeInvalid": "结束日期不得早于开始日期",
+		"showMore": "展开",
+		"showLess": "收起"
 	},
 	"sidebar": {
 		"brand": "目标系统",
