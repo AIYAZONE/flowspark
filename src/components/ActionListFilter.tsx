@@ -16,7 +16,8 @@ interface Action {
     priority: string
     completed: boolean
     start_date: string
-    end_date: string
+    end_date?: string | null
+    goal_id: string
     goals?: {
         id: string
         title: string
