@@ -115,7 +115,7 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
-                <div className="flex gap-2 overflow-x-auto md:overflow-visible pb-2 md:pb-0 px-1 -mx-1">
+                <div className="flex gap-2 flex-wrap md:flex-nowrap pb-2 md:pb-0 px-1">
                     <SelectWrapper
                         className="min-w-[120px]"
                         value={statusFilter}
