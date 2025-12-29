@@ -168,6 +168,15 @@
 		"newGoal": "New Goal",
 		"noGoals": "You haven't set any goals yet.",
 		"createFirst": "Create your first goal",
+		"filter": {
+			"searchPlaceholder": "Search goals...",
+			"allStatus": "All Status",
+			"allPriority": "All Priority",
+			"allCategory": "All Category",
+			"status": "Status",
+			"priority": "Priority",
+			"category": "Category"
+		},
 		"status": {
 			"label": "Status",
 			"active": "Active",
