@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Target, CalendarCheck, User, LogOut, ChevronLeft, ChevronRight, Aperture } from 'lucide-react'
@@ -11,13 +12,22 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 function SidebarFloatingTooltip({ label, top, left }: { label: string; top: number; left: number }) {
-  return (
-    <div className="pointer-events-none fixed z-50" style={{ top, left }}>
-      <div className="relative -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-xs font-medium text-popover-foreground shadow-md">
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted || typeof document === 'undefined') return null
+
+  return createPortal(
+    <div className="pointer-events-none fixed z-[100]" style={{ top, left }}>
+      <div className="relative -translate-y-1/2 whitespace-nowrap rounded-md border border-border bg-popover px-2 py-1 text-xs font-medium text-popover-foreground shadow-md animate-in fade-in zoom-in-95 duration-100">
         {label}
         <div className="absolute left-[-4px] top-1/2 h-2 w-2 -translate-y-1/2 rotate-45 border-b border-l border-border bg-popover" />
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
