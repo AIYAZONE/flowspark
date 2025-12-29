@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toggleAction } from '../dashboard/actions'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { AddActionDialog } from '@/components/AddActionDialog'
+import { getUserTimezone, getTodayInTZ, toLocaleDateStringTZ } from '@/lib/time'
 import { ActionListFilter } from '@/components/ActionListFilter'
 
 export default async function TodayPage() {
@@ -22,8 +23,9 @@ export default async function TodayPage() {
     .eq('status', 'active')
     .order('created_at', { ascending: false })
 
-  // Get today's actions
-  const today = new Date().toISOString().split('T')[0]
+  const tz = await getUserTimezone(supabase, user.id)
+  // Get today's actions by timezone
+  const today = getTodayInTZ(tz)
   const { data: actions } = await supabase
     .from('actions')
     .select(`
@@ -47,7 +49,7 @@ export default async function TodayPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{dict.today.title}</h1>
           <div className="text-sm text-muted-foreground mt-1">
-            {new Date().toLocaleDateString(dict.common.locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            {toLocaleDateStringTZ(dict.common.locale, tz, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
         <AddActionDialog activeGoals={activeGoals || []} dict={dict} />
@@ -61,6 +63,7 @@ export default async function TodayPage() {
                 initialActions={actions || []} 
                 dict={dict} 
                 showGoalTitle={true}
+                tz={tz}
             />
           </div>
         </div>

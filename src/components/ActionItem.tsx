@@ -43,9 +43,10 @@ interface ActionItemProps {
     action: Action
     dict: typeof en
     showGoalTitle?: boolean
+    tz?: string
 }
 
-export function ActionItem({ action, dict, showGoalTitle = false }: ActionItemProps) {
+export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Shanghai' }: ActionItemProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
@@ -183,7 +184,7 @@ export function ActionItem({ action, dict, showGoalTitle = false }: ActionItemPr
 
     const endDateStr = action.end_date || action.start_date
     const endDateVal = endDateStr.split('T')[0]
-    const todayVal = format(new Date(), 'yyyy-MM-dd')
+    const todayVal = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
     const isDelayed = endDateVal < todayVal && !action.completed
 
     return (

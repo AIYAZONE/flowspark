@@ -53,9 +53,10 @@ interface AddActionDialogProps {
             dateRangeInvalid: string
         }
     }
+    tz?: string
 }
 
-export function AddActionDialog({ goalId, activeGoals, dict }: AddActionDialogProps) {
+export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai' }: AddActionDialogProps) {
     const [open, setOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [valid, setValid] = useState(true)
@@ -72,7 +73,7 @@ export function AddActionDialog({ goalId, activeGoals, dict }: AddActionDialogPr
         }
     }
 
-    const today = new Date().toISOString().split('T')[0]
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>

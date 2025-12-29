@@ -13,13 +13,15 @@ import { getDictionary } from '@/i18n/get-dictionary'
 import { ActionListCompact } from '@/components/ActionListCompact'
 import { ScoreCard } from '@/components/ScoreCard'
 import { StreakCard } from '@/components/StreakCard'
+import { getUserTimezone, getTodayInTZ } from '@/lib/time'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const dict = await getDictionary()
-  const today = new Date().toISOString().split('T')[0]
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+  const tz = await getUserTimezone(supabase, user.id)
+  const today = getTodayInTZ(tz)
 
   // Fetch today's core action
   const { data: actions } = await supabase
@@ -107,7 +109,22 @@ export default async function DashboardPage() {
         {/* Core Action Card */}
         <Card className="col-span-1 sm:col-span-2 bg-primary/5 border-primary/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-medium text-primary">{dict.dashboard.todayCoreAction}</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-medium text-primary">{dict.dashboard.todayCoreAction}</CardTitle>
+              <span className="text-xs rounded-full bg-primary/10 text-primary px-2 py-0.5">
+                {(actions?.filter(a => !a.completed).length ?? 0)} / {(actions?.length ?? 0)}
+              </span>
+            </div>
+            <div className="mt-2 h-1 bg-primary/10 rounded">
+              <div
+                className="h-1 bg-primary rounded transition-all shadow-sm shadow-primary/20"
+                style={{
+                  width: `${(actions && actions.length > 0)
+                    ? Math.round(((actions.length - (actions.filter(a => !a.completed).length)) / actions.length) * 100)
+                    : 0}%`
+                }}
+              />
+            </div>
           </CardHeader>
           <CardContent>
             {actions && actions.length > 0 ? (
