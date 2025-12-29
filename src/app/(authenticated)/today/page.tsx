@@ -44,20 +44,19 @@ export default async function TodayPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">{dict.today.title}</h1>
-        <div className="text-sm text-muted-foreground">
-          {new Date().toLocaleDateString(dict.common.locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{dict.today.title}</h1>
+          <div className="text-sm text-muted-foreground mt-1">
+            {new Date().toLocaleDateString(dict.common.locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </div>
         </div>
+        <AddActionDialog activeGoals={activeGoals || []} dict={dict} />
       </div>
 
       <div className="grid gap-6">
         {/* Actions List with Filter */}
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
           <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold leading-none tracking-tight">{dict.today.todaysActions}</h2>
-                <AddActionDialog activeGoals={activeGoals || []} dict={dict} />
-            </div>
             <ActionListFilter 
                 initialActions={actions || []} 
                 dict={dict} 
