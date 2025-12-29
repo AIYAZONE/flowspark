@@ -28,6 +28,7 @@ interface ActionListFilterProps {
     initialActions: Action[]
     dict: Dict
     showGoalTitle?: boolean
+    tz?: string
 }
 
 function SelectWrapper({ value, onChange, options, className }: { 
@@ -52,7 +53,7 @@ function SelectWrapper({ value, onChange, options, className }: {
     )
 }
 
-export function ActionListFilter({ initialActions, dict, showGoalTitle = false }: ActionListFilterProps) {
+export function ActionListFilter({ initialActions, dict, showGoalTitle = false, tz = 'Asia/Shanghai' }: ActionListFilterProps) {
     const [search, setSearch] = useState('')
     const [statusFilter, setStatusFilter] = useState('incomplete')
     const [typeFilter, setTypeFilter] = useState('all')
@@ -173,6 +174,7 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false }
                             action={action} 
                             dict={dict} 
                             showGoalTitle={showGoalTitle}
+                            tz={tz}
                         />
                     ))}
                 </div>

@@ -39,11 +39,11 @@ export function ActionListCompact({
       action.priority === 'high'
         ? 'text-red-500 bg-red-500/10 border-red-500/20'
         : action.priority === 'low'
-        ? 'text-blue-500 bg-blue-500/10 border-blue-500/20'
-        : 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20'
+          ? 'text-blue-500 bg-blue-500/10 border-blue-500/20'
+          : 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20'
 
     return (
-      <div className="group flex items-center justify-between rounded-md px-2 py-2 hover:bg-muted/50">
+      <div className="group flex items-center justify-between rounded-md px-2 py-2 hover:bg-primary/5">
         <div className="min-w-0 pr-3">
           <div className="flex items-center gap-2">
             {action.type && (
@@ -73,9 +73,9 @@ export function ActionListCompact({
             aria-label={action.completed ? 'Mark incomplete' : 'Mark complete'}
           >
             {action.completed ? (
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
             ) : (
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/></svg>
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" /></svg>
             )}
           </Button>
         </form>
@@ -85,11 +85,6 @@ export function ActionListCompact({
 
   return (
     <div className="rounded-lg border bg-card/50 backdrop-blur-sm">
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b px-3 py-3 bg-card/70 backdrop-blur">
-        <div className="text-xs text-muted-foreground"></div>
-        <div className="text-xs text-muted-foreground">{groups.incomplete.length} / {actions.length}</div>
-      </div>
-
       <div style={{ maxHeight }} className="overflow-y-auto px-2 py-2">
         {/* Incomplete */}
         <div className="mb-2">
