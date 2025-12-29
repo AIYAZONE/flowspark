@@ -5,6 +5,7 @@ import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { DateRangeFields } from '@/components/DateRangeFields'
 import {
     Dialog,
@@ -22,17 +23,25 @@ interface AddActionDialogProps {
             detail: {
                 addAction: string
             }
+            priority: {
+                high: string
+                medium: string
+                low: string
+            }
         }
         today: {
             actionTitleLabel: string
             actionTitlePlaceholder: string
+            descriptionLabel: string
+            descriptionPlaceholder: string
             typeLabel: string
+            priorityLabel: string
             startTime: string
             endTime: string
             types: {
                 core: string
-                maintain: string
-                explore: string
+                growth: string
+                routine: string
             }
         }
         common: {
@@ -79,16 +88,36 @@ export function AddActionDialog({ goalId, dict }: AddActionDialogProps) {
                     </div>
 
                     <div className="grid gap-2">
-                        <Label htmlFor="type">{dict.today.typeLabel}</Label>
-                        <select
-                            name="type"
-                            id="type"
-                            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        >
-                            <option value="core">{dict.today.types.core}</option>
-                            <option value="maintain">{dict.today.types.maintain}</option>
-                            <option value="explore">{dict.today.types.explore}</option>
-                        </select>
+                        <Label htmlFor="description">{dict.today.descriptionLabel}</Label>
+                        <Textarea id="description" name="description" placeholder={dict.today.descriptionPlaceholder} className="min-h-[80px]" />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="grid gap-2">
+                            <Label htmlFor="type">{dict.today.typeLabel}</Label>
+                            <select
+                                name="type"
+                                id="type"
+                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <option value="core">{dict.today.types.core}</option>
+                                <option value="growth">{dict.today.types.growth}</option>
+                                <option value="routine">{dict.today.types.routine}</option>
+                            </select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="priority">{dict.today.priorityLabel}</Label>
+                            <select
+                                name="priority"
+                                id="priority"
+                                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                defaultValue="medium"
+                            >
+                                <option value="high">{dict.goals.priority.high}</option>
+                                <option value="medium">{dict.goals.priority.medium}</option>
+                                <option value="low">{dict.goals.priority.low}</option>
+                            </select>
+                        </div>
                     </div>
 
                     <DateRangeFields

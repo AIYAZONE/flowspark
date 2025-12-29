@@ -8,6 +8,8 @@ import { DateRangeFields } from '@/components/DateRangeFields'
 import { createAction } from '@/app/(authenticated)/goals/actions'
 import { Plus } from 'lucide-react'
 
+import { Textarea } from '@/components/ui/textarea'
+
 type Goal = { id: string; title: string }
 
 export interface Dict {
@@ -18,15 +20,21 @@ export interface Dict {
     actionTitleLabel: string
     actionTitlePlaceholder: string
     typeLabel: string
-    types: { core: string; maintain: string; explore: string }
+    types: { core: string; growth: string; routine: string }
+    priorityLabel: string
+    descriptionLabel: string
+    descriptionPlaceholder: string
     addActionBtn: string
     startTime: string
     endTime: string
   }
+  goals: {
+    priority: { high: string; medium: string; low: string }
+  }
   common: { dateRangeInvalid: string }
 }
 
-export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[] | null; dict: any; today: string }) {
+export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[] | null; dict: Dict; today: string }) {
   const [valid, setValid] = useState(true)
   return (
     <form action={createAction} className="space-y-4">
@@ -52,17 +60,37 @@ export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="type">{dict.today.typeLabel}</Label>
-        <select
-          name="type"
-          id="type"
-          className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          defaultValue="core"
-        >
-          <option value="core">{dict.today.types.core}</option>
-          <option value="maintain">{dict.today.types.maintain}</option>
-          <option value="explore">{dict.today.types.explore}</option>
-        </select>
+        <Label htmlFor="description">{dict.today.descriptionLabel}</Label>
+        <Textarea id="description" name="description" placeholder={dict.today.descriptionPlaceholder} className="min-h-[80px]" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="type">{dict.today.typeLabel}</Label>
+          <select
+            name="type"
+            id="type"
+            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            defaultValue="core"
+          >
+            <option value="core">{dict.today.types.core}</option>
+            <option value="growth">{dict.today.types.growth}</option>
+            <option value="routine">{dict.today.types.routine}</option>
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="priority">{dict.today.priorityLabel}</Label>
+          <select
+            name="priority"
+            id="priority"
+            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            defaultValue="medium"
+          >
+            <option value="high">{dict.goals.priority.high}</option>
+            <option value="medium">{dict.goals.priority.medium}</option>
+            <option value="low">{dict.goals.priority.low}</option>
+          </select>
+        </div>
       </div>
 
       <DateRangeFields

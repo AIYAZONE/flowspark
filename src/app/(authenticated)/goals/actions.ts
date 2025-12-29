@@ -78,65 +78,45 @@ export async function createGoal(formData: FormData) {
 }
 
 export async function createAction(formData: FormData) {
-	const supabase = await createClient();
-	const {
-		data: { user }
-	} = await supabase.auth.getUser();
-	if (!user) return;
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
-	const goal_id = formData.get('goal_id') as string;
-	const title = formData.get('title') as string;
-	const type = formData.get('type') as string;
-	const start_date =
-		(formData.get('start_date') as string) ||
-		(formData.get('action_date') as string);
-	const end_date = formData.get('end_date') as string;
+  if (!user) {
+    throw new Error('User not authenticated')
+  }
 
-	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
-		throw new Error('End date cannot be earlier than start date');
-	}
+  const goal_id = formData.get('goal_id') as string
+  const title = formData.get('title') as string
+  const type = formData.get('type') as string
+  const priority = formData.get('priority') as string
+  const description = formData.get('description') as string
+  const start_date = formData.get('start_date') as string
+  const end_date = formData.get('end_date') as string
 
-	// Try insert using start_date/end_date, fall back to legacy action_date if column doesn't exist
-	const insertPayload: Record<string, string | null> = {
-		owner_id: user.id,
-		user_id: user.id,
-		goal_id,
-		title,
-		type,
-		start_date
-	};
-	// Always set end_date to end_date or fallback to action_date for consistency
-	insertPayload.end_date = end_date || start_date;
+  if (!goal_id || !title || !start_date || !end_date) {
+    throw new Error('Missing required fields')
+  }
 
-	const { error: insertError } = await supabase
-		.from('actions')
-		.insert(insertPayload);
+  const { error } = await supabase.from('actions').insert({
+     user_id: user.id,
+     goal_id,
+     title,
+     type,
+     priority: priority || 'medium',
+     description: description || '',
+     start_date,
+     end_date,
+     completed: false
+   })
 
-	if (insertError) {
-		console.error('Error creating action:', insertError);
-		// Fallback: attempt legacy insert with action_date
-		const legacyPayload: Record<string, string | null> = {
-			user_id: user.id,
-			owner_id: user.id,
-			goal_id,
-			title,
-			type,
-			action_date: start_date
-		};
-		if (end_date) legacyPayload.end_date = end_date;
-		const { error: fallbackError } = await supabase
-			.from('actions')
-			.insert(legacyPayload);
-		if (fallbackError) {
-			console.error('Fallback createAction error:', fallbackError);
-			return;
-		}
-	}
+   if (error) {
+     console.error('Create action failed:', error)
+     throw new Error(error.message)
+   }
 
-	revalidatePath(`/goals/${goal_id}`);
-	revalidatePath('/today');
-	revalidatePath('/dashboard');
-}
+   revalidatePath('/today')
+   revalidatePath(`/goals/${goal_id}`)
+  }
 
 export async function updateGoal(formData: FormData) {
 	const supabase = await createClient();
@@ -217,64 +197,33 @@ export async function updateGoal(formData: FormData) {
 }
 
 export async function updateAction(formData: FormData) {
-	const supabase = await createClient();
-	const {
-		data: { user }
-	} = await supabase.auth.getUser();
-	if (!user) return;
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-	const id = formData.get('id') as string;
-	const title = formData.get('title') as string;
-	const type = formData.get('type') as string;
-	const start_date =
-		(formData.get('start_date') as string) ||
-		(formData.get('action_date') as string);
-	const end_date = formData.get('end_date') as string;
-	const goal_id = formData.get('goal_id') as string;
+    if (!user) throw new Error('User not authenticated')
 
-	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
-		throw new Error('End date cannot be earlier than start date');
-	}
+    const id = formData.get('id') as string
+    const title = formData.get('title') as string
+    const type = formData.get('type') as string
+    const priority = formData.get('priority') as string
+    const description = formData.get('description') as string
+    const start_date = formData.get('start_date') as string
+    const end_date = formData.get('end_date') as string
 
-	// Try update with start_date/end_date; on error retry legacy update with action_date
-	const updatePayload: Record<string, string | null> = {
-		title,
-		type,
-		start_date
-	};
-	if (end_date) updatePayload.end_date = end_date;
+    await supabase.from('actions')
+        .update({
+            title,
+            type,
+            priority,
+            description,
+            start_date,
+            end_date
+        })
+        .eq('id', id)
+        .eq('user_id', user.id)
 
-	const { error: updateError } = await supabase
-		.from('actions')
-		.update(updatePayload)
-		.eq('id', id)
-		.eq('owner_id', user.id);
-
-	if (updateError) {
-		console.error('Error updating action:', updateError);
-		// Fallback: attempt legacy update using action_date
-		const { error: fallbackError } = await supabase
-			.from('actions')
-			.update({
-				title,
-				type,
-				action_date: start_date,
-				end_date: end_date || null
-			})
-			.eq('id', id)
-			.eq('user_id', user.id);
-		if (fallbackError) {
-			console.error('Fallback updateAction error:', fallbackError);
-			throw new Error(
-				`Failed to update action: ${fallbackError.message}`
-			);
-		}
-	}
-
-	revalidatePath('/today');
-	if (goal_id) {
-		revalidatePath(`/goals/${goal_id}`);
-	}
+    revalidatePath('/today')
+    revalidatePath('/goals')
 }
 
 export async function deleteAction(formData: FormData) {

@@ -16,6 +16,13 @@ export default async function TodayPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return null
 
+    // Sort priority logic: high > medium > low
+    const priorityOrder: Record<string, number> = {
+        high: 1,
+        medium: 2,
+        low: 3
+    }
+
     const { data: actions } = await supabase
         .from('actions')
         .select('*, goals(title)')
@@ -23,6 +30,18 @@ export default async function TodayPage() {
         .or(`start_date.eq.${today},and(start_date.lt.${today},completed.eq.false)`)
         .order('start_date', { ascending: true })
         .order('type', { ascending: true }) // core first
+
+    // Manually sort by priority since Supabase simple order can't do custom enum sort easily without mapping
+    actions?.sort((a, b) => {
+        const pA = priorityOrder[a.priority as string || 'medium'] || 2
+        const pB = priorityOrder[b.priority as string || 'medium'] || 2
+        
+        // If priority is different, sort by priority
+        if (pA !== pB) return pA - pB
+        
+        // If priority is same, maintain existing sort (start_date, type) which is already done by DB
+        return 0
+    })
 
     const { data: activeGoals } = await supabase
         .from('goals')
