@@ -17,7 +17,10 @@
 		"timeProgress": "时间进度",
 		"dateRangeInvalid": "结束日期不得早于开始日期",
 		"showMore": "展开",
-		"showLess": "收起"
+		"showLess": "收起",
+		"noData": "暂无数据",
+		"tryAdjustFilter": "尝试调整筛选条件",
+		"locale": "zh-CN"
 	},
 	"sidebar": {
 		"brand": "目标系统",
@@ -140,7 +143,7 @@
 	},
 	"today": {
 		"title": "今日行动",
-		"noActions": "今日暂无计划行动。",
+		"noActions": "今天还没有计划行动。",
 		"addActionTitle": "添加今日行动",
 		"goalLabel": "所属目标",
 		"selectGoal": "选择一个目标",
@@ -160,8 +163,12 @@
 		"descriptionLabel": "描述",
 		"descriptionPlaceholder": "添加更多细节...",
 		"addActionBtn": "添加行动",
-		"goalPrefix": "目标: ",
-		"delayed": "已延期"
+		"goalPrefix": "目标：",
+		"delayed": "延期",
+		"scoreLabels": ["很糟", "一般", "不错", "很好", "极佳"],
+		"alreadyScored": "今日已评分",
+		"updateScore": "更新评分",
+		"recent7Trend": "最近7天评分趋势"
 	},
 	"goals": {
 		"title": "目标列表",

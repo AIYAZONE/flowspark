@@ -10,6 +10,9 @@ import { ScoreTrendChart } from '@/components/ScoreTrendChart'
 import { SetCoreActionSheet } from '@/components/SetCoreActionSheet'
 import { toggleAction, submitScore } from './actions'
 import { getDictionary } from '@/i18n/get-dictionary'
+import { ActionListCompact } from '@/components/ActionListCompact'
+import { ScoreCard } from '@/components/ScoreCard'
+import { StreakCard } from '@/components/StreakCard'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -108,25 +111,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {actions && actions.length > 0 ? (
-              <div className="space-y-4">
-                {actions.map((action) => (
-                  <div key={action.id} className="flex items-center justify-between border-b border-primary/10 last:border-0 pb-3 last:pb-0">
-                    <span className={cn("text-lg font-semibold text-foreground", action.completed && "line-through text-muted-foreground")}>{action.title}</span>
-                    <form>
-                      <input type="hidden" name="id" value={action.id} />
-                      <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
-                      <Button
-                        size="icon"
-                        variant={action.completed ? "default" : "outline"}
-                        className={action.completed ? "bg-primary hover:bg-primary/90 h-8 w-8" : "border-primary text-primary hover:bg-primary/10 h-8 w-8"}
-                        formAction={toggleAction}
-                      >
-                        {action.completed ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
-                      </Button>
-                    </form>
-                  </div>
-                ))}
-              </div>
+              <ActionListCompact actions={actions || []} dict={dict} />
             ) : (
               <div className="text-muted-foreground">
                 {dict.dashboard.noCoreAction}
@@ -137,64 +122,10 @@ export default async function DashboardPage() {
         </Card>
 
         {/* Daily Score Card */}
-        <Card className="overflow-hidden relative shadow-sm hover:shadow-md transition-shadow">
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent pointer-events-none dark:from-blue-950/20" />
-          <CardHeader className="pb-2 relative">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{dict.dashboard.dailyScore}</CardTitle>
-          </CardHeader>
-          <CardContent className="relative">
-            <div className="flex items-baseline gap-1 mb-5">
-              <span className="text-4xl font-bold tracking-tight text-foreground">
-                {dailyScore !== undefined ? dailyScore : '-'}
-              </span>
-              <span className="text-muted-foreground font-medium text-lg">/ 5</span>
-            </div>
-            <div className="flex justify-between items-center gap-2">
-              {[1, 2, 3, 4, 5].map((score) => (
-                <form key={score} className="flex-1">
-                  <input type="hidden" name="score" value={score} />
-                  <input type="hidden" name="date" value={today} />
-                  <Button
-                    type="submit"
-                    variant={dailyScore === score ? "default" : "outline"}
-                    className={cn(
-                      "w-full h-10 p-0 rounded-xl transition-all duration-200",
-                      dailyScore === score
-                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105 font-bold"
-                        : "hover:bg-primary/5 hover:text-primary hover:border-primary/30 text-muted-foreground font-medium"
-                    )}
-                    disabled={dailyScore === score}
-                    formAction={submitScore}
-                  >
-                    {score}
-                  </Button>
-                </form>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <ScoreCard dict={dict} today={today} recent7={chartData.slice(-7)} currentScore={dailyScore ?? null} />
 
         {/* Streak Card */}
-        <Card className="overflow-hidden relative shadow-sm hover:shadow-md transition-shadow border-orange-200/40 dark:border-orange-900/40">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-50/50 to-transparent pointer-events-none dark:from-orange-950/20" />
-          <CardHeader className="pb-2 relative">
-            <CardTitle className="text-sm font-medium text-muted-foreground">{dict.dashboard.currentStreak}</CardTitle>
-          </CardHeader>
-          <CardContent className="relative">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-orange-100/80 dark:bg-orange-900/30 rounded-full ring-4 ring-orange-50 dark:ring-orange-900/10">
-                <Flame className="h-6 w-6 text-orange-500 fill-orange-500 animate-pulse" />
-              </div>
-              <div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-bold tracking-tight text-foreground">{streak}</span>
-                  <span className="text-sm font-medium text-muted-foreground">{dict.dashboard.days}</span>
-                </div>
-                <p className="text-xs text-muted-foreground/80 mt-1 font-medium">{dict.dashboard.keepMomentum}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StreakCard dict={dict} streak={streak} nextMilestone={10} recent7={chartData.slice(-7)} />
 
         {/* Trend Chart */}
         <ScoreTrendChart data={chartData} title={dict.dashboard.recentTrend} scoreLabel={dict.dashboard.submitScore} />
