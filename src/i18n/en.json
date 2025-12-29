@@ -170,12 +170,17 @@
 		"createFirst": "Create your first goal",
 		"filter": {
 			"searchPlaceholder": "Search goals...",
+			"searchActionsPlaceholder": "Search actions...",
 			"allStatus": "All Status",
 			"allPriority": "All Priority",
 			"allCategory": "All Category",
+			"allType": "All Type",
 			"status": "Status",
 			"priority": "Priority",
-			"category": "Category"
+			"category": "Category",
+			"type": "Type",
+			"completed": "Completed",
+			"incomplete": "Incomplete"
 		},
 		"status": {
 			"label": "Status",

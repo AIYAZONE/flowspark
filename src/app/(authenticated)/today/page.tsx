@@ -5,79 +5,67 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { toggleAction } from '../dashboard/actions'
 import { getDictionary } from '@/i18n/get-dictionary'
-import { AddActionForm, type Dict } from '@/components/AddActionForm'
-
-import { ActionItem } from '@/components/ActionItem'
+import { AddActionDialog } from '@/components/AddActionDialog'
+import { ActionListFilter } from '@/components/ActionListFilter'
 
 export default async function TodayPage() {
-    const supabase = await createClient()
-    const dict = await getDictionary()
-    const today = new Date().toISOString().split('T')[0]
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return null
+  const supabase = await createClient()
+  const dict = await getDictionary()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
 
-    // Sort priority logic: high > medium > low
-    const priorityOrder: Record<string, number> = {
-        high: 1,
-        medium: 2,
-        low: 3
-    }
+  // Get active goals for the dropdown
+  const { data: activeGoals } = await supabase
+    .from('goals')
+    .select('id, title')
+    .eq('user_id', user.id)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
 
-    const { data: actions } = await supabase
-        .from('actions')
-        .select('*, goals(title)')
-        .eq('user_id', user.id)
-        .or(`start_date.eq.${today},and(start_date.lt.${today},completed.eq.false)`)
-        .order('start_date', { ascending: true })
-        .order('type', { ascending: true }) // core first
+  // Get today's actions
+  const today = new Date().toISOString().split('T')[0]
+  const { data: actions } = await supabase
+    .from('actions')
+    .select(`
+      *,
+      goals (
+        id,
+        title
+      )
+    `)
+    .eq('user_id', user.id)
+    .lte('start_date', today)
+    .gte('end_date', today)
+    .order('completed', { ascending: true }) // Uncompleted first
+    .order('priority', { ascending: false }) // High priority first (if using text sort, high < low? No, need mapping. But here just simple sort)
+    // Actually sorting is better handled in client or with complex query. 
+    // Let's rely on client sort in ActionListFilter for consistency.
 
-    // Manually sort by priority since Supabase simple order can't do custom enum sort easily without mapping
-    actions?.sort((a, b) => {
-        const pA = priorityOrder[a.priority as string || 'medium'] || 2
-        const pB = priorityOrder[b.priority as string || 'medium'] || 2
-        
-        // If priority is different, sort by priority
-        if (pA !== pB) return pA - pB
-        
-        // If priority is same, maintain existing sort (start_date, type) which is already done by DB
-        return 0
-    })
-
-    const { data: activeGoals } = await supabase
-        .from('goals')
-        .select('id, title')
-        .eq('status', 'active')
-        .eq('user_id', user.id)
-
-    return (
-        <div className="space-y-6">
-            <h1 className="text-3xl font-bold tracking-tight">{dict.today.title}</h1>
-
-            <div className="grid gap-6 md:grid-cols-3">
-                {/* Actions List */}
-                <div className="md:col-span-2 space-y-4">
-                    {actions?.map((action) => (
-                        <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={true} />
-                    ))}
-                    {actions?.length === 0 && (
-                        <div className="text-center py-10 text-muted-foreground bg-card rounded-lg border border-dashed">
-                            {dict.today.noActions}
-                        </div>
-                    )}
-                </div>
-
-                {/* Add Action Form */}
-                <div>
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>{dict.today.addActionTitle}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <AddActionForm activeGoals={activeGoals || []} dict={dict as Dict} today={today} />
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight">{dict.today.title}</h1>
+        <div className="text-sm text-muted-foreground">
+          {new Date().toLocaleDateString(dict.common.locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </div>
-    )
+      </div>
+
+      <div className="grid gap-6">
+        {/* Actions List with Filter */}
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold leading-none tracking-tight">{dict.today.todaysActions}</h2>
+                <AddActionDialog activeGoals={activeGoals || []} dict={dict} />
+            </div>
+            <ActionListFilter 
+                initialActions={actions || []} 
+                dict={dict} 
+                showGoalTitle={true}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
