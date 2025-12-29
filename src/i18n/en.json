@@ -15,7 +15,9 @@
 		"confirmDelete": "Are you sure you want to delete this? This action cannot be undone.",
 		"noDescription": "No description",
 		"timeProgress": "Time Progress",
-		"dateRangeInvalid": "End date cannot be earlier than start date"
+		"dateRangeInvalid": "End date cannot be earlier than start date",
+		"showMore": "Show more",
+		"showLess": "Show less"
 	},
 	"sidebar": {
 		"brand": "Goal System",
