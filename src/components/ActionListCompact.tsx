@@ -41,13 +41,21 @@ export function ActionListCompact({
         : action.priority === 'low'
           ? 'text-blue-500 bg-blue-500/10 border-blue-500/20'
           : 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20'
+    const typeColor =
+      action.type === 'core'
+        ? { badge: 'bg-emerald-100 text-emerald-700 border-emerald-200', accent: 'border-emerald-300' }
+        : action.type === 'learning'
+          ? { badge: 'bg-blue-100 text-blue-700 border-blue-200', accent: 'border-blue-300' }
+          : action.type === 'rest'
+            ? { badge: 'bg-rose-100 text-rose-700 border-rose-200', accent: 'border-rose-300' }
+            : { badge: 'bg-slate-100 text-slate-700 border-slate-200', accent: 'border-slate-300' }
 
     return (
-      <div className="group flex items-center justify-between rounded-md px-2 py-2 hover:bg-primary/5">
+      <div className={`group flex items-center justify-between rounded-md px-2 py-2 hover:bg-primary/5 border-l-2 ${typeColor.accent}`}>
         <div className="min-w-0 pr-3">
           <div className="flex items-center gap-2">
             {action.type && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded border bg-secondary/50 text-muted-foreground border-border/50">
+              <span className={`text-[10px] px-1.5 py-0.5 rounded border ${typeColor.badge}`}>
                 {dict.today.types[action.type as keyof typeof dict.today.types] || action.type}
               </span>
             )}
