@@ -1,5 +1,12 @@
 # 文档变更日志
 
+## 2025-12-30
+- 修复：Vercel 构建 TS 报错（today 页使用 dict.common.locale，补充 i18n 键；补充 ScoreCard 与 ActionListFilter 相关键）
+- 更新：统一 Action 类型枚举为 {core, maintenance, learning, review, rest}
+- 更新：API 与数据字典（submitScore 入参改为 {date, score}，daily_scores 表结构补充 owner_id 兼容）
+- 更新：时区工具与“今日”逻辑文档，采用 getUserTimezone/getTodayInTZ/toLocaleDateStringTZ
+- 优化：文案与术语规范，补充 common 与 today 关键 i18n 键
+
 ## 2025-12-28
 - 新增：docs/README 索引与维护规范
 - 重命名：05 为“着陆页设计与实现”
