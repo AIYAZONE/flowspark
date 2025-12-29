@@ -17,7 +17,10 @@
 		"timeProgress": "Time Progress",
 		"dateRangeInvalid": "End date cannot be earlier than start date",
 		"showMore": "Show more",
-		"showLess": "Show less"
+		"showLess": "Show less",
+		"noData": "No data",
+		"tryAdjustFilter": "Try adjusting your filters",
+		"locale": "en-US"
 	},
 	"sidebar": {
 		"brand": "Goal System",
@@ -161,7 +164,11 @@
 		"descriptionPlaceholder": "Add more details...",
 		"addActionBtn": "Add Action",
 		"goalPrefix": "Goal: ",
-		"delayed": "Delayed"
+		"delayed": "Delayed",
+		"scoreLabels": ["Terrible", "Okay", "Good", "Great", "Excellent"],
+		"alreadyScored": "Already scored today",
+		"updateScore": "Update score",
+		"recent7Trend": "Last 7 days score trend"
 	},
 	"goals": {
 		"title": "Goals",
