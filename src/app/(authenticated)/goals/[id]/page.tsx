@@ -31,10 +31,24 @@ export default async function GoalDetailPage({ params }: { params: Promise<{ id:
 
     const { data: actions } = await supabase
         .from('actions')
-        .select('*')
+        .select('*, goals(title)')
         .eq('goal_id', id)
         .eq('user_id', user.id)
         .order('start_date', { ascending: true })
+
+    // Sort priority logic: high > medium > low
+    const priorityOrder: Record<string, number> = {
+        high: 1,
+        medium: 2,
+        low: 3
+    }
+
+    actions?.sort((a, b) => {
+        const pA = priorityOrder[a.priority as string || 'medium'] || 2
+        const pB = priorityOrder[b.priority as string || 'medium'] || 2
+        if (pA !== pB) return pA - pB
+        return 0
+    })
 
     return (
         <div className="space-y-8">

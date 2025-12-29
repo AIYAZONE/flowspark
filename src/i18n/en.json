@@ -151,9 +151,12 @@
 		"endTime": "End Date",
 		"types": {
 			"core": "Core",
-			"maintain": "Maintain",
-			"explore": "Explore"
+			"growth": "Growth",
+			"routine": "Routine"
 		},
+		"priorityLabel": "Priority",
+		"descriptionLabel": "Description",
+		"descriptionPlaceholder": "Add more details...",
 		"addActionBtn": "Add Action",
 		"goalPrefix": "Goal: ",
 		"delayed": "Delayed"
