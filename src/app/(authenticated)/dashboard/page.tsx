@@ -22,16 +22,50 @@ export default async function DashboardPage() {
   if (!user) return null
   const tz = await getUserTimezone(supabase, user.id)
   const today = getTodayInTZ(tz)
+  // Calculate yesterday to ensure we cover timezones where 'today' starts earlier than UTC
+  const yesterdayDate = new Date(today);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterday = yesterdayDate.toISOString().split('T')[0];
 
   // Fetch today's core action
-  const { data: actions } = await supabase
+  const { data: rawActions } = await supabase
     .from('actions')
     .select('*')
     .eq('type', 'core')
     .eq('user_id', user.id)
-    .or(`start_date.eq.${today},and(start_date.lt.${today},completed.eq.false)`)
+    .or(
+      [
+        `and(start_date.lte.${today},end_date.gte.${today})`,
+        `and(end_date.lt.${today},completed.eq.false)`,
+        `and(end_date.is.null,start_date.lt.${today},completed.eq.false)`,
+        `and(end_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
+        `and(end_date.is.null,start_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
+      ].join(',')
+    )
     .order('completed', { ascending: true })
     .order('start_date', { ascending: true })
+
+  // Filter actions in JS to accurately handle timezone "today"
+  const actions = rawActions?.filter(action => {
+    // If it's a regular active action or incomplete delayed action, keep it
+    const isRegular = action.start_date <= today && (action.end_date || action.start_date) >= today;
+    const isDelayedIncomplete = !action.completed && (action.end_date || action.start_date) < today;
+
+    if (isRegular || isDelayedIncomplete) return true;
+
+    // For completed delayed actions, strictly check if updated_at is "today" in user's timezone
+    if (action.completed && action.updated_at) {
+      const updatedDate = new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date(action.updated_at));
+      return updatedDate === today;
+    }
+
+    return false;
+  });
 
   // Fetch daily score
   let { data: scores } = await supabase
@@ -113,8 +147,8 @@ export default async function DashboardPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-lg font-semibold text-emerald-700 dark:text-emerald-300">{dict.dashboard.todayCoreAction}</CardTitle>
               <span className={`text-xs rounded-full px-2 py-0.5 ${((actions?.filter(a => !a.completed).length ?? 0) > 0)
-                  ? 'bg-amber-100 text-amber-700'
-                  : 'bg-emerald-100 text-emerald-700'
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-emerald-100 text-emerald-700'
                 }`}>
                 {(actions?.filter(a => !a.completed).length ?? 0)} / {(actions?.length ?? 0)}
               </span>
@@ -143,7 +177,7 @@ export default async function DashboardPage() {
         </Card>
 
         {/* Daily Score Card */}
-        <ScoreCard dict={dict} today={today} recent7={chartData.slice(0,7)} currentScore={dailyScore ?? null} />
+        <ScoreCard dict={dict} today={today} recent7={chartData.slice(0, 7)} currentScore={dailyScore ?? null} />
 
         {/* Streak Card */}
         <StreakCard dict={dict} streak={streak} nextMilestone={10} recent7={chartData.slice(-7)} />

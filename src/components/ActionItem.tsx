@@ -185,7 +185,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const endDateStr = action.end_date || action.start_date
     const endDateVal = endDateStr.split('T')[0]
     const todayVal = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
-    const isDelayed = endDateVal < todayVal && !action.completed
+    const isOverdue = endDateVal < todayVal
 
     return (
         <div className="group flex flex-col p-4 border border-border/40 rounded-xl bg-card/50 hover:bg-card hover:shadow-sm hover:border-primary/20 transition-all duration-300">
@@ -209,7 +209,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                             {action.title}
                         </p>
                         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
-                            {isDelayed && (
+                            {isOverdue && (
                                 <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 font-medium border border-red-500/20">
                                     {dict.today.delayed}
                                 </span>
