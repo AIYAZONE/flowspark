@@ -1,5 +1,31 @@
 'use client'
 
+import { useFormStatus } from 'react-dom'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+
+function CompleteButton({ completed, type }: { completed: boolean, type: string }) {
+    const { pending } = useFormStatus()
+
+    if (pending) {
+        return (
+            <button disabled className="focus:outline-none flex items-center justify-center cursor-not-allowed opacity-70">
+                <LoadingSpinner size={20} className={type === 'core' ? 'text-primary' : 'text-muted-foreground'} />
+            </button>
+        )
+    }
+
+    return (
+        <button type="submit" className="focus:outline-none transition-transform hover:scale-110 flex items-center justify-center">
+            {completed ? (
+                <div className="rounded-full bg-primary/10 p-1">
+                    <CheckCircle2 className={`h-5 w-5 ${type === 'core' ? 'text-primary' : 'text-primary'}`} />
+                </div>
+            ) : (
+                <Circle className={`h-5 w-5 ${type === 'core' ? 'text-primary/70' : 'text-muted-foreground'}`} />
+            )}
+        </button>
+    )
+}
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { CheckCircle2, Circle, Pencil, Save, Trash2, X, AlignLeft, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
@@ -194,15 +220,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                     <form action={toggleAction} className="mt-1">
                         <input type="hidden" name="id" value={action.id} />
                         <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
-                        <button type="submit" className="focus:outline-none transition-transform hover:scale-110 flex items-center justify-center">
-                            {action.completed ? (
-                                <div className="rounded-full bg-primary/10 p-1">
-                                    <CheckCircle2 className={`h-5 w-5 ${action.type === 'core' ? 'text-primary' : 'text-primary'}`} />
-                                </div>
-                            ) : (
-                                <Circle className={`h-5 w-5 ${action.type === 'core' ? 'text-primary/70' : 'text-muted-foreground'}`} />
-                            )}
-                        </button>
+                        <CompleteButton completed={action.completed} type={action.type} />
                     </form>
                     <div className="flex-1 space-y-1 min-w-0">
                         <p className={`font-medium text-sm break-words ${action.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>

@@ -34,6 +34,19 @@ export interface Dict {
   common: { dateRangeInvalid: string }
 }
 
+import { useFormStatus } from 'react-dom'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
+
+function SubmitButton({ dict, disabled }: { dict: Dict, disabled: boolean }) {
+  const { pending } = useFormStatus()
+  return (
+    <Button type="submit" className="w-full" disabled={disabled || pending}>
+      {pending ? <LoadingSpinner size={16} className="mr-2" /> : <Plus className="mr-2 h-4 w-4" />}
+      {dict.today.addActionBtn}
+    </Button>
+  )
+}
+
 export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[] | null; dict: Dict; today: string }) {
   const [valid, setValid] = useState(true)
   return (
@@ -102,9 +115,7 @@ export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[
         onValidityChange={setValid}
       />
 
-      <Button type="submit" className="w-full" disabled={!valid}>
-        <Plus className="mr-2 h-4 w-4" /> {dict.today.addActionBtn}
-      </Button>
+      <SubmitButton dict={dict} disabled={!valid} />
     </form>
   )
 }
