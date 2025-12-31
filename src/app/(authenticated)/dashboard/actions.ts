@@ -4,16 +4,20 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 
 export async function toggleAction(formData: FormData) {
-	const supabase = await createClient();
-	const id = formData.get('id') as string;
-	const currentCompleted = formData.get('completed') === 'true';
+  const supabase = await createClient();
+  const id = formData.get('id') as string;
+  const currentCompleted = formData.get('completed') === 'true';
 
-	await supabase
-		.from('actions')
-		.update({ completed: !currentCompleted })
-		.eq('id', id);
+  await supabase
+    .from('actions')
+    .update({ 
+      completed: !currentCompleted,
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', id);
 
-	revalidatePath('/dashboard');
+  revalidatePath('/dashboard');
+  revalidatePath('/today');
 }
 
 export async function submitScore(formData: FormData) {

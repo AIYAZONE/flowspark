@@ -26,7 +26,12 @@ export default async function TodayPage() {
   const tz = await getUserTimezone(supabase, user.id)
   // Get today's actions by timezone
   const today = getTodayInTZ(tz)
-  const { data: actions } = await supabase
+  // Calculate yesterday to ensure we cover timezones where 'today' starts earlier than UTC
+  const yesterdayDate = new Date(today);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterday = yesterdayDate.toISOString().split('T')[0];
+
+  const { data: rawActions } = await supabase
     .from('actions')
     .select(`
       *,
@@ -37,12 +42,38 @@ export default async function TodayPage() {
     `)
     .eq('user_id', user.id)
     .or(
-      `and(start_date.lte.${today},end_date.gte.${today}),and(end_date.lt.${today},completed.eq.false),and(end_date.is.null,start_date.lt.${today},completed.eq.false)`
+      [
+        `and(start_date.lte.${today},end_date.gte.${today})`,
+        `and(end_date.lt.${today},completed.eq.false)`,
+        `and(end_date.is.null,start_date.lt.${today},completed.eq.false)`,
+        `and(end_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
+        `and(end_date.is.null,start_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
+      ].join(',')
     )
-    .order('completed', { ascending: true }) // Uncompleted first
-    .order('priority', { ascending: false }) // High priority first (if using text sort, high < low? No, need mapping. But here just simple sort)
-    // Actually sorting is better handled in client or with complex query. 
-    // Let's rely on client sort in ActionListFilter for consistency.
+    .order('completed', { ascending: true })
+    .order('priority', { ascending: false })
+
+  // Filter actions in JS to accurately handle timezone "today"
+  const actions = rawActions?.filter(action => {
+    // If it's a regular active action or incomplete delayed action, keep it
+    const isRegular = action.start_date <= today && (action.end_date || action.start_date) >= today;
+    const isDelayedIncomplete = !action.completed && (action.end_date || action.start_date) < today;
+
+    if (isRegular || isDelayedIncomplete) return true;
+
+    // For completed delayed actions, strictly check if updated_at is "today" in user's timezone
+    if (action.completed && action.updated_at) {
+      const updatedDate = new Intl.DateTimeFormat('en-CA', {
+        timeZone: tz,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date(action.updated_at));
+      return updatedDate === today;
+    }
+
+    return false;
+  });
 
   return (
     <div className="space-y-6">
@@ -60,11 +91,11 @@ export default async function TodayPage() {
         {/* Actions List with Filter */}
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
           <div className="p-6">
-            <ActionListFilter 
-                initialActions={actions || []} 
-                dict={dict} 
-                showGoalTitle={true}
-                tz={tz}
+            <ActionListFilter
+              initialActions={actions || []}
+              dict={dict}
+              showGoalTitle={true}
+              tz={tz}
             />
           </div>
         </div>

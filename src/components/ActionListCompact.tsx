@@ -16,6 +16,7 @@ interface Action {
   type?: string
   priority?: string
   start_date?: string | null
+  end_date?: string | null
 }
 
 export function ActionListCompact({
@@ -55,9 +56,12 @@ export function ActionListCompact({
             ? { badge: 'bg-rose-100 text-rose-700 border-rose-200', accent: 'border-rose-300' }
             : { badge: 'bg-slate-100 text-slate-700 border-slate-200', accent: 'border-slate-300' }
     const isIncomplete = !action.completed
-    const hasDate = !!action.start_date
-    const isInProgress = isIncomplete && hasDate && action.start_date === today
-    const isOverdue = isIncomplete && hasDate && action.start_date! < today
+    const hasStart = !!action.start_date
+    // 统一延期判定：优先 end_date，其次 start_date；与完成状态解耦
+    const isInProgress = isIncomplete && hasStart && action.start_date === today
+    const endDateStr: string | null = action.end_date ?? null
+    const baseDate = endDateStr ?? action.start_date ?? ''
+    const isOverdue = !!baseDate && baseDate < today
     const statusBadgeClass = isOverdue
       ? 'text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 font-medium border border-red-500/20'
       : (showInProgressBadge && isInProgress)
