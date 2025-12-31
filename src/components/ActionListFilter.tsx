@@ -97,8 +97,11 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
             const priorityB = priorityOrder[b.priority || 'medium'] || 2
             if (priorityA !== priorityB) return priorityB - priorityA
 
-            // Date (Earlier first)
-            return new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+            // Date (Latest first for completed, Earliest first for incomplete or general)
+            // But requirement says: "Sort by priority desc, then time desc" for completed list.
+            // Actually, usually incomplete is earliest first (due soon), completed is latest first (just done).
+            // Let's stick to Newest First as requested for "Goal Detail - Completed List".
+            return new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
         })
     }, [initialActions, search, statusFilter, typeFilter, priorityFilter])
 
