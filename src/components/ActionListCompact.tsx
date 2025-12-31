@@ -15,16 +15,21 @@ interface Action {
   completed: boolean
   type?: string
   priority?: string
+  start_date?: string | null
 }
 
 export function ActionListCompact({
   actions,
   dict,
-  maxHeight = 420
+  maxHeight = 420,
+  today = '',
+  showInProgressBadge = true
 }: {
   actions: Action[]
   dict: Dict
   maxHeight?: number
+  today?: string
+  showInProgressBadge?: boolean
 }) {
   const [completedCollapsed, setCompletedCollapsed] = useState(true)
 
@@ -49,6 +54,15 @@ export function ActionListCompact({
           : action.type === 'rest'
             ? { badge: 'bg-rose-100 text-rose-700 border-rose-200', accent: 'border-rose-300' }
             : { badge: 'bg-slate-100 text-slate-700 border-slate-200', accent: 'border-slate-300' }
+    const isIncomplete = !action.completed
+    const hasDate = !!action.start_date
+    const isInProgress = isIncomplete && hasDate && action.start_date === today
+    const isOverdue = isIncomplete && hasDate && action.start_date! < today
+    const statusBadgeClass = isOverdue
+      ? 'text-[10px] px-1.5 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 font-medium border border-red-500/20'
+      : (showInProgressBadge && isInProgress)
+        ? 'text-[10px] px-1.5 py-0.5 rounded border bg-emerald-100 text-emerald-700 border-emerald-200'
+        : ''
 
     return (
       <div className={`group flex items-center justify-between rounded-md px-2 py-2 hover:bg-primary/5 border-l-2 ${typeColor.accent}`}>
@@ -62,6 +76,13 @@ export function ActionListCompact({
             {action.priority && (
               <span className={`text-[10px] px-1.5 py-0.5 rounded border ${priorityColor}`}>
                 {dict.goals.priority[action.priority as keyof typeof dict.goals.priority] || action.priority}
+              </span>
+            )}
+            {statusBadgeClass && (
+              <span className={`${statusBadgeClass}`}>
+                {isOverdue
+                  ? (dict.today.delayed || '延期')
+                  : (dict.goals.status.active || '进行中')}
               </span>
             )}
           </div>

@@ -36,8 +36,9 @@ export default async function TodayPage() {
       )
     `)
     .eq('user_id', user.id)
-    .lte('start_date', today)
-    .gte('end_date', today)
+    .or(
+      `and(start_date.lte.${today},end_date.gte.${today}),and(end_date.lt.${today},completed.eq.false),and(end_date.is.null,start_date.lt.${today},completed.eq.false)`
+    )
     .order('completed', { ascending: true }) // Uncompleted first
     .order('priority', { ascending: false }) // High priority first (if using text sort, high < low? No, need mapping. But here just simple sort)
     // Actually sorting is better handled in client or with complex query. 
