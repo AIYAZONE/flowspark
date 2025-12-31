@@ -9,6 +9,9 @@ import { Textarea } from '@/components/ui/textarea'
 import { DateRangeFields } from '@/components/DateRangeFields'
 import { useFormStatus } from 'react-dom'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import type en from '@/i18n/en.json'
+
+type Dict = typeof en
 
 function SubmitButton({ dict }: { dict: Dict }) {
   const { pending } = useFormStatus()
