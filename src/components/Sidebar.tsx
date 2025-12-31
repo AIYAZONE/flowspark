@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -12,12 +12,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 function SidebarFloatingTooltip({ label, top, left }: { label: string; top: number; left: number }) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
+  const mounted = typeof document !== 'undefined'
   if (!mounted || typeof document === 'undefined') return null
 
   return createPortal(
@@ -127,12 +122,12 @@ export function Sidebar({ dict }: SidebarProps) {
         <Link
           href="/dashboard"
           className={cn(
-            "flex items-center font-bold text-lg tracking-tight text-primary overflow-hidden whitespace-nowrap",
+            "flex items-center font-bold text-lg tracking-tight text-primary whitespace-nowrap",
             isCollapsed ? "justify-center" : "gap-2"
           )}
         >
           <BrandMark />
-          {!isCollapsed && <span>{dict.sidebar.brand}</span>}
+          {!isCollapsed && <span className="truncate max-w-40">{dict.sidebar.brand}</span>}
         </Link>
       </div>
 
