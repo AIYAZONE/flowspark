@@ -39,6 +39,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
         .eq('user_id', user.id)
         .order('completed', { ascending: true }) // Uncompleted first
         .order('priority', { ascending: false }) // High priority first
+        .order('start_date', { ascending: false }) // Newest first
 
     return (
         <div className="space-y-6">
