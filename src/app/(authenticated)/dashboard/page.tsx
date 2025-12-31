@@ -132,7 +132,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {actions && actions.length > 0 ? (
-              <ActionListCompact actions={actions || []} dict={dict} />
+              <ActionListCompact actions={actions || []} dict={dict} today={today} showInProgressBadge={false} />
             ) : (
               <div className="text-muted-foreground">
                 {dict.dashboard.noCoreAction}
