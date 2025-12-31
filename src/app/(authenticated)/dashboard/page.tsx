@@ -143,7 +143,7 @@ export default async function DashboardPage() {
         </Card>
 
         {/* Daily Score Card */}
-        <ScoreCard dict={dict} today={today} recent7={chartData.slice(-7)} currentScore={dailyScore ?? null} />
+        <ScoreCard dict={dict} today={today} recent7={chartData.slice(0,7)} currentScore={dailyScore ?? null} />
 
         {/* Streak Card */}
         <StreakCard dict={dict} streak={streak} nextMilestone={10} recent7={chartData.slice(-7)} />
