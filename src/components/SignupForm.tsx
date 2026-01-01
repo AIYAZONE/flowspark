@@ -111,6 +111,9 @@ export function SignupForm({ dict, error: initialError, message: initialMessage 
       return
     }
     // If valid, allow the form to submit to the server action
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('last_activity_timestamp', Date.now().toString())
+    }
   }
 
   return (

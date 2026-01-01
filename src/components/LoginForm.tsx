@@ -68,7 +68,17 @@ export function LoginForm({ dict, error: initialError, message }: { dict: Dict, 
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        <Button formAction={login} className="w-full">{dict.login.loginButton}</Button>
+        <Button 
+          formAction={login} 
+          className="w-full"
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('last_activity_timestamp', Date.now().toString())
+            }
+          }}
+        >
+          {dict.login.loginButton}
+        </Button>
         <div className="text-sm text-muted-foreground text-center">
           {dict.login.toSignupPrefix}{' '}
           <Link href="/signup" className="text-primary hover:underline">
