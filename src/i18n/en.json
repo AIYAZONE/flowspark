@@ -77,7 +77,12 @@
 		"emailPlaceholder": "m@example.com",
 		"submit": "Send reset email",
 		"success": "Reset email sent. Please check your inbox.",
-		"error": "Failed to send. Please try again later."
+		"error": "Failed to send. Please try again later.",
+		"errors": {
+			"email_required": "Email is required",
+			"rate_limit": "Too many requests. Please try again later.",
+			"unexpected_error": "An unexpected error occurred"
+		}
 	},
 	"reset": {
 		"title": "Reset Password",
