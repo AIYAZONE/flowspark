@@ -7,7 +7,19 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { AvatarUploader } from '@/components/AvatarUploader'
-import { Pencil, Mail, Globe } from 'lucide-react'
+import { Pencil, Mail, Globe, Trash2 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { deleteAccount } from '@/app/(authenticated)/profile/actions'
 
 interface Dict {
   profile: {
@@ -21,6 +33,13 @@ interface Dict {
     uploadHint: string
     uploadErrorSize: string
     uploadErrorType: string
+    dangerZone: string
+    deleteAccount: string
+    deleteAccountDesc: string
+    confirmDeleteTitle: string
+    confirmDeleteDesc: string
+    deleting: string
+    deleteError: string
   }
   common: {
     success: string
@@ -56,6 +75,7 @@ export function ProfileCard({
   const [pendingAvatarUrl, setPendingAvatarUrl] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl || '')
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -91,6 +111,19 @@ export function ProfileCard({
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed'
       setToast({ type: 'error', message: `${dict.common.error}: ${message}` })
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setIsDeleting(true)
+    try {
+      await deleteAccount()
+    } catch (err) {
+      setToast({
+        type: 'error',
+        message: `${dict.common.error}: ${err instanceof Error ? err.message : dict.profile.deleteError}`
+      })
+      setIsDeleting(false)
     }
   }
 
@@ -166,6 +199,36 @@ export function ProfileCard({
             </div>
           </form>
         ) : null}
+
+        <div className="flex justify-end mt-4">
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="gap-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-auto py-1.5 px-2 text-xs opacity-70 hover:opacity-100 transition-opacity" 
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-3 w-3" />
+                {isDeleting ? dict.profile.deleting : dict.profile.deleteAccount}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{dict.profile.confirmDeleteTitle}</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {dict.profile.confirmDeleteDesc}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{dict.common.cancel}</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                  {dict.profile.deleteAccount}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </CardContent>
     </Card>
   )
