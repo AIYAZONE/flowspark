@@ -21,6 +21,7 @@ interface Dict {
     errors?: {
       missing_credentials?: string
       unexpected_error?: string
+      session_expired?: string
     }
   }
 }
@@ -31,6 +32,7 @@ export function LoginForm({ dict, error: initialError, message }: { dict: Dict, 
     if (!err) return null
     if (err === 'missing_credentials') return dict.login.errors?.missing_credentials || err
     if (err === 'unexpected_error') return dict.login.errors?.unexpected_error || err
+    if (err === 'session_expired') return dict.login.errors?.session_expired || err
     return err
   }
 

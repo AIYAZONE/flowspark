@@ -5,6 +5,7 @@ import { getDictionary, getCurrentLocale } from "@/i18n/get-dictionary";
 import { createClient } from "@/lib/supabase/server";
 import { AvatarMenu } from "@/components/AvatarMenu";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { Analytics } from "@vercel/analytics/react"
 
 export default async function Home() {
   const dict = await getDictionary();
@@ -26,6 +27,8 @@ export default async function Home() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary">
+      <Analytics />
+
       {/* Header */}
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto flex h-16 items-center justify-between px-6 lg:px-8">
