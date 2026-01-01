@@ -58,6 +58,7 @@ export function SignupForm({ dict, error: initialError, message: initialMessage 
   const getErrorMessage = (err: string) => {
     if (!err) return null
     if (err === 'missing_credentials') return dict.signup.errors?.missing_credentials || err
+    if (err === 'user_already_registered') return dict.signup.errors?.user_already_registered || err
     if (err === 'unexpected_error') return dict.signup.errors?.unexpected_error || err
     return err
   }

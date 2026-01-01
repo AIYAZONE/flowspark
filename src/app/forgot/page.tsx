@@ -11,8 +11,19 @@ export default async function ForgotPage({
 }: {
   searchParams: Promise<{ error?: string; message?: string }>
 }) {
-  const { error, message } = await searchParams
+  const { error: rawError, message: rawMessage } = await searchParams
   const dict = await getDictionary()
+
+  const getErrorMessage = (err: string) => {
+    if (!err) return null
+    if (err === 'email_required') return dict.forgot.errors?.email_required || err
+    if (err === 'rate_limit') return dict.forgot.errors?.rate_limit || err
+    if (err === 'unexpected_error') return dict.forgot.errors?.unexpected_error || err
+    return err
+  }
+
+  const error = getErrorMessage(rawError || '')
+  const message = rawMessage === 'email_sent' ? dict.forgot.success : null
 
   return (
     <div className="auth-bg flex min-h-screen w-full items-center justify-center px-4">
@@ -31,7 +42,7 @@ export default async function ForgotPage({
           )}
           {message && (
             <div className="mb-4 text-sm text-green-600 font-medium bg-green-50 p-3 rounded-md border border-green-200">
-              {dict.forgot.success}
+              {message}
             </div>
           )}
           <form action={requestReset} className="grid gap-4">

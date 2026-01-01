@@ -125,6 +125,7 @@
 		},
 		"errors": {
 			"missing_credentials": "Email and password are required",
+			"user_already_registered": "User already registered",
 			"unexpected_error": "An unexpected error occurred"
 		}
 	},
