@@ -60,14 +60,17 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
     const [open, setOpen] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [valid, setValid] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
     async function handleSubmit(formData: FormData) {
         setIsLoading(true)
+        setError(null)
         try {
             await createAction(formData)
             setOpen(false)
         } catch (error) {
             console.error(error)
+            setError(error instanceof Error ? error.message : 'Failed to create action')
         } finally {
             setIsLoading(false)
         }
@@ -125,6 +128,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                 name="type"
                                 id="type"
                                 className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                defaultValue="core"
                             >
                                 <option value="core">{dict.today.types.core}</option>
                                 <option value="maintenance">{dict.today.types.maintenance}</option>

@@ -51,7 +51,8 @@ CREATE TABLE IF NOT EXISTS public.actions (
     end_date date,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    PRIMARY KEY (id)
+    PRIMARY KEY (id),
+    CONSTRAINT actions_type_check CHECK (type IN ('core', 'maintenance', 'learning', 'review', 'rest'))
 );
 
 -- 4. 每日评分表 (daily_scores)

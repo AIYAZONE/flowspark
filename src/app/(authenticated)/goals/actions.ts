@@ -87,7 +87,9 @@ export async function createAction(formData: FormData) {
 
   const goal_id = formData.get('goal_id') as string
   const title = formData.get('title') as string
-  const type = formData.get('type') as string
+  const rawType = formData.get('type') as string
+  // Ensure type has a valid default if missing
+  const type = rawType || 'core'
   const priority = formData.get('priority') as string
   const description = formData.get('description') as string
   const start_date = formData.get('start_date') as string
@@ -97,9 +99,7 @@ export async function createAction(formData: FormData) {
     throw new Error('Missing required fields')
   }
 
-  const { error } = await supabase.from('actions').insert({
-     user_id: user.id,
-     owner_id: user.id,
+  const baseData = {
      goal_id,
      title,
      type,
@@ -108,11 +108,42 @@ export async function createAction(formData: FormData) {
      start_date,
      end_date,
      completed: false
+  }
+
+  // Attempt 1: Try with both user_id and owner_id (Standard for current schema)
+  const { error } = await supabase.from('actions').insert({
+     ...baseData,
+     user_id: user.id,
+     owner_id: user.id,
    })
 
    if (error) {
-     console.error('Create action failed:', error)
-     throw new Error(error.message)
+     console.error('Create action failed (Attempt 1):', error)
+     
+     // Check for column missing error (Postgres code 42703 or message text)
+     if (error.code === '42703' || error.message?.includes('column')) {
+       // Attempt 2: Try with only user_id (Legacy schema)
+       const { error: error2 } = await supabase.from('actions').insert({
+         ...baseData,
+         user_id: user.id,
+       })
+
+       if (error2) {
+         console.error('Create action failed (Attempt 2):', error2)
+         
+         // Attempt 3: Try with only owner_id (Future schema)
+         const { error: error3 } = await supabase.from('actions').insert({
+            ...baseData,
+            owner_id: user.id,
+         })
+         
+         if (error3) {
+            throw new Error(`Failed to create action: ${error3.message}`)
+         }
+       }
+     } else {
+        throw new Error(error.message)
+     }
    }
 
    revalidatePath('/today')
