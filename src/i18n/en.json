@@ -258,7 +258,14 @@
 		"uploadOrChange": "Upload/Change",
 		"uploadHint": "Recommended size 256x256, supports PNG/JPG/WebP, max 2MB",
 		"uploadErrorSize": "Image size exceeds 2MB",
-		"uploadErrorType": "Only PNG, JPG, WebP formats are supported"
+		"uploadErrorType": "Only PNG, JPG, WebP formats are supported",
+		"dangerZone": "Danger Zone",
+		"deleteAccount": "Delete Account",
+		"deleteAccountDesc": "Once you delete your account, there is no going back. Please be certain.",
+		"confirmDeleteTitle": "Are you absolutely sure?",
+		"confirmDeleteDesc": "This action cannot be undone. This will permanently delete your account and remove your data from our servers.",
+		"deleting": "Deleting...",
+		"deleteError": "Failed to delete account"
 	},
 	"verified": {
 		"title": "Email Verified Successfully",

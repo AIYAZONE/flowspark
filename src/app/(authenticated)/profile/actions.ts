@@ -2,7 +2,42 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@supabase/ssr';
 import { redirect } from 'next/navigation';
+
+export async function deleteAccount() {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+
+	if (!user) {
+		throw new Error('User not authenticated');
+	}
+
+	// Create a Supabase client with the Service Role Key to perform admin actions
+	const supabaseAdmin = createServerClient(
+		process.env.NEXT_PUBLIC_SUPABASE_URL!,
+		process.env.SUPABASE_SERVICE_ROLE_KEY!,
+		{
+			cookies: {
+				getAll() {
+					return [];
+				},
+				setAll(cookiesToSet) {}
+			}
+		}
+	);
+
+	const { error } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+
+	if (error) {
+		console.error('Error deleting user:', error);
+		throw new Error('Failed to delete account');
+	}
+
+	redirect('/login');
+}
 
 export async function updateProfile(formData: FormData) {
 	const supabase = await createClient();
