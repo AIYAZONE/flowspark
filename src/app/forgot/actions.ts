@@ -9,7 +9,7 @@ import { getSiteUrl } from '@/lib/get-site-url'
 export async function requestReset(formData: FormData) {
   const email = (formData.get('email') as string || '').trim()
   if (!email) {
-    redirect('/forgot?error=' + encodeURIComponent('Email is required'))
+    redirect('/forgot?error=email_required')
   }
 
   const supabase = await createClient()
@@ -21,7 +21,7 @@ export async function requestReset(formData: FormData) {
     if (!Number.isNaN(lastTs)) {
       const now = Date.now()
       if (now - lastTs < 60_000) {
-        redirect('/forgot?error=' + encodeURIComponent('Please wait before requesting again'))
+        redirect('/forgot?error=rate_limit')
       }
     }
   }
@@ -31,10 +31,11 @@ export async function requestReset(formData: FormData) {
   })
 
   if (error) {
-    redirect('/forgot?error=' + encodeURIComponent(error.message))
+    console.error('Reset password error:', error)
+    redirect('/forgot?error=unexpected_error')
   }
 
   cookieStore.set('PW_RESET_LAST', String(Date.now()))
   revalidatePath('/', 'layout')
-  redirect('/forgot?message=' + encodeURIComponent('Reset email sent'))
+  redirect('/forgot?message=email_sent')
 }

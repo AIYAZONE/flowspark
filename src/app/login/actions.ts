@@ -59,7 +59,11 @@ export async function signup(formData: FormData) {
 	});
 
 	if (error) {
-		redirect('/signup?error=' + encodeURIComponent(error.message));
+		let code = 'unexpected_error';
+		if (error.message.includes('User already registered')) {
+			code = 'user_already_registered';
+		}
+		redirect('/signup?error=' + code);
 	}
 
 	if (data.user && !data.session) {
