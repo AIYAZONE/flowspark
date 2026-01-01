@@ -63,8 +63,7 @@
 
 4. **数据库设置**
 
-   你需要设置数据库表和行级安全 (RLS) 策略。
-   你可以在 `supabase/` 目录下找到 SQL 脚本（例如 `rls_policies.sql`）。在你的 Supabase SQL 编辑器中运行这些脚本。
+   请参考 [Supabase 数据库初始化指南](supabase/README.md)，其中包含了设置数据库表、RLS 策略和存储桶的详细说明。
 
 5. **启动开发服务器**
 

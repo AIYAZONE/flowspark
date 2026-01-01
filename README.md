@@ -63,8 +63,7 @@ A minimalist, focused, and visualized personal goal management system designed t
 
 4. **Database Setup**
 
-   You need to set up the database tables and Row Level Security (RLS) policies.
-   You can find the SQL scripts in the `supabase/` directory (e.g., `rls_policies.sql`). Run these scripts in your Supabase SQL Editor.
+   Please refer to the [Supabase Initialization Guide](supabase/README_EN.md) for detailed instructions on setting up the database tables, RLS policies, and storage.
 
 5. **Run the development server**
 
