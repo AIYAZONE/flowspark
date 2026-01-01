@@ -26,6 +26,7 @@ interface Dict {
     }
     errors?: {
       missing_credentials?: string
+      user_already_registered?: string
       unexpected_error?: string
     }
   }

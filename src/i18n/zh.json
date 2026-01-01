@@ -77,7 +77,12 @@
 		"emailPlaceholder": "m@example.com",
 		"submit": "发送重置邮件",
 		"success": "重置邮件已发送，请查收邮箱",
-		"error": "发送失败，请稍后重试"
+		"error": "发送失败，请稍后重试",
+		"errors": {
+			"email_required": "邮箱是必填项",
+			"rate_limit": "请求过于频繁，请稍后重试",
+			"unexpected_error": "发生了意外错误"
+		}
 	},
 	"reset": {
 		"title": "重置密码",
