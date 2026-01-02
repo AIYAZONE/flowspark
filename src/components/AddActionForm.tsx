@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { DateRangeFields } from '@/components/DateRangeFields'
 import { createAction } from '@/app/(authenticated)/goals/actions'
 import { Plus } from 'lucide-react'
+import { SubmitButton } from '@/components/SubmitButton'
 
 import { Textarea } from '@/components/ui/textarea'
 
@@ -32,19 +33,6 @@ export interface Dict {
     priority: { high: string; medium: string; low: string }
   }
   common: { dateRangeInvalid: string }
-}
-
-import { useFormStatus } from 'react-dom'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
-
-function SubmitButton({ dict, disabled }: { dict: Dict, disabled: boolean }) {
-  const { pending } = useFormStatus()
-  return (
-    <Button type="submit" className="w-full" disabled={disabled || pending}>
-      {pending ? <LoadingSpinner size={16} className="mr-2" /> : <Plus className="mr-2 h-4 w-4" />}
-      {dict.today.addActionBtn}
-    </Button>
-  )
 }
 
 export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[] | null; dict: Dict; today: string }) {
@@ -115,7 +103,10 @@ export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[
         onValidityChange={setValid}
       />
 
-      <SubmitButton dict={dict} disabled={!valid} />
+      <SubmitButton className="w-full" disabled={!valid}>
+        <Plus className="mr-2 h-4 w-4" />
+        {dict.today.addActionBtn}
+      </SubmitButton>
     </form>
   )
 }

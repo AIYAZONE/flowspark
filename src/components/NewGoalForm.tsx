@@ -7,21 +7,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { DateRangeFields } from '@/components/DateRangeFields'
-import { useFormStatus } from 'react-dom'
-import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { SubmitButton } from '@/components/SubmitButton'
 import type en from '@/i18n/en.json'
 
 type Dict = typeof en
-
-function SubmitButton({ dict }: { dict: Dict }) {
-  const { pending } = useFormStatus()
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending && <LoadingSpinner size={16} className="mr-2" />}
-      {dict.goals.new.submit}
-    </Button>
-  )
-}
 
 export function NewGoalForm({ dict }: { dict: Dict }) {
   return (
@@ -102,7 +91,7 @@ export function NewGoalForm({ dict }: { dict: Dict }) {
         <Link href="/goals">
           <Button type="button" variant="outline">{dict.common.cancel}</Button>
         </Link>
-        <SubmitButton dict={dict} />
+        <SubmitButton>{dict.goals.new.submit}</SubmitButton>
       </div>
     </form>
   )

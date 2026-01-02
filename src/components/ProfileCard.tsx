@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { AvatarUploader } from '@/components/AvatarUploader'
 import { Pencil, Mail, Globe, Trash2 } from 'lucide-react'
 import {
@@ -76,6 +77,7 @@ export function ProfileCard({
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl || '')
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
   const router = useRouter()
 
   useEffect(() => {
@@ -203,10 +205,10 @@ export function ProfileCard({
         <div className="flex justify-end mt-4">
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="gap-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-auto py-1.5 px-2 text-xs opacity-70 hover:opacity-100 transition-opacity" 
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-auto py-1.5 px-2 text-xs opacity-70 hover:opacity-100 transition-opacity"
                 disabled={isDeleting}
               >
                 <Trash2 className="h-3 w-3" />
@@ -222,9 +224,10 @@ export function ProfileCard({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>{dict.common.cancel}</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                  {dict.profile.deleteAccount}
-                </AlertDialogAction>
+                <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={isDeleting}>
+                {isDeleting && <LoadingSpinner size={16} className="mr-2" />}
+                {dict.profile.deleteAccount}
+              </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
