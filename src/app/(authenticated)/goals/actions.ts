@@ -22,7 +22,7 @@ export async function createGoal(formData: FormData) {
 	const category = (formData.get('category') as string) || 'other';
 
 	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
-		throw new Error('End date cannot be earlier than start date');
+		throw new Error('invalid_date_range');
 	}
 
 	const { error } = await supabase.from('goals').insert({
@@ -63,13 +63,12 @@ export async function createGoal(formData: FormData) {
 			});
 
 			if (legacyError) {
-				throw new Error(
-					`Failed to create goal: ${legacyError.message}`
-				);
+				console.error('Legacy create goal failed:', legacyError);
+				throw new Error('operation_failed');
 			}
 			// Success with legacy payload - no error thrown, user continues but new fields aren't saved
 		} else {
-			throw new Error(`Failed to create goal: ${error.message}`);
+			throw new Error('operation_failed');
 		}
 	}
 
@@ -276,7 +275,7 @@ export async function deleteAction(formData: FormData) {
 
 	if (error) {
 		console.error('Error deleting action:', error);
-		throw new Error('Failed to delete action');
+		throw new Error('delete_failed');
 	}
 
 	revalidatePath('/dashboard');
@@ -301,7 +300,7 @@ export async function deleteGoal(formData: FormData) {
 
 	if (deleteActionsError) {
 		console.error('Error deleting goal actions:', deleteActionsError);
-		throw new Error('Failed to delete goal actions');
+		throw new Error('delete_failed');
 	}
 
 	const { error: deleteGoalError } = await supabase
@@ -312,7 +311,7 @@ export async function deleteGoal(formData: FormData) {
 
 	if (deleteGoalError) {
 		console.error('Error deleting goal:', deleteGoalError);
-		throw new Error('Failed to delete goal');
+		throw new Error('delete_failed');
 	}
 
 	revalidatePath('/dashboard');

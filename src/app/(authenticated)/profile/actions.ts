@@ -129,7 +129,7 @@ export async function updateAvatarUrl(formData: FormData) {
 		) {
 			await supabase.auth.updateUser({ data: { avatar_url } });
 		} else {
-			throw new Error(error.message);
+			throw new Error('operation_failed');
 		}
 	}
 	revalidatePath('/profile');

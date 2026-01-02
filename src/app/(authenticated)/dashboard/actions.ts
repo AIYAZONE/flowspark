@@ -61,7 +61,7 @@ export async function submitScore(formData: FormData) {
 				{ onConflict: 'user_id, score_date' }
 			);
 		} else {
-			throw error;
+			throw new Error('operation_failed');
 		}
 	}
 
