@@ -39,6 +39,9 @@ interface Dict {
     deleteAccountDesc: string
     confirmDeleteTitle: string
     confirmDeleteDesc: string
+    deleteConfirmLabelPrefix: string
+    deleteConfirmLabelSuffix: string
+    deletePlaceholder: string
     deleting: string
     deleteError: string
   }
@@ -77,6 +80,7 @@ export function ProfileCard({
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl || '')
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
   const router = useRouter()
 
@@ -228,12 +232,30 @@ export function ProfileCard({
                   {dict.profile.confirmDeleteDesc}
                 </AlertDialogDescription>
               </AlertDialogHeader>
+              <div className="grid gap-2 py-2">
+                <Label htmlFor="delete-confirm">
+                  {dict.profile.deleteConfirmLabelPrefix}
+                  <span className="font-bold text-base select-all bg-muted px-1 py-0.5 rounded border border-border/50">{userEmail}</span>
+                  {dict.profile.deleteConfirmLabelSuffix}
+                </Label>
+                <Input
+                  id="delete-confirm"
+                  value={deleteConfirmation}
+                  onChange={(e) => setDeleteConfirmation(e.target.value)}
+                  placeholder={dict.profile.deletePlaceholder}
+                  autoComplete="off"
+                />
+              </div>
               <AlertDialogFooter>
-                <AlertDialogCancel>{dict.common.cancel}</AlertDialogCancel>
-                <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={isDeleting}>
-                {isDeleting && <LoadingSpinner size={16} className="mr-2" />}
-                {dict.profile.deleteAccount}
-              </AlertDialogAction>
+                <AlertDialogCancel onClick={() => setDeleteConfirmation('')}>{dict.common.cancel}</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteAccount}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={isDeleting || deleteConfirmation !== userEmail}
+                >
+                  {isDeleting && <LoadingSpinner size={16} className="mr-2" />}
+                  {dict.profile.deleteAccount}
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

@@ -279,6 +279,9 @@
 		"deleteAccountDesc": "一旦注销账户，所有数据将无法恢复。请谨慎操作。",
 		"confirmDeleteTitle": "您确定要注销吗？",
 		"confirmDeleteDesc": "此操作不可撤销。这将永久删除您的账户并从我们的服务器中移除您的数据。",
+		"deleteConfirmLabelPrefix": "请输入 ",
+		"deleteConfirmLabelSuffix": " 以确认",
+		"deletePlaceholder": "在此输入您的邮箱",
 		"deleting": "注销中...",
 		"deleteError": "注销失败"
 	},
