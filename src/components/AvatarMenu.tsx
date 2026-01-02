@@ -32,7 +32,7 @@ export function AvatarMenu({
   }, [])
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative flex items-center justify-center" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
         className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-primary/20 bg-primary/10 overflow-hidden"
@@ -45,7 +45,7 @@ export function AvatarMenu({
         )}
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-72 rounded-2xl border border-border/40 bg-background/95 shadow-2xl backdrop-blur-xl p-2">
+        <div className="absolute right-0 top-full mt-2 w-72 rounded-2xl border border-border/40 bg-background/95 shadow-2xl backdrop-blur-xl p-2 z-50">
           <div className="absolute right-4 -top-1 h-3 w-3 bg-background border-t border-l border-border/40 rotate-45" />
           <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium">
             <User className="h-4 w-4 text-muted-foreground" />
