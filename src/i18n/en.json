@@ -279,6 +279,9 @@
 		"deleteAccountDesc": "Once you delete your account, there is no going back. Please be certain.",
 		"confirmDeleteTitle": "Are you absolutely sure?",
 		"confirmDeleteDesc": "This action cannot be undone. This will permanently delete your account and remove your data from our servers.",
+		"deleteConfirmLabelPrefix": "Type ",
+		"deleteConfirmLabelSuffix": " to confirm",
+		"deletePlaceholder": "Type your email here",
 		"deleting": "Deleting...",
 		"deleteError": "Failed to delete account"
 	},
