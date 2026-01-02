@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { login } from '@/app/login/actions'
+import { login } from '@/app/(auth)/login/actions'
 
 interface Dict {
   common: { error: string }
