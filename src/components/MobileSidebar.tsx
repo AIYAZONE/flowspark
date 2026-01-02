@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Target, CalendarCheck, User, LogOut, Menu } from 'lucide-react'
+import { LayoutDashboard, Target, CalendarCheck, User, LogOut, Menu, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -30,6 +30,7 @@ interface MobileSidebarProps {
 
 export function MobileSidebar({ dict }: MobileSidebarProps) {
   const [open, setOpen] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -58,6 +59,7 @@ export function MobileSidebar({ dict }: MobileSidebarProps) {
   ]
 
   const handleSignOut = async () => {
+    setIsSigningOut(true)
     await supabase.auth.signOut()
     router.refresh()
     router.push('/login')
@@ -97,7 +99,7 @@ export function MobileSidebar({ dict }: MobileSidebarProps) {
           </Link>
         </div>
         <div className="flex-1 overflow-y-auto py-4">
-          <nav className="grid gap-1 px-2 text-sm font-medium">
+          <nav className="grid gap-2 px-2 text-base font-medium">
             {sidebarItems.map((item, index) => {
               const isActive = pathname.startsWith(item.href)
               return (
@@ -106,13 +108,13 @@ export function MobileSidebar({ dict }: MobileSidebarProps) {
                   href={item.href}
                   onClick={() => setOpen(false)}
                   className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2.5 transition-all",
+                    "flex items-center gap-4 rounded-md px-3 py-3.5 transition-all",
                     isActive
                       ? "bg-primary/10 text-primary font-semibold"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >
-                  <item.icon className="h-5 w-5" strokeWidth={1.5} />
+                  <item.icon className="h-6 w-6" strokeWidth={1.5} />
                   {item.title}
                 </Link>
               )
@@ -122,11 +124,15 @@ export function MobileSidebar({ dict }: MobileSidebarProps) {
         <div className="border-t p-4">
           <Button
             variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 px-2 text-muted-foreground hover:text-foreground"
+            className="w-full justify-start gap-4 px-3 py-3.5 text-base font-medium text-muted-foreground hover:text-foreground h-auto"
             onClick={handleSignOut}
+            disabled={isSigningOut}
           >
-            <LogOut className="h-4 w-4" />
+            {isSigningOut ? (
+              <Loader2 className="h-6 w-6 animate-spin" />
+            ) : (
+              <LogOut className="h-6 w-6" />
+            )}
             {dict.sidebar.signOut}
           </Button>
         </div>

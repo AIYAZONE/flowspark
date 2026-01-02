@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Target, CalendarCheck, User, LogOut, ChevronLeft, ChevronRight, Aperture } from 'lucide-react'
+import { LayoutDashboard, Target, CalendarCheck, User, LogOut, ChevronLeft, ChevronRight, Aperture, Loader2 } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -46,6 +46,7 @@ export function Sidebar({ dict }: SidebarProps) {
   const router = useRouter()
   const supabase = createClient()
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const [tooltip, setTooltip] = useState<{ label: string; top: number; left: number } | null>(null)
 
   const showTooltip = (label: string, el: HTMLElement) => {
@@ -83,6 +84,7 @@ export function Sidebar({ dict }: SidebarProps) {
   ]
 
   const handleSignOut = async () => {
+    setIsSigningOut(true)
     await supabase.auth.signOut()
     router.refresh()
     router.push('/login')
@@ -169,10 +171,15 @@ export function Sidebar({ dict }: SidebarProps) {
             size="icon"
             className="group relative mx-auto h-10 w-12 text-muted-foreground hover:text-foreground hover:bg-muted"
             onClick={handleSignOut}
+            disabled={isSigningOut}
             onMouseEnter={(e) => showTooltip(dict.sidebar.signOut, e.currentTarget)}
             onMouseLeave={hideTooltip}
           >
-            <LogOut className="h-4 w-4 shrink-0" />
+            {isSigningOut ? (
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+            ) : (
+              <LogOut className="h-4 w-4 shrink-0" />
+            )}
           </Button>
         ) : (
           <Button
@@ -180,8 +187,13 @@ export function Sidebar({ dict }: SidebarProps) {
             size="sm"
             className="w-full justify-start gap-2 px-4 text-muted-foreground hover:text-foreground hover:bg-muted"
             onClick={handleSignOut}
+            disabled={isSigningOut}
           >
-            <LogOut className="h-4 w-4 shrink-0" />
+            {isSigningOut ? (
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+            ) : (
+              <LogOut className="h-4 w-4 shrink-0" />
+            )}
             <span className="whitespace-nowrap">{dict.sidebar.signOut}</span>
           </Button>
         )}

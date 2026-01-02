@@ -66,6 +66,7 @@
 		"forgot": "Forgot password?",
 		"errors": {
 			"missing_credentials": "Email and password are required",
+			"invalid_credentials": "Invalid email or password",
 			"unexpected_error": "An unexpected error occurred",
 			"session_expired": "Session expired, please login again"
 		}
