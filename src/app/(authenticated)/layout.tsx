@@ -26,11 +26,11 @@ export default async function AuthenticatedLayout({
       <AutoLogout />
       <Sidebar dict={dict} />
       <div className="flex flex-col flex-1 h-full overflow-hidden">
-        <header className="flex h-14 items-center gap-4 border-b bg-background px-4 md:hidden shrink-0">
+        <header className="flex h-14 items-center gap-4 border-b bg-background px-4 md:hidden shrink-0 z-50">
           <MobileSidebar dict={dict} />
           <div className="font-semibold">{dict.sidebar.brand}</div>
         </header>
-        <main className="flex-1 overflow-x-hidden px-4 sm:px-6 lg:px-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto px-4 sm:px-6 lg:px-8">
           <div className="mx-auto w-full max-w-[1600px] pt-8 md:pt-10 pb-12">
             {children}
           </div>

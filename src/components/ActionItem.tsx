@@ -272,10 +272,10 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                         variant="ghost"
                         size="icon"
                         onClick={() => setIsEditing(true)}
-                        className="h-8 w-8 rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                        className="h-9 w-9 lg:h-8 lg:w-8 rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
                         disabled={isLoading}
                     >
-                        <Pencil className="h-3.5 w-3.5" />
+                        <Pencil className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
                         <span className="sr-only">{dict.common.edit}</span>
                     </Button>
 
@@ -285,10 +285,10 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                                className="h-9 w-9 lg:h-8 lg:w-8 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                                 disabled={isLoading}
                             >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
                                 <span className="sr-only">{dict.common.delete || '删除'}</span>
                             </Button>
                         </AlertDialogTrigger>

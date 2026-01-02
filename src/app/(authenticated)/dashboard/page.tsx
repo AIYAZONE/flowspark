@@ -139,7 +139,7 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold tracking-tight">{dict.dashboard.title}</h1>
 
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {/* Core Action Card */}
         <Card className="col-span-1 sm:col-span-2 relative overflow-hidden bg-primary/5 border-primary/20">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/60 to-transparent pointer-events-none dark:from-emerald-950/30" />
