@@ -17,8 +17,13 @@ export default async function AuthLayout({
         <Link href="/">
           <BrandLogo />
         </Link>
-        <div className="w-[120px]">
-            <LanguageSwitcher currentLocale={currentLocale} />
+        <div className="hidden sm:block">
+            <LanguageSwitcher 
+              currentLocale={currentLocale} 
+              variant="ghost" 
+              size="sm" 
+              className="w-auto px-2"
+            />
         </div>
       </header>
 
