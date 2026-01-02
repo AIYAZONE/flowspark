@@ -17,7 +17,7 @@ export default async function AuthLayout({
         <Link href="/">
           <BrandLogo />
         </Link>
-        <div className="hidden sm:block">
+        <div>
             <LanguageSwitcher 
               currentLocale={currentLocale} 
               variant="ghost" 

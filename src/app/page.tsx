@@ -51,11 +51,11 @@ export default async function Home() {
             <span>Goal System</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="hidden sm:block">
-              <LanguageSwitcher
-                currentLocale={currentLocale}
-                variant="ghost"
-                size="sm"
+            <div>
+              <LanguageSwitcher 
+                currentLocale={currentLocale} 
+                variant="ghost" 
+                size="sm" 
                 className="w-auto px-2"
               />
             </div>
@@ -75,7 +75,7 @@ export default async function Home() {
                 />
               </>
             ) : (
-              <>
+              <div className="hidden sm:flex items-center gap-2">
                 <Link href="/login">
                   <Button variant="ghost" size="sm" className="text-sm font-medium">
                     {dict.landing.hero.login}
@@ -86,7 +86,7 @@ export default async function Home() {
                     {dict.landing.hero.start}
                   </Button>
                 </Link>
-              </>
+              </div>
             )}
           </div>
         </div>
