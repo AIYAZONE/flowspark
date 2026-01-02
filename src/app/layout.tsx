@@ -18,6 +18,24 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: dict.common.metaTitle,
     description: dict.common.metaDescription,
+    manifest: "/manifest.json",
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: "Goal System",
+    },
+    icons: {
+      icon: "/icon.svg",
+      apple: "/icons/apple-touch-icon.png",
+    },
+    formatDetection: {
+      telephone: false,
+    },
+    viewport: {
+      width: 'device-width',
+      initialScale: 1,
+      maximumScale: 1,
+    }
   }
 }
 
