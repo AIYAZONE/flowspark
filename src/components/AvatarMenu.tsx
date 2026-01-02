@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { signOut } from '@/app/login/actions'
+import { signOut } from '@/app/(auth)/login/actions'
 import { User, Settings, LogOut } from 'lucide-react'
 
 export function AvatarMenu({

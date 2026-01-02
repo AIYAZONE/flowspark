@@ -26,13 +26,7 @@ function SidebarFloatingTooltip({ label, top, left }: { label: string; top: numb
   )
 }
 
-function BrandMark() {
-  return (
-    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 ring-1 ring-primary/20 shadow-sm">
-      <Aperture className="h-5 w-5 text-primary" strokeWidth={2} />
-    </div>
-  )
-}
+import { BrandMark } from "@/components/BrandLogo"
 
 interface SidebarProps {
   dict: {

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, Aperture, TrendingUp, Zap, Target } from "lucide-react";
+import { BrandLogo } from "@/components/BrandLogo";
+import { Aperture, ArrowRight, TrendingUp, Zap, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDictionary, getCurrentLocale } from "@/i18n/get-dictionary";
 import { createClient } from "@/lib/supabase/server";
