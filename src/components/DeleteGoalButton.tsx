@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -29,29 +30,31 @@ interface DeleteGoalButtonProps {
 }
 
 export function DeleteGoalButton({ id, title, dict }: DeleteGoalButtonProps) {
-    const [isLoading, setIsLoading] = useState(false)
+    const [open, setOpen] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     async function handleDelete() {
-        setIsLoading(true)
+        setIsDeleting(true)
         try {
             const formData = new FormData()
             formData.set('id', id)
             await deleteGoal(formData)
+            setOpen(false)
         } catch (error) {
             console.error(error)
         } finally {
-            setIsLoading(false)
+            setIsDeleting(false)
         }
     }
 
     return (
-        <AlertDialog>
+        <AlertDialog open={open} onOpenChange={setOpen}>
             <AlertDialogTrigger asChild>
                 <Button
                     variant="ghost"
                     size="sm"
                     className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-destructive/10 hover:text-destructive transition-all duration-300"
-                    disabled={isLoading}
+                    disabled={isDeleting}
                 >
                     <div className="rounded-full bg-background/80 p-1 group-hover:bg-background transition-colors">
                         <Trash2 className="h-4 w-4" />
@@ -67,8 +70,16 @@ export function DeleteGoalButton({ id, title, dict }: DeleteGoalButtonProps) {
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel>{dict.common.cancel}</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                    <AlertDialogCancel disabled={isDeleting}>{dict.common.cancel}</AlertDialogCancel>
+                    <AlertDialogAction
+                        onClick={(e) => {
+                            e.preventDefault()
+                            handleDelete()
+                        }}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        disabled={isDeleting}
+                    >
+                        {isDeleting && <LoadingSpinner size={16} className="mr-2" />}
                         {dict.common.delete || '删除'}
                     </AlertDialogAction>
                 </AlertDialogFooter>

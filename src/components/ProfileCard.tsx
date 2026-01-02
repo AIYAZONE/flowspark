@@ -93,6 +93,7 @@ export function ProfileCard({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
+    setIsUpdating(true)
     const fd = new FormData()
     fd.set('name', name)
     fd.set('timezone', timezone)
@@ -113,6 +114,8 @@ export function ProfileCard({
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed'
       setToast({ type: 'error', message: `${dict.common.error}: ${message}` })
+    } finally {
+      setIsUpdating(false)
     }
   }
 
@@ -196,8 +199,11 @@ export function ProfileCard({
               </select>
             </div>
             <div className="flex gap-2">
-              <Button type="submit">{dict.profile.updateProfile}</Button>
-              <Button type="button" variant="outline" onClick={() => { setEditing(false); setSelectedFile(null); setName(initialName || ''); setTimezone(initialTimezone || 'UTC') }}>{dict.common.cancel}</Button>
+              <Button type="submit" disabled={isUpdating}>
+                {isUpdating && <LoadingSpinner size={16} className="mr-2" />}
+                {dict.profile.updateProfile}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => { setEditing(false); setSelectedFile(null); setName(initialName || ''); setTimezone(initialTimezone || 'UTC') }} disabled={isUpdating}>{dict.common.cancel}</Button>
             </div>
           </form>
         ) : null}

@@ -46,8 +46,8 @@ export default async function ProfilePage() {
         <CardContent>
           <div className="flex items-center justify-between">
             <span className="text-sm text-muted-foreground">{dict.profile.switchLanguage}</span>
-            <div className="w-[150px]">
-              <LanguageSwitcher currentLocale={currentLocale} />
+            <div className="w-[120px]">
+              <LanguageSwitcher currentLocale={currentLocale} size="sm" />
             </div>
           </div>
         </CardContent>

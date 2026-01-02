@@ -205,7 +205,10 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        <Button type="submit" className="w-full">{dict.reset.submit}</Button>
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting && <LoadingSpinner className="mr-2 h-4 w-4" />}
+          {dict.reset.submit}
+        </Button>
         <div className="text-sm text-muted-foreground text-center">
           <Link href="/login" className="text-primary hover:underline">
             {dict.reset.backToLogin}

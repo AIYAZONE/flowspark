@@ -75,6 +75,8 @@ interface ActionItemProps {
 export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Shanghai' }: ActionItemProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const [dateRangeValid, setDateRangeValid] = useState(true)
 
@@ -92,16 +94,17 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     }
 
     async function handleDelete() {
-        setIsLoading(true)
+        setIsDeleting(true)
         try {
             const formData = new FormData()
             formData.set('id', action.id)
             formData.set('goal_id', action.goal_id)
             await deleteAction(formData)
+            setDeleteDialogOpen(false)
         } catch (error) {
             console.error(error)
         } finally {
-            setIsLoading(false)
+            setIsDeleting(false)
         }
     }
 
@@ -199,7 +202,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                             size="sm"
                             disabled={isLoading || !dateRangeValid}
                         >
-                            <Save className="h-4 w-4 mr-1" />
+                            {isLoading ? <LoadingSpinner size={16} className="mr-1" /> : <Save className="h-4 w-4 mr-1" />}
                             {dict.common.save}
                         </Button>
                     </div>
@@ -279,14 +282,14 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                         <span className="sr-only">{dict.common.edit}</span>
                     </Button>
 
-                    <AlertDialog>
+                    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                         <AlertDialogTrigger asChild>
                             <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 className="h-9 w-9 lg:h-8 lg:w-8 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                                disabled={isLoading}
+                                disabled={isLoading || isDeleting}
                             >
                                 <Trash2 className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
                                 <span className="sr-only">{dict.common.delete || '删除'}</span>
@@ -300,8 +303,16 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
-                                <AlertDialogCancel>{dict.common.cancel}</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                <AlertDialogCancel disabled={isDeleting}>{dict.common.cancel}</AlertDialogCancel>
+                                <AlertDialogAction
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        handleDelete()
+                                    }}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    disabled={isDeleting}
+                                >
+                                    {isDeleting && <LoadingSpinner size={16} className="mr-2" />}
                                     {dict.common.delete || '删除'}
                                 </AlertDialogAction>
                             </AlertDialogFooter>

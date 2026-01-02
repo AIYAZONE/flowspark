@@ -1,10 +1,27 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import Link from 'next/link'
 import { signOut } from '@/app/(auth)/login/actions'
 import { User, Settings, LogOut } from 'lucide-react'
+
+function SignOutButton({ label }: { label: string }) {
+  const { pending } = useFormStatus()
+  return (
+    <Button
+      type="submit"
+      variant="ghost"
+      disabled={pending}
+      className="flex w-full items-center gap-2 justify-start px-3 py-2 text-sm"
+    >
+      {pending ? <LoadingSpinner size={16} /> : <LogOut className="h-4 w-4" />}
+      <span>{label}</span>
+    </Button>
+  )
+}
 
 export function AvatarMenu({
   avatarUrl,
@@ -61,14 +78,7 @@ export function AvatarMenu({
           </Link>
           <div className="my-2 h-px bg-border/40" />
           <form action={signOut}>
-            <Button
-              type="submit"
-              variant="ghost"
-              className="flex w-full items-center gap-2 justify-start px-3 py-2 text-sm"
-            >
-              <LogOut className="h-4 w-4" />
-              <span>{logoutLabel}</span>
-            </Button>
+            <SignOutButton label={logoutLabel || 'Logout'} />
           </form>
         </div>
       )}

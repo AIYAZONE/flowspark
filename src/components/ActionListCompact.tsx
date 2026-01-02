@@ -1,7 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { useMemo, useState, useTransition } from 'react'
+import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import type en from '@/i18n/en.json'
@@ -68,6 +68,8 @@ export function ActionListCompact({
         ? 'text-[10px] px-1.5 py-0.5 rounded border bg-emerald-100 text-emerald-700 border-emerald-200'
         : ''
 
+    const [isPending, startTransition] = useTransition()
+
     return (
       <div className={`group flex items-center justify-between rounded-md px-2 py-2 hover:bg-primary/5 border-l-2 ${typeColor.accent}`}>
         <div className="min-w-0 pr-3">
@@ -95,23 +97,29 @@ export function ActionListCompact({
           </div>
         </div>
 
-        <form>
-          <input type="hidden" name="id" value={action.id} />
-          <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
-          <Button
-            size="icon"
-            variant={action.completed ? 'default' : 'outline'}
-            className={action.completed ? 'bg-primary hover:bg-primary/90 h-8 w-8' : 'border-primary text-primary hover:bg-primary/10 h-8 w-8'}
-            formAction={toggleAction}
-            aria-label={action.completed ? 'Mark incomplete' : 'Mark complete'}
-          >
-            {action.completed ? (
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-            ) : (
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" /></svg>
-            )}
-          </Button>
-        </form>
+        <Button
+          size="icon"
+          variant={action.completed ? 'default' : 'outline'}
+          className={`${action.completed ? 'bg-primary hover:bg-primary/90' : 'border-primary text-primary hover:bg-primary/10'} h-8 w-8 shrink-0`}
+          disabled={isPending}
+          onClick={() => {
+            startTransition(() => {
+              const formData = new FormData()
+              formData.append('id', action.id)
+              formData.append('completed', action.completed ? 'true' : 'false')
+              toggleAction(formData)
+            })
+          }}
+          aria-label={action.completed ? 'Mark incomplete' : 'Mark complete'}
+        >
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : action.completed ? (
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+          ) : (
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" /></svg>
+          )}
+        </Button>
       </div>
     )
   }
