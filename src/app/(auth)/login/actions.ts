@@ -24,7 +24,11 @@ export async function login(formData: FormData) {
 
 		if (error) {
 			console.error('Login error:', error);
-			redirect('/login?error=' + encodeURIComponent(error.message));
+			let code = error.message;
+			if (error.message.includes('Invalid login credentials')) {
+				code = 'invalid_credentials';
+			}
+			redirect('/login?error=' + encodeURIComponent(code));
 		}
 
 		revalidatePath('/', 'layout');
