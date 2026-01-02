@@ -75,7 +75,7 @@ export function MobileSidebar({ dict }: MobileSidebarProps) {
         <SheetTitle className="sr-only">{dict.sidebar.brand}</SheetTitle>
         <div className="flex h-16 items-center border-b px-6">
           <Link
-            href="/dashboard"
+            href="/"
             className="flex items-center gap-2 font-bold text-lg tracking-tight text-primary"
             onClick={() => setOpen(false)}
           >

@@ -114,7 +114,7 @@ export function Sidebar({ dict }: SidebarProps) {
         isCollapsed ? "justify-center" : "px-6"
       )}>
         <Link
-          href="/dashboard"
+          href="/"
           className={cn(
             "flex items-center font-bold text-lg tracking-tight text-primary whitespace-nowrap",
             isCollapsed ? "justify-center" : "gap-2"
