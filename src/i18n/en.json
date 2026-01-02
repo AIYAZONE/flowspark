@@ -20,7 +20,15 @@
 		"showLess": "Show less",
 		"noData": "No data",
 		"tryAdjustFilter": "Try adjusting your filters",
-		"locale": "en-US"
+		"locale": "en-US",
+		"errors": {
+			"unauthenticated": "User not authenticated",
+			"missing_fields": "Missing required fields",
+			"invalid_date_range": "End date cannot be earlier than start date",
+			"operation_failed": "Operation failed, please try again later",
+			"name_too_long": "Name is too long",
+			"delete_failed": "Delete failed"
+		}
 	},
 	"sidebar": {
 		"brand": "Goal System",

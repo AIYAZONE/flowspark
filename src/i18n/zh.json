@@ -20,7 +20,15 @@
 		"showLess": "收起",
 		"noData": "暂无数据",
 		"tryAdjustFilter": "尝试调整筛选条件",
-		"locale": "zh-CN"
+		"locale": "zh-CN",
+		"errors": {
+			"unauthenticated": "用户未登录",
+			"missing_fields": "缺少必填项",
+			"invalid_date_range": "结束日期不得早于开始日期",
+			"operation_failed": "操作失败，请稍后重试",
+			"name_too_long": "姓名长度超出限制",
+			"delete_failed": "删除失败"
+		}
 	},
 	"sidebar": {
 		"brand": "目标系统",
