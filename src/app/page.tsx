@@ -27,7 +27,7 @@ export default async function Home() {
   const avatarLetter = (displayName?.[0] || user?.email?.[0] || 'U').toUpperCase();
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary/20 selection:text-primary">
+    <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary/20">
       <Analytics />
 
       {/* Header */}
