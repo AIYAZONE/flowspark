@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { login } from '@/app/(auth)/login/actions'
+import { SubmitButton } from '@/components/SubmitButton'
 
 interface Dict {
   common: { error: string }
@@ -41,7 +42,7 @@ export function LoginForm({ dict, error: initialError, message }: { dict: Dict, 
   const error = getErrorMessage(initialError || '')
 
   return (
-    <form className="grid gap-4">
+    <form action={login} className="grid gap-4">
       {error && (
         <div className="mb-4 text-sm text-red-500 font-medium bg-red-50 p-3 rounded-md border border-red-200">
           {dict.common.error}: {error}
@@ -70,8 +71,7 @@ export function LoginForm({ dict, error: initialError, message }: { dict: Dict, 
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        <Button 
-          formAction={login} 
+        <SubmitButton
           className="w-full"
           onClick={() => {
             if (typeof window !== 'undefined') {
@@ -80,7 +80,7 @@ export function LoginForm({ dict, error: initialError, message }: { dict: Dict, 
           }}
         >
           {dict.login.loginButton}
-        </Button>
+        </SubmitButton>
         <div className="text-sm text-muted-foreground text-center">
           {dict.login.toSignupPrefix}{' '}
           <Link href="/signup" className="text-primary hover:underline">

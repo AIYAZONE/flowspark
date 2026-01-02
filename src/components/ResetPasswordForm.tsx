@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from "@/components/ui/button"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { createClient } from '@/lib/supabase/client'
@@ -48,6 +49,7 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
   const [redirecting, setRedirecting] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const supabase = createClient()
   const router = useRouter()
 
@@ -99,24 +101,29 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
     e.preventDefault()
     setError(null)
     setMessage(null)
+    setIsSubmitting(true)
 
     if (!password || !confirm) {
       setError(dict.reset.error)
+      setIsSubmitting(false)
       return
     }
     const v = validate(password, confirm)
     if (v) {
       setError(v)
+      setIsSubmitting(false)
       return
     }
 
     const { error } = await supabase.auth.updateUser({ password })
     if (error) {
       setError(mapErrorMessage(error.message))
+      setIsSubmitting(false)
       return
     }
     setMessage(dict.reset.success)
     setRedirecting(true)
+    setIsSubmitting(false)
   }
 
   useEffect(() => {

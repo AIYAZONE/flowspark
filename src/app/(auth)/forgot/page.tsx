@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { requestReset } from './actions'
+import { SubmitButton } from '@/components/SubmitButton'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -56,7 +57,7 @@ export default async function ForgotPage({
             />
           </div>
           <div className="flex flex-col gap-2">
-            <Button type="submit" className="w-full">{dict.forgot.submit}</Button>
+            <SubmitButton className="w-full">{dict.forgot.submit}</SubmitButton>
             <div className="text-sm text-muted-foreground text-center">
               <Link href="/login" className="text-primary hover:underline">
                 {dict.reset.backToLogin}
