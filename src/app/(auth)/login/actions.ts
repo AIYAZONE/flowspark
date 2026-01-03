@@ -27,6 +27,8 @@ export async function login(formData: FormData) {
 			let code = error.message;
 			if (error.message.includes('Invalid login credentials')) {
 				code = 'invalid_credentials';
+			} else if (error.message.includes('Email not confirmed')) {
+				code = 'email_not_confirmed';
 			}
 			redirect('/login?error=' + encodeURIComponent(code));
 		}

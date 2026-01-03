@@ -137,7 +137,8 @@ export async function createAction(formData: FormData) {
          })
          
          if (error3) {
-            throw new Error(`Failed to create action: ${error3.message}`)
+            console.error('Failed to create action (Attempt 3):', error3)
+            throw new Error('operation_failed')
          }
        }
      } else {

@@ -34,6 +34,7 @@ export function LoginForm({ dict, error: initialError, message }: { dict: Dict, 
     if (!err) return null
     if (err === 'missing_credentials') return dict.login.errors?.missing_credentials || err
     if (err === 'invalid_credentials') return dict.login.errors?.invalid_credentials || err
+    if (err === 'email_not_confirmed') return dict.login.errors?.email_not_confirmed || err
     if (err === 'unexpected_error') return dict.login.errors?.unexpected_error || err
     if (err === 'session_expired') return dict.login.errors?.session_expired || err
     return err

@@ -76,6 +76,7 @@
 		"errors": {
 			"missing_credentials": "Email and password are required",
 			"invalid_credentials": "Invalid email or password",
+			"email_not_confirmed": "Email not confirmed. Please check your inbox.",
 			"unexpected_error": "An unexpected error occurred",
 			"session_expired": "Session expired, please login again"
 		}
