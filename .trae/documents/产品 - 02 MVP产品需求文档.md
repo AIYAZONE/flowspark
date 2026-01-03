@@ -1,4 +1,4 @@
-# MVP 产品需求文档 (已发布 / Released)
+# FlowSpark MVP 产品需求文档 (已发布 / Released)
 
 **状态**：✅ 已完成开发并发布 (Phase 1 Completed)
 **版本**：v1.0.0

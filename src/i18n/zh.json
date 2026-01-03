@@ -1,6 +1,6 @@
 {
 	"common": {
-		"metaTitle": "目标系统",
+		"metaTitle": "FlowSpark",
 		"metaDescription": "一个帮助你实现梦想的个人目标管理系统。",
 		"loading": "加载中...",
 		"saving": "保存中...",
@@ -32,7 +32,7 @@
 		}
 	},
 	"sidebar": {
-		"brand": "目标系统",
+		"brand": "FlowSpark",
 		"dashboard": "仪表盘",
 		"today": "今日行动",
 		"goals": "目标管理",
@@ -41,27 +41,40 @@
 	},
 	"landing": {
 		"hero": {
-			"badge": "个人成长操作系统 v1.0",
-			"title": "让野心成为现实",
-			"subtitle": "极简、聚焦、可视化。我们重新定义了目标管理，帮助你在纷繁复杂的世界中，找回掌控感。",
-			"start": "立即开始",
-			"login": "登录账号"
+			"badge": "FlowSpark OS v1.0",
+			"title": "别只是设定目标\n点燃心流",
+			"subtitle": "AI 驱动的微挑战拆解，盲盒式变量奖励，沉浸式专注体验。让坚持上瘾的个人成长操作系统。",
+			"start": "开启第一次心流",
+			"login": "登录账号",
+			"socialProof": "已被 1,000+ 位心流探索者信赖",
+			"ctaTitle": "准备好寻找你的心流了吗？"
+		},
+		"visual": {
+			"userLabel": "用户",
+			"userInput": "我想变得更自信...",
+			"aiLabel": "AI 微挑战",
+			"dayLabel": "第1天",
+			"questTitle": "陌生人微笑实验",
+			"questDesc": "今天对收银员真诚微笑并说“谢谢”。观察他们的反应。",
+			"xpLabel": "+50 经验值",
+			"rewardTitle": "解锁奖励！",
+			"rewardDesc": "稀有徽章：社交勇气"
 		},
 		"features": {
 			"focus": {
-				"title": "极简聚焦",
-				"desc": "每天只做最重要的事。拒绝无效忙碌，体验心流带来的高效与宁静。"
+				"title": "AI 逆向工程",
+				"desc": "不知道第一步怎么走？告诉 AI 你的模糊愿景，它会自动拆解为有趣的、5分钟即可完成的“微挑战”。"
 			},
 			"growth": {
-				"title": "可视化成长",
-				"desc": "看见每一天的进步。通过直观的数据图表，让坚持变得上瘾。"
+				"title": "变量奖励系统",
+				"desc": "告别枯燥的打钩。完成任务解锁惊喜盲盒，收集稀有徽章，看着你的“目标生物”进化成长。"
 			},
 			"insight": {
-				"title": "深度洞察",
-				"desc": "基于行为数据的智能分析，帮助你持续优化行为模式，突破瓶颈。"
+				"title": "Zen 专注模式",
+				"desc": "全屏沉浸式执行界面，配合环境白噪音。让每一个行动都成为一次深度的心流体验。"
 			}
 		},
-		"footer": "© 2025 Goal System. All rights reserved."
+		"footer": "© 2025 FlowSpark. 保留所有权利。"
 	},
 	"login": {
 		"title": "登录",

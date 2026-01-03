@@ -1,20 +1,23 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
-import { ArrowRight, TrendingUp, Zap, Target } from "lucide-react";
+import { ArrowRight, TrendingUp, Zap, Target, Sparkles, Brain, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDictionary, getCurrentLocale } from "@/i18n/get-dictionary";
 import { createClient } from "@/lib/supabase/server";
 import { AvatarMenu } from "@/components/AvatarMenu";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Analytics } from "@vercel/analytics/react"
+import { HeroVisual } from "@/components/HeroVisual";
 
 export default async function Home() {
   const dict = await getDictionary();
   const currentLocale = await getCurrentLocale();
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
   let avatarUrl: string | null = null
   let displayName: string | null = null
+
   if (user) {
     const { data: profile } = await supabase
       .from('user_profiles')
@@ -24,45 +27,30 @@ export default async function Home() {
     avatarUrl = profile?.avatar_url || null
     displayName = profile?.name || null
   }
+
   const avatarLetter = (displayName?.[0] || user?.email?.[0] || 'U').toUpperCase();
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary/20">
+    <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary/20 overflow-x-hidden">
       <Analytics />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 w-full border-b border-border/10 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto flex h-16 items-center justify-between px-6 lg:px-8">
-          <div className="flex items-center gap-2 font-bold text-lg tracking-tight text-primary">
-            <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
-              <rect x="0.5" y="0.5" width="35" height="35" rx="11.5" fill="rgba(5,148,103,0.1)" stroke="rgba(5,148,103,0.2)"
-                strokeWidth="1" />
-              <svg x="8" y="8" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#059467" strokeWidth="2"
-                strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10"></circle>
-                <path d="m14.31 8 5.74 9.94"></path>
-                <path d="M9.69 8h11.48"></path>
-                <path d="m7.38 12 5.74-9.94"></path>
-                <path d="M9.69 16 3.95 6.06"></path>
-                <path d="M14.31 16H2.83"></path>
-                <path d="m16.62 12-5.74 9.94"></path>
-              </svg>
-            </svg>
-            <span>Goal System</span>
-          </div>
+          <BrandLogo />
           <div className="flex items-center gap-2">
             <div>
-              <LanguageSwitcher 
-                currentLocale={currentLocale} 
-                variant="ghost" 
-                size="sm" 
+              <LanguageSwitcher
+                currentLocale={currentLocale}
+                variant="ghost"
+                size="sm"
                 className="w-auto px-2"
               />
             </div>
             {user ? (
               <>
-                <Link href="/dashboard">
-                  <Button size="sm" className="rounded-full px-5">
+                <Link href="/dashboard" className="hidden sm:inline-flex">
+                  <Button size="sm" className="rounded-full px-5 shadow-sm">
                     {dict.sidebar.dashboard}
                   </Button>
                 </Link>
@@ -82,7 +70,7 @@ export default async function Home() {
                   </Button>
                 </Link>
                 <Link href="/login">
-                  <Button size="sm" className="rounded-full px-5">
+                  <Button size="sm" className="rounded-full px-5 shadow-sm shadow-primary/20">
                     {dict.landing.hero.start}
                   </Button>
                 </Link>
@@ -94,112 +82,140 @@ export default async function Home() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative isolate pt-24 pb-32 sm:pt-32 lg:pb-40 overflow-hidden">
-          {/* Background Gradients */}
-          <div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80">
-            <div className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#059669] to-[#8B5CF6] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"></div>
-          </div>
+        <section className="relative pt-20 pb-32 lg:pt-32 lg:pb-40">
+          {/* Ambient Background */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background pointer-events-none" />
 
-          <div className="container mx-auto px-6 lg:px-8 text-center">
-            <div className="mx-auto max-w-2xl">
-              <div className="mb-8 flex justify-center">
-                <div className="relative rounded-full px-3 py-1 text-sm leading-6 text-muted-foreground ring-1 ring-border hover:ring-primary/50 transition-all bg-background/50 backdrop-blur">
+          <div className="container mx-auto px-6 lg:px-8">
+            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+
+              {/* Left Column: Text */}
+              <div className="flex-1 text-center lg:text-left max-w-2xl mx-auto lg:mx-0">
+                <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-sm font-medium text-primary mb-6">
+                  <Sparkles className="mr-2 h-3.5 w-3.5" />
                   {dict.landing.hero.badge}
                 </div>
-              </div>
-              <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-6xl bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
-                {dict.landing.hero.title}
-              </h1>
-              <p className="mt-6 text-lg leading-8 text-muted-foreground">
-                {dict.landing.hero.subtitle}
-              </p>
-              <div className="mt-10 flex items-center justify-center gap-x-6">
-                {user ? (
-                  <>
-                    <Link href="/dashboard">
-                      <Button size="lg" className="rounded-full px-8 text-base shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
+
+                <h1 className="text-4xl font-extrabold tracking-tight mb-6 leading-[1.1] whitespace-pre-line lg:text-6xl">
+                  {dict.landing.hero.title}
+                </h1>
+
+                <p className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-xl mx-auto lg:mx-0">
+                  {dict.landing.hero.subtitle}
+                </p>
+
+                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                  {user ? (
+                    <Link href="/dashboard" className="w-full sm:w-auto">
+                      <Button size="lg" className="w-full sm:w-auto rounded-full px-8 text-base shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all h-12">
                         {dict.sidebar.dashboard} <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
-                    <Link href="/goals">
-                      <Button variant="outline" size="lg" className="rounded-full px-8 text-base">
-                        {dict.sidebar.goals}
-                      </Button>
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <Link href="/login">
-                      <Button size="lg" className="rounded-full px-8 text-base shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all">
+                  ) : (
+                    <Link href="/login" className="w-full sm:w-auto">
+                      <Button size="lg" className="w-full sm:w-auto rounded-full px-8 text-base shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all h-12">
                         {dict.landing.hero.start} <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
-                    <Link href="/login">
-                      <Button variant="outline" size="lg" className="rounded-full px-8 text-base">
+                  )}
+
+                  {!user && (
+                    <Link href="/login" className="w-full sm:w-auto">
+                      <Button variant="outline" size="lg" className="w-full sm:w-auto rounded-full px-8 text-base h-12 border-primary/20 hover:bg-primary/5">
                         {dict.landing.hero.login}
                       </Button>
                     </Link>
-                  </>
-                )}
+                  )}
+                </div>
+
+                {/* Social Proof (Mock) */}
+                <div className="mt-10 flex items-center justify-center lg:justify-start gap-4 text-sm text-muted-foreground">
+                  <div className="flex -space-x-3">
+                    {[
+                      "bg-blue-500",
+                      "bg-purple-500",
+                      "bg-emerald-500",
+                      "bg-orange-500"
+                    ].map((color, i) => (
+                      <div
+                        key={i}
+                        className={`w-8 h-8 rounded-full border-2 border-background ${color} flex items-center justify-center`}
+                      />
+                    ))}
+                  </div>
+                  <p>{dict.landing.hero.socialProof}</p>
+                </div>
+              </div>
+
+              {/* Right Column: Visual */}
+              <div className="flex-1 w-full max-w-[500px] lg:max-w-none">
+                <HeroVisual dict={dict.landing.visual} />
               </div>
             </div>
-          </div>
-
-          {/* Secondary Gradient */}
-          <div className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]">
-            <div className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#3B82F6] to-[#059669] opacity-20 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"></div>
           </div>
         </section>
 
         {/* Features Section */}
-        <section className="py-24 sm:py-32 relative z-10">
-          <div className="container mx-auto px-6 lg:px-8">
-            <div className="mx-auto grid max-w-2xl grid-cols-1 gap-x-8 gap-y-16 lg:mx-0 lg:max-w-none lg:grid-cols-3">
-              {/* Feature 1: Focus */}
-              <div className="flex flex-col items-start group">
-                <div className="rounded-lg bg-primary/5 p-3 ring-1 ring-primary/10 transition-all group-hover:bg-primary/10 group-hover:ring-primary/30 mb-5">
-                  <Target className="h-6 w-6 text-primary" strokeWidth={1.5} />
+        <section className="py-24 relative overflow-hidden">
+          <div className="absolute inset-0 bg-muted/30 -skew-y-3 transform origin-top-left scale-110" />
+
+          <div className="container relative mx-auto px-6 lg:px-8">
+            <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
+
+              {/* Feature 1 */}
+              <div className="bg-background/80 backdrop-blur-sm rounded-2xl p-8 border border-border/50 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-6 text-primary">
+                  <Brain className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-semibold leading-8 tracking-tight text-foreground">
-                  {dict.landing.features.focus.title}
-                </h3>
-                <p className="mt-2 text-base leading-7 text-muted-foreground">
+                <h3 className="text-xl font-bold mb-3">{dict.landing.features.focus.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">
                   {dict.landing.features.focus.desc}
                 </p>
               </div>
 
-              {/* Feature 2: Growth */}
-              <div className="flex flex-col items-start group">
-                <div className="rounded-lg bg-blue-500/5 p-3 ring-1 ring-blue-500/10 transition-all group-hover:bg-blue-500/10 group-hover:ring-blue-500/30 mb-5">
-                  <TrendingUp className="h-6 w-6 text-blue-500" strokeWidth={1.5} />
+              {/* Feature 2 */}
+              <div className="bg-background/80 backdrop-blur-sm rounded-2xl p-8 border border-border/50 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+                <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6 text-purple-500">
+                  <Trophy className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-semibold leading-8 tracking-tight text-foreground">
-                  {dict.landing.features.growth.title}
-                </h3>
-                <p className="mt-2 text-base leading-7 text-muted-foreground">
+                <h3 className="text-xl font-bold mb-3">{dict.landing.features.growth.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">
                   {dict.landing.features.growth.desc}
                 </p>
               </div>
 
-              {/* Feature 3: Insight */}
-              <div className="flex flex-col items-start group">
-                <div className="rounded-lg bg-purple-500/5 p-3 ring-1 ring-purple-500/10 transition-all group-hover:bg-purple-500/10 group-hover:ring-purple-500/30 mb-5">
-                  <Zap className="h-6 w-6 text-purple-500" strokeWidth={1.5} />
+              {/* Feature 3 */}
+              <div className="bg-background/80 backdrop-blur-sm rounded-2xl p-8 border border-border/50 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
+                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-6 text-blue-500">
+                  <Zap className="w-6 h-6" />
                 </div>
-                <h3 className="text-lg font-semibold leading-8 tracking-tight text-foreground">
-                  {dict.landing.features.insight.title}
-                </h3>
-                <p className="mt-2 text-base leading-7 text-muted-foreground">
+                <h3 className="text-xl font-bold mb-3">{dict.landing.features.insight.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">
                   {dict.landing.features.insight.desc}
                 </p>
               </div>
+
             </div>
+          </div>
+        </section>
+
+        {/* Bottom CTA */}
+        <section className="py-24 text-center">
+          <div className="container mx-auto px-6 lg:px-8">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">
+              {dict.landing.hero.ctaTitle}
+            </h2>
+            <Link href="/login">
+              <Button size="lg" className="rounded-full px-10 text-lg h-14 shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:scale-105 transition-all duration-300">
+                {dict.landing.hero.start}
+              </Button>
+            </Link>
           </div>
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 py-12">
+      <footer className="border-t border-border/40 py-12 bg-muted/20">
         <div className="container mx-auto px-6 text-center text-sm text-muted-foreground lg:px-8">
           <p>{dict.landing.footer}</p>
         </div>
