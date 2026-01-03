@@ -293,5 +293,21 @@
 		"description": "Your email has been verified. Redirecting you...",
 		"toLogin": "Login Now",
 		"redirecting": "seconds to redirect"
+	},
+	"verify": {
+		"title": "Verify Email",
+		"description": "Enter the 6-digit code sent to {email}",
+		"codeLabel": "Verification Code",
+		"codePlaceholder": "123456",
+		"submit": "Verify",
+		"resend": "Resend Code",
+		"backToLogin": "Back to Login",
+		"success": "Verification successful",
+		"resendSuccess": "Code resent successfully",
+		"errors": {
+			"missing_code": "Please enter the verification code",
+			"invalid_code": "Invalid or expired code",
+			"unexpected_error": "An unexpected error occurred"
+		}
 	}
 }
