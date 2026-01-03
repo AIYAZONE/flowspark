@@ -3,6 +3,7 @@
 		"metaTitle": "Goal System",
 		"metaDescription": "A personal goal management system to help you achieve your dreams.",
 		"loading": "Loading...",
+		"saving": "Saving...",
 		"save": "Save",
 		"cancel": "Cancel",
 		"delete": "Delete",

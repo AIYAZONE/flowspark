@@ -51,6 +51,7 @@ interface AddActionDialogProps {
         }
         common: {
             dateRangeInvalid: string
+            saving: string
         }
     }
     tz?: string
