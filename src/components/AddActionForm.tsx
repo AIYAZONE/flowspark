@@ -32,7 +32,7 @@ export interface Dict {
   goals: {
     priority: { high: string; medium: string; low: string }
   }
-  common: { dateRangeInvalid: string }
+  common: { dateRangeInvalid: string; saving: string }
 }
 
 export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[] | null; dict: Dict; today: string }) {
