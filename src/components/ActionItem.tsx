@@ -312,7 +312,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                     disabled={isDeleting}
                                 >
-                                    {isDeleting && <LoadingSpinner size={16} className="mr-2" />}
+                                    {isDeleting && <LoadingSpinner size={16} className="mr-2 text-current" />}
                                     {dict.common.delete || '删除'}
                                 </AlertDialogAction>
                             </AlertDialogFooter>
