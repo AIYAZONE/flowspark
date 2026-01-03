@@ -3,7 +3,6 @@ import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/Sidebar'
 import { MobileSidebar } from '@/components/MobileSidebar'
 import { getDictionary } from '@/i18n/get-dictionary'
-import { AutoLogout } from '@/components/AutoLogout'
 
 export default async function AuthenticatedLayout({
   children,
@@ -23,7 +22,6 @@ export default async function AuthenticatedLayout({
 
   return (
     <div className="fixed inset-0 flex h-full w-full overflow-hidden bg-muted/40">
-      <AutoLogout />
       <Sidebar dict={dict} />
       <div className="flex flex-col flex-1 h-full overflow-hidden">
         <header className="flex h-14 items-center gap-4 border-b bg-background px-4 md:hidden shrink-0 z-50">
