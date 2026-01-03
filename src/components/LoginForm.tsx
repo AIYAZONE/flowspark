@@ -22,6 +22,7 @@ interface Dict {
     errors?: {
       missing_credentials?: string
       invalid_credentials?: string
+      email_not_confirmed?: string
       unexpected_error?: string
       session_expired?: string
     }
