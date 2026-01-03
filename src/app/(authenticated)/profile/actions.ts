@@ -52,7 +52,7 @@ export async function updateProfile(formData: FormData) {
 	const avatar_url = ((formData.get('avatar_url') as string) || '').trim();
 
 	if (name && name.length > 64) {
-		throw new Error('Name too long');
+		throw new Error('name_too_long');
 	}
 	const allowedLocales = ['en', 'zh'];
 	const allowedTimezones = [
