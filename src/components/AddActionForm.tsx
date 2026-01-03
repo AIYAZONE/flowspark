@@ -103,7 +103,7 @@ export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[
         onValidityChange={setValid}
       />
 
-      <SubmitButton className="w-full" disabled={!valid}>
+      <SubmitButton className="w-full" disabled={!valid} loadingText={dict.common.saving}>
         <Plus className="mr-2 h-4 w-4" />
         {dict.today.addActionBtn}
       </SubmitButton>

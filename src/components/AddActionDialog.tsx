@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -59,22 +60,21 @@ interface AddActionDialogProps {
 
 export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai' }: AddActionDialogProps) {
     const [open, setOpen] = useState(false)
-    const [isLoading, setIsLoading] = useState(false)
+    const [isPending, startTransition] = useTransition()
     const [valid, setValid] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
     async function handleSubmit(formData: FormData) {
-        setIsLoading(true)
         setError(null)
-        try {
-            await createAction(formData)
-            setOpen(false)
-        } catch (error) {
-            console.error(error)
-            setError(error instanceof Error ? error.message : 'Failed to create action')
-        } finally {
-            setIsLoading(false)
-        }
+        startTransition(async () => {
+            try {
+                await createAction(formData)
+                setOpen(false)
+            } catch (error) {
+                console.error(error)
+                setError(error instanceof Error ? error.message : 'Failed to create action')
+            }
+        })
     }
 
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
@@ -164,11 +164,11 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                         onValidityChange={setValid}
                     />
 
-                    <Button type="submit" className="w-full" disabled={isLoading || !valid}>
-                        {isLoading ? (
+                    <Button type="submit" className="w-full" disabled={isPending || !valid}>
+                        {isPending ? (
                             <>
-                                <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                                Saving...
+                                <LoadingSpinner size={16} className="mr-2 text-current" />
+                                {dict.common.saving}
                             </>
                         ) : (
                             <>
