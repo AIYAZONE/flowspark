@@ -25,6 +25,7 @@ interface Dict {
       email_not_confirmed?: string
       unexpected_error?: string
       session_expired?: string
+      auth_code_error?: string
     }
   }
 }
