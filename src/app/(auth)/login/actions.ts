@@ -73,7 +73,7 @@ export async function signup(formData: FormData) {
 	}
 
 	if (data.user && !data.session) {
-		redirect('/signup?message=registration_success');
+		redirect(`/verify?email=${encodeURIComponent(email)}`);
 	}
 
 	if (data.user) {
@@ -95,4 +95,44 @@ export async function signOut() {
 	await supabase.auth.signOut();
 	revalidatePath('/', 'layout');
 	redirect('/');
+}
+
+export async function verifyEmail(formData: FormData) {
+	const email = formData.get('email') as string;
+	const token = formData.get('code') as string;
+
+	if (!email || !token) {
+		throw new Error('missing_code');
+	}
+
+	const supabase = await createClient();
+	const { error } = await supabase.auth.verifyOtp({
+		email,
+		token,
+		type: 'signup'
+	});
+
+	if (error) {
+		console.error('Verify error:', error);
+		let code = 'unexpected_error';
+		if (error.message.includes('Token has expired') || error.message.includes('Invalid token')) {
+			code = 'invalid_code';
+		}
+		redirect(`/verify?email=${encodeURIComponent(email)}&error=${code}`);
+	}
+
+	redirect('/dashboard');
+}
+
+export async function resendOtp(email: string) {
+	const supabase = await createClient();
+	const { error } = await supabase.auth.resend({
+		type: 'signup',
+		email
+	});
+
+	if (error) {
+		console.error('Resend error:', error);
+		throw new Error('unexpected_error');
+	}
 }
