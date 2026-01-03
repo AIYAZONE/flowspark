@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Goal System',
-    short_name: 'Goals',
+    name: 'FlowSpark',
+    short_name: 'FlowSpark',
     description: 'Track your daily core actions and goals.',
     start_url: '/',
     display: 'standalone',

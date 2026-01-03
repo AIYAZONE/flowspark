@@ -17,7 +17,7 @@ export function BrandLogo({ className }: { className?: string }) {
           <path d="m16.62 12-5.74 9.94"></path>
         </svg>
       </svg>
-      <span>Goal System</span>
+      <span>FlowSpark</span>
     </div>
   )
 }

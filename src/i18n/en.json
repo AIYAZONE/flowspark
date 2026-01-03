@@ -1,6 +1,6 @@
 {
 	"common": {
-		"metaTitle": "Goal System",
+		"metaTitle": "FlowSpark",
 		"metaDescription": "A personal goal management system to help you achieve your dreams.",
 		"loading": "Loading...",
 		"saving": "Saving...",
@@ -32,7 +32,7 @@
 		}
 	},
 	"sidebar": {
-		"brand": "Goal System",
+		"brand": "FlowSpark",
 		"dashboard": "Dashboard",
 		"today": "Today",
 		"goals": "Goals",
@@ -41,27 +41,40 @@
 	},
 	"landing": {
 		"hero": {
-			"badge": "Personal Growth OS v1.0",
-			"title": "Turn Ambition into Reality",
-			"subtitle": "Minimalist, Focused, Visualized. We redefined goal management to help you regain control in a complex world.",
-			"start": "Get Started",
-			"login": "Login"
+			"badge": "FlowSpark OS v1.0",
+			"title": "Don't just set goals. Spark a flow.",
+			"subtitle": "AI-powered micro-quests, variable rewards, and immersive focus. The personal growth OS that makes consistency addictive.",
+			"start": "Spark Your First Flow",
+			"login": "Login",
+			"socialProof": "Trusted by 1,000+ flow seekers",
+			"ctaTitle": "Ready to find your flow?"
+		},
+		"visual": {
+			"userLabel": "User",
+			"userInput": "I want to become more confident...",
+			"aiLabel": "AI Micro-Quest",
+			"dayLabel": "Day 1",
+			"questTitle": "Stranger Smile Experiment",
+			"questDesc": "Today, say \"Thank you\" to a cashier with a genuine smile. Observe their reaction.",
+			"xpLabel": "+50 XP",
+			"rewardTitle": "Reward Unlocked!",
+			"rewardDesc": "Rare Badge: Social Bravery"
 		},
 		"features": {
 			"focus": {
-				"title": "Laser Focus",
-				"desc": "Do only what matters today. Reject busywork and experience the efficiency of flow."
+				"title": "AI Reverse Engineering",
+				"desc": "Don't know where to start? Tell AI your vague ambition, and it breaks it down into fun, 5-minute micro-quests."
 			},
 			"growth": {
-				"title": "Visual Growth",
-				"desc": "See your progress every day. Make persistence addictive with intuitive data charts."
+				"title": "Variable Rewards",
+				"desc": "Forget boring checkboxes. Unlock surprise loot boxes, rare badges, and watch your 'Goal Creature' evolve."
 			},
 			"insight": {
-				"title": "Deep Insights",
-				"desc": "Intelligent analysis based on behavioral data helps you optimize patterns and break through bottlenecks."
+				"title": "Zen Mode Focus",
+				"desc": "Immersive full-screen execution with ambient soundscapes. Turn every action into a deep flow state experience."
 			}
 		},
-		"footer": "© 2025 Goal System. All rights reserved."
+		"footer": "© 2025 FlowSpark. All rights reserved."
 	},
 	"login": {
 		"title": "Login",

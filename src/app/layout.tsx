@@ -22,7 +22,7 @@ export async function generateMetadata(): Promise<Metadata> {
     appleWebApp: {
       capable: true,
       statusBarStyle: "default",
-      title: "Goal System",
+      title: "FlowSpark",
     },
     icons: {
       icon: "/icon.svg",

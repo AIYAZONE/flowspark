@@ -1,8 +1,10 @@
-# Goal System (Personal Growth OS)
+# FlowSpark (Personal Growth OS)
 
 **English** | [中文](README_ZH.md)
 
-A minimalist, focused, and visualized personal goal management system designed to help you turn ambition into reality. Built with Next.js 16 and Supabase.
+**FlowSpark** is a minimalist, focused, and visualized personal goal management system designed to help you turn ambition into reality through **Flow** and **Surprise**. Built with Next.js 16 and Supabase.
+
+Live Demo: [https://flowspark.aiyazone.com](https://flowspark.aiyazone.com)
 
 ## ✨ Features
 
