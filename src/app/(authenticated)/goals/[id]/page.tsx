@@ -48,7 +48,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
                     <Button
                         variant="ghost"
                         size="sm"
-                        className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                        className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-primary/10 hover:text-primary active:bg-primary/10 active:text-primary transition-all duration-300"
                     >
                         <div className="rounded-full bg-background/80 p-1 group-hover:bg-background transition-colors">
                             <ArrowLeft className="h-4 w-4" />
@@ -56,7 +56,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
                         <span className="text-sm font-medium">{dict.common.back}</span>
                     </Button>
                 </Link>
-                <h1 className="text-2xl font-bold tracking-tight">{goal.title}</h1>
+                <h1 className="text-lg md:text-2xl font-bold tracking-tight">{goal.title}</h1>
             </div>
 
             <div className="grid gap-6 lg:grid-cols-3">
