@@ -78,7 +78,8 @@
 			"invalid_credentials": "Invalid email or password",
 			"email_not_confirmed": "Email not confirmed. Please check your inbox.",
 			"unexpected_error": "An unexpected error occurred",
-			"session_expired": "Session expired, please login again"
+			"session_expired": "Session expired, please login again",
+			"auth_code_error": "Invalid or expired verification link, please try again"
 		}
 	},
 	"forgot": {
