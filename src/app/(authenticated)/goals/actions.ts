@@ -77,78 +77,85 @@ export async function createGoal(formData: FormData) {
 }
 
 export async function createAction(formData: FormData) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
 
-  if (!user) {
-    throw new Error('User not authenticated')
-  }
+	if (!user) {
+		throw new Error('User not authenticated');
+	}
 
-  const goal_id = formData.get('goal_id') as string
-  const title = formData.get('title') as string
-  const rawType = formData.get('type') as string
-  // Ensure type has a valid default if missing
-  const type = rawType || 'core'
-  const priority = formData.get('priority') as string
-  const description = formData.get('description') as string
-  const start_date = formData.get('start_date') as string
-  const end_date = formData.get('end_date') as string
+	const goal_id = formData.get('goal_id') as string;
+	const title = formData.get('title') as string;
+	const rawType = formData.get('type') as string;
+	// Ensure type has a valid default if missing
+	const type = rawType || 'core';
+	const priority = formData.get('priority') as string;
+	const description = formData.get('description') as string;
+	const start_date = formData.get('start_date') as string;
+	const end_date = formData.get('end_date') as string;
 
-  if (!goal_id || !title || !start_date || !end_date) {
-    throw new Error('Missing required fields')
-  }
+	if (!goal_id || !title || !start_date || !end_date) {
+		throw new Error('Missing required fields');
+	}
 
-  const baseData = {
-     goal_id,
-     title,
-     type,
-     priority: priority || 'medium',
-     description: description || '',
-     start_date,
-     end_date,
-     completed: false
-  }
+	const baseData = {
+		goal_id,
+		title,
+		type,
+		priority: priority || 'medium',
+		description: description || '',
+		start_date,
+		end_date,
+		completed: false
+	};
 
-  // Attempt 1: Try with both user_id and owner_id (Standard for current schema)
-  const { error } = await supabase.from('actions').insert({
-     ...baseData,
-     user_id: user.id,
-     owner_id: user.id,
-   })
+	// Attempt 1: Try with both user_id and owner_id (Standard for current schema)
+	const { error } = await supabase.from('actions').insert({
+		...baseData,
+		user_id: user.id,
+		owner_id: user.id
+	});
 
-   if (error) {
-     console.error('Create action failed (Attempt 1):', error)
-     
-     // Check for column missing error (Postgres code 42703 or message text)
-     if (error.code === '42703' || error.message?.includes('column')) {
-       // Attempt 2: Try with only user_id (Legacy schema)
-       const { error: error2 } = await supabase.from('actions').insert({
-         ...baseData,
-         user_id: user.id,
-       })
+	if (error) {
+		console.error('Create action failed (Attempt 1):', error);
 
-       if (error2) {
-         console.error('Create action failed (Attempt 2):', error2)
-         
-         // Attempt 3: Try with only owner_id (Future schema)
-         const { error: error3 } = await supabase.from('actions').insert({
-            ...baseData,
-            owner_id: user.id,
-         })
-         
-         if (error3) {
-            console.error('Failed to create action (Attempt 3):', error3)
-            throw new Error('operation_failed')
-         }
-       }
-     } else {
-        throw new Error(error.message)
-     }
-   }
+		// Check for column missing error (Postgres code 42703 or message text)
+		if (error.code === '42703' || error.message?.includes('column')) {
+			// Attempt 2: Try with only user_id (Legacy schema)
+			const { error: error2 } = await supabase.from('actions').insert({
+				...baseData,
+				user_id: user.id
+			});
 
-   revalidatePath('/today')
-   revalidatePath(`/goals/${goal_id}`)
-  }
+			if (error2) {
+				console.error('Create action failed (Attempt 2):', error2);
+
+				// Attempt 3: Try with only owner_id (Future schema)
+				const { error: error3 } = await supabase
+					.from('actions')
+					.insert({
+						...baseData,
+						owner_id: user.id
+					});
+
+				if (error3) {
+					console.error(
+						'Failed to create action (Attempt 3):',
+						error3
+					);
+					throw new Error('operation_failed');
+				}
+			}
+		} else {
+			throw new Error(error.message);
+		}
+	}
+
+	revalidatePath('/today');
+	revalidatePath(`/goals/${goal_id}`);
+}
 
 export async function updateGoal(formData: FormData) {
 	const supabase = await createClient();
@@ -169,7 +176,7 @@ export async function updateGoal(formData: FormData) {
 	const category = formData.get('category') as string;
 
 	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
-		throw new Error('End date cannot be earlier than start date');
+		throw new Error('invalid_date_range');
 	}
 
 	const { error } = await supabase
@@ -229,33 +236,36 @@ export async function updateGoal(formData: FormData) {
 }
 
 export async function updateAction(formData: FormData) {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
 
-    if (!user) throw new Error('User not authenticated')
+	if (!user) throw new Error('User not authenticated');
 
-    const id = formData.get('id') as string
-    const title = formData.get('title') as string
-    const type = formData.get('type') as string
-    const priority = formData.get('priority') as string
-    const description = formData.get('description') as string
-    const start_date = formData.get('start_date') as string
-    const end_date = formData.get('end_date') as string
+	const id = formData.get('id') as string;
+	const title = formData.get('title') as string;
+	const type = formData.get('type') as string;
+	const priority = formData.get('priority') as string;
+	const description = formData.get('description') as string;
+	const start_date = formData.get('start_date') as string;
+	const end_date = formData.get('end_date') as string;
 
-    await supabase.from('actions')
-        .update({
-            title,
-            type,
-            priority,
-            description,
-            start_date,
-            end_date
-        })
-        .eq('id', id)
-        .eq('user_id', user.id)
+	await supabase
+		.from('actions')
+		.update({
+			title,
+			type,
+			priority,
+			description,
+			start_date,
+			end_date
+		})
+		.eq('id', id)
+		.eq('user_id', user.id);
 
-    revalidatePath('/today')
-    revalidatePath('/goals')
+	revalidatePath('/today');
+	revalidatePath('/goals');
 }
 
 export async function deleteAction(formData: FormData) {
