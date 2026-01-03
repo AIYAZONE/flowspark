@@ -3,6 +3,7 @@
 		"metaTitle": "目标系统",
 		"metaDescription": "一个帮助你实现梦想的个人目标管理系统。",
 		"loading": "加载中...",
+		"saving": "保存中...",
 		"save": "保存",
 		"cancel": "取消",
 		"delete": "删除",
