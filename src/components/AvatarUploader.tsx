@@ -86,8 +86,7 @@ export function AvatarUploader({
   return (
     <div className="grid gap-3">
       <div className="grid gap-2">
-        <Label htmlFor="avatar_file">{dict.profile.avatar}</Label>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-6">
           <input
             ref={fileInputRef}
             id="avatar_file"
@@ -97,7 +96,7 @@ export function AvatarUploader({
             className="hidden"
           />
           <div
-            className="relative h-20 w-20 rounded-full overflow-hidden ring-2 ring-border bg-muted cursor-pointer group"
+            className="relative h-20 w-20 min-w-[5rem] rounded-full overflow-hidden ring-2 ring-border bg-muted cursor-pointer group flex-shrink-0"
             onClick={() => fileInputRef.current?.click()}
             aria-label="Upload avatar"
           >
@@ -105,7 +104,7 @@ export function AvatarUploader({
               <img
                 src={previewUrl || avatarUrl || currentUrl || undefined}
                 alt="avatar"
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover transition-opacity group-hover:opacity-75"
                 onError={() => {
                   setPreviewUrl(null)
                   setAvatarUrl('')
@@ -113,18 +112,23 @@ export function AvatarUploader({
                 }}
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
-                <Camera className="h-6 w-6" />
+              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground bg-secondary/50">
+                <Camera className="h-8 w-8" />
               </div>
             )}
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera className="h-6 w-6 text-white" />
+            </div>
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="gap-1">
-            <UploadCloud className="h-4 w-4" />
-            {dict.profile.uploadOrChange}
-          </Button>
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {dict.profile.uploadHint}
+          <div className="flex flex-col gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} className="w-fit gap-2">
+              <UploadCloud className="h-4 w-4" />
+              {dict.profile.uploadOrChange}
+            </Button>
+            <p className="text-xs text-muted-foreground">
+              {dict.profile.uploadHint}
+            </p>
+          </div>
         </div>
       </div>
       {error && (

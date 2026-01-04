@@ -35,7 +35,7 @@ export default async function Home() {
       <Analytics />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-border/10 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+      <header className="fixed top-0 z-50 w-full border-b border-border/10 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="container mx-auto flex h-16 items-center justify-between px-6 lg:px-8">
           <BrandLogo />
           <div className="flex items-center gap-2">
@@ -80,11 +80,11 @@ export default async function Home() {
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 pt-[calc(env(safe-area-inset-top)+4rem)]">
         {/* Hero Section */}
-        <section className="relative pt-20 pb-32 lg:pt-32 lg:pb-40">
+        <section className="relative flex items-center min-h-[calc(100svh-4rem)] py-[clamp(1.25rem,6vh,3rem)] lg:min-h-[clamp(560px,70vh,760px)] lg:py-[clamp(0.75rem,4vh,2rem)]">
           {/* Ambient Background */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background pointer-events-none" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[min(560px,40vh)] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background pointer-events-none" />
 
           <div className="container mx-auto px-6 lg:px-8">
             <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
@@ -96,24 +96,24 @@ export default async function Home() {
                   {dict.landing.hero.badge}
                 </div>
 
-                <h1 className="text-4xl font-extrabold tracking-tight mb-6 leading-[1.1] whitespace-pre-line lg:text-6xl">
+                <h1 className="text-4xl font-extrabold tracking-tight mb-6 leading-[1.1] whitespace-pre-line lg:text-5xl xl:text-6xl lg:leading-tight">
                   {dict.landing.hero.title}
                 </h1>
 
-                <p className="text-lg text-muted-foreground mb-8 leading-relaxed max-w-xl mx-auto lg:mx-0">
+                <p className="text-lg text-muted-foreground mb-6 lg:mb-6 leading-relaxed max-w-xl mx-auto lg:mx-0">
                   {dict.landing.hero.subtitle}
                 </p>
 
-                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4">
+                <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 lg:gap-3">
                   {user ? (
                     <Link href="/dashboard" className="w-full sm:w-auto">
-                      <Button size="lg" className="w-full sm:w-auto rounded-full px-8 text-base shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all h-12">
+                      <Button size="lg" className="w-full sm:w-auto rounded-full px-8 lg:px-7 text-base shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all h-12 lg:h-11">
                         {dict.sidebar.dashboard} <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
                   ) : (
                     <Link href="/login" className="w-full sm:w-auto">
-                      <Button size="lg" className="w-full sm:w-auto rounded-full px-8 text-base shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all h-12">
+                      <Button size="lg" className="w-full sm:w-auto rounded-full px-8 lg:px-7 text-base shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all h-12 lg:h-11">
                         {dict.landing.hero.start} <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
@@ -121,7 +121,7 @@ export default async function Home() {
 
                   {!user && (
                     <Link href="/login" className="w-full sm:w-auto">
-                      <Button variant="outline" size="lg" className="w-full sm:w-auto rounded-full px-8 text-base h-12 border-primary/20 hover:bg-primary/5">
+                      <Button variant="outline" size="lg" className="w-full sm:w-auto rounded-full px-8 lg:px-7 text-base h-12 lg:h-11 border-primary/20 hover:bg-primary/5">
                         {dict.landing.hero.login}
                       </Button>
                     </Link>
@@ -148,7 +148,7 @@ export default async function Home() {
               </div>
 
               {/* Right Column: Visual */}
-              <div className="flex-1 w-full max-w-[500px] lg:max-w-none">
+              <div className="flex-1 w-full max-w-[500px] lg:max-w-none lg:max-h-[calc(100vh-var(--header-h))] lg:self-center">
                 <HeroVisual dict={dict.landing.visual} />
               </div>
             </div>

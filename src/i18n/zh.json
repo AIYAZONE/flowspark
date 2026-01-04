@@ -300,6 +300,16 @@
 		"deletePlaceholder": "在此输入您的邮箱",
 		"deleting": "注销中...",
 		"deleteError": "注销失败"
+		,
+		"stats": {
+			"title": "账户信息",
+			"userId": "用户 ID",
+			"lastSignIn": "最近登录",
+			"language": "当前语言",
+			"copy": "复制",
+			"copied": "已复制",
+			"unknown": "未知"
+		}
 	},
 	"verified": {
 		"title": "邮箱验证成功",
