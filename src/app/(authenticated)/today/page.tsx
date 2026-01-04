@@ -89,16 +89,12 @@ export default async function TodayPage() {
 
       <div className="grid gap-6">
         {/* Actions List with Filter */}
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-          <div className="p-6">
-            <ActionListFilter
-              initialActions={actions || []}
-              dict={dict}
-              showGoalTitle={true}
-              tz={tz}
-            />
-          </div>
-        </div>
+        <ActionListFilter
+          initialActions={actions || []}
+          dict={dict}
+          showGoalTitle={true}
+          tz={tz}
+        />
       </div>
     </div>
   )

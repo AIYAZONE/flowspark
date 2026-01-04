@@ -9,6 +9,13 @@ import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { AvatarUploader } from '@/components/AvatarUploader'
 import { Pencil, Mail, Globe, CalendarDays } from 'lucide-react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface Dict {
   profile: {
@@ -219,18 +226,21 @@ export function ProfileCard({
             </div>
             <div className="grid gap-2">
               <Label htmlFor="timezone">{dict.profile.timezone}</Label>
-              <select
-                id="timezone"
+              <Select
                 name="timezone"
                 value={timezone}
-                onChange={e => setTimezone(e.target.value)}
-                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                onValueChange={setTimezone}
               >
-                <option value="UTC">UTC</option>
-                <option value="Asia/Shanghai">Asia/Shanghai</option>
-                <option value="America/New_York">America/New_York</option>
-                <option value="Europe/London">Europe/London</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder={dict.profile.timezone} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="UTC">UTC</SelectItem>
+                  <SelectItem value="Asia/Shanghai">Asia/Shanghai</SelectItem>
+                  <SelectItem value="America/New_York">America/New_York</SelectItem>
+                  <SelectItem value="Europe/London">Europe/London</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-2 justify-end mt-4">
               <Button type="button" variant="outline" onClick={() => { setEditing(false); setSelectedFile(null); setName(initialName || ''); setTimezone(initialTimezone || 'UTC') }} disabled={isUpdating}>{dict.common.cancel}</Button>
