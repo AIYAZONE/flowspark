@@ -50,6 +50,7 @@
 }
 
 :root {
+  --header-h: 4rem;
   /* Ceramic White / Deep Grey */
   --background: hsl(0 0% 98%); /* #FAFAFA */
   --foreground: hsl(217 19% 27%); /* #374151 */

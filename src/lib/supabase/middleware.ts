@@ -34,8 +34,23 @@ export async function updateSession(request: NextRequest) {
 	);
 
 	const {
-		data: { user }
+		data: { user },
+		error
 	} = await supabase.auth.getUser();
+
+	// Handle invalid/expired refresh token: clear supabase auth cookies and continue as unauthenticated
+	if (
+		error &&
+		(error.message?.includes('Invalid Refresh Token') ||
+			error.message?.includes('refresh_token_not_found'))
+	) {
+		const allCookies = request.cookies.getAll();
+		for (const c of allCookies) {
+			if (c.name.startsWith('sb:')) {
+				response.cookies.delete(c.name);
+			}
+		}
+	}
 
 	// Protected routes
 	if (
@@ -48,14 +63,27 @@ export async function updateSession(request: NextRequest) {
 			return NextResponse.redirect(new URL('/login', request.url));
 		}
 		// Require email confirmation
-		// @ts-ignore
+		// @ts-expect-error user may not have email_confirmed_at property depending on auth provider
 		if (!user.email_confirmed_at) {
-			return NextResponse.redirect(new URL('/login?error=' + encodeURIComponent('Please verify your email before accessing the app'), request.url));
+			return NextResponse.redirect(
+				new URL(
+					'/login?error=' +
+						encodeURIComponent(
+							'Please verify your email before accessing the app'
+						),
+					request.url
+				)
+			);
 		}
 	}
 
 	// Redirect to dashboard if logged in
-	if (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup' || request.nextUrl.pathname === '/forgot' || request.nextUrl.pathname === '/reset') {
+	if (
+		request.nextUrl.pathname === '/login' ||
+		request.nextUrl.pathname === '/signup' ||
+		request.nextUrl.pathname === '/forgot' ||
+		request.nextUrl.pathname === '/reset'
+	) {
 		if (user) {
 			return NextResponse.redirect(new URL('/dashboard', request.url));
 		}

@@ -300,6 +300,16 @@
 		"deletePlaceholder": "Type your email here",
 		"deleting": "Deleting...",
 		"deleteError": "Failed to delete account"
+		,
+		"stats": {
+			"title": "Account Info",
+			"userId": "User ID",
+			"lastSignIn": "Last Sign In",
+			"language": "Current Language",
+			"copy": "Copy",
+			"copied": "Copied",
+			"unknown": "Unknown"
+		}
 	},
 	"verified": {
 		"title": "Email Verified Successfully",

@@ -2,25 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { AvatarUploader } from '@/components/AvatarUploader'
-import { Pencil, Mail, Globe, Trash2 } from 'lucide-react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import { deleteAccount } from '@/app/(authenticated)/profile/actions'
+import { Pencil, Mail, Globe, CalendarDays } from 'lucide-react'
 
 interface Dict {
   profile: {
@@ -44,6 +32,11 @@ interface Dict {
     deletePlaceholder: string
     deleting: string
     deleteError: string
+    joined: string
+    stats?: {
+      lastSignIn: string
+      unknown: string
+    }
   }
   common: {
     success: string
@@ -61,6 +54,8 @@ export function ProfileCard({
   initialTimezone,
   initialAvatarUrl,
   currentLocale,
+  createdAt,
+  lastSignIn,
   updateAction,
 }: {
   dict: Dict
@@ -70,6 +65,8 @@ export function ProfileCard({
   initialTimezone?: string | null
   initialAvatarUrl?: string | null
   currentLocale: string
+  createdAt?: string | null
+  lastSignIn?: string | null
   updateAction: (formData: FormData) => Promise<{ ok?: boolean } | void>
 }) {
   const [editing, setEditing] = useState(false)
@@ -79,10 +76,22 @@ export function ProfileCard({
   const [pendingAvatarUrl, setPendingAvatarUrl] = useState<string | null>(null)
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl || '')
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [isUpdating, setIsUpdating] = useState(false)
   const router = useRouter()
+
+  const formatDate = (dateString?: string | null) => {
+    if (!dateString) return dict.profile.stats?.unknown ?? '未知'
+    try {
+      const locale = currentLocale === 'en' ? 'en-US' : 'zh-CN'
+      return new Date(dateString).toLocaleDateString(locale, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    } catch {
+      return dict.profile.stats?.unknown ?? '未知'
+    }
+  }
 
   useEffect(() => {
     if (toast) {
@@ -123,56 +132,77 @@ export function ProfileCard({
     }
   }
 
-  async function handleDeleteAccount() {
-    setIsDeleting(true)
-    try {
-      await deleteAccount()
-    } catch (err) {
-      setToast({
-        type: 'error',
-        message: `${dict.common.error}: ${err instanceof Error ? err.message : dict.profile.deleteError}`
-      })
-      setIsDeleting(false)
-    }
-  }
-
   return (
     <Card>
-      <CardContent className="space-y-4 pt-6">
+      <CardContent className="space-y-8 pt-8">
         {toast && (
           <div className={`text-sm p-3 rounded-md border ${toast.type === 'success' ? 'text-emerald-600 bg-emerald-50 border-emerald-200' : 'text-red-600 bg-red-50 border-red-200'}`}>
             {toast.message}
           </div>
         )}
         {!editing && (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {avatarUrl ? (
-                <img
-                  key={avatarUrl}
-                  src={avatarUrl}
-                  alt="avatar"
-                  className="h-16 w-16 rounded-full ring-2 ring-border object-cover"
-                  onError={() => { setAvatarUrl('') }}
-                />
-              ) : (
-                <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-primary/10 text-foreground ring-2 ring-border text-xl font-semibold">
-                  {(userEmail?.[0] || '-').toUpperCase()}
-                </div>
-              )}
-              <div className="space-y-1">
-                <div className="text-lg font-semibold">{name || '-'}</div>
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span className="inline-flex items-center gap-1"><Mail className="h-3 w-3" />{userEmail}</span>
-                  <span className="inline-flex items-center gap-1"><Globe className="h-3 w-3" />{timezone || 'UTC'}</span>
+          <>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 md:gap-6">
+                {avatarUrl ? (
+                  <img
+                    key={avatarUrl}
+                    src={avatarUrl}
+                    alt="avatar"
+                    className="h-16 w-16 md:h-24 md:w-24 rounded-full ring-4 ring-background shadow-sm object-cover"
+                    onError={() => { setAvatarUrl('') }}
+                  />
+                ) : (
+                  <div className="inline-flex items-center justify-center h-16 w-16 md:h-24 md:w-24 rounded-full bg-primary/10 text-primary ring-4 ring-background shadow-sm text-2xl md:text-4xl font-bold">
+                    {(userEmail?.[0] || '-').toUpperCase()}
+                  </div>
+                )}
+                <div className="space-y-1">
+                  <div className="text-2xl md:text-3xl font-bold tracking-tight">{name || userEmail?.split('@')[0] || '-'}</div>
+                  <div className="text-muted-foreground flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    在线
+                  </div>
                 </div>
               </div>
+
+              <Button type="button" variant="ghost" size="icon" onClick={() => setEditing(true)} className="rounded-full">
+                <Pencil className="h-5 w-5 text-muted-foreground" />
+              </Button>
             </div>
-            <Button type="button" variant="outline" onClick={() => setEditing(true)} className="gap-1">
-              <Pencil className="h-4 w-4" />
-              {dict.common.edit}
-            </Button>
-          </div>
+
+            <div className="h-px bg-border/50" />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-6">
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Mail className="h-4 w-4" /> {dict.profile.email}
+                </span>
+                <span className="font-medium truncate pl-6">{userEmail}</span>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                  <Globe className="h-4 w-4" /> {dict.profile.timezone}
+                </span>
+                <span className="font-medium truncate pl-6">{timezone || 'UTC'}</span>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4" /> {dict.profile.joined}
+                </span>
+                <span className="font-medium truncate pl-6">{formatDate(createdAt)}</span>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <span className="text-sm text-muted-foreground flex items-center gap-2">
+                  <CalendarDays className="h-4 w-4" /> {dict.profile.stats?.lastSignIn ?? '最近登录'}
+                </span>
+                <span className="font-medium truncate pl-6">{formatDate(lastSignIn)}</span>
+              </div>
+            </div>
+          </>
         )}
         {editing ? (
           <form onSubmit={onSubmit} className="grid gap-4 mt-2">
@@ -202,64 +232,15 @@ export function ProfileCard({
                 <option value="Europe/London">Europe/London</option>
               </select>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 justify-end mt-4">
+              <Button type="button" variant="outline" onClick={() => { setEditing(false); setSelectedFile(null); setName(initialName || ''); setTimezone(initialTimezone || 'UTC') }} disabled={isUpdating}>{dict.common.cancel}</Button>
               <Button type="submit" disabled={isUpdating}>
                 {isUpdating && <LoadingSpinner size={16} className="mr-2" />}
                 {dict.profile.updateProfile}
               </Button>
-              <Button type="button" variant="outline" onClick={() => { setEditing(false); setSelectedFile(null); setName(initialName || ''); setTimezone(initialTimezone || 'UTC') }} disabled={isUpdating}>{dict.common.cancel}</Button>
             </div>
           </form>
         ) : null}
-
-        <div className="flex justify-end mt-4">
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1 text-muted-foreground hover:text-destructive hover:bg-destructive/10 h-auto py-1.5 px-2 text-xs opacity-70 hover:opacity-100 transition-opacity"
-                disabled={isDeleting}
-              >
-                <Trash2 className="h-3 w-3" />
-                {isDeleting ? dict.profile.deleting : dict.profile.deleteAccount}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{dict.profile.confirmDeleteTitle}</AlertDialogTitle>
-                <AlertDialogDescription>
-                  {dict.profile.confirmDeleteDesc}
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <div className="grid gap-2 py-2">
-                <Label htmlFor="delete-confirm">
-                  {dict.profile.deleteConfirmLabelPrefix}
-                  <span className="font-bold text-base select-all bg-muted px-1 py-0.5 rounded border border-border/50">{userEmail}</span>
-                  {dict.profile.deleteConfirmLabelSuffix}
-                </Label>
-                <Input
-                  id="delete-confirm"
-                  value={deleteConfirmation}
-                  onChange={(e) => setDeleteConfirmation(e.target.value)}
-                  placeholder={dict.profile.deletePlaceholder}
-                  autoComplete="off"
-                />
-              </div>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => setDeleteConfirmation('')}>{dict.common.cancel}</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleDeleteAccount}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  disabled={isDeleting || deleteConfirmation !== userEmail}
-                >
-                  {isDeleting && <LoadingSpinner size={16} className="mr-2" />}
-                  {dict.profile.deleteAccount}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
       </CardContent>
     </Card>
   )
