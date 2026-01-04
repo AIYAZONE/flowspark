@@ -63,7 +63,6 @@ export async function updateSession(request: NextRequest) {
 			return NextResponse.redirect(new URL('/login', request.url));
 		}
 		// Require email confirmation
-		// @ts-expect-error user may not have email_confirmed_at property depending on auth provider
 		if (!user.email_confirmed_at) {
 			return NextResponse.redirect(
 				new URL(
