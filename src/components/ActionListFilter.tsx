@@ -1,8 +1,15 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search, ChevronDown, Plus } from 'lucide-react'
+import { Search, Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { ActionItem } from '@/components/ActionItem'
 import type en from '@/i18n/en.json'
 
@@ -31,28 +38,6 @@ interface ActionListFilterProps {
     tz?: string
 }
 
-function SelectWrapper({ value, onChange, options, className }: { 
-    value: string
-    onChange: (val: string) => void
-    options: { value: string, label: string }[]
-    className?: string 
-}) {
-    return (
-        <div className={`relative ${className}`}>
-            <select
-                className="h-10 w-full appearance-none rounded-md border border-input bg-background/50 pl-3 pr-8 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-            >
-                {options.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-3 h-4 w-4 opacity-50 pointer-events-none" />
-        </div>
-    )
-}
-
 export function ActionListFilter({ initialActions, dict, showGoalTitle = false, tz = 'Asia/Shanghai' }: ActionListFilterProps) {
     const [search, setSearch] = useState('')
     const [statusFilter, setStatusFilter] = useState('incomplete')
@@ -65,8 +50,8 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
         // 1. Filter
         if (search) {
             const q = search.toLowerCase()
-            result = result.filter(a => 
-                a.title.toLowerCase().includes(q) || 
+            result = result.filter(a =>
+                a.title.toLowerCase().includes(q) ||
                 a.description?.toLowerCase().includes(q)
             )
         }
@@ -87,7 +72,7 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
         // 2. Sort
         // Priority order: high > medium > low
         const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 }
-        
+
         return result.sort((a, b) => {
             // Completed items always at bottom if showing all
             if (a.completed !== b.completed) return a.completed ? 1 : -1
@@ -108,7 +93,7 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center w-full overflow-hidden">
                 <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -118,43 +103,49 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
-                <div className="flex gap-2 flex-wrap md:flex-nowrap pb-2 md:pb-0 px-1">
-                    <SelectWrapper
-                        className="min-w-[120px]"
-                        value={statusFilter}
-                        onChange={setStatusFilter}
-                        options={[
-                            { value: 'all', label: dict.goals.filter.allStatus },
-                            { value: 'incomplete', label: dict.goals.filter.incomplete },
-                            { value: 'completed', label: dict.goals.filter.completed },
-                        ]}
-                    />
+                <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 px-1 no-scrollbar flex-nowrap md:flex-wrap w-full md:w-auto mask-gradient-right">
+                    <div className="min-w-[90px] flex-1 md:flex-none md:w-[140px] shrink-0">
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5">
+                                <SelectValue placeholder={dict.goals.status.label} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{dict.goals.filter.allStatus}</SelectItem>
+                                <SelectItem value="incomplete">{dict.goals.filter.incomplete}</SelectItem>
+                                <SelectItem value="completed">{dict.goals.filter.completed}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                    <SelectWrapper
-                        className="min-w-[120px]"
-                        value={typeFilter}
-                        onChange={setTypeFilter}
-                        options={[
-                            { value: 'all', label: dict.goals.filter.allType },
-                            { value: 'core', label: dict.today.types.core },
-                            { value: 'maintenance', label: dict.today.types.maintenance },
-                            { value: 'learning', label: dict.today.types.learning },
-                            { value: 'review', label: dict.today.types.review },
-                            { value: 'rest', label: dict.today.types.rest },
-                        ]}
-                    />
+                    <div className="min-w-[90px] flex-1 md:flex-none md:w-[140px] shrink-0">
+                        <Select value={typeFilter} onValueChange={setTypeFilter}>
+                            <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5">
+                                <SelectValue placeholder={dict.today.typeLabel} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{dict.goals.filter.allType}</SelectItem>
+                                <SelectItem value="core">{dict.today.types.core}</SelectItem>
+                                <SelectItem value="maintenance">{dict.today.types.maintenance}</SelectItem>
+                                <SelectItem value="learning">{dict.today.types.learning}</SelectItem>
+                                <SelectItem value="review">{dict.today.types.review}</SelectItem>
+                                <SelectItem value="rest">{dict.today.types.rest}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                    <SelectWrapper
-                        className="min-w-[120px]"
-                        value={priorityFilter}
-                        onChange={setPriorityFilter}
-                        options={[
-                            { value: 'all', label: dict.goals.filter.allPriority },
-                            { value: 'high', label: dict.goals.priority.high },
-                            { value: 'medium', label: dict.goals.priority.medium },
-                            { value: 'low', label: dict.goals.priority.low },
-                        ]}
-                    />
+                    <div className="min-w-[90px] flex-1 md:flex-none md:w-[140px] shrink-0">
+                        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                            <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5">
+                                <SelectValue placeholder={dict.goals.priority.label} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{dict.goals.filter.allPriority}</SelectItem>
+                                <SelectItem value="high">{dict.goals.priority.high}</SelectItem>
+                                <SelectItem value="medium">{dict.goals.priority.medium}</SelectItem>
+                                <SelectItem value="low">{dict.goals.priority.low}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
 
@@ -172,10 +163,10 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
             ) : (
                 <div className="grid gap-3">
                     {filteredActions.map((action) => (
-                        <ActionItem 
-                            key={action.id} 
-                            action={action} 
-                            dict={dict} 
+                        <ActionItem
+                            key={action.id}
+                            action={action}
+                            dict={dict}
                             showGoalTitle={showGoalTitle}
                             tz={tz}
                         />

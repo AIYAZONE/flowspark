@@ -4,6 +4,13 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { DateRangeFields } from '@/components/DateRangeFields'
 import { createAction } from '@/app/(authenticated)/goals/actions'
 import { Plus } from 'lucide-react'
@@ -41,18 +48,16 @@ export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[
     <form action={createAction} className="space-y-4">
       <div className="grid gap-2">
         <Label htmlFor="goal_id">{dict.today.goalLabel}</Label>
-        <select
-          name="goal_id"
-          id="goal_id"
-          className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          required
-          defaultValue=""
-        >
-          <option value="" disabled>{dict.today.selectGoal}</option>
-          {activeGoals?.map(goal => (
-            <option key={goal.id} value={goal.id}>{goal.title}</option>
-          ))}
-        </select>
+        <Select name="goal_id" required defaultValue="">
+          <SelectTrigger>
+            <SelectValue placeholder={dict.today.selectGoal} />
+          </SelectTrigger>
+          <SelectContent>
+            {activeGoals?.map(goal => (
+              <SelectItem key={goal.id} value={goal.id}>{goal.title}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid gap-2">
@@ -68,31 +73,31 @@ export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="type">{dict.today.typeLabel}</Label>
-          <select
-            name="type"
-            id="type"
-            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            defaultValue="core"
-          >
-            <option value="core">{dict.today.types.core}</option>
-            <option value="maintenance">{dict.today.types.maintenance}</option>
-            <option value="learning">{dict.today.types.learning}</option>
-            <option value="review">{dict.today.types.review}</option>
-            <option value="rest">{dict.today.types.rest}</option>
-          </select>
+          <Select name="type" defaultValue="core">
+            <SelectTrigger>
+              <SelectValue placeholder={dict.today.typeLabel} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="core">{dict.today.types.core}</SelectItem>
+              <SelectItem value="maintenance">{dict.today.types.maintenance}</SelectItem>
+              <SelectItem value="learning">{dict.today.types.learning}</SelectItem>
+              <SelectItem value="review">{dict.today.types.review}</SelectItem>
+              <SelectItem value="rest">{dict.today.types.rest}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="space-y-2">
           <Label htmlFor="priority">{dict.today.priorityLabel}</Label>
-          <select
-            name="priority"
-            id="priority"
-            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            defaultValue="medium"
-          >
-            <option value="high">{dict.goals.priority.high}</option>
-            <option value="medium">{dict.goals.priority.medium}</option>
-            <option value="low">{dict.goals.priority.low}</option>
-          </select>
+          <Select name="priority" defaultValue="medium">
+            <SelectTrigger>
+              <SelectValue placeholder={dict.today.priorityLabel} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="high">{dict.goals.priority.high}</SelectItem>
+              <SelectItem value="medium">{dict.goals.priority.medium}</SelectItem>
+              <SelectItem value="low">{dict.goals.priority.low}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

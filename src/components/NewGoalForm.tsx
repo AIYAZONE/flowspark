@@ -6,6 +6,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { DateRangeFields } from '@/components/DateRangeFields'
 import { SubmitButton } from '@/components/SubmitButton'
 import type en from '@/i18n/en.json'
@@ -32,32 +39,33 @@ export function NewGoalForm({ dict }: { dict: Dict }) {
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="category">{dict.goals.category.label}</Label>
-          <select
-            id="category"
-            name="category"
-            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <option value="other">{dict.goals.category.other}</option>
-            <option value="health">{dict.goals.category.health}</option>
-            <option value="career">{dict.goals.category.career}</option>
-            <option value="learning">{dict.goals.category.learning}</option>
-            <option value="finance">{dict.goals.category.finance}</option>
-            <option value="lifestyle">{dict.goals.category.lifestyle}</option>
-            <option value="social">{dict.goals.category.social}</option>
-          </select>
+          <Select name="category" defaultValue="other">
+            <SelectTrigger>
+              <SelectValue placeholder={dict.goals.category.label} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="other">{dict.goals.category.other}</SelectItem>
+              <SelectItem value="health">{dict.goals.category.health}</SelectItem>
+              <SelectItem value="career">{dict.goals.category.career}</SelectItem>
+              <SelectItem value="learning">{dict.goals.category.learning}</SelectItem>
+              <SelectItem value="finance">{dict.goals.category.finance}</SelectItem>
+              <SelectItem value="lifestyle">{dict.goals.category.lifestyle}</SelectItem>
+              <SelectItem value="social">{dict.goals.category.social}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="grid gap-2">
           <Label htmlFor="priority">{dict.goals.priority.label}</Label>
-          <select
-            id="priority"
-            name="priority"
-            defaultValue="medium"
-            className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <option value="high">{dict.goals.priority.high}</option>
-            <option value="medium">{dict.goals.priority.medium}</option>
-            <option value="low">{dict.goals.priority.low}</option>
-          </select>
+          <Select name="priority" defaultValue="medium">
+            <SelectTrigger>
+              <SelectValue placeholder={dict.goals.priority.label} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="high">{dict.goals.priority.high}</SelectItem>
+              <SelectItem value="medium">{dict.goals.priority.medium}</SelectItem>
+              <SelectItem value="low">{dict.goals.priority.low}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

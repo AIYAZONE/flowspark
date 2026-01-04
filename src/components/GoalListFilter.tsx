@@ -3,10 +3,16 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { Plus, Search, ChevronDown, Calendar, Tag, AlertCircle } from 'lucide-react'
+import { Plus, Search, Calendar, Tag, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import type en from '@/i18n/en.json'
 
@@ -28,28 +34,6 @@ interface Goal {
 interface GoalListFilterProps {
     initialGoals: Goal[]
     dict: Dict
-}
-
-function SelectWrapper({ value, onChange, options, className }: { 
-    value: string
-    onChange: (val: string) => void
-    options: { value: string, label: string }[]
-    className?: string 
-}) {
-    return (
-        <div className={`relative ${className}`}>
-            <select
-                className="h-10 w-full appearance-none rounded-md border border-input bg-background/50 pl-3 pr-8 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-            >
-                {options.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-3 h-4 w-4 opacity-50 pointer-events-none" />
-        </div>
-    )
 }
 
 function GoalCard({ goal, dict }: { goal: Goal, dict: Dict }) {
@@ -80,7 +64,7 @@ function GoalCard({ goal, dict }: { goal: Goal, dict: Dict }) {
                                 {dict.goals.category[goal.category as keyof typeof dict.goals.category] || goal.category || 'Other'}
                             </span>
                         </div>
-                        
+
                         {/* Priority */}
                         <div className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md border ${priorityColor[goal.priority as keyof typeof priorityColor] || priorityColor.medium}`}>
                             <AlertCircle className="h-3 w-3" />
@@ -122,8 +106,8 @@ export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
         // 1. Filter
         if (search) {
             const q = search.toLowerCase()
-            result = result.filter(g => 
-                g.title.toLowerCase().includes(q) || 
+            result = result.filter(g =>
+                g.title.toLowerCase().includes(q) ||
                 g.description?.toLowerCase().includes(q)
             )
         }
@@ -143,7 +127,7 @@ export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
         // 2. Sort
         // Priority order: high > medium > low
         const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 }
-        
+
         // Status order: active > completed > abandoned
         const statusOrder: Record<string, number> = { active: 3, completed: 2, abandoned: 1 }
 
@@ -169,7 +153,7 @@ export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
     return (
         <div className="space-y-6">
             {/* Filters */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center">
+            <div className="flex flex-col gap-4 md:flex-row md:items-center w-full overflow-hidden">
                 <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
@@ -179,46 +163,52 @@ export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
-                <div className="flex gap-2 flex-wrap md:flex-nowrap pb-2 md:pb-0 px-1">
-                    <SelectWrapper
-                        className="min-w-[120px]"
-                        value={statusFilter}
-                        onChange={setStatusFilter}
-                        options={[
-                            { value: 'all', label: dict.goals.filter.allStatus },
-                            { value: 'active', label: dict.goals.status.active },
-                            { value: 'completed', label: dict.goals.status.completed },
-                            { value: 'abandoned', label: dict.goals.status.abandoned },
-                        ]}
-                    />
+                <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 px-1 no-scrollbar flex-nowrap md:flex-wrap w-full md:w-auto mask-gradient-right">
+                    <div className="min-w-[90px] flex-1 md:flex-none md:w-[140px] shrink-0">
+                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                            <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5">
+                                <SelectValue placeholder={dict.goals.status.label} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{dict.goals.filter.allStatus}</SelectItem>
+                                <SelectItem value="active">{dict.goals.status.active}</SelectItem>
+                                <SelectItem value="completed">{dict.goals.status.completed}</SelectItem>
+                                <SelectItem value="abandoned">{dict.goals.status.abandoned}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                    <SelectWrapper
-                        className="min-w-[120px]"
-                        value={priorityFilter}
-                        onChange={setPriorityFilter}
-                        options={[
-                            { value: 'all', label: dict.goals.filter.allPriority },
-                            { value: 'high', label: dict.goals.priority.high },
-                            { value: 'medium', label: dict.goals.priority.medium },
-                            { value: 'low', label: dict.goals.priority.low },
-                        ]}
-                    />
+                    <div className="min-w-[90px] flex-1 md:flex-none md:w-[140px] shrink-0">
+                        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                            <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5">
+                                <SelectValue placeholder={dict.goals.priority.label} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{dict.goals.filter.allPriority}</SelectItem>
+                                <SelectItem value="high">{dict.goals.priority.high}</SelectItem>
+                                <SelectItem value="medium">{dict.goals.priority.medium}</SelectItem>
+                                <SelectItem value="low">{dict.goals.priority.low}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                    <SelectWrapper
-                        className="min-w-[120px]"
-                        value={categoryFilter}
-                        onChange={setCategoryFilter}
-                        options={[
-                            { value: 'all', label: dict.goals.filter.allCategory },
-                            { value: 'health', label: dict.goals.category.health },
-                            { value: 'career', label: dict.goals.category.career },
-                            { value: 'learning', label: dict.goals.category.learning },
-                            { value: 'finance', label: dict.goals.category.finance },
-                            { value: 'lifestyle', label: dict.goals.category.lifestyle },
-                            { value: 'social', label: dict.goals.category.social },
-                            { value: 'other', label: dict.goals.category.other },
-                        ]}
-                    />
+                    <div className="min-w-[90px] flex-1 md:flex-none md:w-[140px] shrink-0">
+                        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                            <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5">
+                                <SelectValue placeholder={dict.goals.category.label} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">{dict.goals.filter.allCategory}</SelectItem>
+                                <SelectItem value="health">{dict.goals.category.health}</SelectItem>
+                                <SelectItem value="career">{dict.goals.category.career}</SelectItem>
+                                <SelectItem value="learning">{dict.goals.category.learning}</SelectItem>
+                                <SelectItem value="finance">{dict.goals.category.finance}</SelectItem>
+                                <SelectItem value="lifestyle">{dict.goals.category.lifestyle}</SelectItem>
+                                <SelectItem value="social">{dict.goals.category.social}</SelectItem>
+                                <SelectItem value="other">{dict.goals.category.other}</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
 
