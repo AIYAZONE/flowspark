@@ -1,5 +1,12 @@
 # 文档变更日志
 
+## 2026-01-05
+- 新增：目标归档功能（后端状态支持 + 前端交互）
+- 优化：目标列表 UI（支持分类折叠、归档分组分离、整行点击）
+- 修复：Dashboard 目标时间进度显示 NaN 问题
+- 修复：AddActionDialog 类型定义错误
+- 优化：统一删除与归档按钮的 UI 风格
+
 ## 2025-12-30
 - 修复：Vercel 构建 TS 报错（today 页使用 dict.common.locale，补充 i18n 键；补充 ScoreCard 与 ActionListFilter 相关键）
 - 更新：统一 Action 类型枚举为 {core, maintenance, learning, review, rest}
