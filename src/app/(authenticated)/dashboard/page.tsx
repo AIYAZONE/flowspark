@@ -193,7 +193,7 @@ export default async function DashboardPage() {
           const startDate = new Date(goal.start_date)
           const endDate = new Date(goal.end_date)
           const now = new Date()
-          const totalDuration = differenceInDays(endDate, startDate)
+          const totalDuration = Math.max(1, differenceInDays(endDate, startDate))
           const elapsed = differenceInDays(now, startDate)
           const progress = Math.min(100, Math.max(0, Math.round((elapsed / totalDuration) * 100)))
 
