@@ -33,6 +33,7 @@ interface AddActionDialogProps {
                 addAction: string
             }
             priority: {
+                label: string
                 high: string
                 medium: string
                 low: string
