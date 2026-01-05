@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { Plus, Search, Calendar, Tag, Flag, Star, ChevronDown, ChevronRight } from 'lucide-react'
+import { Plus, Search, Calendar, Tag, Flag, Star, ChevronDown, ChevronRight, Archive } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -125,8 +125,9 @@ export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
     // Collapsible states
     const [isStarredOpen, setIsStarredOpen] = useState(true)
     const [isOtherOpen, setIsOtherOpen] = useState(true)
+    const [isArchivedOpen, setIsArchivedOpen] = useState(false)
 
-    const { starredGoals, otherGoals } = useMemo(() => {
+    const { starredGoals, otherGoals, archivedGoals } = useMemo(() => {
         let result = [...initialGoals]
 
         // 1. Filter
@@ -175,13 +176,17 @@ export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
             return new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
         })
 
+        const activeGoals = sorted.filter(g => g.status !== 'archived')
+        const archived = sorted.filter(g => g.status === 'archived')
+
         return {
-            starredGoals: sorted.filter(g => g.is_starred),
-            otherGoals: sorted.filter(g => !g.is_starred)
+            starredGoals: activeGoals.filter(g => g.is_starred),
+            otherGoals: activeGoals.filter(g => !g.is_starred),
+            archivedGoals: archived
         }
     }, [initialGoals, search, statusFilter, priorityFilter, categoryFilter])
 
-    const totalGoals = starredGoals.length + otherGoals.length
+    const totalGoals = starredGoals.length + otherGoals.length + archivedGoals.length
 
     return (
         <div className="space-y-6">
@@ -265,18 +270,18 @@ export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
                     {/* Starred Goals Section */}
                     {starredGoals.length > 0 && (
                         <Collapsible open={isStarredOpen} onOpenChange={setIsStarredOpen} className="space-y-4">
-                            <div className="flex items-center gap-2">
-                                <CollapsibleTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="p-0 hover:bg-transparent">
+                            <CollapsibleTrigger asChild>
+                                <div className="flex items-center gap-2 cursor-pointer group w-full">
+                                    <Button variant="ghost" size="sm" className="p-0 hover:bg-transparent text-muted-foreground group-hover:text-foreground">
                                         {isStarredOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                     </Button>
-                                </CollapsibleTrigger>
-                                <h2 className="text-lg font-semibold flex items-center gap-2 text-yellow-500">
-                                    <Star className="h-5 w-5 fill-current" />
-                                    {dict.goals.filter.starredGoals}
-                                    <span className="text-sm font-normal text-muted-foreground ml-2">({starredGoals.length})</span>
-                                </h2>
-                            </div>
+                                    <div className="text-lg font-semibold flex items-center gap-2 text-yellow-500">
+                                        <Star className="h-5 w-5 fill-current" />
+                                        {dict.goals.filter.starredGoals}
+                                        <span className="text-sm font-normal text-muted-foreground ml-2">({starredGoals.length})</span>
+                                    </div>
+                                </div>
+                            </CollapsibleTrigger>
                             <CollapsibleContent>
                                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 animate-in fade-in-50 slide-in-from-top-2">
                                     {starredGoals.map((goal) => (
@@ -290,21 +295,46 @@ export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
                     {/* Other Goals Section */}
                     {otherGoals.length > 0 && (
                         <Collapsible open={isOtherOpen} onOpenChange={setIsOtherOpen} className="space-y-4">
-                            <div className="flex items-center gap-2">
-                                <CollapsibleTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="p-0 hover:bg-transparent">
+                            <CollapsibleTrigger asChild>
+                                <div className="flex items-center gap-2 cursor-pointer group w-full">
+                                    <Button variant="ghost" size="sm" className="p-0 hover:bg-transparent text-muted-foreground group-hover:text-foreground">
                                         {isOtherOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                                     </Button>
-                                </CollapsibleTrigger>
-                                <h2 className="text-lg font-semibold flex items-center gap-2">
-                                    <Flag className="h-5 w-5" />
-                                    {starredGoals.length > 0 ? dict.goals.filter.otherGoals : dict.goals.filter.allGoals}
-                                    <span className="text-sm font-normal text-muted-foreground ml-2">({otherGoals.length})</span>
-                                </h2>
-                            </div>
+                                    <div className="text-lg font-semibold flex items-center gap-2">
+                                        <Flag className="h-5 w-5" />
+                                        {starredGoals.length > 0 ? dict.goals.filter.otherGoals : dict.goals.filter.allGoals}
+                                        <span className="text-sm font-normal text-muted-foreground ml-2">({otherGoals.length})</span>
+                                    </div>
+                                </div>
+                            </CollapsibleTrigger>
                             <CollapsibleContent>
                                 <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 animate-in fade-in-50 slide-in-from-top-2">
                                     {otherGoals.map((goal) => (
+                                        <GoalCard key={goal.id} goal={goal} dict={dict} />
+                                    ))}
+                                </div>
+                            </CollapsibleContent>
+                        </Collapsible>
+                    )}
+
+                    {/* Archived Goals Section */}
+                    {archivedGoals.length > 0 && (
+                        <Collapsible open={isArchivedOpen} onOpenChange={setIsArchivedOpen} className="space-y-4">
+                            <CollapsibleTrigger asChild>
+                                <div className="flex items-center gap-2 cursor-pointer group w-full">
+                                    <Button variant="ghost" size="sm" className="p-0 hover:bg-transparent text-muted-foreground group-hover:text-foreground">
+                                        {isArchivedOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                                    </Button>
+                                    <div className="text-lg font-semibold flex items-center gap-2 text-muted-foreground">
+                                        <Archive className="h-5 w-5" />
+                                        {dict.goals.status.archived}
+                                        <span className="text-sm font-normal text-muted-foreground ml-2">({archivedGoals.length})</span>
+                                    </div>
+                                </div>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                                <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 animate-in fade-in-50 slide-in-from-top-2">
+                                    {archivedGoals.map((goal) => (
                                         <GoalCard key={goal.id} goal={goal} dict={dict} />
                                     ))}
                                 </div>
