@@ -76,6 +76,150 @@ export async function createGoal(formData: FormData) {
 	redirect('/goals');
 }
 
+export async function updateGoalStatus(id: string, status: string) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) return;
+
+	const { error } = await supabase
+		.from('goals')
+		.update({ status })
+		.eq('id', id)
+		.eq('owner_id', user.id);
+
+	if (error) {
+		console.error('Error updating goal status:', error);
+		// Fallback for legacy schema
+		if (error.code === '42703' || error.message?.includes('column')) {
+			const { error: legacyError } = await supabase
+				.from('goals')
+				.update({ status })
+				.eq('id', id)
+				.eq('user_id', user.id);
+
+			if (legacyError) {
+				console.error('Legacy update failed:', legacyError);
+				throw new Error(`Update failed: ${legacyError.message}`);
+			}
+		} else {
+			throw new Error(`Update failed: ${error.message} (Code: ${error.code})`);
+		}
+	}
+
+	revalidatePath('/goals');
+	revalidatePath(`/goals/${id}`);
+}
+
+export async function toggleGoalStar(id: string, isStarred: boolean) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) throw new Error('User not authenticated');
+
+	const { error } = await supabase
+		.from('goals')
+		.update({ is_starred: isStarred })
+		.eq('id', id)
+		.eq('owner_id', user.id); // Use owner_id as primary ownership check
+
+	if (error) {
+		console.error('Error toggling goal star:', error);
+		
+		// Fallback for legacy schema (user_id) if owner_id update fails
+		if (error.code === '42703' || error.message?.includes('column')) {
+             const { error: legacyError } = await supabase
+                .from('goals')
+                .update({ is_starred: isStarred })
+                .eq('id', id)
+                .eq('user_id', user.id);
+            
+             if (legacyError) {
+                 throw new Error('Update failed');
+             }
+		} else {
+             throw new Error('Update failed');
+        }
+	}
+
+	revalidatePath('/goals');
+	revalidatePath(`/goals/${id}`);
+}
+
+export async function createGoalModal(formData: FormData) {
+	const supabase = await createClient();
+
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) return { error: 'User not authenticated' };
+
+	const title = formData.get('title') as string;
+	const description = formData.get('description') as string;
+	const start_date = formData.get('start_date') as string;
+	const end_date = formData.get('end_date') as string;
+	const success_criteria = formData.get('success_criteria') as string;
+	const stop_criteria = formData.get('stop_criteria') as string;
+	const priority = (formData.get('priority') as string) || 'medium';
+	const category = (formData.get('category') as string) || 'other';
+
+	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
+		throw new Error('invalid_date_range');
+	}
+
+	const { error } = await supabase.from('goals').insert({
+		owner_id: user.id,
+		title,
+		description,
+		start_date,
+		end_date,
+		success_criteria,
+		stop_criteria,
+		status: 'active',
+		priority,
+		category
+	});
+
+	if (error) {
+		console.error('Error creating goal:', error);
+
+		// Fallback for missing columns (schema mismatch)
+		if (
+			error.message?.includes('Could not find') ||
+			error.code === '42703' ||
+			error.message?.includes('column')
+		) {
+			console.warn(
+				'Database schema missing columns, falling back to basic fields.'
+			);
+			const { error: legacyError } = await supabase.from('goals').insert({
+				user_id: user.id,
+				owner_id: user.id,
+				title,
+				description,
+				start_date,
+				end_date,
+				success_criteria,
+				stop_criteria,
+				status: 'active'
+			});
+
+			if (legacyError) {
+				console.error('Legacy create goal failed:', legacyError);
+				throw new Error('operation_failed');
+			}
+			// Success with legacy payload
+		} else {
+			throw new Error('operation_failed');
+		}
+	}
+
+	revalidatePath('/goals');
+    return { success: true };
+}
+
 export async function createAction(formData: FormData) {
 	const supabase = await createClient();
 	const {

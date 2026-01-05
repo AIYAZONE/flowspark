@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import Link from 'next/link'
@@ -13,6 +14,13 @@ import {
   SheetTrigger,
   SheetFooter,
 } from '@/components/ui/sheet'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { DateRangeFields } from '@/components/DateRangeFields'
 import { createAction } from '@/app/(authenticated)/goals/actions'
 
@@ -73,19 +81,18 @@ export function SetCoreActionSheet({ goals, dict, defaultDate }: SetCoreActionSh
 
           <div className="grid gap-2">
             <Label htmlFor="goal_id">{dict.today.goalLabel}</Label>
-            <select
-              id="goal_id"
-              name="goal_id"
-              required
-              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <option value="">{dict.today.selectGoal}</option>
-              {goals?.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.title}
-                </option>
-              ))}
-            </select>
+            <Select name="goal_id" required>
+              <SelectTrigger>
+                <SelectValue placeholder={dict.today.selectGoal} />
+              </SelectTrigger>
+              <SelectContent>
+                {goals?.map((g) => (
+                  <SelectItem key={g.id} value={g.id}>
+                    {g.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           {(!goals || goals.length === 0) && (
             <div className="text-sm text-muted-foreground">
@@ -107,7 +114,8 @@ export function SetCoreActionSheet({ goals, dict, defaultDate }: SetCoreActionSh
 
           <SheetFooter>
             <Button type="submit" disabled={isLoading || !goals || goals.length === 0 || !valid} className="w-full">
-              {isLoading ? 'Saving...' : dict.dashboard.setCoreAction}
+              {isLoading && <LoadingSpinner size={16} className="mr-2 text-primary-foreground" />}
+              {dict.dashboard.setCoreAction}
             </Button>
           </SheetFooter>
         </form>

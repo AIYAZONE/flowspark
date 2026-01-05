@@ -19,9 +19,24 @@ import type en from '@/i18n/en.json'
 
 type Dict = typeof en
 
-export function NewGoalForm({ dict }: { dict: Dict }) {
+interface NewGoalFormProps {
+  dict: Dict
+  onSuccess?: () => void
+  action?: (formData: FormData) => Promise<any>
+}
+
+export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
+  const submitAction = action || createGoal
+
+  async function handleSubmit(formData: FormData) {
+    await submitAction(formData)
+    if (onSuccess) {
+      onSuccess()
+    }
+  }
+
   return (
-    <form action={createGoal} className="space-y-6">
+    <form action={handleSubmit} className="space-y-6">
       <div className="grid gap-2">
         <Label htmlFor="title">{dict.goals.new.titleLabel}</Label>
         <Input id="title" name="title" placeholder={dict.goals.new.titlePlaceholder} required />
@@ -96,9 +111,13 @@ export function NewGoalForm({ dict }: { dict: Dict }) {
       </div>
 
       <div className="flex justify-end gap-4">
-        <Link href="/goals">
-          <Button type="button" variant="outline">{dict.common.cancel}</Button>
-        </Link>
+        {onSuccess ? (
+           <Button type="button" variant="outline" onClick={onSuccess}>{dict.common.cancel}</Button>
+        ) : (
+           <Link href="/goals">
+             <Button type="button" variant="outline">{dict.common.cancel}</Button>
+           </Link>
+        )}
         <SubmitButton>{dict.goals.new.submit}</SubmitButton>
       </div>
     </form>

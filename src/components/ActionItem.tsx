@@ -47,6 +47,13 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { DateRangeFields } from '@/components/DateRangeFields'
 import { toggleAction } from '@/app/(authenticated)/dashboard/actions'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 import { deleteAction, updateAction } from '@/app/(authenticated)/goals/actions'
 import type en from '@/i18n/en.json'
 

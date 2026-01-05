@@ -36,13 +36,16 @@ interface ActionListFilterProps {
     dict: Dict
     showGoalTitle?: boolean
     tz?: string
+    goals?: { id: string, title: string }[]
+    hideGoalFilter?: boolean
 }
 
-export function ActionListFilter({ initialActions, dict, showGoalTitle = false, tz = 'Asia/Shanghai' }: ActionListFilterProps) {
+export function ActionListFilter({ initialActions, dict, showGoalTitle = false, tz = 'Asia/Shanghai', goals = [], hideGoalFilter = false }: ActionListFilterProps) {
     const [search, setSearch] = useState('')
     const [statusFilter, setStatusFilter] = useState('incomplete')
     const [typeFilter, setTypeFilter] = useState('all')
     const [priorityFilter, setPriorityFilter] = useState('all')
+    const [goalFilter, setGoalFilter] = useState('all')
 
     const filteredActions = useMemo(() => {
         let result = [...initialActions]
@@ -69,6 +72,10 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
             result = result.filter(a => (a.priority || 'medium') === priorityFilter)
         }
 
+        if (goalFilter !== 'all') {
+            result = result.filter(a => a.goal_id === goalFilter)
+        }
+
         // 2. Sort
         // Priority order: high > medium > low
         const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 }
@@ -88,7 +95,7 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
             // Let's stick to Newest First as requested for "Goal Detail - Completed List".
             return new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
         })
-    }, [initialActions, search, statusFilter, typeFilter, priorityFilter])
+    }, [initialActions, search, statusFilter, typeFilter, priorityFilter, goalFilter])
 
     return (
         <div className="space-y-6">
@@ -104,6 +111,23 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
                     />
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 px-1 no-scrollbar flex-nowrap md:flex-wrap w-full md:w-auto mask-gradient-right">
+                    {/* Goal Filter */}
+                    {!hideGoalFilter && (
+                        <div className="min-w-[90px] flex-1 md:flex-none md:w-[140px] shrink-0">
+                            <Select value={goalFilter} onValueChange={setGoalFilter}>
+                                <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5">
+                                    <SelectValue placeholder={dict.goals.filter.filterByGoal} />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">{dict.goals.filter.allGoals}</SelectItem>
+                                    {goals.map(g => (
+                                        <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    )}
+
                     <div className="min-w-[90px] flex-1 md:flex-none md:w-[140px] shrink-0">
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
                             <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5">

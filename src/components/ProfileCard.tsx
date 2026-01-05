@@ -245,7 +245,7 @@ export function ProfileCard({
             <div className="flex gap-2 justify-end mt-4">
               <Button type="button" variant="outline" onClick={() => { setEditing(false); setSelectedFile(null); setName(initialName || ''); setTimezone(initialTimezone || 'UTC') }} disabled={isUpdating}>{dict.common.cancel}</Button>
               <Button type="submit" disabled={isUpdating}>
-                {isUpdating && <LoadingSpinner size={16} className="mr-2" />}
+                {isUpdating && <LoadingSpinner size={16} className="mr-2 text-primary-foreground" />}
                 {dict.profile.updateProfile}
               </Button>
             </div>

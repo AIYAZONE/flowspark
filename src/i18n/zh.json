@@ -210,6 +210,10 @@
 		"filter": {
 			"searchPlaceholder": "搜索目标...",
 			"searchActionsPlaceholder": "搜索行动...",
+			"filterByGoal": "按目标筛选",
+			"allGoals": "全部目标",
+			"starredGoals": "特别关注",
+			"otherGoals": "目标清单",
 			"allStatus": "全部状态",
 			"allPriority": "全部优先级",
 			"allCategory": "全部分类",
@@ -225,7 +229,8 @@
 			"label": "状态",
 			"active": "进行中",
 			"completed": "已完成",
-			"abandoned": "已放弃"
+			"abandoned": "已放弃",
+			"archived": "已归档"
 		},
 		"priority": {
 			"label": "优先级",
@@ -263,6 +268,10 @@
 		"detail": {
 			"notFound": "目标未找到",
 			"details": "详细信息",
+			"archive": "归档",
+			"unarchive": "取消归档",
+			"archiveConfirmTitle": "归档目标",
+			"archiveConfirmDesc": "确定要归档此目标吗？它将被移至归档列表中。",
 			"timeline": "时间轴",
 			"dateFormat": "yyyy-MM-dd",
 			"description": "描述",
@@ -299,8 +308,7 @@
 		"deleteConfirmLabelSuffix": " 以确认",
 		"deletePlaceholder": "在此输入您的邮箱",
 		"deleting": "注销中...",
-		"deleteError": "注销失败"
-		,
+		"deleteError": "注销失败",
 		"stats": {
 			"title": "账户信息",
 			"userId": "用户 ID",

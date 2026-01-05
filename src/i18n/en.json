@@ -210,6 +210,10 @@
 		"filter": {
 			"searchPlaceholder": "Search goals...",
 			"searchActionsPlaceholder": "Search actions...",
+			"filterByGoal": "Filter by Goal",
+			"allGoals": "All Goals",
+			"starredGoals": "Starred Goals",
+			"otherGoals": "Other Goals",
 			"allStatus": "All Status",
 			"allPriority": "All Priority",
 			"allCategory": "All Category",
@@ -225,7 +229,8 @@
 			"label": "Status",
 			"active": "Active",
 			"completed": "Completed",
-			"abandoned": "Abandoned"
+			"abandoned": "Abandoned",
+			"archived": "Archived"
 		},
 		"priority": {
 			"label": "Priority",
@@ -263,6 +268,10 @@
 		"detail": {
 			"notFound": "Goal not found",
 			"details": "Details",
+			"archive": "Archive",
+			"unarchive": "Unarchive",
+			"archiveConfirmTitle": "Archive Goal",
+			"archiveConfirmDesc": "Are you sure you want to archive this goal? It will be moved to the archive list.",
 			"timeline": "Timeline",
 			"dateFormat": "PPP",
 			"description": "Description",
@@ -299,8 +308,7 @@
 		"deleteConfirmLabelSuffix": " to confirm",
 		"deletePlaceholder": "Type your email here",
 		"deleting": "Deleting...",
-		"deleteError": "Failed to delete account"
-		,
+		"deleteError": "Failed to delete account",
 		"stats": {
 			"title": "Account Info",
 			"userId": "User ID",
