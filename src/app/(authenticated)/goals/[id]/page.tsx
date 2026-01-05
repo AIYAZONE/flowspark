@@ -78,6 +78,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
                         initialActions={actions || []}
                         dict={dict}
                         showGoalTitle={false}
+                        hideGoalFilter={true}
                     />
                 </div>
             </div>

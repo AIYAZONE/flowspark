@@ -94,6 +94,7 @@ export default async function TodayPage() {
           dict={dict}
           showGoalTitle={true}
           tz={tz}
+          goals={activeGoals || []}
         />
       </div>
     </div>

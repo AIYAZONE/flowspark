@@ -79,7 +79,7 @@ export function DeleteGoalButton({ id, title, dict }: DeleteGoalButtonProps) {
                         className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         disabled={isDeleting}
                     >
-                        {isDeleting && <LoadingSpinner size={16} className="mr-2" />}
+                        {isDeleting && <LoadingSpinner size={16} className="mr-2 text-destructive-foreground" />}
                         {dict.common.delete || '删除'}
                     </AlertDialogAction>
                 </AlertDialogFooter>

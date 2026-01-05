@@ -2,22 +2,23 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { Pencil, Save, X, Calendar, Tag, Flag, Target, AlertCircle, LayoutDashboard, Clock, ChevronDown, ChevronUp } from 'lucide-react'
+import { Pencil, Save, X, Calendar, Tag, Flag, Target, AlertCircle, LayoutDashboard, Clock, ChevronDown, ChevronUp, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select"
-import { updateGoal } from '@/app/(authenticated)/goals/actions'
+import { updateGoal, toggleGoalStar } from '@/app/(authenticated)/goals/actions'
 import { DeleteGoalButton } from '@/components/DeleteGoalButton'
+import { ArchiveGoalButton } from '@/components/ArchiveGoalButton'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import type en from '@/i18n/en.json'
 
@@ -32,6 +33,7 @@ interface Goal {
     status: string
     priority?: string
     category?: string
+    is_starred?: boolean
 }
 
 interface GoalDetailsCardProps {
@@ -43,6 +45,7 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
+    const [isStarring, setIsStarring] = useState(false)
 
     async function handleSubmit(formData: FormData) {
         setIsLoading(true)
@@ -53,6 +56,18 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
             console.error(error)
         } finally {
             setIsLoading(false)
+        }
+    }
+
+    async function handleToggleStar() {
+        if (isStarring) return
+        setIsStarring(true)
+        try {
+            await toggleGoalStar(goal.id, !goal.is_starred)
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setIsStarring(false)
         }
     }
 
@@ -80,7 +95,7 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                                 disabled={isLoading}
                                 className="bg-primary/80 hover:bg-primary"
                             >
-                                {isLoading ? <LoadingSpinner size={16} className="mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+                                {isLoading ? <LoadingSpinner size={16} className="mr-1 text-primary-foreground" /> : <Save className="h-4 w-4 mr-1" />}
                                 {dict.common.save}
                             </Button>
                         </div>
@@ -209,15 +224,29 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                 <h3 className="text-lg font-semibold tracking-tight text-foreground">{dict.goals.detail.details}</h3>
                 <div className="flex items-center gap-2">
                     <Button
-                        variant="outline"
+                        variant="ghost"
+                        size="icon"
+                        onClick={handleToggleStar}
+                        disabled={isStarring}
+                        className={`h-8 w-8 rounded-full hover:bg-yellow-500/10 hover:text-yellow-500 transition-all ${goal.is_starred ? 'text-yellow-500' : 'text-muted-foreground/30'}`}
+                    >
+                        {isStarring ? (
+                            <LoadingSpinner size={14} className="text-current" />
+                        ) : (
+                            <Star className={`h-4 w-4 ${goal.is_starred ? 'fill-current' : ''}`} />
+                        )}
+                    </Button>
+                    <Button
+                        variant="ghost"
                         size="sm"
                         onClick={() => setIsEditing(true)}
-                        className="h-8 gap-2"
+                        className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-primary/10 hover:text-primary transition-all duration-300"
                     >
-                        <Pencil className="h-3.5 w-3.5" />
-                        <span className="text-xs">{dict.common.edit}</span>
+                        <div className="rounded-full bg-background/80 p-1 group-hover:bg-background transition-colors">
+                            <Pencil className="h-4 w-4" />
+                        </div>
+                        <span className="text-sm font-medium">{dict.common.edit}</span>
                     </Button>
-                    <DeleteGoalButton id={goal.id} title={goal.title} dict={dict} />
                 </div>
             </CardHeader>
 
@@ -350,6 +379,10 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                     </div>
                 </div>
             </CardContent>
+            <CardFooter className="flex justify-end gap-2 border-t border-border/50 p-6 bg-secondary/10">
+                <ArchiveGoalButton id={goal.id} isArchived={goal.status === 'archived'} dict={dict} />
+                <DeleteGoalButton id={goal.id} title={goal.title} dict={dict} />
+            </CardFooter>
         </Card>
     )
 }

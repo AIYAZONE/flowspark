@@ -12,6 +12,8 @@ const badgeVariants = cva(
           "border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950/50 dark:text-blue-400",
         abandoned:
           "border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-400",
+        archived:
+          "border-zinc-200 bg-zinc-50 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950/50 dark:text-zinc-400",
         default:
           "border-border bg-secondary text-secondary-foreground",
       },
@@ -34,12 +36,12 @@ export function GoalStatusBadge({ className, status, label, ...props }: GoalStat
   // currently assuming 'active' -> active, 'completed' -> completed.
   // If status is not found in variants, fallback to default.
 
-  const variant = (status === 'active' || status === 'completed' || status === 'abandoned')
+  const variant = (status === 'active' || status === 'completed' || status === 'abandoned' || status === 'archived')
     ? status
     : 'default'
 
   return (
-    <div className={cn(badgeVariants({ status: variant as "active" | "completed" | "abandoned" | "default" }), className)} {...props}>
+    <div className={cn(badgeVariants({ status: variant as "active" | "completed" | "abandoned" | "archived" | "default" }), className)} {...props}>
       {label || status}
     </div>
   )
