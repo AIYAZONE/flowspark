@@ -37,7 +37,7 @@ export interface Dict {
     endTime: string
   }
   goals: {
-    priority: { high: string; medium: string; low: string }
+    priority: { label: string; high: string; medium: string; low: string }
   }
   common: { dateRangeInvalid: string; saving: string }
 }
