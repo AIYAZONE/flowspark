@@ -26,6 +26,7 @@ export async function createGoal(formData: FormData) {
 	}
 
 	const { error } = await supabase.from('goals').insert({
+		user_id: user.id,
 		owner_id: user.id,
 		title,
 		description,
@@ -40,6 +41,8 @@ export async function createGoal(formData: FormData) {
 
 	if (error) {
 		console.error('Error creating goal:', error);
+		// 临时调试：观察是否为列缺失或值问题
+		// console.log('createGoal received category:', category, 'priority:', priority)
 
 		// Fallback for missing columns (schema mismatch)
 		if (
@@ -104,7 +107,9 @@ export async function updateGoalStatus(id: string, status: string) {
 				throw new Error(`Update failed: ${legacyError.message}`);
 			}
 		} else {
-			throw new Error(`Update failed: ${error.message} (Code: ${error.code})`);
+			throw new Error(
+				`Update failed: ${error.message} (Code: ${error.code})`
+			);
 		}
 	}
 
@@ -127,21 +132,21 @@ export async function toggleGoalStar(id: string, isStarred: boolean) {
 
 	if (error) {
 		console.error('Error toggling goal star:', error);
-		
+
 		// Fallback for legacy schema (user_id) if owner_id update fails
 		if (error.code === '42703' || error.message?.includes('column')) {
-             const { error: legacyError } = await supabase
-                .from('goals')
-                .update({ is_starred: isStarred })
-                .eq('id', id)
-                .eq('user_id', user.id);
-            
-             if (legacyError) {
-                 throw new Error('Update failed');
-             }
+			const { error: legacyError } = await supabase
+				.from('goals')
+				.update({ is_starred: isStarred })
+				.eq('id', id)
+				.eq('user_id', user.id);
+
+			if (legacyError) {
+				throw new Error('Update failed');
+			}
 		} else {
-             throw new Error('Update failed');
-        }
+			throw new Error('Update failed');
+		}
 	}
 
 	revalidatePath('/goals');
@@ -170,6 +175,7 @@ export async function createGoalModal(formData: FormData) {
 	}
 
 	const { error } = await supabase.from('goals').insert({
+		user_id: user.id,
 		owner_id: user.id,
 		title,
 		description,
@@ -217,7 +223,7 @@ export async function createGoalModal(formData: FormData) {
 	}
 
 	revalidatePath('/goals');
-    return { success: true };
+	return { success: true };
 }
 
 export async function createAction(formData: FormData) {

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useState } from 'react'
 import { createGoal } from '@/app/(authenticated)/goals/actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -22,13 +23,19 @@ type Dict = typeof en
 interface NewGoalFormProps {
   dict: Dict
   onSuccess?: () => void
-  action?: (formData: FormData) => Promise<any>
+  action?: (formData: FormData) => Promise<unknown>
 }
 
 export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
   const submitAction = action || createGoal
+  const [category, setCategory] = useState<string>('other')
+  const [priority, setPriority] = useState<string>('medium')
 
   async function handleSubmit(formData: FormData) {
+    // 临时调试：确认提交值（稍后移除）
+    // console.log('NewGoalForm submit:', Object.fromEntries((formData as unknown as Iterable<[string, FormDataEntryValue]>)))
+    formData.set('category', category)
+    formData.set('priority', priority)
     await submitAction(formData)
     if (onSuccess) {
       onSuccess()
@@ -54,7 +61,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="category">{dict.goals.category.label}</Label>
-          <Select name="category" defaultValue="other">
+          <Select name="category" value={category} onValueChange={setCategory}>
             <SelectTrigger>
               <SelectValue placeholder={dict.goals.category.label} />
             </SelectTrigger>
@@ -71,7 +78,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
         </div>
         <div className="grid gap-2">
           <Label htmlFor="priority">{dict.goals.priority.label}</Label>
-          <Select name="priority" defaultValue="medium">
+          <Select name="priority" value={priority} onValueChange={setPriority}>
             <SelectTrigger>
               <SelectValue placeholder={dict.goals.priority.label} />
             </SelectTrigger>
@@ -112,11 +119,11 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
 
       <div className="flex justify-end gap-4">
         {onSuccess ? (
-           <Button type="button" variant="outline" onClick={onSuccess}>{dict.common.cancel}</Button>
+          <Button type="button" variant="outline" onClick={onSuccess}>{dict.common.cancel}</Button>
         ) : (
-           <Link href="/goals">
-             <Button type="button" variant="outline">{dict.common.cancel}</Button>
-           </Link>
+          <Link href="/goals">
+            <Button type="button" variant="outline">{dict.common.cancel}</Button>
+          </Link>
         )}
         <SubmitButton>{dict.goals.new.submit}</SubmitButton>
       </div>

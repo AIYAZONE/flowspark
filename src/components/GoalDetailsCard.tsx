@@ -5,6 +5,7 @@ import { format } from 'date-fns'
 import { Pencil, Save, X, Calendar, Tag, Flag, Target, AlertCircle, LayoutDashboard, Clock, ChevronDown, ChevronUp, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { SubmitButton } from '@/components/SubmitButton'
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -89,15 +90,13 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                                 <X className="h-4 w-4 mr-1" />
                                 {dict.common.cancel}
                             </Button>
-                            <Button
-                                type="submit"
+                            <SubmitButton
                                 size="sm"
-                                disabled={isLoading}
                                 className="bg-primary/80 hover:bg-primary"
                             >
-                                {isLoading ? <LoadingSpinner size={16} className="mr-1 text-primary-foreground" /> : <Save className="h-4 w-4 mr-1" />}
+                                <Save className="h-4 w-4 mr-1" />
                                 {dict.common.save}
-                            </Button>
+                            </SubmitButton>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4 pt-4">
