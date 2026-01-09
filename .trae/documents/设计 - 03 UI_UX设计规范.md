@@ -168,7 +168,26 @@
 
 * **行内编辑**: 尽可能支持点击文字直接编辑，减少跳转。
 
-***
+#### D. 按钮 (Buttons)
+
+**设计变量**
+- 形状：shape=pill（默认圆角）｜ default（中圆角）
+- 尺寸：sm(h-9 px-3)｜default(h-10 px-4 py-2)｜lg(h-11 px-8)｜icon(h-10 w-10)
+- 颜色源：primary、secondary、destructive、foreground、muted、border、background
+
+**变体配色与交互**
+- default（主操作）：bg-primary、text-primary-foreground、hover:bg-primary/85、active:bg-primary/80、shadow-sm/hover:shadow-md
+- secondary（次级）：bg-secondary、text-secondary-foreground、hover:bg-secondary/80、active:bg-secondary/70、shadow-sm
+- outline（描边）：border border-border、bg-background、hover:bg-primary/5 + hover:border-primary/40、text-foreground
+- ghost（幽灵）：bg-transparent、text-muted-foreground、hover:bg-muted/50 + hover:text-foreground
+- destructive（危险）：bg-destructive、text-destructive-foreground、hover:bg-destructive/90、active:bg-destructive/80、shadow-sm
+- link（文本）：text-primary、hover:underline（underline-offset-4）
+
+**交互细节**
+- 焦点可见：focus-visible:ring-2 + ring-offset-2
+- 动效：transition-all duration-200、active:scale-95
+- 禁用：disabled:pointer-events-none + disabled:opacity-50
+- 形状策略：主行动默认使用 pill；密集工具条或弱操作可用 default
 
 ## 5. 交互与动效 (Interaction & Motion)
 
@@ -185,19 +204,34 @@
   * 模块之间采用轻微的**上浮淡入 (Fade Up)** 效果，而不是生硬的切换。
 
 * **加载状态**:
+  * 表单提交统一使用 Spinner + 保留文案；pending 时禁用按钮避免重复提交；图标在加载中隐藏
+  * 页面整体数据加载优先使用骨架屏 (Skeleton)，保持结构稳定
 
-  * 使用骨架屏 (Skeleton) 代替转圈 Loading，保持界面结构稳定。
+* **提交交互（SubmitButton）**:
+  * 基于 useFormStatus 的 pending 态
+  * 保留按钮文案并在左侧显示统一 Spinner
+  * pending 时自动禁用按钮；焦点环与禁用态样式保持一致
 
 ***
 
 ## 6. 总结 (Summary)
 
-这套设计规范旨在打造一个**“不仅好用，而且好看”**的个人目标系统。通过电光翡翠色与极简布局的结合，传达出“高效、冷静、进取”的产品气质，让用户在每一次打开应用时，都能感受到一种向上的力量。
+这套设计规范旨在打造一个\*\*“不仅好用，而且好看”\*\*的个人目标系统。通过电光翡翠色与极简布局的结合，传达出“高效、冷静、进取”的产品气质，让用户在每一次打开应用时，都能感受到一种向上的力量。
 
 ## 无障碍与图表视觉准则
 
 * 无障碍：对交互元素提供清晰的 label/aria 属性；保证键盘可达性
 
 * 对比度：文本与背景对比度满足 WCAG AA
-
 * 图表：线条粗细与颜色语义统一；悬停交互显示精确数值与时间
+
+**按钮可访问性**
+- 焦点可见：任何主题下均可见的 focus-visible
+- 点击目标：移动端可触达区域≥44×44px（使用 lg 或增加外边距）
+- 禁用元素不可聚焦；按下反馈一致（active:scale-95）
+
+**使用准则与场景映射**
+- 表单提交：SubmitButton default + pill
+- 编辑保存：default + pill；取消：outline/ghost
+- 新建弹窗主按钮：default + pill；弹窗次级按钮：outline
+- 删除/归档：destructive + pill
