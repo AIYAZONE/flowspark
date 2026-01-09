@@ -31,6 +31,7 @@ import { format } from 'date-fns'
 import { CheckCircle2, Circle, Pencil, Save, Trash2, X, AlignLeft, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { SubmitButton } from '@/components/SubmitButton'
 import {
     AlertDialog,
     AlertDialogAction,
@@ -204,14 +205,13 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                             <X className="h-4 w-4 mr-1" />
                             {dict.common.cancel}
                         </Button>
-                        <Button
-                            type="submit"
+                        <SubmitButton
                             size="sm"
-                            disabled={isLoading || !dateRangeValid}
+                            disabled={!dateRangeValid}
                         >
-                            {isLoading ? <LoadingSpinner size={16} className="mr-1" /> : <Save className="h-4 w-4 mr-1" />}
+                            <Save className="h-4 w-4 mr-1" />
                             {dict.common.save}
-                        </Button>
+                        </SubmitButton>
                     </div>
                 </form>
             </div>

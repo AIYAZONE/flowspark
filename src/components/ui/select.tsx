@@ -6,7 +6,58 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const Select = SelectPrimitive.Root
+type RootProps = React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root> & {
+  name?: string
+  required?: boolean
+}
+
+const Select = ({
+  name,
+  required,
+  defaultValue,
+  value,
+  onValueChange,
+  children,
+  ...rest
+}: RootProps) => {
+  const isControlled = value !== undefined
+  const [internal, setInternal] = React.useState<string | undefined>(
+    defaultValue as string | undefined
+  )
+  const current = isControlled ? (value as string | undefined) : internal
+
+  const handleChange = (v: string) => {
+    if (!v) return
+    if (!isControlled) setInternal(v)
+    onValueChange?.(v)
+  }
+
+  const rootValueProps = isControlled
+    ? { value }
+    : internal !== undefined
+    ? { value: internal }
+    : { defaultValue }
+
+  return (
+    <>
+      {name ? (
+        <input
+          type="hidden"
+          name={name}
+          value={current && current.length > 0 ? current : (defaultValue as string) ?? ""}
+          required={!!required}
+        />
+      ) : null}
+      <SelectPrimitive.Root
+        onValueChange={handleChange}
+        {...rootValueProps}
+        {...rest}
+      >
+        {children}
+      </SelectPrimitive.Root>
+    </>
+  )
+}
 
 const SelectGroup = SelectPrimitive.Group
 
