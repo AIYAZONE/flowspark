@@ -1,6 +1,6 @@
 'use client'
 
-import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts"
+import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts"
 import { subDays, format, isSameDay, parseISO } from "date-fns"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -12,14 +12,13 @@ export function ScoreTrendChart({ data, title, scoreLabel = 'Score' }: { data: {
     const dateStr = format(date, 'yyyy-MM-dd')
     const dataPoint = data.find(d => {
       // Handle both ISO strings and YYYY-MM-DD
-      const dDate = d.date.includes('T') ? parseISO(d.date) : parseISO(d.date + 'T00:00:00')
-      // simpler: just compare string if we know format, but safe is check same day
-      return isSameDay(parseISO(d.date), date)
+      const parsed = d.date.includes('T') ? parseISO(d.date) : parseISO(d.date + 'T00:00:00')
+      return isSameDay(parsed, date)
     })
 
     return {
       date: dateStr,
-      score: dataPoint ? dataPoint.score : undefined
+      score: dataPoint ? dataPoint.score : null
     }
   })
 
@@ -27,11 +26,15 @@ export function ScoreTrendChart({ data, title, scoreLabel = 'Score' }: { data: {
     <Card className="col-span-1 sm:col-span-2 lg:col-span-4">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          {format(subDays(today, 29), 'yyyy-MM-dd')} 至 {format(today, 'yyyy-MM-dd')}
+        </p>
       </CardHeader>
       <CardContent className="pl-2">
-        <div className="h-[200px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
+        <div className="h-[200px] w-full [&_.recharts-surface]:outline-none [&_*]:focus:outline-none [&_*]:focus:ring-0 [&_*]:focus:border-none [&_*]:focus:shadow-none">
+          <ResponsiveContainer width="100%" height="100%" className="outline-none focus:outline-none focus-visible:outline-none">
+            <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="3 3" vertical={false} />
               <XAxis
                 dataKey="date"
                 stroke="#888888"
@@ -42,7 +45,7 @@ export function ScoreTrendChart({ data, title, scoreLabel = 'Score' }: { data: {
                   const date = new Date(value)
                   return `${date.getMonth() + 1}/${date.getDate()}`
                 }}
-                interval={4} // Show fewer ticks to avoid clutter
+                interval={4}
               />
               <YAxis
                 stroke="#888888"
@@ -69,11 +72,14 @@ export function ScoreTrendChart({ data, title, scoreLabel = 'Score' }: { data: {
               <Line
                 type="monotone"
                 dataKey="score"
-                stroke="hsl(var(--primary))"
-                strokeWidth={2}
-                dot={{ r: 4, fill: "hsl(var(--primary))" }}
-                activeDot={{ r: 6 }}
+                stroke="#059669"
+                strokeWidth={3}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                dot={{ r: 5, stroke: "#059669", fill: "hsl(var(--background))", strokeWidth: 2 }}
+                activeDot={{ r: 7, strokeWidth: 0 }}
                 connectNulls
+                isAnimationActive={false}
               />
             </LineChart>
           </ResponsiveContainer>
