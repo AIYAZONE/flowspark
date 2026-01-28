@@ -1,3 +1,5 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 export function getTodayInTZ(timeZone: string): string {
   const fmt = new Intl.DateTimeFormat('en-CA', {
     timeZone,
@@ -13,7 +15,7 @@ export function toLocaleDateStringTZ(locale: string, timeZone: string, options: 
   return new Date().toLocaleDateString(locale, { ...options, timeZone })
 }
 
-export async function getUserTimezone(supabase: any, userId: string): Promise<string> {
+export async function getUserTimezone(supabase: SupabaseClient, userId: string): Promise<string> {
   const { data: profile } = await supabase
     .from('user_profiles')
     .select('timezone')

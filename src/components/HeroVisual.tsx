@@ -50,7 +50,7 @@ export function HeroVisual({ dict }: HeroVisualProps) {
             <div className="h-2 w-20 bg-muted rounded animate-pulse" />
           </div>
           <div className="text-sm font-medium text-foreground/80">
-            "{dict.userInput}"
+            “{dict.userInput}”
           </div>
         </motion.div>
 
