@@ -200,7 +200,13 @@
 		"scoreLabels": ["很糟", "一般", "不错", "很好", "极佳"],
 		"alreadyScored": "今日已评分",
 		"updateScore": "更新评分",
-		"recent7Trend": "最近7天评分趋势"
+		"recent7Trend": "最近7天评分趋势",
+		"addActionIntroTitle": "还没有目标",
+		"addActionIntroDesc": "行动需要归属到一个目标。先创建目标，以便追踪进度与统计。",
+		"createGoalAndContinue": "创建目标并继续",
+		"later": "稍后再说",
+		"goalCreatedAutoselected": "目标已创建，已为你选中该目标",
+		"addActionIntroPoints": ["把行动归档到目标，进度更清晰", "自动汇总到今日与仪表盘统计"]
 	},
 	"goals": {
 		"title": "目标列表",

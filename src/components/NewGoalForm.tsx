@@ -22,7 +22,7 @@ type Dict = typeof en
 
 interface NewGoalFormProps {
   dict: Dict
-  onSuccess?: () => void
+  onSuccess?: (created?: { id?: string; title?: string }) => void
   action?: (formData: FormData) => Promise<unknown>
 }
 
@@ -36,9 +36,9 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
     // console.log('NewGoalForm submit:', Object.fromEntries((formData as unknown as Iterable<[string, FormDataEntryValue]>)))
     formData.set('category', category)
     formData.set('priority', priority)
-    await submitAction(formData)
+    const result = await submitAction(formData) as { success?: boolean; goalId?: string; title?: string } | undefined
     if (onSuccess) {
-      onSuccess()
+      onSuccess(result && result.success ? { id: result.goalId, title: result.title } : undefined)
     }
   }
 
@@ -119,7 +119,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
 
       <div className="flex justify-end gap-4">
         {onSuccess ? (
-          <Button type="button" variant="outline" onClick={onSuccess}>{dict.common.cancel}</Button>
+          <Button type="button" variant="outline" onClick={() => onSuccess()}>{dict.common.cancel}</Button>
         ) : (
           <Link href="/goals">
             <Button type="button" variant="outline">{dict.common.cancel}</Button>

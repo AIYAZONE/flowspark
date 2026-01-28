@@ -174,7 +174,8 @@ export async function createGoalModal(formData: FormData) {
 		throw new Error('invalid_date_range');
 	}
 
-	const { error } = await supabase.from('goals').insert({
+	// 使用 select() 以返回插入记录的 id 与标题
+	const { data, error } = await supabase.from('goals').insert({
 		user_id: user.id,
 		owner_id: user.id,
 		title,
@@ -186,7 +187,7 @@ export async function createGoalModal(formData: FormData) {
 		status: 'active',
 		priority,
 		category
-	});
+	}).select('id,title').single();
 
 	if (error) {
 		console.error('Error creating goal:', error);
@@ -200,7 +201,7 @@ export async function createGoalModal(formData: FormData) {
 			console.warn(
 				'Database schema missing columns, falling back to basic fields.'
 			);
-			const { error: legacyError } = await supabase.from('goals').insert({
+			const { data: legacyData, error: legacyError } = await supabase.from('goals').insert({
 				user_id: user.id,
 				owner_id: user.id,
 				title,
@@ -210,20 +211,22 @@ export async function createGoalModal(formData: FormData) {
 				success_criteria,
 				stop_criteria,
 				status: 'active'
-			});
+			}).select('id,title').single();
 
 			if (legacyError) {
 				console.error('Legacy create goal failed:', legacyError);
 				throw new Error('operation_failed');
 			}
-			// Success with legacy payload
+			// 成功（兼容旧架构）
+			revalidatePath('/goals');
+			return { success: true, goalId: legacyData?.id as string | undefined, title: legacyData?.title as string | undefined };
 		} else {
 			throw new Error('operation_failed');
 		}
 	}
 
 	revalidatePath('/goals');
-	return { success: true };
+	return { success: true, goalId: data?.id as string | undefined, title: data?.title as string | undefined };
 }
 
 export async function createAction(formData: FormData) {

@@ -16,11 +16,12 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { updateGoalStatus } from '@/app/(authenticated)/goals/actions'
+import type en from '@/i18n/en.json'
 
 interface ArchiveGoalButtonProps {
     id: string
     isArchived: boolean
-    dict: any // Using any to avoid complex type duplication, or we can define a smaller interface
+    dict: typeof en
 }
 
 export function ArchiveGoalButton({ id, isArchived, dict }: ArchiveGoalButtonProps) {

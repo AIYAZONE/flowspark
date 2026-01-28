@@ -200,7 +200,13 @@
 		"scoreLabels": ["Terrible", "Okay", "Good", "Great", "Excellent"],
 		"alreadyScored": "Already scored today",
 		"updateScore": "Update score",
-		"recent7Trend": "Last 7 days score trend"
+		"recent7Trend": "Last 7 days score trend",
+		"addActionIntroTitle": "No goals yet",
+		"addActionIntroDesc": "Actions need to belong to a goal. Create one to track progress and insights.",
+		"createGoalAndContinue": "Create goal and continue",
+		"later": "Maybe later",
+		"goalCreatedAutoselected": "Goal created and preselected for you",
+		"addActionIntroPoints": ["Attach actions to a goal for clearer progress", "Auto-summarized in Today and Dashboard"]
 	},
 	"goals": {
 		"title": "Goals",
