@@ -30,6 +30,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
   const submitAction = action || createGoal
   const [category, setCategory] = useState<string>('other')
   const [priority, setPriority] = useState<string>('medium')
+  const [dateValid, setDateValid] = useState(true)
 
   async function handleSubmit(formData: FormData) {
     // 临时调试：确认提交值（稍后移除）
@@ -45,7 +46,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
   return (
     <form action={handleSubmit} className="space-y-6">
       <div className="grid gap-2">
-        <Label htmlFor="title">{dict.goals.new.titleLabel}</Label>
+        <Label htmlFor="title" required>{dict.goals.new.titleLabel}</Label>
         <Input id="title" name="title" placeholder={dict.goals.new.titlePlaceholder} required />
       </div>
 
@@ -98,7 +99,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
       />
 
       <div className="grid gap-2">
-        <Label htmlFor="success_criteria">{dict.goals.new.successCriteriaLabel}</Label>
+        <Label htmlFor="success_criteria" required>{dict.goals.new.successCriteriaLabel}</Label>
         <Textarea
           id="success_criteria"
           name="success_criteria"
@@ -108,7 +109,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="stop_criteria">{dict.goals.new.abandonCriteriaLabel}</Label>
+        <Label htmlFor="stop_criteria" required>{dict.goals.new.abandonCriteriaLabel}</Label>
         <Textarea
           id="stop_criteria"
           name="stop_criteria"
@@ -125,7 +126,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
             <Button type="button" variant="outline">{dict.common.cancel}</Button>
           </Link>
         )}
-        <SubmitButton>{dict.goals.new.submit}</SubmitButton>
+        <SubmitButton disabled={!dateValid}>{dict.goals.new.submit}</SubmitButton>
       </div>
     </form>
   )

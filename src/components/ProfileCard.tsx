@@ -8,7 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { AvatarUploader } from '@/components/AvatarUploader'
-import { Pencil, Mail, Globe, CalendarDays } from 'lucide-react'
+import { Pencil, Mail, Globe, CalendarDays, Loader2, LogOut } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import {
   Select,
   SelectContent,
@@ -44,6 +45,9 @@ interface Dict {
       lastSignIn: string
       unknown: string
     }
+  }
+  sidebar: {
+    signOut: string
   }
   common: {
     success: string
@@ -84,7 +88,16 @@ export function ProfileCard({
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl || '')
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
+  const [isSigningOut, setIsSigningOut] = useState(false)
   const router = useRouter()
+  const supabase = createClient()
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true)
+    await supabase.auth.signOut()
+    router.refresh()
+    router.push('/login')
+  }
 
   const formatDate = (dateString?: string | null) => {
     if (!dateString) return dict.profile.stats?.unknown ?? '未知'
@@ -208,6 +221,23 @@ export function ProfileCard({
                 </span>
                 <span className="font-medium truncate pl-6">{formatDate(lastSignIn)}</span>
               </div>
+            </div>
+
+            <div className="md:hidden mt-8 pt-6 border-t border-border/50">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-center gap-2 px-4 text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/20"
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+              >
+                {isSigningOut ? (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                ) : (
+                  <LogOut className="h-4 w-4 shrink-0" />
+                )}
+                {dict.sidebar.signOut}
+              </Button>
             </div>
           </>
         )}

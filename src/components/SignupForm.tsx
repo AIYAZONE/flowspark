@@ -155,7 +155,7 @@ export function SignupForm({ dict, error: initialError, message: initialMessage 
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="password">{dict.signup.passwordLabel}</Label>
+        <Label htmlFor="password" required>{dict.signup.passwordLabel}</Label>
         <div className="relative">
           <Input
             id="password"

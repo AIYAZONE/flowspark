@@ -101,7 +101,7 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                     </CardHeader>
                     <CardContent className="space-y-4 pt-4">
                         <div className="space-y-2">
-                            <Label htmlFor="title">{dict.goals.new.titleLabel}</Label>
+                            <Label htmlFor="title" required>{dict.goals.new.titleLabel}</Label>
                             <Input
                                 id="title"
                                 name="title"
@@ -123,7 +123,7 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="start_date">{dict.goals.detail.startDate}</Label>
+                                <Label htmlFor="start_date" required>{dict.goals.detail.startDate}</Label>
                                 <Input
                                     id="start_date"
                                     name="start_date"
@@ -134,7 +134,7 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="end_date">{dict.goals.detail.endDate}</Label>
+                                <Label htmlFor="end_date" required>{dict.goals.detail.endDate}</Label>
                                 <Input
                                     id="end_date"
                                     name="end_date"
@@ -193,22 +193,24 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="success_criteria">{dict.goals.detail.successCriteria}</Label>
+                            <Label htmlFor="success_criteria" required>{dict.goals.detail.successCriteria}</Label>
                             <Textarea
                                 id="success_criteria"
                                 name="success_criteria"
                                 defaultValue={goal.success_criteria}
                                 className="bg-background/50"
+                                required
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="stop_criteria">{dict.goals.detail.abandonCriteria}</Label>
+                            <Label htmlFor="stop_criteria" required>{dict.goals.detail.abandonCriteria}</Label>
                             <Textarea
                                 id="stop_criteria"
                                 name="stop_criteria"
                                 defaultValue={goal.stop_criteria}
                                 className="bg-background/50"
+                                required
                             />
                         </div>
                     </CardContent>

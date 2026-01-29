@@ -37,9 +37,10 @@ interface AddActionDialogProps {
     activeGoals?: { id: string; title: string }[]
     dict: Dict
     tz?: string
+    trigger?: React.ReactNode
 }
 
-export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai' }: AddActionDialogProps) {
+export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai', trigger }: AddActionDialogProps) {
     const [open, setOpen] = useState(false)
     const [isPending, startTransition] = useTransition()
     const [valid, setValid] = useState(true)
@@ -115,10 +116,12 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
-                <Button size="sm" className="gap-1">
-                    <Plus className="h-4 w-4" />
-                    {dict.goals.detail.addAction}
-                </Button>
+                {trigger ? trigger : (
+                    <Button size="sm" className="gap-1">
+                        <Plus className="h-4 w-4" />
+                        {dict.goals.detail.addAction}
+                    </Button>
+                )}
             </DialogTrigger>
             <DialogContent
                 className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto p-0 overflow-hidden block"
@@ -196,7 +199,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                                 <input type="hidden" name="goal_id" value={goalId} />
                                             ) : (
                                                 <div className="grid gap-2">
-                                                    <Label htmlFor="goal_id">{dict.today.goalLabel}</Label>
+                                                    <Label htmlFor="goal_id" required>{dict.today.goalLabel}</Label>
                                                     <Select name="goal_id" value={selectedGoalId} onValueChange={setSelectedGoalId} required>
                                                         <SelectTrigger className="w-full">
                                                             <SelectValue placeholder={dict.today.selectGoal} />
@@ -216,7 +219,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                             )}
 
                                             <div className="grid gap-2">
-                                                <Label htmlFor="title">{dict.today.actionTitleLabel}</Label>
+                                                <Label htmlFor="title" required>{dict.today.actionTitleLabel}</Label>
                                                 <Input
                                                     ref={titleRef}
                                                     id="title"

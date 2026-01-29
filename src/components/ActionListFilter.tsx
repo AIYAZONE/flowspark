@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search, Plus } from 'lucide-react'
+import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import {
     Select,
@@ -98,24 +98,23 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
     }, [initialActions, search, statusFilter, typeFilter, priorityFilter, goalFilter])
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-x-hidden">
             {/* Filters */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center w-full overflow-hidden">
-                <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <div className="flex flex-col gap-3 w-full">
+                <div className="relative w-full">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                         placeholder={dict.goals.filter.searchActionsPlaceholder}
-                        className="pl-9 bg-background/50"
+                        className="pl-9 bg-background/50 w-full"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
-                <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 px-1 no-scrollbar flex-nowrap md:flex-wrap w-full md:w-auto mask-gradient-right">
-                    {/* Goal Filter */}
+                <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-2">
                     {!hideGoalFilter && (
-                        <div className="min-w-[90px] flex-1 md:flex-none md:w-[140px] shrink-0">
+                        <div className="min-w-0 w-full md:w-[180px]">
                             <Select value={goalFilter} onValueChange={setGoalFilter}>
-                                <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5">
+                                <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5 w-full">
                                     <SelectValue placeholder={dict.goals.filter.filterByGoal} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -128,9 +127,9 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
                         </div>
                     )}
 
-                    <div className="min-w-[90px] flex-1 md:flex-none md:w-[140px] shrink-0">
+                    <div className="min-w-0 w-full md:w-[160px]">
                         <Select value={statusFilter} onValueChange={setStatusFilter}>
-                            <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5">
+                            <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5 w-full">
                                 <SelectValue placeholder={dict.goals.status.label} />
                             </SelectTrigger>
                             <SelectContent>
@@ -141,9 +140,9 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
                         </Select>
                     </div>
 
-                    <div className="min-w-[90px] flex-1 md:flex-none md:w-[140px] shrink-0">
+                    <div className="min-w-0 w-full md:w-[160px]">
                         <Select value={typeFilter} onValueChange={setTypeFilter}>
-                            <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5">
+                            <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5 w-full">
                                 <SelectValue placeholder={dict.today.typeLabel} />
                             </SelectTrigger>
                             <SelectContent>
@@ -157,9 +156,9 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
                         </Select>
                     </div>
 
-                    <div className="min-w-[90px] flex-1 md:flex-none md:w-[140px] shrink-0">
+                    <div className="min-w-0 w-full md:w-[160px]">
                         <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-                            <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5">
+                            <SelectTrigger className="bg-background/50 h-9 text-sm px-2.5 w-full">
                                 <SelectValue placeholder={dict.goals.priority.label} />
                             </SelectTrigger>
                             <SelectContent>

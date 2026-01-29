@@ -76,7 +76,7 @@ export function VerifyForm({
       )}
 
       <div className="grid gap-2">
-        <Label htmlFor="code">{dict.verify.codeLabel}</Label>
+        <Label htmlFor="code" required>{dict.verify.codeLabel}</Label>
         <Input
           id="code"
           name="code"
