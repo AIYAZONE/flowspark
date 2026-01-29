@@ -47,7 +47,7 @@ export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[
   return (
     <form action={createAction} className="space-y-4">
       <div className="grid gap-2">
-        <Label htmlFor="goal_id">{dict.today.goalLabel}</Label>
+        <Label htmlFor="goal_id" required>{dict.today.goalLabel}</Label>
         <Select name="goal_id" required defaultValue="">
           <SelectTrigger>
             <SelectValue placeholder={dict.today.selectGoal} />
@@ -61,7 +61,7 @@ export function AddActionForm({ activeGoals, dict, today }: { activeGoals: Goal[
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="title">{dict.today.actionTitleLabel}</Label>
+        <Label htmlFor="title" required>{dict.today.actionTitleLabel}</Label>
         <Input id="title" name="title" placeholder={dict.today.actionTitlePlaceholder} required />
       </div>
 

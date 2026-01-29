@@ -84,7 +84,9 @@ export default async function TodayPage() {
             {toLocaleDateStringTZ(dict.common.locale, tz, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
-        <AddActionDialog activeGoals={activeGoals || []} dict={dict} />
+        <div className="hidden md:block">
+          <AddActionDialog activeGoals={activeGoals || []} dict={dict} />
+        </div>
       </div>
 
       <div className="grid gap-6">
@@ -95,6 +97,18 @@ export default async function TodayPage() {
           showGoalTitle={true}
           tz={tz}
           goals={activeGoals || []}
+        />
+      </div>
+
+      <div className="md:hidden fixed bottom-24 right-6 z-40">
+        <AddActionDialog 
+          activeGoals={activeGoals || []} 
+          dict={dict} 
+          trigger={
+            <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
+              <Plus className="h-6 w-6" />
+            </Button>
+          } 
         />
       </div>
     </div>

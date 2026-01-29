@@ -28,6 +28,7 @@ function CompleteButton({ completed, type }: { completed: boolean, type: string 
 }
 import { useState } from 'react'
 import { format } from 'date-fns'
+import { motion, useAnimationControls } from 'framer-motion'
 import { CheckCircle2, Circle, Pencil, Save, Trash2, X, AlignLeft, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -41,7 +42,6 @@ import {
     AlertDialogFooter,
     AlertDialogHeader,
     AlertDialogTitle,
-    AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -87,6 +87,21 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const [dateRangeValid, setDateRangeValid] = useState(true)
+    const controls = useAnimationControls()
+
+    const closeSwipe = () => {
+        controls.start({ x: 0, transition: { type: 'spring', stiffness: 420, damping: 34 } })
+    }
+
+    const openSwipe = () => {
+        controls.start({ x: -128, transition: { type: 'spring', stiffness: 420, damping: 34 } })
+    }
+
+    const handleDragEnd = (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
+        const shouldOpen = info.offset.x < -40 || info.velocity.x < -500
+        if (shouldOpen) openSwipe()
+        else closeSwipe()
+    }
 
     async function handleUpdate(formData: FormData) {
         if (!dateRangeValid) return
@@ -109,6 +124,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             formData.set('goal_id', action.goal_id)
             await deleteAction(formData)
             setDeleteDialogOpen(false)
+            closeSwipe()
         } catch (error) {
             console.error(error)
         } finally {
@@ -224,117 +240,154 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const isOverdue = endDateVal < todayVal
 
     return (
-        <div className="group flex flex-col p-4 border border-border/40 rounded-xl bg-card/50 hover:bg-card hover:shadow-sm hover:border-primary/20 transition-all duration-300">
-            <div className="flex items-start justify-between gap-4">
-                <div className="flex items-start gap-4 flex-1 min-w-0">
-                    <form action={toggleAction} className="mt-1">
-                        <input type="hidden" name="id" value={action.id} />
-                        <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
-                        <CompleteButton completed={action.completed} type={action.type} />
-                    </form>
-                    <div className="flex-1 space-y-1 min-w-0">
-                        <p className={`font-medium text-sm break-words ${action.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
-                            {action.title}
-                        </p>
-                        <div className="flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
-                            {isOverdue && (
-                                <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 font-medium border border-red-500/20">
-                                    {dict.today.delayed}
-                                </span>
-                            )}
-                            <span className="capitalize px-2 py-0.5 rounded-full bg-secondary/50 font-medium text-secondary-foreground border border-border/50">
-                                {dict.today.types[action.type as keyof typeof dict.today.types] || action.type}
-                            </span>
-                            <span className={cn(
-                                "capitalize px-2 py-0.5 rounded-full font-medium border",
-                                getPriorityColor(action.priority)
-                            )}>
-                                {getPriorityLabel(action.priority)}
-                            </span>
-                            <span className="font-mono text-[10px] opacity-70 flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {format(new Date(action.start_date), 'MM-dd')}
-                                {action.end_date && action.end_date !== action.start_date && ` ~ ${format(new Date(action.end_date), 'MM-dd')}`}
-                            </span>
-                            {action.goals?.title && showGoalTitle && (
-                                <span className="flex items-center gap-1 opacity-70">
-                                    <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
-                                    {action.goals.title}
-                                </span>
-                            )}
-                            {action.description && (
-                                <button
-                                    onClick={() => setIsExpanded(!isExpanded)}
-                                    className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
-                                >
-                                    <AlignLeft className="h-3 w-3" />
-                                    <span>{isExpanded ? dict.common.showLess : dict.common.showMore}</span>
-                                    {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-1 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-200 shrink-0">
-                    <Button
+        <div className="group relative overflow-hidden rounded-xl border border-border/40 bg-card transition-all duration-300 md:hover:shadow-sm md:hover:border-primary/20">
+            <div className="absolute inset-y-0 right-0 z-0 w-32 md:hidden">
+                <div className="flex h-full w-full items-stretch">
+                    <button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setIsEditing(true)}
-                        className="h-9 w-9 lg:h-8 lg:w-8 rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
-                        disabled={isLoading}
+                        onClick={() => { closeSwipe(); setIsEditing(true) }}
+                        className="w-1/2 bg-primary/10 text-primary flex items-center justify-center"
                     >
-                        <Pencil className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
-                        <span className="sr-only">{dict.common.edit}</span>
-                    </Button>
-
-                    <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                        <AlertDialogTrigger asChild>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="h-9 w-9 lg:h-8 lg:w-8 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-                                disabled={isLoading || isDeleting}
-                            >
-                                <Trash2 className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
-                                <span className="sr-only">{dict.common.delete || '删除'}</span>
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>{dict.common.delete} {action.title}?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    {dict.common.confirmDelete}
-                                </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel disabled={isDeleting}>{dict.common.cancel}</AlertDialogCancel>
-                                <AlertDialogAction
-                                    onClick={(e) => {
-                                        e.preventDefault()
-                                        handleDelete()
-                                    }}
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    disabled={isDeleting}
-                                >
-                                    {isDeleting && <LoadingSpinner size={16} className="mr-2 text-current" />}
-                                    {dict.common.delete || '删除'}
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                        <Pencil className="h-5 w-5" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => { closeSwipe(); setDeleteDialogOpen(true) }}
+                        className="w-1/2 bg-destructive/10 text-destructive flex items-center justify-center"
+                    >
+                        <Trash2 className="h-5 w-5" />
+                    </button>
                 </div>
             </div>
 
-            {action.description && isExpanded && (
-                <div className="mt-3 pl-11 pr-4 animate-in slide-in-from-top-2 duration-200">
-                    <div className="p-3 rounded-lg bg-secondary/30 text-sm text-muted-foreground border border-border/50 whitespace-pre-wrap leading-relaxed">
-                        {action.description}
+            <motion.div
+                initial={{ x: 0 }}
+                animate={controls}
+                drag="x"
+                dragConstraints={{ left: -128, right: 0 }}
+                dragElastic={0.06}
+                dragMomentum={false}
+                onDragEnd={handleDragEnd}
+                style={{ touchAction: 'pan-y' }}
+                className="relative z-10 flex flex-col bg-card p-4 cursor-grab active:cursor-grabbing"
+            >
+                <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-4 flex-1 min-w-0">
+                        <form action={toggleAction} className="mt-1">
+                            <input type="hidden" name="id" value={action.id} />
+                            <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
+                            <CompleteButton completed={action.completed} type={action.type} />
+                        </form>
+                        <div className="flex-1 space-y-1 min-w-0">
+                            <p className={`font-medium text-sm break-words ${action.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                                {action.title}
+                            </p>
+                            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
+                                {isOverdue && (
+                                    <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 font-medium border border-red-500/20">
+                                        {dict.today.delayed}
+                                    </span>
+                                )}
+                                <span className="capitalize px-2 py-0.5 rounded-full bg-secondary/50 font-medium text-secondary-foreground border border-border/50">
+                                    {dict.today.types[action.type as keyof typeof dict.today.types] || action.type}
+                                </span>
+                                <span className={cn(
+                                    "capitalize px-2 py-0.5 rounded-full font-medium border",
+                                    getPriorityColor(action.priority)
+                                )}>
+                                    {getPriorityLabel(action.priority)}
+                                </span>
+                                <span className="font-mono text-[10px] opacity-70 flex items-center gap-1">
+                                    <Calendar className="h-3 w-3" />
+                                    {format(new Date(action.start_date), 'MM-dd')}
+                                    {action.end_date && action.end_date !== action.start_date && ` ~ ${format(new Date(action.end_date), 'MM-dd')}`}
+                                </span>
+                                {action.goals?.title && showGoalTitle && (
+                                    <span className="flex items-center gap-1 opacity-70">
+                                        <span className="w-1 h-1 rounded-full bg-muted-foreground/50" />
+                                        {action.goals.title}
+                                    </span>
+                                )}
+                                {action.description && (
+                                    <button
+                                        onClick={() => setIsExpanded(!isExpanded)}
+                                        className="ml-2 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-medium bg-muted/50 hover:bg-muted text-muted-foreground transition-colors"
+                                    >
+                                        <AlignLeft className="h-3 w-3" />
+                                        <span>{isExpanded ? dict.common.showLess : dict.common.showMore}</span>
+                                        {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => { closeSwipe(); setIsEditing(true) }}
+                            className="h-9 w-9 lg:h-8 lg:w-8 rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors"
+                            disabled={isLoading}
+                        >
+                            <Pencil className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
+                            <span className="sr-only">{dict.common.edit}</span>
+                        </Button>
+
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => { closeSwipe(); setDeleteDialogOpen(true) }}
+                            className="h-9 w-9 lg:h-8 lg:w-8 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                            disabled={isLoading || isDeleting}
+                        >
+                            <Trash2 className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
+                            <span className="sr-only">{dict.common.delete || '删除'}</span>
+                        </Button>
                     </div>
                 </div>
-            )}
+
+                {action.description && isExpanded && (
+                    <div className="mt-3 pl-11 pr-4 animate-in slide-in-from-top-2 duration-200">
+                        <div className="p-3 rounded-lg bg-secondary/30 text-sm text-muted-foreground border border-border/50 whitespace-pre-wrap leading-relaxed">
+                            {action.description}
+                        </div>
+                    </div>
+                )}
+            </motion.div>
+
+            <AlertDialog
+                open={deleteDialogOpen}
+                onOpenChange={(open) => {
+                    setDeleteDialogOpen(open)
+                    if (!open) closeSwipe()
+                }}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{dict.common.delete} {action.title}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {dict.common.confirmDelete}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>{dict.common.cancel}</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => {
+                                e.preventDefault()
+                                handleDelete()
+                            }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            disabled={isDeleting}
+                        >
+                            {isDeleting && <LoadingSpinner size={16} className="mr-2 text-current" />}
+                            {dict.common.delete || '删除'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

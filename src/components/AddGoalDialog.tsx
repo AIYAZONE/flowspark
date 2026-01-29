@@ -18,18 +18,21 @@ type Dict = typeof en
 
 interface AddGoalDialogProps {
   dict: Dict
+  trigger?: React.ReactNode
 }
 
-export function AddGoalDialog({ dict }: AddGoalDialogProps) {
+export function AddGoalDialog({ dict, trigger }: AddGoalDialogProps) {
   const [open, setOpen] = useState(false)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          {dict.goals.newGoal}
-        </Button>
+        {trigger ? trigger : (
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            {dict.goals.newGoal}
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>

@@ -185,7 +185,7 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
         </div>
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="confirm">{dict.reset.confirmLabel}</Label>
+        <Label htmlFor="confirm" required>{dict.reset.confirmLabel}</Label>
         <div className="relative">
           <Input
             id="confirm"

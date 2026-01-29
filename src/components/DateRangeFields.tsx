@@ -22,7 +22,8 @@ interface Props {
 export function DateRangeFields({ defaultStart, defaultEnd, labels, onValidityChange, className }: Props) {
   const [start, setStart] = useState(defaultStart)
   const [end, setEnd] = useState(defaultEnd)
-  const valid = !end || end >= start
+  const valid = !!start && !!end && end >= start
+  const isRangeInvalid = !!start && !!end && end < start
 
   useEffect(() => {
     onValidityChange?.(valid)
@@ -31,7 +32,7 @@ export function DateRangeFields({ defaultStart, defaultEnd, labels, onValidityCh
   return (
     <div className={cn("grid grid-cols-2 gap-4", className)}>
       <div className="grid gap-2">
-        <Label htmlFor="start_date">{labels.start}</Label>
+        <Label htmlFor="start_date" required>{labels.start}</Label>
         <Input
           id="start_date"
           name="start_date"
@@ -45,8 +46,8 @@ export function DateRangeFields({ defaultStart, defaultEnd, labels, onValidityCh
           required
         />
       </div>
-      <div className="grid gap-2">
-        <Label htmlFor="end_date">{labels.end}</Label>
+      <div className="grid gap-2 relative">
+        <Label htmlFor="end_date" required>{labels.end}</Label>
         <Input
           id="end_date"
           name="end_date"
@@ -54,8 +55,9 @@ export function DateRangeFields({ defaultStart, defaultEnd, labels, onValidityCh
           value={end}
           min={start}
           onChange={(e) => setEnd(e.target.value)}
+          required
         />
-        {!valid && <p className="text-xs text-destructive">{labels.error}</p>}
+        {isRangeInvalid && <p className="text-xs text-destructive absolute top-full mt-1 left-0">{labels.error}</p>}
       </div>
     </div>
   )

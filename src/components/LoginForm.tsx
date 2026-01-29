@@ -67,7 +67,7 @@ export function LoginForm({ dict, error: initialError, message }: { dict: Dict, 
         />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="password">{dict.login.passwordLabel}</Label>
+        <Label htmlFor="password" required>{dict.login.passwordLabel}</Label>
         <Input id="password" name="password" type="password" required />
         <div className="flex justify-end">
           <Link href="/forgot" className="text-xs text-primary hover:underline">{dict.login.forgot}</Link>
