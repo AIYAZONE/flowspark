@@ -1,8 +1,8 @@
-'use server';
+'use server'
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { awardXP } from '@/lib/gamification';
+import { awardXP } from '@/lib/gamification-actions';
 
 export async function toggleAction(formData: FormData) {
   const supabase = await createClient();

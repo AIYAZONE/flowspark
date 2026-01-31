@@ -19,19 +19,21 @@ interface FocusCardProps {
   totalActions: number
   completedActions: number
   nextActionTitle?: string
+  className?: string
 }
 
 export function FocusCard({
   dict,
   totalActions,
   completedActions,
-  nextActionTitle
+  nextActionTitle,
+  className
 }: FocusCardProps) {
   const isAllDone = completedActions === totalActions && totalActions > 0
   const progressPercent = totalActions > 0 ? (completedActions / totalActions) * 100 : 0
 
   return (
-    <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-background to-primary/5">
+    <Card className={`relative overflow-hidden border-primary/20 bg-gradient-to-br from-background to-primary/5 ${className}`}>
       <CardContent className="p-6 sm:p-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
 

@@ -216,7 +216,24 @@
 			"streak": "Consecutive Days",
 			"dailyScore": "Daily Score",
 			"activeGoals": "Active Goals",
-			"recentTrend": "30-Day Score Trend"
+			"recentTrend": "30-Day Score Trend",
+			"titles": {
+				"novice": "Novice",
+				"apprentice": "Apprentice",
+				"adept": "Adept",
+				"expert": "Expert",
+				"master": "Master",
+				"legend": "Legend"
+			},
+			"rules": {
+				"title": "Level System",
+				"desc": "Gain XP by completing actions and maintaining streaks.",
+				"core": "Core Action",
+				"maintenance": "Maintenance",
+				"streak": "Daily Streak",
+				"bonus": "Bonus",
+				"levelUp": "Level Up"
+			}
 		},
 		"goals": {
 			"title": "Goal Progress",
