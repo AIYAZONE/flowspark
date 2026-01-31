@@ -53,7 +53,14 @@ export function ScoreCard({
   return (
     <div className={`rounded-lg border bg-card/50 backdrop-blur-sm p-4 flex flex-col justify-between ${className}`}>
       <div className="flex items-center justify-between mb-2">
-        <div className="text-sm font-medium">{dict.dashboard.dailyScore}</div>
+        <div className="min-w-0">
+          <div className="text-sm font-medium">{dict.dashboard.dailyScore}</div>
+          {dict.dashboard.dailyScoreDesc && (
+            <div className="text-xs text-muted-foreground mt-0.5">
+              {dict.dashboard.dailyScoreDesc}
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <div className="text-xl font-bold">{score ?? '-'}</div>
           <div className="text-muted-foreground text-sm">/ 5</div>
