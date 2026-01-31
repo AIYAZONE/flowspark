@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -101,10 +102,13 @@ export function AvatarUploader({
             aria-label="Upload avatar"
           >
             {(previewUrl || avatarUrl || currentUrl) ? (
-              <img
-                src={previewUrl || avatarUrl || currentUrl || undefined}
+              <Image
+                src={previewUrl || avatarUrl || currentUrl || ''}
                 alt="avatar"
-                className="h-full w-full object-cover transition-opacity group-hover:opacity-75"
+                fill
+                className="object-cover transition-opacity group-hover:opacity-75"
+                unoptimized={!!previewUrl}
+                sizes="80px"
                 onError={() => {
                   setPreviewUrl(null)
                   setAvatarUrl('')

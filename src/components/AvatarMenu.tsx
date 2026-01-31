@@ -5,6 +5,7 @@ import { useFormStatus } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import Link from 'next/link'
+import Image from 'next/image'
 import { signOut } from '@/app/(auth)/login/actions'
 import { User, Settings, LogOut } from 'lucide-react'
 
@@ -52,11 +53,11 @@ export function AvatarMenu({
     <div className="relative flex items-center justify-center" ref={ref}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-primary/20 bg-primary/10 overflow-hidden"
+        className="relative inline-flex items-center justify-center w-9 h-9 rounded-full border border-primary/20 bg-primary/10 overflow-hidden"
         aria-label="Open account menu"
       >
         {avatarUrl ? (
-          <img src={avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+          <Image src={avatarUrl} alt="avatar" fill className="object-cover" sizes="36px" />
         ) : (
           <span className="text-sm font-semibold text-foreground">{letter}</span>
         )}

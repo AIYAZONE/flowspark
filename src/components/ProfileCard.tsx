@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -165,13 +166,17 @@ export function ProfileCard({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 md:gap-6">
                 {avatarUrl ? (
-                  <img
-                    key={avatarUrl}
-                    src={avatarUrl}
-                    alt="avatar"
-                    className="h-16 w-16 md:h-24 md:w-24 rounded-full ring-4 ring-background shadow-sm object-cover"
-                    onError={() => { setAvatarUrl('') }}
-                  />
+                  <div className="relative h-16 w-16 md:h-24 md:w-24 rounded-full ring-4 ring-background shadow-sm overflow-hidden">
+                    <Image
+                      key={avatarUrl}
+                      src={avatarUrl}
+                      alt="avatar"
+                      fill
+                      className="object-cover"
+                      sizes="(max-width: 768px) 64px, 96px"
+                      onError={() => { setAvatarUrl('') }}
+                    />
+                  </div>
                 ) : (
                   <div className="inline-flex items-center justify-center h-16 w-16 md:h-24 md:w-24 rounded-full bg-primary/10 text-primary ring-4 ring-background shadow-sm text-2xl md:text-4xl font-bold">
                     {(userEmail?.[0] || '-').toUpperCase()}
