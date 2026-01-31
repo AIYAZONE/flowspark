@@ -216,7 +216,24 @@
 			"streak": "连续打卡天数",
 			"dailyScore": "今日评分",
 			"activeGoals": "活跃目标",
-			"recentTrend": "30天状态评分走势"
+			"recentTrend": "30天状态评分走势",
+			"titles": {
+				"novice": "新手",
+				"apprentice": "学徒",
+				"adept": "熟练者",
+				"expert": "专家",
+				"master": "大师",
+				"legend": "传奇"
+			},
+			"rules": {
+				"title": "等级体系",
+				"desc": "通过完成行动和保持连胜来获取经验值。",
+				"core": "核心行动",
+				"maintenance": "日常维持",
+				"streak": "每日连胜",
+				"bonus": "额外奖励",
+				"levelUp": "升级"
+			}
 		},
 		"goals": {
 			"title": "目标推进度",

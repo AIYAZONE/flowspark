@@ -27,6 +27,7 @@ interface DailyPlanningCardProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dictFull: any 
   defaultDate: string
+  className?: string
 }
 
 export function DailyPlanningCard({
@@ -35,11 +36,12 @@ export function DailyPlanningCard({
   yesterdayScore,
   goals,
   dictFull,
-  defaultDate
+  defaultDate,
+  className
 }: DailyPlanningCardProps) {
   return (
-    <div className="relative">
-      <Card className="overflow-hidden border-dashed border-2 border-muted hover:border-primary/20 transition-colors">
+    <div className={`relative ${className}`}>
+      <Card className="h-full overflow-hidden border-dashed border-2 border-muted hover:border-primary/20 transition-colors">
         <CardContent className="p-8 sm:p-10 flex flex-col items-center text-center">
           <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-6">
             <Calendar className="w-8 h-8 text-muted-foreground" />

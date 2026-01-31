@@ -294,8 +294,8 @@ export default async function DashboardPage() {
 
       {!isStage0 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column (Main Focus) */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Row 1: Focus & Level (Height Aligned) */}
+          <div className="lg:col-span-2">
             {/* Today's Focus Card */}
             {isStage1 ? (
               <DailyPlanningCard
@@ -305,6 +305,7 @@ export default async function DashboardPage() {
                 goals={goalsData?.map(g => ({ id: g.id, title: g.title, status: g.status })) || []}
                 dictFull={dict}
                 defaultDate={today}
+                className="h-full"
               />
             ) : (
               <FocusCard
@@ -312,9 +313,24 @@ export default async function DashboardPage() {
                 totalActions={actions.length}
                 completedActions={actions.filter(a => a.completed).length}
                 nextActionTitle={actions.find(a => !a.completed)?.title}
+                className="h-full"
               />
             )}
+          </div>
 
+          <div className="lg:col-span-1">
+            <LevelCard
+              dict={dict}
+              level={currentLevel}
+              currentXP={currentXP}
+              nextLevelXP={Math.floor(nextLevelXP)}
+              lastLog={lastLog}
+              className="h-full"
+            />
+          </div>
+
+          {/* Row 2: Main Content (Left) & Analysis (Right) */}
+          <div className="lg:col-span-2 space-y-6">
             {/* Goal Progress List (New) */}
             <GoalProgressList dict={dict} goals={goalProgressList} />
 
@@ -326,14 +342,7 @@ export default async function DashboardPage() {
           </div>
 
           {/* Right Column (Analysis) */}
-          <div className="space-y-6">
-            <LevelCard
-              dict={dict}
-              level={currentLevel}
-              currentXP={currentXP}
-              nextLevelXP={Math.floor(nextLevelXP)}
-              lastLog={lastLog}
-            />
+          <div className="lg:col-span-1 space-y-6">
             <FocusDistributionChart dict={dict} data={distributionData} />
           </div>
         </div>
