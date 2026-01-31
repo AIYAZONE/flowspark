@@ -4,7 +4,7 @@ import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianG
 import { subDays, format, isSameDay, parseISO } from "date-fns"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-export function ScoreTrendChart({ data, title, scoreLabel = 'Score' }: { data: { date: string, score: number }[], title: string, scoreLabel?: string }) {
+export function ScoreTrendChart({ data, title, description, scoreLabel = 'Score' }: { data: { date: string, score: number }[], title: string, description?: string, scoreLabel?: string }) {
   // Generate last 30 days to ensure consistent X-axis spacing
   const today = new Date()
   const chartData = Array.from({ length: 30 }).map((_, i) => {
@@ -26,7 +26,12 @@ export function ScoreTrendChart({ data, title, scoreLabel = 'Score' }: { data: {
     <Card className="col-span-1 shadow-sm border-border/60">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
-        <p className="text-sm text-muted-foreground">
+        {description && (
+          <p className="text-sm text-muted-foreground">
+            {description}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
           {format(subDays(today, 29), 'yyyy-MM-dd')} 至 {format(today, 'yyyy-MM-dd')}
         </p>
       </CardHeader>

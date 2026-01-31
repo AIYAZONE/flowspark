@@ -1,4 +1,4 @@
-import { differenceInDays } from 'date-fns'
+import { format, parseISO, subDays } from 'date-fns'
 import { createClient } from '@/lib/supabase/server'
 import { ScoreTrendChart } from '@/components/ScoreTrendChart'
 import { getDictionary } from '@/i18n/get-dictionary'
@@ -226,20 +226,30 @@ export default async function DashboardPage() {
     recentScores = fallbackRecent.data ?? []
   }
 
-  // Simple streak calculation
-  let streak = 0
-  if (recentScores && recentScores.length > 0) {
-    const latestScoreDate = recentScores[0].score_date
-    const todayDate = new Date(today)
-    const latestDate = new Date(latestScoreDate)
-    const diffDays = differenceInDays(todayDate, latestDate)
+  const dateFormatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  })
 
-    if (diffDays <= 1) {
-      streak = 1
-      for (let i = 1; i < recentScores.length; i++) {
-        const prevDate = new Date(recentScores[i - 1].score_date)
-        const currDate = new Date(recentScores[i].score_date)
-        if (differenceInDays(prevDate, currDate) === 1) {
+  const completedDateSet = new Set(
+    (completedActions || [])
+      .map(a => (a.updated_at ? dateFormatter.format(new Date(a.updated_at)) : null))
+      .filter((d): d is string => !!d)
+  )
+
+  let streak = 0
+  if (completedDateSet.size > 0) {
+    const todayDate = parseISO(today)
+    const todayStr = format(todayDate, 'yyyy-MM-dd')
+    const yesterdayStr = format(subDays(todayDate, 1), 'yyyy-MM-dd')
+
+    const startOffset = completedDateSet.has(todayStr) ? 0 : (completedDateSet.has(yesterdayStr) ? 1 : null)
+    if (startOffset != null) {
+      for (let i = startOffset; ; i++) {
+        const d = format(subDays(todayDate, i), 'yyyy-MM-dd')
+        if (completedDateSet.has(d)) {
           streak++
         } else {
           break
@@ -327,12 +337,12 @@ export default async function DashboardPage() {
 
           <div className="lg:col-span-1">
             {/* Daily Score Card (Input) */}
-            <ScoreCard 
-              dict={dict} 
-              today={today} 
-              recent7={chartData.slice(0, 7)} 
+            <ScoreCard
+              dict={dict}
+              today={today}
+              recent7={chartData.slice(0, 7)}
               currentScore={dailyScore ?? null}
-              className="h-full" 
+              className="h-full"
             />
           </div>
 
@@ -342,8 +352,13 @@ export default async function DashboardPage() {
             <GoalProgressList dict={dict} goals={goalProgressList} />
 
             {/* Score Trend Chart - In Main Column */}
-            <ScoreTrendChart data={chartData} title={dict.dashboard.recentTrend} scoreLabel={dict.dashboard.submitScore} />
-          
+            <ScoreTrendChart
+              data={chartData}
+              title={dict.dashboard.recentTrend}
+              description={dict.dashboard.recentTrendDesc}
+              scoreLabel={dict.dashboard.submitScore}
+            />
+
             {/* Consistency Calendar - In Main Column */}
             <ActivityHeatmap dict={dict} data={heatmapData} />
           </div>
