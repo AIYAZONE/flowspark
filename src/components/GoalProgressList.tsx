@@ -33,7 +33,7 @@ export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
   }
 
   return (
-    <Card className="col-span-1 shadow-sm border-border/60">
+    <Card className="col-span-1 shadow-sm border-border/60 md:pb-6">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div className="space-y-1">
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
@@ -42,14 +42,14 @@ export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
           </CardTitle>
           <p className="text-xs text-muted-foreground">{dict.dashboard.goals.progressTip}</p>
         </div>
-        <Link 
-          href="/goals" 
+        <Link
+          href="/goals"
           className="text-xs font-medium text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors px-2 py-1 rounded-md hover:bg-muted"
         >
           {dict.dashboard.goals.viewAll} <ArrowRight className="h-3 w-3" />
         </Link>
       </CardHeader>
-      <CardContent className="grid gap-6 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+      <CardContent className="grid gap-6 overflow-y-auto custom-scrollbar max-h-none md:max-h-[400px] md:pb-6">
         {goals.length === 0 ? (
           <div className="text-center py-8 px-4 text-sm text-muted-foreground bg-muted/20 rounded-lg border border-dashed flex flex-col items-center gap-2">
             <span>{dict.dashboard.goals.noGoals || "No active goals to focus on."}</span>
@@ -61,7 +61,7 @@ export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
           goals.map((goal) => (
             <div key={goal.id} className="space-y-3">
               <div className="flex items-start justify-between text-sm gap-4">
-                <div className="space-y-1 min-w-0">
+                <div className="space-y-1 min-w-0 flex-1">
                   <div className="font-semibold truncate text-foreground">{goal.title}</div>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <span>{goal.completedActions} / {goal.totalActions} {dict.dashboard.goals.actions}</span>
@@ -75,14 +75,14 @@ export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
                     )}
                   </div>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0 w-[45px]">
                   <span className="text-sm font-bold font-mono text-foreground">
                     {Math.round(goal.progress)}%
                   </span>
                 </div>
               </div>
               <div className="h-2.5 w-full bg-muted/50 rounded-full overflow-hidden">
-                <div 
+                <div
                   className={`h-full transition-all duration-500 ease-out rounded-full ${getProgressColor(goal.progress)}`}
                   style={{ width: `${goal.progress}%` }}
                 />

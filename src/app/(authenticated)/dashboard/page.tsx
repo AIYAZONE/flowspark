@@ -280,8 +280,15 @@ export default async function DashboardPage() {
             />
           </div>
 
-          {/* Daily Score Card - Takes 1 column */}
-          <ScoreCard dict={dict} today={today} recent7={chartData.slice(0, 7)} currentScore={dailyScore ?? null} />
+          {/* Level Card (Status) - Takes 1 column */}
+          <LevelCard
+            dict={dict}
+            level={currentLevel}
+            currentXP={currentXP}
+            nextLevelXP={Math.floor(nextLevelXP)}
+            lastLog={lastLog}
+            className="h-full"
+          />
         </div>
       )}
 
@@ -294,7 +301,7 @@ export default async function DashboardPage() {
 
       {!isStage0 && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Row 1: Focus & Level (Height Aligned) */}
+          {/* Row 1: Focus & Score (Action Zone) */}
           <div className="lg:col-span-2">
             {/* Today's Focus Card */}
             {isStage1 ? (
@@ -319,13 +326,13 @@ export default async function DashboardPage() {
           </div>
 
           <div className="lg:col-span-1">
-            <LevelCard
-              dict={dict}
-              level={currentLevel}
-              currentXP={currentXP}
-              nextLevelXP={Math.floor(nextLevelXP)}
-              lastLog={lastLog}
-              className="h-full"
+            {/* Daily Score Card (Input) */}
+            <ScoreCard 
+              dict={dict} 
+              today={today} 
+              recent7={chartData.slice(0, 7)} 
+              currentScore={dailyScore ?? null}
+              className="h-full" 
             />
           </div>
 
