@@ -2,19 +2,29 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { awardXP } from '@/lib/gamification';
 
 export async function toggleAction(formData: FormData) {
   const supabase = await createClient();
   const id = formData.get('id') as string;
   const currentCompleted = formData.get('completed') === 'true';
+  const nextCompleted = !currentCompleted;
 
-  await supabase
+  const { data: action } = await supabase
     .from('actions')
     .update({ 
-      completed: !currentCompleted,
+      completed: nextCompleted,
       updated_at: new Date().toISOString()
     })
-    .eq('id', id);
+    .eq('id', id)
+    .select('user_id, type')
+    .single();
+
+  if (action && nextCompleted) {
+    // Award XP only on completion
+    const source = action.type === 'core' ? 'core_action' : 'maintenance_action';
+    await awardXP(action.user_id, source, id);
+  }
 
   revalidatePath('/dashboard');
   revalidatePath('/today');
