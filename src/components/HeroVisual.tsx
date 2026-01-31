@@ -1,6 +1,6 @@
 "use client"
 
-import { motion } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { Sparkles, Zap, Gift } from "lucide-react"
 
 interface HeroVisualProps {
@@ -18,20 +18,30 @@ interface HeroVisualProps {
 }
 
 export function HeroVisual({ dict }: HeroVisualProps) {
+  const shouldReduceMotion = useReducedMotion()
+
   return (
     <div className="relative w-full max-w-[500px] aspect-[4/5] mx-auto lg:mx-0">
       {/* Background Glow */}
-      <motion.div 
-        animate={{ 
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.5, 0.3],
-          rotate: [0, 90, 0] 
-        }}
-        transition={{ 
-          duration: 10,
-          repeat: Infinity,
-          ease: "linear" 
-        }}
+      <motion.div
+        animate={
+          shouldReduceMotion
+            ? { opacity: 0.35 }
+            : {
+                scale: [1, 1.2, 1],
+                opacity: [0.3, 0.5, 0.3],
+                rotate: [0, 90, 0],
+              }
+        }
+        transition={
+          shouldReduceMotion
+            ? { duration: 0 }
+            : {
+                duration: 10,
+                repeat: Infinity,
+                ease: "linear",
+              }
+        }
         className="absolute inset-0 bg-gradient-to-tr from-primary/30 via-purple-500/30 to-blue-500/30 blur-3xl rounded-full"
       />
 
@@ -40,9 +50,9 @@ export function HeroVisual({ dict }: HeroVisualProps) {
         
         {/* Card 1: Vague Ambition Input */}
         <motion.div
-          initial={{ x: -50, opacity: 0 }}
+          initial={shouldReduceMotion ? false : { x: -50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { delay: 0.2, duration: 0.5 }}
           className="bg-background/80 backdrop-blur-md border border-border p-4 rounded-xl shadow-lg transform -rotate-3"
         >
           <div className="flex items-center gap-3 mb-2">
@@ -56,9 +66,9 @@ export function HeroVisual({ dict }: HeroVisualProps) {
 
         {/* Arrow Connection */}
         <motion.div 
-          initial={{ opacity: 0, scale: 0 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, scale: 0 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.8, duration: 0.3 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { delay: 0.8, duration: 0.3 }}
           className="self-center text-primary"
         >
           <Zap className="w-8 h-8 fill-primary/20" />
@@ -66,9 +76,9 @@ export function HeroVisual({ dict }: HeroVisualProps) {
 
         {/* Card 2: AI Micro-Quest Generation */}
         <motion.div
-          initial={{ x: 50, opacity: 0 }}
+          initial={shouldReduceMotion ? false : { x: 50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 1.2, duration: 0.5 }}
+          transition={shouldReduceMotion ? { duration: 0 } : { delay: 1.2, duration: 0.5 }}
           className="bg-gradient-to-br from-background to-primary/5 backdrop-blur-md border border-primary/20 p-5 rounded-xl shadow-xl transform rotate-3"
         >
           <div className="flex items-center justify-between mb-3">
@@ -95,9 +105,13 @@ export function HeroVisual({ dict }: HeroVisualProps) {
 
         {/* Card 3: Reward Unlocked (Pop-up effect) */}
         <motion.div
-          initial={{ y: 50, opacity: 0, scale: 0.8 }}
+          initial={shouldReduceMotion ? false : { y: 50, opacity: 0, scale: 0.8 }}
           animate={{ y: 0, opacity: 1, scale: 1 }}
-          transition={{ delay: 2.5, type: "spring", bounce: 0.5 }}
+          transition={
+            shouldReduceMotion
+              ? { duration: 0 }
+              : { delay: 2.5, type: "spring", bounce: 0.5 }
+          }
           className="absolute -right-4 -bottom-4 bg-foreground text-background p-4 rounded-xl shadow-2xl border border-border max-w-[200px]"
         >
           <div className="flex items-start gap-3">
