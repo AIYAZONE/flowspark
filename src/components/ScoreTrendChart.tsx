@@ -23,7 +23,7 @@ export function ScoreTrendChart({ data, title, scoreLabel = 'Score' }: { data: {
   })
 
   return (
-    <Card className="col-span-1 sm:col-span-2 lg:col-span-4">
+    <Card className="col-span-1 shadow-sm border-border/60">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <p className="text-sm text-muted-foreground">

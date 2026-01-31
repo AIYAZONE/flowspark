@@ -1,19 +1,20 @@
-import { format, differenceInDays } from 'date-fns'
-import Link from 'next/link'
-import { CheckCircle2, Circle, Flame } from 'lucide-react'
-
+import { differenceInDays } from 'date-fns'
 import { createClient } from '@/lib/supabase/server'
-import { cn } from '@/lib/utils'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { ScoreTrendChart } from '@/components/ScoreTrendChart'
-import { SetCoreActionSheet } from '@/components/SetCoreActionSheet'
-import { toggleAction, submitScore } from './actions'
 import { getDictionary } from '@/i18n/get-dictionary'
-import { ActionListCompact } from '@/components/ActionListCompact'
-import { ScoreCard } from '@/components/ScoreCard'
-import { StreakCard } from '@/components/StreakCard'
 import { getUserTimezone, getTodayInTZ } from '@/lib/time'
+import { DashboardWelcome } from '@/components/DashboardWelcome'
+import { OnboardingHero } from '@/components/OnboardingHero'
+import { DailyPlanningCard } from '@/components/DailyPlanningCard'
+import { FocusCard } from '@/components/FocusCard'
+import { LevelCard } from '@/components/LevelCard'
+import { FocusDistributionChart } from '@/components/FocusDistributionChart'
+import { ActivityHeatmap } from '@/components/ActivityHeatmap'
+import { ScoreCard } from '@/components/ScoreCard'
+import { StatCard } from '@/components/StatCard'
+import { StreakCard } from '@/components/StreakCard'
+import { GoalProgressList } from '@/components/GoalProgressList'
+import { Target, Star } from 'lucide-react'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -22,10 +23,29 @@ export default async function DashboardPage() {
   if (!user) return null
   const tz = await getUserTimezone(supabase, user.id)
   const today = getTodayInTZ(tz)
-  // Calculate yesterday to ensure we cover timezones where 'today' starts earlier than UTC
   const yesterdayDate = new Date(today);
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
   const yesterday = yesterdayDate.toISOString().split('T')[0];
+
+  // Fetch user profile for name and XP
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('name, xp, level')
+    .eq('id', user.id)
+    .single()
+
+  const currentXP = profile?.xp || 0
+  const currentLevel = profile?.level || 1
+  const nextLevelXP = 100 * Math.pow(1.2, currentLevel - 1)
+
+  // Fetch recent XP log
+  const { data: lastLog } = await supabase
+    .from('xp_logs')
+    .select('amount, source')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
 
   // Fetch today's core action
   const { data: rawActions } = await supabase
@@ -45,15 +65,60 @@ export default async function DashboardPage() {
     .order('completed', { ascending: true })
     .order('start_date', { ascending: true })
 
+  // Fetch completed actions for Heatmap (Last 365 days for now, can be expanded)
+  const oneYearAgo = new Date()
+  oneYearAgo.setDate(oneYearAgo.getDate() - 365)
+
+  const { data: completedActions } = await supabase
+    .from('actions')
+    .select('updated_at')
+    .eq('user_id', user.id)
+    .eq('completed', true)
+    .gte('updated_at', oneYearAgo.toISOString())
+
+  // Prepare Heatmap Data
+  const heatmapData = completedActions?.reduce((acc, curr) => {
+    const date = curr.updated_at?.split('T')[0]
+    if (!date) return acc
+    const existing = acc.find(d => d.date === date)
+    if (existing) {
+      existing.count++
+    } else {
+      acc.push({ date, count: 1 })
+    }
+    return acc
+  }, [] as { date: string; count: number }[]) || []
+
+  // Fetch actions type distribution
+  const { data: actionsType } = await supabase
+    .from('actions')
+    .select('type')
+    .eq('user_id', user.id)
+
+  const typeCount = actionsType?.reduce((acc, curr) => {
+    const type = curr.type || 'other'
+    acc[type] = (acc[type] || 0) + 1
+    return acc
+  }, {} as Record<string, number>) || {}
+
+  const distributionData = Object.entries(typeCount).map(([type, count]) => {
+    let color = '#6b7280'
+    let name = type
+    if (type === 'core') { color = '#059669'; name = dict.today.types.core }
+    if (type === 'learning') { color = '#3b82f6'; name = dict.today.types.learning }
+    if (type === 'maintenance') { color = '#f59e0b'; name = dict.today.types.maintenance }
+    if (type === 'health') { color = '#ec4899'; name = dict.today.types.rest } // Using rest label for health logic if similar
+
+    return { name, value: count, color }
+  })
+
   // Filter actions in JS to accurately handle timezone "today"
   const actions = rawActions?.filter(action => {
-    // If it's a regular active action or incomplete delayed action, keep it
     const isRegular = action.start_date <= today && (action.end_date || action.start_date) >= today;
     const isDelayedIncomplete = !action.completed && (action.end_date || action.start_date) < today;
 
     if (isRegular || isDelayedIncomplete) return true;
 
-    // For completed delayed actions, strictly check if updated_at is "today" in user's timezone
     if (action.completed && action.updated_at) {
       const updatedDate = new Intl.DateTimeFormat('en-CA', {
         timeZone: tz,
@@ -65,7 +130,7 @@ export default async function DashboardPage() {
     }
 
     return false;
-  });
+  }) || [];
 
   // Fetch daily score
   let { data: scores } = await supabase
@@ -74,6 +139,7 @@ export default async function DashboardPage() {
     .eq('score_date', today)
     .eq('owner_id', user.id)
     .maybeSingle()
+
   if (!scores) {
     const fallback = await supabase
       .from('daily_scores')
@@ -86,12 +152,61 @@ export default async function DashboardPage() {
 
   const dailyScore = scores?.score
 
-  // Fetch active goals
-  const { data: goals } = await supabase
+  // Fetch yesterday score for planning card
+  const { data: yesterdayScores } = await supabase
+    .from('daily_scores')
+    .select('score')
+    .eq('score_date', yesterday)
+    .eq('owner_id', user.id)
+    .maybeSingle()
+
+  // Fetch active goals WITH actions count
+  const { data: goalsData } = await supabase
     .from('goals')
-    .select('*, actions(count)')
+    .select('id, title, status, priority, start_date, end_date, actions(id, completed)')
     .eq('status', 'active')
     .eq('user_id', user.id)
+
+  const activeGoalsCount = goalsData?.length || 0
+
+  // Process goals for GoalProgressList
+  // Strategy: Align with GoalListFilter.tsx logic
+  // Priority > End Date > Start Date
+  const goalProgressList = goalsData?.map(g => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const total = (g.actions as any[])?.length || 0
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const completed = (g.actions as any[])?.filter((a: any) => a.completed).length || 0
+    const progress = total > 0 ? (completed / total) * 100 : 0
+
+    return {
+      id: g.id,
+      title: g.title,
+      totalActions: total,
+      completedActions: completed,
+      progress,
+      priority: g.priority || 'medium',
+      end_date: g.end_date,
+      start_date: g.start_date || ''
+    }
+  })
+    .sort((a, b) => {
+      // 1. Priority: High > Medium > Low
+      const pMap: Record<string, number> = { high: 3, medium: 2, low: 1 }
+      const pA = pMap[a.priority] || 2
+      const pB = pMap[b.priority] || 2
+      if (pA !== pB) return pB - pA
+
+      // 2. End Date: Urgent first (Sooner < Later)
+      if (a.end_date !== b.end_date) {
+        if (!a.end_date) return 1 // No deadline -> Last
+        if (!b.end_date) return -1
+        return new Date(a.end_date).getTime() - new Date(b.end_date).getTime()
+      }
+
+      // 3. Start Date: Sooner first
+      return new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+    }) || []
 
   // Fetch recent scores for trend and streak
   let { data: recentScores } = await supabase
@@ -100,6 +215,7 @@ export default async function DashboardPage() {
     .eq('owner_id', user.id)
     .order('score_date', { ascending: false })
     .limit(30)
+
   if (!recentScores || recentScores.length === 0) {
     const fallbackRecent = await supabase
       .from('daily_scores')
@@ -113,7 +229,6 @@ export default async function DashboardPage() {
   // Simple streak calculation
   let streak = 0
   if (recentScores && recentScores.length > 0) {
-    // Check if today or yesterday has a score
     const latestScoreDate = recentScores[0].score_date
     const todayDate = new Date(today)
     const latestDate = new Date(latestScoreDate)
@@ -135,102 +250,94 @@ export default async function DashboardPage() {
 
   const chartData = recentScores?.map(s => ({ date: s.score_date, score: s.score })) || []
 
+  // Determine Dashboard Stage
+  // Stage 0: Onboarding (No Goals)
+  // Stage 1: Planning (Has Goals, No Actions)
+  // Stage 2: Flow (Has Actions)
+  const isStage0 = activeGoalsCount === 0
+  const isStage1 = !isStage0 && actions.length === 0
+  const isStage2 = !isStage0 && actions.length > 0
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold tracking-tight">{dict.dashboard.title}</h1>
+    <div className="space-y-6 pb-10">
+      {/* 1. Header & Welcome */}
+      <DashboardWelcome
+        dict={dict.dashboard.welcome}
+        name={profile?.name || user.email?.split('@')[0] || 'Flow Seeker'}
+        isNewUser={isStage0}
+      />
 
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-        {/* Core Action Card */}
-        <Card className="col-span-1 sm:col-span-2 relative overflow-hidden bg-primary/5 border-primary/20">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-50/60 to-transparent pointer-events-none dark:from-emerald-950/30" />
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg font-semibold text-emerald-700 dark:text-emerald-300">{dict.dashboard.todayCoreAction}</CardTitle>
-              <span className={`text-xs rounded-full px-2 py-0.5 ${((actions?.filter(a => !a.completed).length ?? 0) > 0)
-                ? 'bg-amber-100 text-amber-700'
-                : 'bg-emerald-100 text-emerald-700'
-                }`}>
-                {(actions?.filter(a => !a.completed).length ?? 0)} / {(actions?.length ?? 0)}
-              </span>
-            </div>
-            <div className="mt-2 h-1 bg-primary/10 rounded">
-              <div
-                className="h-1 bg-primary rounded transition-all shadow-sm shadow-primary/20"
-                style={{
-                  width: `${(actions && actions.length > 0)
-                    ? Math.round(((actions.length - (actions.filter(a => !a.completed).length)) / actions.length) * 100)
-                    : 0}%`
-                }}
-              />
-            </div>
-          </CardHeader>
-          <CardContent>
-            {actions && actions.length > 0 ? (
-              <ActionListCompact actions={actions || []} dict={dict} today={today} showInProgressBadge={false} />
-            ) : (
-              <div className="text-muted-foreground">
-                {dict.dashboard.noCoreAction}
-                <SetCoreActionSheet goals={goals || []} dict={dict} defaultDate={today} />
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Daily Score Card */}
-        <ScoreCard dict={dict} today={today} recent7={chartData.slice(0, 7)} currentScore={dailyScore ?? null} />
-
-        {/* Streak Card */}
-        <StreakCard dict={dict} streak={streak} nextMilestone={10} recent7={chartData.slice(-7)} />
-
-        {/* Trend Chart */}
-        <ScoreTrendChart data={chartData} title={dict.dashboard.recentTrend} scoreLabel={dict.dashboard.submitScore} />
-      </div>
-
-      {/* Active Goals Progress */}
-      <h2 className="text-xl font-semibold mt-8 mb-4">{dict.dashboard.activeGoals}</h2>
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-        {goals?.map((goal) => {
-          const startDate = new Date(goal.start_date)
-          const endDate = new Date(goal.end_date)
-          const now = new Date()
-          const totalDuration = Math.max(1, differenceInDays(endDate, startDate))
-          const elapsed = differenceInDays(now, startDate)
-          const progress = Math.min(100, Math.max(0, Math.round((elapsed / totalDuration) * 100)))
-
-          return (
-            <Link key={goal.id} href={`/goals/${goal.id}`} className="block h-full">
-              <Card className="h-full hover:bg-muted/50 transition-colors">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">{goal.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm text-muted-foreground mb-2 line-clamp-2 min-h-[40px]">
-                    {goal.description || dict.common.noDescription}
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-medium">
-                      <span>{dict.common.timeProgress}</span>
-                      <span>{progress}%</span>
-                    </div>
-                    <div className="w-full bg-secondary h-2 rounded-full overflow-hidden">
-                      <div className="bg-primary h-full rounded-full transition-all" style={{ width: `${progress}%` }}></div>
-                    </div>
-                  </div>
-                  <div className="flex justify-between text-xs text-muted-foreground mt-2">
-                    <span>{dict.goals.start}: {format(startDate, 'MMM d')}</span>
-                    <span>{dict.goals.end}: {format(endDate, 'MMM d')}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
-          )
-        })}
-        {goals?.length === 0 && (
-          <div className="col-span-full text-center py-10 text-muted-foreground bg-white rounded-lg border border-dashed">
-            {dict.goals.noGoals} <Button variant="link">{dict.goals.createFirst}</Button>
+      {/* 2. Top Stats Row (KPIs) - Only for active users */}
+      {!isStage0 && (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Streak Card - Takes 2 columns for emphasis */}
+          <div className="md:col-span-2">
+            <StreakCard
+              dict={dict}
+              streak={streak}
+              nextMilestone={10}
+              recent7={chartData.slice(-7)}
+            />
           </div>
+
+          {/* Daily Score Card - Takes 1 column */}
+          <ScoreCard dict={dict} today={today} recent7={chartData.slice(0, 7)} currentScore={dailyScore ?? null} />
+        </div>
+      )}
+
+      {/* 3. Main Stage (State Aware) */}
+      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        {isStage0 && (
+          <OnboardingHero dict={dict.dashboard.onboarding} />
         )}
       </div>
+
+      {!isStage0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column (Main Focus) */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Today's Focus Card */}
+            {isStage1 ? (
+              <DailyPlanningCard
+                dict={dict.dashboard.planning}
+                activeGoalsCount={activeGoalsCount}
+                yesterdayScore={yesterdayScores?.score ?? null}
+                goals={goalsData?.map(g => ({ id: g.id, title: g.title, status: g.status })) || []}
+                dictFull={dict}
+                defaultDate={today}
+              />
+            ) : (
+              <FocusCard
+                dict={dict.dashboard.flow}
+                totalActions={actions.length}
+                completedActions={actions.filter(a => a.completed).length}
+                nextActionTitle={actions.find(a => !a.completed)?.title}
+              />
+            )}
+
+            {/* Goal Progress List (New) */}
+            <GoalProgressList dict={dict} goals={goalProgressList} />
+
+            {/* Score Trend Chart - In Main Column */}
+            <ScoreTrendChart data={chartData} title={dict.dashboard.recentTrend} scoreLabel={dict.dashboard.submitScore} />
+          
+            {/* Consistency Calendar - In Main Column */}
+            <ActivityHeatmap dict={dict} data={heatmapData} />
+          </div>
+
+          {/* Right Column (Analysis) */}
+          <div className="space-y-6">
+            <LevelCard
+              dict={dict}
+              level={currentLevel}
+              currentXP={currentXP}
+              nextLevelXP={Math.floor(nextLevelXP)}
+              lastLog={lastLog}
+            />
+            <FocusDistributionChart dict={dict} data={distributionData} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

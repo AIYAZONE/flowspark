@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@import "../../node_modules/tw-animate-css/dist/tw-animate.css";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme {
   --color-background: var(--background);
@@ -25,169 +28,134 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-  --animate-accordion-down: accordion-down 0.2s ease-out;
-  --animate-accordion-up: accordion-up 0.2s ease-out;
-
-  @keyframes accordion-down {
-    from {
-      height: 0;
-    }
-    to {
-      height: var(--radix-accordion-content-height);
-    }
-  }
-  @keyframes accordion-up {
-    from {
-      height: var(--radix-accordion-content-height);
-    }
-    to {
-      height: 0;
-    }
-  }
 }
 
 :root {
-  --header-h: 4rem;
-  /* Ceramic White / Deep Grey */
-  --background: hsl(0 0% 98%); /* #FAFAFA */
-  --foreground: hsl(217 19% 27%); /* #374151 */
+  /* Base: White */
+  --background: #ffffff;
+  --foreground: #09090b;
 
-  /* Card: Pure White with Micro-border intent */
-  --card: hsl(0 0% 100%);
-  --card-foreground: hsl(217 19% 27%);
+  /* Card: White */
+  --card: #ffffff;
+  --card-foreground: #09090b;
 
-  --popover: hsl(0 0% 100%);
-  --popover-foreground: hsl(217 19% 27%);
+  /* Popover */
+  --popover: #ffffff;
+  --popover-foreground: #09090b;
 
-  /* Electric Emerald */
-  --primary: hsl(161 94% 30%); /* #059669 */
-  --primary-foreground: hsl(0 0% 100%);
+  /* Primary: Emerald-600 */
+  --primary: #059669;
+  --primary-foreground: #ffffff;
 
-  /* Aux Grey */
-  --secondary: hsl(220 13% 96%); /* #F3F4F6 */
-  --secondary-foreground: hsl(222.2 47.4% 11.2%);
+  /* Secondary: Zinc-100 */
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
 
-  --muted: hsl(210 40% 96.1%);
-  --muted-foreground: hsl(215 16% 47%); /* #6B7280 */
+  /* Muted: Zinc-100 */
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
 
-  --accent: hsl(210 40% 96.1%);
-  --accent-foreground: hsl(222.2 47.4% 11.2%);
+  /* Accent: Zinc-100 */
+  --accent: #f4f4f5;
+  --accent-foreground: #18181b;
 
-  --destructive: hsl(0 84.2% 60.2%);
-  --destructive-foreground: hsl(210 40% 98%);
+  /* Destructive: Red-500 */
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
 
-  /* Micro-border */
-  --border: hsl(214 32% 91%); /* #E2E8F0 */
-  --input: hsl(214 32% 91%);
-  --ring: hsl(161 94% 30%);
+  /* Border: Zinc-200 */
+  --border: #e4e4e7;
+  --input: #e4e4e7;
+  --ring: #059669; /* Emerald Ring */
 
-  --radius: 0.5rem; /* 8px - Micro rounded */
+  --radius: 0.5rem;
 
-  /* Custom Design Spec Colors */
-  --color-emerald: #059669;
-  --color-blue-holographic: #3B82F6;
-  --color-purple-nebula: #8B5CF6;
-  --color-orange-vitality: #F97316;
+  --chart-1: #e76e50;
+  --chart-2: #2a9d90;
+  --chart-3: #274754;
+  --chart-4: #e8c468;
+  --chart-5: #f4a462;
+
+  /* Sidebar: Zinc-50 */
+  --sidebar: #fafafa;
+  --sidebar-foreground: #09090b;
+  --sidebar-primary: #059669;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f4f4f5;
+  --sidebar-accent-foreground: #18181b;
+  --sidebar-border: #e4e4e7;
+  --sidebar-ring: #059669;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Slate Grey / Light Text */
-    --background: hsl(222 47% 11%); /* #0F172A */
-    --foreground: hsl(210 40% 98%); /* #F8FAFC */
+.dark {
+  /* Base: Zinc-950 */
+  --background: #09090b;
+  --foreground: #fafafa;
 
-    /* Card: Slightly lighter slate */
-    --card: hsl(215 28% 17%); /* #1E293B */
-    --card-foreground: hsl(210 40% 98%);
+  /* Card: Zinc-900 */
+  --card: #18181b;
+  --card-foreground: #fafafa;
 
-    --popover: hsl(222 47% 11%);
-    --popover-foreground: hsl(210 40% 98%);
+  --popover: #18181b;
+  --popover-foreground: #fafafa;
 
-    /* Electric Emerald Light Mode for Dark Background */
-    --primary: hsl(158 64% 52%); /* #34D399 */
-    --primary-foreground: hsl(222 47.4% 11.2%);
+  /* Primary: Emerald-500 */
+  --primary: #10b981;
+  --primary-foreground: #09090b;
 
-    --secondary: hsl(217.2 32.6% 17.5%);
-    --secondary-foreground: hsl(210 40% 98%);
+  /* Secondary: Zinc-800 */
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
 
-    --muted: hsl(217.2 32.6% 17.5%);
-    --muted-foreground: hsl(215 20.2% 65.1%);
+  /* Muted: Zinc-800 */
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
 
-    --accent: hsl(217.2 32.6% 17.5%);
-    --accent-foreground: hsl(210 40% 98%);
+  /* Accent: Zinc-800 */
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
 
-    --destructive: hsl(0 62.8% 30.6%);
-    --destructive-foreground: hsl(210 40% 98%);
+  /* Destructive: Red-900 */
+  --destructive: #7f1d1d;
+  --destructive-foreground: #fafafa;
 
-    --border: hsl(217 33% 17%); /* #1E293B - blended */
-    --input: hsl(217.2 32.6% 17.5%);
-    --ring: hsl(158 64% 52%);
-    
-    /* Custom Design Spec Colors Dark Mode Adjustments if needed */
-  }
+  /* Border: Zinc-800 */
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #10b981;
+
+  --chart-1: #22d3ee;
+  --chart-2: #2a9d90;
+  --chart-3: #274754;
+  --chart-4: #e8c468;
+  --chart-5: #f4a462;
+
+  --sidebar: #18181b;
+  --sidebar-foreground: #fafafa;
+  --sidebar-primary: #10b981;
+  --sidebar-primary-foreground: #09090b;
+  --sidebar-accent: #27272a;
+  --sidebar-accent-foreground: #fafafa;
+  --sidebar-border: #27272a;
+  --sidebar-ring: #10b981;
 }
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-border outline-ring/50;
   }
   body {
     @apply bg-background text-foreground;
-  }
-}
-
-@layer utilities {
-  .auth-bg {
-    position: relative;
-  }
-  .auth-bg::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(800px 400px at 15% 50%, rgba(5,150,105,0.22), transparent 62%),
-      radial-gradient(700px 350px at 85% 50%, rgba(5,150,105,0.16), transparent 62%),
-      radial-gradient(600px 300px at 20% 20%, rgba(59,130,246,0.10), transparent 65%),
-      radial-gradient(600px 300px at 80% 80%, rgba(139,92,246,0.08), transparent 65%);
-    pointer-events: none;
-    z-index: 0;
-    transform: rotate(0deg) scale(1);
-    animation: authGlow 18s ease-in-out infinite alternate;
-  }
-  .auth-bg::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    background:
-      repeating-linear-gradient(135deg, rgba(0,0,0,0.045) 0 1px, transparent 1px 18px),
-      radial-gradient(rgba(0,0,0,0.05) 1px, transparent 1px);
-    background-size:
-      auto,
-      20px 20px;
-    -webkit-mask-image: radial-gradient(120% 80% at 50% 40%, rgba(0,0,0,0.22), rgba(0,0,0,0));
-    mask-image: radial-gradient(120% 80% at 50% 40%, rgba(0,0,0,0.22), rgba(0,0,0,0));
-    pointer-events: none;
-    z-index: 0;
-  }
-  @keyframes authGlow {
-    0% { transform: rotate(0deg) scale(1); }
-    100% { transform: rotate(1.5deg) scale(1.02); }
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  .auth-bg::after {
-    background-image: radial-gradient(rgba(255,255,255,0.05) 1px, transparent 1px);
-    -webkit-mask-image: linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0));
-    mask-image: linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .auth-bg::before {
-    animation: none;
   }
 }

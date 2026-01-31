@@ -40,9 +40,10 @@ interface SetCoreActionSheetProps {
   goals: Goal[] | null
   dict: Dict
   defaultDate: string
+  trigger?: React.ReactNode
 }
 
-export function SetCoreActionSheet({ goals, dict, defaultDate }: SetCoreActionSheetProps) {
+export function SetCoreActionSheet({ goals, dict, defaultDate, trigger }: SetCoreActionSheetProps) {
   const [open, setOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [valid, setValid] = useState(true)
@@ -105,9 +106,11 @@ export function SetCoreActionSheet({ goals, dict, defaultDate }: SetCoreActionSh
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
-        <Button variant="link" className="px-0 text-primary underline">
-          {dict.dashboard.setCoreAction}
-        </Button>
+        {trigger ? trigger : (
+          <Button variant="link" className="px-0 text-primary underline">
+            {dict.dashboard.setCoreAction}
+          </Button>
+        )}
       </SheetTrigger>
       <SheetContent
         side="right"

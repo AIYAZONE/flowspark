@@ -169,9 +169,64 @@
 		"activeGoals": "Active Goals",
 		"currentStreak": "Current Streak",
 		"days": "days",
-		"recentTrend": "Last 30 Days Trend",
+		"recentTrend": "30-Day Score Trend",
 		"noCoreAction": "No core action set for today.",
-		"keepMomentum": "Keep the momentum going!"
+		"keepMomentum": "Keep the momentum going!",
+		"welcome": {
+			"morning": "Good Morning",
+			"afternoon": "Good Afternoon",
+			"evening": "Good Evening",
+			"new": "Welcome to FlowSpark",
+			"startJourney": "Let's start your journey to flow.",
+			"readyToFocus": "Ready to focus on what matters?"
+		},
+		"onboarding": {
+			"heroTitle": "Every great journey begins with a single step.",
+			"heroDesc": "Define your first long-term goal and let FlowSpark break it down into actionable micro-quests.",
+			"createFirstGoal": "Create First Goal",
+			"seeExample": "See Example"
+		},
+		"planning": {
+			"title": "Ready for today?",
+			"desc": "You are tracking {count} active goals. What's your main focus today?",
+			"planBtn": "Plan Today's Actions",
+			"yesterdayReview": "Yesterday's Score: {score}"
+		},
+		"flow": {
+			"title": "Today's Focus",
+			"progress": "{completed} / {total} Core Actions",
+			"nextAction": "Next: {action}",
+			"enterFlow": "Enter Flow Mode",
+			"allDone": "All core actions completed!",
+			"badgeAllDone": "All Done"
+		},
+		"stats": {
+			"level": "Level {level}",
+			"novice": "Novice",
+			"streak": "{days} Day Streak",
+			"score": "{score} Avg",
+			"heatmap": "Yearly Activity Log",
+			"heatmapDesc": "Visualize your daily efforts throughout the year.",
+			"focusDistribution": "Focus Distribution",
+			"xpProgress": "{current} / {max} XP",
+			"recentXP": "+{amount} XP: {source}",
+			"less": "Less",
+			"more": "More",
+			"level": "Level {level}",
+			"streak": "Consecutive Days",
+			"dailyScore": "Daily Score",
+			"activeGoals": "Active Goals",
+			"recentTrend": "30-Day Score Trend"
+		},
+		"goals": {
+			"title": "Goal Progress",
+			"viewAll": "View All",
+			"noGoals": "No active goals yet.",
+			"actions": "actions",
+			"progressTip": "Based on action completion",
+			"overdue": "Overdue",
+			"daysLeft": "{days} days left"
+		}
 	},
 	"today": {
 		"title": "Today's Actions",
@@ -206,7 +261,10 @@
 		"createGoalAndContinue": "Create goal and continue",
 		"later": "Maybe later",
 		"goalCreatedAutoselected": "Goal created and preselected for you",
-		"addActionIntroPoints": ["Attach actions to a goal for clearer progress", "Auto-summarized in Today and Dashboard"]
+		"addActionIntroPoints": [
+			"Attach actions to a goal for clearer progress",
+			"Auto-summarized in Today and Dashboard"
+		]
 	},
 	"goals": {
 		"title": "Goals",

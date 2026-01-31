@@ -169,9 +169,64 @@
 		"activeGoals": "进行中的目标",
 		"currentStreak": "当前连续天数",
 		"days": "天",
-		"recentTrend": "最近30天趋势",
+		"recentTrend": "30天状态评分走势",
 		"noCoreAction": "今日未设置核心行动。",
-		"keepMomentum": "保持这一势头！"
+		"keepMomentum": "保持这一势头！",
+		"welcome": {
+			"morning": "早上好",
+			"afternoon": "下午好",
+			"evening": "晚上好",
+			"new": "欢迎来到 FlowSpark",
+			"startJourney": "让我们开始心流之旅。",
+			"readyToFocus": "准备好专注于重要的事情了吗？"
+		},
+		"onboarding": {
+			"heroTitle": "伟大的旅程始于足下。",
+			"heroDesc": "定义你的第一个长期目标，让 FlowSpark 帮你将其拆解为可执行的微挑战。",
+			"createFirstGoal": "创建第一个目标",
+			"seeExample": "查看示例"
+		},
+		"planning": {
+			"title": "准备好开始今天了吗？",
+			"desc": "你正在追踪 {count} 个活跃目标。今天的核心聚焦点是什么？",
+			"planBtn": "规划今日行动",
+			"yesterdayReview": "昨日评分：{score}"
+		},
+		"flow": {
+			"title": "今日焦点",
+			"progress": "{completed} / {total} 核心行动",
+			"nextAction": "下一步：{action}",
+			"enterFlow": "进入专注模式",
+			"allDone": "今日核心行动已全部完成！",
+			"badgeAllDone": "全部完成"
+		},
+		"stats": {
+			"level": "等级 {level}",
+			"novice": "新手",
+			"streak": "{days} 天连胜",
+			"score": "{score} 平均分",
+			"heatmap": "年度行动足迹",
+			"heatmapDesc": "每一天的行动都值得被记录。",
+			"focusDistribution": "精力分布",
+			"xpProgress": "{current} / {max} XP",
+			"recentXP": "+{amount} XP: {source}",
+			"less": "少",
+			"more": "多",
+			"level": "当前等级",
+			"streak": "连续打卡天数",
+			"dailyScore": "今日评分",
+			"activeGoals": "活跃目标",
+			"recentTrend": "30天状态评分走势"
+		},
+		"goals": {
+			"title": "目标推进度",
+			"viewAll": "查看全部",
+			"noGoals": "暂无活跃目标",
+			"actions": "项行动",
+			"progressTip": "基于行动完成率",
+			"overdue": "已逾期",
+			"daysLeft": "剩余 {days} 天"
+		}
 	},
 	"today": {
 		"title": "今日行动",
@@ -206,7 +261,10 @@
 		"createGoalAndContinue": "创建目标并继续",
 		"later": "稍后再说",
 		"goalCreatedAutoselected": "目标已创建，已为你选中该目标",
-		"addActionIntroPoints": ["把行动归档到目标，进度更清晰", "自动汇总到今日与仪表盘统计"]
+		"addActionIntroPoints": [
+			"把行动归档到目标，进度更清晰",
+			"自动汇总到今日与仪表盘统计"
+		]
 	},
 	"goals": {
 		"title": "目标列表",
