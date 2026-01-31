@@ -22,7 +22,7 @@ export function LevelCard({ dict, level, currentXP, nextLevelXP, lastLog, classN
   const progress = Math.min(100, Math.max(0, (currentXP / nextLevelXP) * 100))
   const titleKey = getLevelTitleKey(level)
   const levelTitle = dict.dashboard.stats.titles?.[titleKey] || titleKey
-  
+
   const getSourceName = (source: string) => {
     if (source.includes('core')) return dict.today.types.core
     if (source.includes('maintenance')) return dict.today.types.maintenance
@@ -45,9 +45,9 @@ export function LevelCard({ dict, level, currentXP, nextLevelXP, lastLog, classN
               </span>
             </div>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="h-8 w-8 text-yellow-500 hover:text-yellow-600 hover:bg-yellow-500/10"
             onClick={() => setShowLevelSystem(true)}
           >
@@ -60,14 +60,14 @@ export function LevelCard({ dict, level, currentXP, nextLevelXP, lastLog, classN
               {currentXP} <span className="text-sm font-normal text-muted-foreground">/ {nextLevelXP} XP</span>
             </div>
           </div>
-          
+
           <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-yellow-500 transition-all duration-1000 ease-out" 
-              style={{ width: `${progress}%` }} 
+            <div
+              className="h-full bg-yellow-500 transition-all duration-1000 ease-out"
+              style={{ width: `${progress}%` }}
             />
           </div>
-          
+
           {lastLog && (
             <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
               <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
@@ -79,11 +79,11 @@ export function LevelCard({ dict, level, currentXP, nextLevelXP, lastLog, classN
         </CardContent>
       </Card>
 
-      <LevelSystemDialog 
-        dict={dict} 
-        open={showLevelSystem} 
-        onOpenChange={setShowLevelSystem} 
-        currentLevel={level} 
+      <LevelSystemDialog
+        dict={dict}
+        open={showLevelSystem}
+        onOpenChange={setShowLevelSystem}
+        currentLevel={level}
       />
     </>
   )
