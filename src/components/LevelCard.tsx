@@ -2,10 +2,9 @@
 
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Trophy, Star, Info } from 'lucide-react'
+import { Trophy, Star, ChevronRight } from 'lucide-react'
 import { getLevelTitleKey } from '@/lib/gamification'
 import { LevelSystemDialog } from './LevelSystemDialog'
-import { Button } from '@/components/ui/button'
 
 interface LevelCardProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,7 +31,10 @@ export function LevelCard({ dict, level, currentXP, nextLevelXP, lastLog, classN
 
   return (
     <>
-      <Card className={`overflow-hidden border-yellow-500/20 bg-gradient-to-br from-yellow-500/5 to-transparent flex flex-col justify-between ${className}`}>
+      <Card
+        className={`overflow-hidden border-yellow-500/20 bg-gradient-to-br from-yellow-500/5 to-transparent flex flex-col justify-between cursor-pointer transition-all hover:border-yellow-500/40 active:scale-[0.99] group ${className}`}
+        onClick={() => setShowLevelSystem(true)}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div className="flex flex-col gap-1">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -45,14 +47,10 @@ export function LevelCard({ dict, level, currentXP, nextLevelXP, lastLog, classN
               </span>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-yellow-500 hover:text-yellow-600 hover:bg-yellow-500/10"
-            onClick={() => setShowLevelSystem(true)}
-          >
-            <Trophy className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 px-2 py-1 rounded-full border border-yellow-500/10 group-hover:bg-yellow-500/20 transition-colors">
+            <Trophy className="h-3 w-3" />
+            <span className="font-medium">Rules</span>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="flex items-end justify-between mb-2">
@@ -68,14 +66,18 @@ export function LevelCard({ dict, level, currentXP, nextLevelXP, lastLog, classN
             />
           </div>
 
-          {lastLog && (
-            <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-              <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
-              {dict.dashboard.stats.recentXP
-                .replace('{amount}', lastLog.amount.toString())
-                .replace('{source}', getSourceName(lastLog.source))}
-            </div>
-          )}
+          <div className="mt-2 flex items-center justify-between">
+            {lastLog ? (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                {dict.dashboard.stats.recentXP
+                  .replace('{amount}', lastLog.amount.toString())
+                  .replace('{source}', getSourceName(lastLog.source))}
+              </div>
+            ) : <div />}
+
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-yellow-500 group-hover:translate-x-0.5 transition-all" />
+          </div>
         </CardContent>
       </Card>
 

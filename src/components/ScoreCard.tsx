@@ -26,17 +26,21 @@ function SubmitScoreButton({
   )
 }
 
-export function ScoreCard({
-  dict,
-  today,
-  recent7 = [],
-  currentScore = null
-}: {
+interface ScoreCardProps {
   dict: Dict
   today: string
   recent7: { date: string; score: number }[]
   currentScore?: number | null
-}) {
+  className?: string
+}
+
+export function ScoreCard({
+  dict,
+  today,
+  recent7 = [],
+  currentScore = null,
+  className
+}: ScoreCardProps) {
   const [score, setScore] = useState<number | null>(currentScore)
   const labels = [
     dict.today.scoreLabels?.[0] || '很糟',
@@ -47,7 +51,7 @@ export function ScoreCard({
   ]
 
   return (
-    <div className="rounded-lg border bg-card/50 backdrop-blur-sm p-4">
+    <div className={`rounded-lg border bg-card/50 backdrop-blur-sm p-4 flex flex-col justify-between ${className}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="text-sm font-medium">{dict.dashboard.dailyScore}</div>
         <div className="flex items-center gap-2">
