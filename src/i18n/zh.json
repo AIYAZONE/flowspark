@@ -120,7 +120,7 @@
 		"confirmLabel": "确认密码",
 		"submit": "更新密码",
 		"success": "密码已更新",
-		"redirecting": "3秒后将跳转到登录页面",
+		"redirecting": "{seconds}秒后将跳转到登录页面",
 		"error": "更新失败，请稍后重试",
 		"mismatch": "两次输入的密码不一致",
 		"tooShort": "密码至少需要8位长度",

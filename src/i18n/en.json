@@ -120,7 +120,7 @@
 		"confirmLabel": "Confirm password",
 		"submit": "Update password",
 		"success": "Password updated.",
-		"redirecting": "Redirecting to login in 3s.",
+		"redirecting": "Redirecting to login in {seconds}s.",
 		"error": "Update failed. Please try again later.",
 		"mismatch": "Passwords do not match",
 		"tooShort": "Password must be at least 8 characters",
