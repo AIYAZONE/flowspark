@@ -8,6 +8,7 @@ import { getDictionary } from '@/i18n/get-dictionary'
 import { GoalDetailsCard } from '@/components/GoalDetailsCard'
 import { ActionListFilter } from '@/components/ActionListFilter'
 import { AddActionDialog } from '@/components/AddActionDialog'
+import { GoalDetailMobileLayout } from '@/components/GoalDetailMobileLayout'
 
 interface PageProps {
     params: Promise<{ id: string }>
@@ -59,15 +60,15 @@ export default async function GoalDetailPage({ params }: PageProps) {
                 <h1 className="text-lg md:text-2xl font-bold tracking-tight">{goal.title}</h1>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-3">
-                {/* Left Column: Goal Details */}
+            <GoalDetailMobileLayout goal={goal} actions={actions || []} dict={dict} />
+
+            <div className="hidden lg:grid gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-1">
                     <div className="sticky top-6">
                         <GoalDetailsCard goal={goal} dict={dict} />
                     </div>
                 </div>
 
-                {/* Right Column: Actions */}
                 <div className="lg:col-span-2 space-y-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-semibold">{dict.goals.detail.actions}</h2>

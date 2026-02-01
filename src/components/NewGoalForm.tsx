@@ -15,7 +15,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { DateRangeFields } from '@/components/DateRangeFields'
+import { GoalCategorySelect } from '@/components/GoalCategorySelect'
 import { SubmitButton } from '@/components/SubmitButton'
+import { normalizeCategoryInput } from '@/lib/goalCategories'
 import type en from '@/i18n/en.json'
 
 type Dict = typeof en
@@ -35,7 +37,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
   async function handleSubmit(formData: FormData) {
     // 临时调试：确认提交值（稍后移除）
     // console.log('NewGoalForm submit:', Object.fromEntries((formData as unknown as Iterable<[string, FormDataEntryValue]>)))
-    formData.set('category', category)
+    formData.set('category', normalizeCategoryInput(category))
     formData.set('priority', priority)
     const result = await submitAction(formData) as { success?: boolean; goalId?: string; title?: string } | undefined
     if (onSuccess) {
@@ -62,20 +64,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="category">{dict.goals.category.label}</Label>
-          <Select name="category" value={category} onValueChange={setCategory}>
-            <SelectTrigger>
-              <SelectValue placeholder={dict.goals.category.label} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="other">{dict.goals.category.other}</SelectItem>
-              <SelectItem value="health">{dict.goals.category.health}</SelectItem>
-              <SelectItem value="career">{dict.goals.category.career}</SelectItem>
-              <SelectItem value="learning">{dict.goals.category.learning}</SelectItem>
-              <SelectItem value="finance">{dict.goals.category.finance}</SelectItem>
-              <SelectItem value="lifestyle">{dict.goals.category.lifestyle}</SelectItem>
-              <SelectItem value="social">{dict.goals.category.social}</SelectItem>
-            </SelectContent>
-          </Select>
+          <GoalCategorySelect dict={dict} value={category} onChange={setCategory} />
         </div>
         <div className="grid gap-2">
           <Label htmlFor="priority">{dict.goals.priority.label}</Label>

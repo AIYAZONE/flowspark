@@ -21,6 +21,7 @@ import {
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import { AddGoalDialog } from '@/components/AddGoalDialog'
 import { toggleGoalStar } from '@/app/(authenticated)/goals/actions'
+import { buildCategoryOptions, getCategoryLabel } from '@/lib/goalCategories'
 import type en from '@/i18n/en.json'
 
 type Dict = typeof en
@@ -83,7 +84,7 @@ function GoalCard({ goal, dict }: { goal: Goal, dict: Dict }) {
                         <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground bg-secondary/50 px-2 py-0.5 rounded-md border border-border/50">
                             <Tag className="h-3 w-3" />
                             <span className="capitalize">
-                                {dict.goals.category[goal.category as keyof typeof dict.goals.category] || goal.category || 'Other'}
+                                {getCategoryLabel(dict, goal.category)}
                             </span>
                         </div>
 
@@ -121,6 +122,15 @@ export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
     const [statusFilter, setStatusFilter] = useState('all')
     const [priorityFilter, setPriorityFilter] = useState('all')
     const [categoryFilter, setCategoryFilter] = useState('all')
+    const categoryOptions = useMemo(
+        () =>
+            buildCategoryOptions({
+                dict,
+                usedCategories: initialGoals.map((g) => g.category),
+                includeAll: true,
+            }),
+        [dict, initialGoals],
+    )
 
     // Collapsible states
     const [isStarredOpen, setIsStarredOpen] = useState(true)
@@ -237,14 +247,11 @@ export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
                                 <SelectValue placeholder={dict.goals.category.label} />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">{dict.goals.filter.allCategory}</SelectItem>
-                                <SelectItem value="health">{dict.goals.category.health}</SelectItem>
-                                <SelectItem value="career">{dict.goals.category.career}</SelectItem>
-                                <SelectItem value="learning">{dict.goals.category.learning}</SelectItem>
-                                <SelectItem value="finance">{dict.goals.category.finance}</SelectItem>
-                                <SelectItem value="lifestyle">{dict.goals.category.lifestyle}</SelectItem>
-                                <SelectItem value="social">{dict.goals.category.social}</SelectItem>
-                                <SelectItem value="other">{dict.goals.category.other}</SelectItem>
+                                {categoryOptions.map((opt) => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>

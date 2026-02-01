@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { Search } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
     Select,
     SelectContent,
@@ -46,6 +48,23 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
     const [typeFilter, setTypeFilter] = useState('all')
     const [priorityFilter, setPriorityFilter] = useState('all')
     const [goalFilter, setGoalFilter] = useState('all')
+    const [filterSheetOpen, setFilterSheetOpen] = useState(false)
+
+    const activeFilterCount = useMemo(() => {
+        let count = 0
+        if (!hideGoalFilter && goalFilter !== 'all') count += 1
+        if (statusFilter !== 'incomplete') count += 1
+        if (typeFilter !== 'all') count += 1
+        if (priorityFilter !== 'all') count += 1
+        return count
+    }, [goalFilter, hideGoalFilter, priorityFilter, statusFilter, typeFilter])
+
+    function resetFilters() {
+        setGoalFilter('all')
+        setStatusFilter('incomplete')
+        setTypeFilter('all')
+        setPriorityFilter('all')
+    }
 
     const filteredActions = useMemo(() => {
         let result = [...initialActions]
@@ -98,19 +117,124 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
     }, [initialActions, search, statusFilter, typeFilter, priorityFilter, goalFilter])
 
     return (
-        <div className="space-y-6 overflow-x-hidden">
+        <div className="space-y-4 md:space-y-6 overflow-x-hidden">
             {/* Filters */}
             <div className="flex flex-col gap-3 w-full">
-                <div className="relative w-full">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                        placeholder={dict.goals.filter.searchActionsPlaceholder}
-                        className="pl-9 bg-background/50 w-full"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
+                <div className="flex items-center gap-2 w-full">
+                    <div className="relative w-full">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder={dict.goals.filter.searchActionsPlaceholder}
+                            className="pl-9 bg-background/50 w-full"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+
+                    <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="md:hidden shrink-0 h-9 rounded-full bg-background/50"
+                            onClick={() => setFilterSheetOpen(true)}
+                        >
+                            <SlidersHorizontal className="h-4 w-4" />
+                            {activeFilterCount > 0 ? (
+                                <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[11px] font-semibold text-primary-foreground">
+                                    {activeFilterCount}
+                                </span>
+                            ) : null}
+                        </Button>
+
+                        <SheetContent side="bottom" className="rounded-t-2xl">
+                            <SheetHeader className="flex flex-row items-center justify-between space-y-0">
+                                <SheetTitle className="text-base">{dict.common.filters}</SheetTitle>
+                                <SheetClose asChild>
+                                    <Button variant="ghost" size="icon" className="rounded-full">
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </SheetClose>
+                            </SheetHeader>
+
+                            <div className="mt-4 space-y-3">
+                                {!hideGoalFilter && (
+                                    <div className="min-w-0 w-full">
+                                        <Select value={goalFilter} onValueChange={setGoalFilter}>
+                                            <SelectTrigger className="bg-background/50 h-10 text-sm px-3 w-full">
+                                                <SelectValue placeholder={dict.goals.filter.filterByGoal} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">{dict.goals.filter.allGoals}</SelectItem>
+                                                {goals.map(g => (
+                                                    <SelectItem key={g.id} value={g.id}>{g.title}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="min-w-0 w-full">
+                                        <Select value={statusFilter} onValueChange={setStatusFilter}>
+                                            <SelectTrigger className="bg-background/50 h-10 text-sm px-3 w-full">
+                                                <SelectValue placeholder={dict.goals.status.label} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">{dict.goals.filter.allStatus}</SelectItem>
+                                                <SelectItem value="incomplete">{dict.goals.filter.incomplete}</SelectItem>
+                                                <SelectItem value="completed">{dict.goals.filter.completed}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="min-w-0 w-full">
+                                        <Select value={typeFilter} onValueChange={setTypeFilter}>
+                                            <SelectTrigger className="bg-background/50 h-10 text-sm px-3 w-full">
+                                                <SelectValue placeholder={dict.today.typeLabel} />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="all">{dict.goals.filter.allType}</SelectItem>
+                                                <SelectItem value="core">{dict.today.types.core}</SelectItem>
+                                                <SelectItem value="maintenance">{dict.today.types.maintenance}</SelectItem>
+                                                <SelectItem value="learning">{dict.today.types.learning}</SelectItem>
+                                                <SelectItem value="review">{dict.today.types.review}</SelectItem>
+                                                <SelectItem value="rest">{dict.today.types.rest}</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
+
+                                <div className="min-w-0 w-full">
+                                    <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+                                        <SelectTrigger className="bg-background/50 h-10 text-sm px-3 w-full">
+                                            <SelectValue placeholder={dict.goals.priority.label} />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            <SelectItem value="all">{dict.goals.filter.allPriority}</SelectItem>
+                                            <SelectItem value="high">{dict.goals.priority.high}</SelectItem>
+                                            <SelectItem value="medium">{dict.goals.priority.medium}</SelectItem>
+                                            <SelectItem value="low">{dict.goals.priority.low}</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="pt-2 flex items-center justify-between">
+                                    <Button type="button" variant="ghost" size="sm" className="rounded-full" onClick={resetFilters}>
+                                        {dict.common.reset}
+                                    </Button>
+                                    <SheetClose asChild>
+                                        <Button type="button" size="sm" className="rounded-full">
+                                            {dict.common.done}
+                                        </Button>
+                                    </SheetClose>
+                                </div>
+                            </div>
+                        </SheetContent>
+                    </Sheet>
                 </div>
-                <div className="grid grid-cols-2 gap-2 md:flex md:flex-wrap md:gap-2">
+
+                <div className="hidden md:flex md:flex-wrap md:gap-2">
                     {!hideGoalFilter && (
                         <div className="min-w-0 w-full md:w-[180px]">
                             <Select value={goalFilter} onValueChange={setGoalFilter}>

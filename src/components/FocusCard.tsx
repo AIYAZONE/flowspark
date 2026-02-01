@@ -37,7 +37,7 @@ export function FocusCard({
       <CardContent className="p-6 sm:p-8">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
 
-          <div className="space-y-4 flex-1">
+          <div className="space-y-4 flex-1 min-w-0">
             <div>
               <h3 className="text-lg font-medium text-muted-foreground mb-1">
                 {dict.title}
@@ -55,13 +55,13 @@ export function FocusCard({
             </div>
 
             <div className="relative pt-2">
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 min-w-0">
                 {isAllDone ? (
                   <CheckCircle2 className="w-5 h-5 text-emerald-500" />
                 ) : (
                   <Circle className="w-5 h-5 text-primary animate-pulse" />
                 )}
-                <span className="font-medium text-lg truncate">
+                <span className="font-medium text-lg flex-1 min-w-0 line-clamp-2 sm:line-clamp-1">
                   {isAllDone
                     ? dict.allDone
                     : dict.nextAction.replace('{action}', nextActionTitle || '...')}
