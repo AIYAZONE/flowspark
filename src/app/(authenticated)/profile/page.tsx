@@ -2,8 +2,10 @@ import { createClient } from '@/lib/supabase/server'
 import { getDictionary, getCurrentLocale } from '@/i18n/get-dictionary'
 import { updateProfile } from './actions'
 import { ProfileCard } from '@/components/ProfileCard'
-import { DangerZoneCard } from '@/components/DangerZoneCard'
 import { LanguageToggle } from '@/components/LanguageToggle'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -46,7 +48,17 @@ export default async function ProfilePage() {
           updateAction={updateProfile}
         />
 
-        <DangerZoneCard dict={dict} userEmail={user.email ?? ''} />
+        <Card className="shadow-none">
+          <CardHeader>
+            <CardTitle className="text-base">{dict.profile.accountSecurityTitle}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-muted-foreground">{dict.profile.accountSecurityDesc}</div>
+            <Button asChild variant="outline" className="rounded-full">
+              <Link href="/profile/account">{dict.profile.manageAccount}</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
