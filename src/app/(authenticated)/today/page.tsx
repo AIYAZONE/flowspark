@@ -35,7 +35,8 @@ export default async function TodayPage() {
       *,
       goals (
         id,
-        title
+        title,
+        status
       )
     `)
     .eq('user_id', user.id)
@@ -53,6 +54,7 @@ export default async function TodayPage() {
 
   // Filter actions in JS to accurately handle timezone "today"
   const actions = rawActions?.filter(action => {
+    if (action.goals?.status === 'archived') return false;
     // If it's a regular active action or incomplete delayed action, keep it
     const isRegular = action.start_date <= today && (action.end_date || action.start_date) >= today;
     const isDelayedIncomplete = !action.completed && (action.end_date || action.start_date) < today;
