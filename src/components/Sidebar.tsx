@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -44,10 +44,34 @@ interface SidebarProps {
 export function Sidebar({ dict }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const [tooltip, setTooltip] = useState<{ label: string; top: number; left: number } | null>(null)
+  const [xp, setXp] = useState<number | null>(null)
+  const [level, setLevel] = useState<number | null>(null)
+
+  useEffect(() => {
+    let active = true
+
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!active || !user) return
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('xp, level')
+        .eq('id', user.id)
+        .single()
+      if (!active || error) return
+      setXp(typeof data?.xp === 'number' ? data.xp : 0)
+      setLevel(typeof data?.level === 'number' ? data.level : 1)
+    }
+
+    load()
+    return () => {
+      active = false
+    }
+  }, [supabase])
 
   const showTooltip = (label: string, el: HTMLElement) => {
     const rect = el.getBoundingClientRect()

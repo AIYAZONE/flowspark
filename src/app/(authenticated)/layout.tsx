@@ -6,8 +6,10 @@ import { getDictionary } from '@/i18n/get-dictionary'
 
 export default async function AuthenticatedLayout({
   children,
+  modal,
 }: {
   children: React.ReactNode
+  modal: React.ReactNode
 }) {
   const supabase = await createClient()
   const dict = await getDictionary()
@@ -31,6 +33,7 @@ export default async function AuthenticatedLayout({
         </main>
         <MobileNavBar dict={dict} />
       </div>
+      {modal}
     </div>
   )
 }

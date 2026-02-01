@@ -29,6 +29,7 @@
 			"unauthenticated": "用户未登录",
 			"missing_fields": "缺少必填项",
 			"invalid_date_range": "结束日期不得早于开始日期",
+			"missing_ai_key": "未配置 AI API Key",
 			"operation_failed": "操作失败，请稍后重试",
 			"name_too_long": "姓名长度超出限制",
 			"delete_failed": "删除失败"
@@ -351,13 +352,19 @@
 			"titlePlaceholder": "例如：今年读12本书",
 			"descriptionLabel": "描述",
 			"descriptionPlaceholder": "为什么这个目标很重要？",
+			"aiSplitButton": "AI 帮我拆解",
+			"aiSplitHint": "仅生成草案，不会创建目标；点击“创建目标”才会保存",
+			"aiCreatingActions": "正在创建行动...",
+			"aiSuggestionsTitle": "AI 建议行动（可编辑）",
+			"aiEstimatedMinutes": "约 {minutes} 分钟",
 			"startDate": "开始日期",
 			"endDate": "结束日期",
 			"successCriteriaLabel": "成功标准",
 			"successCriteriaPlaceholder": "你怎么知道你已经达成了？",
 			"abandonCriteriaLabel": "放弃标准",
 			"abandonCriteriaPlaceholder": "什么时候应该放弃？",
-			"submit": "创建目标"
+			"submit": "创建目标",
+			"submitWithActions": "创建目标并生成行动"
 		},
 		"detail": {
 			"notFound": "目标未找到",
