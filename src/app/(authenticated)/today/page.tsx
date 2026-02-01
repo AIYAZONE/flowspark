@@ -1,13 +1,11 @@
-import { Plus, CheckCircle2, Circle } from 'lucide-react'
+import { Plus } from 'lucide-react'
 
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { toggleAction } from '../dashboard/actions'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { AddActionDialog } from '@/components/AddActionDialog'
 import { getUserTimezone, getTodayInTZ, toLocaleDateStringTZ } from '@/lib/time'
-import { ActionListFilter } from '@/components/ActionListFilter'
+import { TodayActionList } from '@/components/TodayActionList'
 
 export default async function TodayPage() {
   const supabase = await createClient()
@@ -91,8 +89,8 @@ export default async function TodayPage() {
 
       <div className="grid gap-6">
         {/* Actions List with Filter */}
-        <ActionListFilter
-          initialActions={actions || []}
+        <TodayActionList
+          actions={actions || []}
           dict={dict}
           showGoalTitle={true}
           tz={tz}
