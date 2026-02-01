@@ -134,6 +134,7 @@
 		"needLower": "密码需包含至少一个小写字母",
 		"needNumber": "密码需包含至少一个数字",
 		"needSymbol": "密码需包含至少一个特殊符号",
+		"sessionExpired": "会话已过期，请重新登录",
 		"backToLogin": "返回登录"
 	},
 	"reset_requirements": {

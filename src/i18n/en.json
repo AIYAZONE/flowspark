@@ -129,6 +129,7 @@
 		"needLower": "Password must include at least one lowercase letter",
 		"needNumber": "Password must include at least one number",
 		"needSymbol": "Password must include at least one special character",
+		"sessionExpired": "Session expired. Please log in again.",
 		"backToLogin": "Back to Login"
 	},
 	"reset_requirements": {

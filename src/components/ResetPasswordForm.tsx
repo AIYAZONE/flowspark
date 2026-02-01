@@ -11,20 +11,29 @@ import { createClient } from '@/lib/supabase/client'
 import { Eye, EyeOff } from 'lucide-react'
 
 interface Dict {
-  common: { error: string }
+  common: {
+    error: string
+    showPassword: string
+    hidePassword: string
+    showConfirmPassword: string
+    hideConfirmPassword: string
+  }
   reset: {
     passwordLabel: string
     confirmLabel: string
     submit: string
     success: string
     redirecting: string
+    navigating: string
     error: string
+    sameAsOld: string
     mismatch: string
     tooShort: string
     needUpper: string
     needLower: string
     needNumber: string
     needSymbol: string
+    sessionExpired: string
     backToLogin: string
   }
   reset_requirements: {
@@ -48,6 +57,7 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
   const [message, setMessage] = useState<string | null>(null)
   const [redirecting, setRedirecting] = useState(false)
   const [redirectSeconds, setRedirectSeconds] = useState<number | null>(null)
+  const [isNavigating, setIsNavigating] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -59,11 +69,17 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
     if (msg.includes('at least') || msg.includes('6 characters') || msg.includes('length')) {
       return dict.reset.tooShort
     }
+    if (msg.includes('different from the old password') || msg.includes('different from old password')) {
+      return dict.reset.sameAsOld
+    }
     if (msg.includes('lower case')) return dict.reset.needLower
     if (msg.includes('upper case')) return dict.reset.needUpper
     if (msg.includes('number')) return dict.reset.needNumber
     if (msg.includes('special')) return dict.reset.needSymbol
     if (msg.includes('match')) return dict.reset.mismatch
+    if (msg.includes('session') || msg.includes('token') || msg.includes('expired')) {
+      return dict.reset.sessionExpired
+    }
     return raw
   }
 
@@ -130,19 +146,33 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
 
   useEffect(() => {
     if (redirecting) {
-      const start = Date.now()
-      const timeoutId = setTimeout(() => router.push('/login'), 3000)
-      const intervalId = setInterval(() => {
-        const elapsedMs = Date.now() - start
-        const secondsLeft = Math.max(0, 3 - Math.floor(elapsedMs / 1000))
-        setRedirectSeconds(secondsLeft)
+      setIsNavigating(false)
+      const endAt = Date.now() + 3000
+
+      const intervalId = setInterval(async () => {
+        const remainingMs = endAt - Date.now()
+        const secondsLeft = Math.ceil(remainingMs / 1000)
+
+        if (secondsLeft <= 0) {
+          clearInterval(intervalId)
+          setRedirectSeconds(null)
+          setIsNavigating(true)
+          try {
+            await supabase.auth.signOut()
+          } catch {
+          } finally {
+            router.replace('/login')
+          }
+          return
+        }
+
+        setRedirectSeconds(Math.max(1, secondsLeft))
       }, 250)
       return () => {
-        clearTimeout(timeoutId)
         clearInterval(intervalId)
       }
     }
-  }, [redirecting, router])
+  }, [redirecting, router, supabase])
 
   const effectiveRedirectSeconds = redirectSeconds ?? 3
   const redirectingText = dict.reset.redirecting.includes('{seconds}')
@@ -158,7 +188,7 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
       )}
       {message && (
         <div className="mb-2 text-sm text-green-600 font-medium bg-green-50 p-3 rounded-md border border-green-200" aria-live="polite">
-          {message} {redirectingText}
+          {message} {isNavigating ? dict.reset.navigating : redirectingText}
         </div>
       )}
       <div className="grid gap-2">
@@ -175,7 +205,7 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
             type="button"
             className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             onClick={() => setShowPassword(v => !v)}
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            aria-label={showPassword ? dict.common.hidePassword : dict.common.showPassword}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
@@ -214,7 +244,7 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
             type="button"
             className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             onClick={() => setShowConfirm(v => !v)}
-            aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
+            aria-label={showConfirm ? dict.common.hideConfirmPassword : dict.common.showConfirmPassword}
           >
             {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
@@ -222,8 +252,8 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
       </div>
       <div className="flex flex-col gap-2">
         <Button type="submit" className="w-full" disabled={isSubmitting || redirecting}>
-          {(isSubmitting || redirecting) && <LoadingSpinner className="mr-2 h-4 w-4" />}
-          {redirecting ? redirectingText : dict.reset.submit}
+          {(isSubmitting || redirecting) && <LoadingSpinner size={16} className="mr-2 h-4 w-4 text-current" />}
+          {redirecting ? (isNavigating ? dict.reset.navigating : redirectingText) : dict.reset.submit}
         </Button>
         <div className="text-sm text-muted-foreground text-center">
           <Link href="/login" className="text-primary hover:underline">
