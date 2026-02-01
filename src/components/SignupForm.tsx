@@ -10,7 +10,11 @@ import { signup } from '@/app/(auth)/login/actions'
 import { SubmitButton } from '@/components/SubmitButton'
 
 interface Dict {
-  common: { error: string }
+  common: {
+    error: string
+    showPassword: string
+    hidePassword: string
+  }
   signup: {
     title: string
     description: string
@@ -169,7 +173,7 @@ export function SignupForm({ dict, error: initialError, message: initialMessage 
             type="button"
             className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
             onClick={() => setShowPassword(v => !v)}
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            aria-label={showPassword ? dict.common.hidePassword : dict.common.showPassword}
           >
             {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
           </button>
