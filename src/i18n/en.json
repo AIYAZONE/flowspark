@@ -29,6 +29,7 @@
 			"unauthenticated": "User not authenticated",
 			"missing_fields": "Missing required fields",
 			"invalid_date_range": "End date cannot be earlier than start date",
+			"missing_ai_key": "AI API key is not configured",
 			"operation_failed": "Operation failed, please try again later",
 			"name_too_long": "Name is too long",
 			"delete_failed": "Delete failed"
@@ -351,13 +352,19 @@
 			"titlePlaceholder": "e.g., Read 12 books this year",
 			"descriptionLabel": "Description",
 			"descriptionPlaceholder": "Why is this goal important?",
+			"aiSplitButton": "AI Break It Down",
+			"aiSplitHint": "Draft only. Nothing is created until you submit.",
+			"aiCreatingActions": "Creating actions...",
+			"aiSuggestionsTitle": "AI Suggested Actions (Editable)",
+			"aiEstimatedMinutes": "~ {minutes} min",
 			"startDate": "Start Date",
 			"endDate": "End Date",
 			"successCriteriaLabel": "Success Criteria",
 			"successCriteriaPlaceholder": "How will you know you've achieved it?",
 			"abandonCriteriaLabel": "Abandon Criteria",
 			"abandonCriteriaPlaceholder": "When should you give up?",
-			"submit": "Create Goal"
+			"submit": "Create Goal",
+			"submitWithActions": "Create Goal & Actions"
 		},
 		"detail": {
 			"notFound": "Goal not found",
