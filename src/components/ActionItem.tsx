@@ -26,7 +26,7 @@ function CompleteButton({ completed, type }: { completed: boolean, type: string 
         </button>
     )
 }
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { motion, useAnimationControls } from 'framer-motion'
 import { CheckCircle2, Circle, Pencil, Save, Trash2, X, AlignLeft, Calendar, ChevronDown, ChevronUp } from 'lucide-react'
@@ -87,6 +87,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const [dateRangeValid, setDateRangeValid] = useState(true)
+    const [swipeEnabled, setSwipeEnabled] = useState(false)
     const controls = useAnimationControls()
 
     const closeSwipe = () => {
@@ -102,6 +103,30 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         if (shouldOpen) openSwipe()
         else closeSwipe()
     }
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+
+        const mediaQueryList = window.matchMedia('(hover: none) and (pointer: coarse)')
+
+        const sync = () => {
+            const enabled = mediaQueryList.matches
+            setSwipeEnabled(enabled)
+            if (!enabled) {
+                controls.start({ x: 0, transition: { type: 'spring', stiffness: 420, damping: 34 } })
+            }
+        }
+
+        sync()
+
+        if (typeof mediaQueryList.addEventListener === 'function') {
+            mediaQueryList.addEventListener('change', sync)
+            return () => mediaQueryList.removeEventListener('change', sync)
+        }
+
+        mediaQueryList.addListener(sync)
+        return () => mediaQueryList.removeListener(sync)
+    }, [controls])
 
     async function handleUpdate(formData: FormData) {
         if (!dateRangeValid) return
@@ -263,13 +288,16 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             <motion.div
                 initial={{ x: 0 }}
                 animate={controls}
-                drag="x"
+                drag={swipeEnabled ? 'x' : false}
                 dragConstraints={{ left: -128, right: 0 }}
                 dragElastic={0.06}
                 dragMomentum={false}
-                onDragEnd={handleDragEnd}
-                style={{ touchAction: 'pan-y' }}
-                className="relative z-10 flex flex-col bg-card p-4 cursor-grab active:cursor-grabbing"
+                onDragEnd={swipeEnabled ? handleDragEnd : undefined}
+                style={swipeEnabled ? { touchAction: 'pan-y' } : undefined}
+                className={cn(
+                    "relative z-10 flex flex-col bg-card p-4",
+                    swipeEnabled && "cursor-grab active:cursor-grabbing"
+                )}
             >
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -322,7 +350,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                         </div>
                     </div>
 
-                    <div className="hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 shrink-0">
+                    <div className="hidden md:flex items-center gap-1 opacity-100 transition-opacity duration-200 shrink-0">
                         <Button
                             type="button"
                             variant="ghost"

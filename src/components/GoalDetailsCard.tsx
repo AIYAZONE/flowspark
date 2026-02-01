@@ -21,6 +21,8 @@ import { updateGoal, toggleGoalStar } from '@/app/(authenticated)/goals/actions'
 import { DeleteGoalButton } from '@/components/DeleteGoalButton'
 import { ArchiveGoalButton } from '@/components/ArchiveGoalButton'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
+import { GoalCategorySelect } from '@/components/GoalCategorySelect'
+import { getCategoryLabel, normalizeCategoryInput } from '@/lib/goalCategories'
 import type en from '@/i18n/en.json'
 
 interface Goal {
@@ -47,6 +49,7 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
     const [isLoading, setIsLoading] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const [isStarring, setIsStarring] = useState(false)
+    const [category, setCategory] = useState<string>(goal.category || 'other')
 
     async function handleSubmit(formData: FormData) {
         setIsLoading(true)
@@ -73,10 +76,12 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
     }
 
     if (isEditing) {
+        const normalizedCategory = normalizeCategoryInput(category)
         return (
             <Card className="relative overflow-hidden border-primary/20 bg-background/60 backdrop-blur-xl transition-all duration-300">
                 <form action={handleSubmit}>
                     <input type="hidden" name="id" value={goal.id} />
+                    <input type="hidden" name="category" value={normalizedCategory} />
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-xl font-bold text-primary">{dict.common.edit}</CardTitle>
                         <div className="flex gap-2">
@@ -175,20 +180,7 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="category">{dict.goals.category.label}</Label>
-                                <Select name="category" defaultValue={goal.category || 'other'}>
-                                    <SelectTrigger className="bg-background/50">
-                                        <SelectValue placeholder={dict.goals.category.label} />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="other">{dict.goals.category.other}</SelectItem>
-                                        <SelectItem value="health">{dict.goals.category.health}</SelectItem>
-                                        <SelectItem value="career">{dict.goals.category.career}</SelectItem>
-                                        <SelectItem value="learning">{dict.goals.category.learning}</SelectItem>
-                                        <SelectItem value="finance">{dict.goals.category.finance}</SelectItem>
-                                        <SelectItem value="lifestyle">{dict.goals.category.lifestyle}</SelectItem>
-                                        <SelectItem value="social">{dict.goals.category.social}</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                                <GoalCategorySelect dict={dict} value={category} onChange={setCategory} enableBulkReplace />
                             </div>
                         </div>
 

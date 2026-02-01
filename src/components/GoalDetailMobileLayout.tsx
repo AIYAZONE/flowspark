@@ -1,0 +1,135 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import { format } from 'date-fns'
+import { Info, ListChecks } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { GoalStatusBadge } from '@/components/GoalStatusBadge'
+import { GoalDetailsCard } from '@/components/GoalDetailsCard'
+import { AddActionDialog } from '@/components/AddActionDialog'
+import { ActionListFilter } from '@/components/ActionListFilter'
+import type en from '@/i18n/en.json'
+
+type Dict = typeof en
+
+interface Goal {
+    id: string
+    title: string
+    description: string
+    start_date: string
+    end_date: string
+    success_criteria: string
+    stop_criteria: string
+    status: string
+    priority?: string
+    category?: string
+    is_starred?: boolean
+}
+
+interface Action {
+    id: string
+    title: string
+    description?: string
+    type: string
+    priority: string
+    completed: boolean
+    start_date: string
+    end_date?: string | null
+    goal_id: string
+}
+
+type TabKey = 'actions' | 'details'
+
+interface GoalDetailMobileLayoutProps {
+    goal: Goal
+    actions: Action[]
+    dict: Dict
+    initialTab?: TabKey
+}
+
+export function GoalDetailMobileLayout({ goal, actions, dict, initialTab = 'actions' }: GoalDetailMobileLayoutProps) {
+    const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
+
+    const { totalActions, completedActions } = useMemo(() => {
+        const total = actions.length
+        const completed = actions.reduce((acc, a) => acc + (a.completed ? 1 : 0), 0)
+        return { totalActions: total, completedActions: completed }
+    }, [actions])
+
+    const dateRangeText = useMemo(() => {
+        try {
+            const start = format(new Date(goal.start_date), dict.goals.detail.dateFormat)
+            const end = format(new Date(goal.end_date), dict.goals.detail.dateFormat)
+            return `${start} - ${end}`
+        } catch {
+            return ''
+        }
+    }, [dict.goals.detail.dateFormat, goal.end_date, goal.start_date])
+
+    const statusLabel = dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status
+
+    return (
+        <div className="space-y-4 lg:hidden">
+            <div className="rounded-2xl border border-border/40 bg-background/50 backdrop-blur-xl p-4 space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                            <div className="scale-90 origin-left">
+                                <GoalStatusBadge status={goal.status} label={statusLabel} />
+                            </div>
+                            <span className="text-xs text-muted-foreground">
+                                {completedActions}/{totalActions} {dict.goals.detail.actions}
+                            </span>
+                        </div>
+                        {dateRangeText ? (
+                            <div className="mt-1 text-xs text-muted-foreground/80 font-mono">
+                                {dateRangeText}
+                            </div>
+                        ) : null}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 rounded-full border border-border/40 bg-background/40 p-1">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className={`rounded-full h-9 ${activeTab === 'actions' ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}
+                        onClick={() => setActiveTab('actions')}
+                    >
+                        <ListChecks className="h-4 w-4 mr-1" />
+                        {dict.goals.detail.actions}
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className={`rounded-full h-9 ${activeTab === 'details' ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}
+                        onClick={() => setActiveTab('details')}
+                    >
+                        <Info className="h-4 w-4 mr-1" />
+                        {dict.goals.detail.details}
+                    </Button>
+                </div>
+            </div>
+
+            {activeTab === 'actions' ? (
+                <div className="rounded-2xl border border-border/40 bg-background/50 backdrop-blur-xl p-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-base font-semibold">{dict.goals.detail.actions}</h2>
+                        <AddActionDialog goalId={goal.id} dict={dict} />
+                    </div>
+                    <ActionListFilter
+                        initialActions={actions}
+                        dict={dict}
+                        showGoalTitle={false}
+                        hideGoalFilter={true}
+                    />
+                </div>
+            ) : (
+                <GoalDetailsCard goal={goal} dict={dict} />
+            )}
+        </div>
+    )
+}

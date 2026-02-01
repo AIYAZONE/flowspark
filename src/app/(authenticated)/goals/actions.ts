@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { normalizeCategoryInput } from '@/lib/goalCategories';
 
 export async function createGoal(formData: FormData) {
 	const supabase = await createClient();
@@ -482,4 +483,34 @@ export async function deleteGoal(formData: FormData) {
 	revalidatePath('/today');
 	revalidatePath('/goals');
 	redirect('/goals');
+}
+
+export async function replaceGoalCategory(params: { from: string; to: string }) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) return { success: false as const };
+
+	const from = params.from;
+	const to = normalizeCategoryInput(params.to);
+	if (!from) return { success: false as const };
+
+	const { error, data } = await supabase
+		.from('goals')
+		.update({ category: to })
+		.eq('owner_id', user.id)
+		.eq('category', from)
+		.select('id');
+
+	if (error) {
+		console.error('Error replacing goal category:', error);
+		throw new Error('operation_failed');
+	}
+
+	revalidatePath('/goals');
+	revalidatePath('/dashboard');
+	revalidatePath('/today');
+
+	return { success: true as const, updatedCount: data?.length ?? 0 };
 }

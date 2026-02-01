@@ -59,35 +59,42 @@ export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
           </div>
         ) : (
           goals.map((goal) => (
-            <div key={goal.id} className="space-y-3">
-              <div className="flex items-start justify-between text-sm gap-4">
-                <div className="space-y-1 min-w-0 flex-1">
-                  <div className="font-semibold truncate text-foreground">{goal.title}</div>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{goal.completedActions} / {goal.totalActions} {dict.dashboard.goals.actions}</span>
-                    {goal.end_date && (
-                      <>
-                        <span className="w-0.5 h-0.5 bg-muted-foreground/50 rounded-full" />
-                        <span className={getDaysLeft(goal.end_date) === 'Overdue' ? 'text-destructive font-medium' : ''}>
-                          {getDaysLeft(goal.end_date)}
-                        </span>
-                      </>
-                    )}
+            <Link
+              key={goal.id}
+              href={`/goals/${goal.id}`}
+              className="block rounded-xl p-3 -m-3 group hover:bg-muted/30 hover:border-border/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background transition-colors"
+              aria-label={`${dict.dashboard.goals.title}: ${goal.title}`}
+            >
+              <div className="space-y-3">
+                <div className="flex items-start justify-between text-sm gap-4">
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="font-semibold truncate text-foreground group-hover:text-foreground">{goal.title}</div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{goal.completedActions} / {goal.totalActions} {dict.dashboard.goals.actions}</span>
+                      {goal.end_date && (
+                        <>
+                          <span className="w-0.5 h-0.5 bg-muted-foreground/50 rounded-full" />
+                          <span className={getDaysLeft(goal.end_date) === 'Overdue' ? 'text-destructive font-medium' : ''}>
+                            {getDaysLeft(goal.end_date)}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0 w-[45px]">
+                    <span className="text-sm font-bold font-mono text-foreground">
+                      {Math.round(goal.progress)}%
+                    </span>
                   </div>
                 </div>
-                <div className="text-right shrink-0 w-[45px]">
-                  <span className="text-sm font-bold font-mono text-foreground">
-                    {Math.round(goal.progress)}%
-                  </span>
+                <div className="h-2.5 w-full bg-muted/50 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all duration-500 ease-out rounded-full ${getProgressColor(goal.progress)}`}
+                    style={{ width: `${goal.progress}%` }}
+                  />
                 </div>
               </div>
-              <div className="h-2.5 w-full bg-muted/50 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-500 ease-out rounded-full ${getProgressColor(goal.progress)}`}
-                  style={{ width: `${goal.progress}%` }}
-                />
-              </div>
-            </div>
+            </Link>
           ))
         )}
       </CardContent>
