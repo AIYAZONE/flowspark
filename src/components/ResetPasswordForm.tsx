@@ -47,6 +47,7 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [redirecting, setRedirecting] = useState(false)
+  const [redirectSeconds, setRedirectSeconds] = useState<number | null>(null)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -123,15 +124,30 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
     }
     setMessage(dict.reset.success)
     setRedirecting(true)
+    setRedirectSeconds(3)
     setIsSubmitting(false)
   }
 
   useEffect(() => {
     if (redirecting) {
-      const t = setTimeout(() => router.push('/login'), 3000)
-      return () => clearTimeout(t)
+      const start = Date.now()
+      const timeoutId = setTimeout(() => router.push('/login'), 3000)
+      const intervalId = setInterval(() => {
+        const elapsedMs = Date.now() - start
+        const secondsLeft = Math.max(0, 3 - Math.floor(elapsedMs / 1000))
+        setRedirectSeconds(secondsLeft)
+      }, 250)
+      return () => {
+        clearTimeout(timeoutId)
+        clearInterval(intervalId)
+      }
     }
   }, [redirecting, router])
+
+  const effectiveRedirectSeconds = redirectSeconds ?? 3
+  const redirectingText = dict.reset.redirecting.includes('{seconds}')
+    ? dict.reset.redirecting.replace('{seconds}', String(effectiveRedirectSeconds))
+    : dict.reset.redirecting
 
   return (
     <form onSubmit={handleUpdate} className="grid gap-4">
@@ -141,8 +157,8 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
         </div>
       )}
       {message && (
-        <div className="mb-2 text-sm text-green-600 font-medium bg-green-50 p-3 rounded-md border border-green-200">
-          {message} {dict.reset.redirecting}
+        <div className="mb-2 text-sm text-green-600 font-medium bg-green-50 p-3 rounded-md border border-green-200" aria-live="polite">
+          {message} {redirectingText}
         </div>
       )}
       <div className="grid gap-2">
@@ -205,9 +221,9 @@ export function ResetPasswordForm({ dict }: { dict: Dict }) {
         </div>
       </div>
       <div className="flex flex-col gap-2">
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting && <LoadingSpinner className="mr-2 h-4 w-4" />}
-          {dict.reset.submit}
+        <Button type="submit" className="w-full" disabled={isSubmitting || redirecting}>
+          {(isSubmitting || redirecting) && <LoadingSpinner className="mr-2 h-4 w-4" />}
+          {redirecting ? redirectingText : dict.reset.submit}
         </Button>
         <div className="text-sm text-muted-foreground text-center">
           <Link href="/login" className="text-primary hover:underline">
