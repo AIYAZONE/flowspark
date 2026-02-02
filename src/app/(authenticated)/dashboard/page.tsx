@@ -50,7 +50,12 @@ export default async function DashboardPage() {
   // Fetch today's core action
   const { data: rawActions } = await supabase
     .from('actions')
-    .select('*')
+    .select(`
+      *,
+      goals (
+        status
+      )
+    `)
     .eq('type', 'core')
     .eq('user_id', user.id)
     .or(
@@ -64,6 +69,14 @@ export default async function DashboardPage() {
     )
     .order('completed', { ascending: true })
     .order('start_date', { ascending: true })
+
+  const { data: archivedGoals } = await supabase
+    .from('goals')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('status', 'archived')
+
+  const archivedGoalIdSet = new Set((archivedGoals || []).map(g => g.id))
 
   // Fetch completed actions for Heatmap (Last 365 days for now, can be expanded)
   const oneYearAgo = new Date()
@@ -103,17 +116,21 @@ export default async function DashboardPage() {
 
   const distributionData = Object.entries(typeCount).map(([type, count]) => {
     let color = '#6b7280'
-    let name = type
+    const typeLabel = dict.today.types[type as keyof typeof dict.today.types] || type
+    let name = typeLabel
     if (type === 'core') { color = '#059669'; name = dict.today.types.core }
     if (type === 'learning') { color = '#3b82f6'; name = dict.today.types.learning }
     if (type === 'maintenance') { color = '#f59e0b'; name = dict.today.types.maintenance }
-    if (type === 'health') { color = '#ec4899'; name = dict.today.types.rest } // Using rest label for health logic if similar
+    if (type === 'health') { color = '#ec4899'; name = dict.today.types.rest }
 
     return { name, value: count, color }
   })
 
   // Filter actions in JS to accurately handle timezone "today"
   const actions = rawActions?.filter(action => {
+    if (action.goals?.status === 'archived') return false
+    if (action.goal_id && archivedGoalIdSet.has(action.goal_id)) return false
+
     const isRegular = action.start_date <= today && (action.end_date || action.start_date) >= today;
     const isDelayedIncomplete = !action.completed && (action.end_date || action.start_date) < today;
 
