@@ -9,8 +9,7 @@ interface FocusDistributionChartProps {
 }
 
 export function FocusDistributionChart({ dict, data }: FocusDistributionChartProps) {
-  // Fallback for empty data
-  const chartData = data.length > 0 ? data : [{ name: 'None', value: 1, color: '#e5e7eb' }]
+  const chartData = data.length > 0 ? data : [{ name: dict.common.noData, value: 1, color: '#e5e7eb' }]
 
   return (
     <Card className="col-span-1">
@@ -48,8 +47,8 @@ export function FocusDistributionChart({ dict, data }: FocusDistributionChartPro
           </ResponsiveContainer>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
-          {data.map((item) => (
-            <div key={item.name} className="flex items-center gap-2">
+          {chartData.map((item, index) => (
+            <div key={`${item.name}-${index}`} className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
               <span className="text-muted-foreground">{item.name}</span>
             </div>
