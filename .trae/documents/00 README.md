@@ -28,6 +28,12 @@
   * [产品 - 20 创新激励与AI系统设计.md](file:///Users/brucewang/Documents/AIYA/goals/.trae/documents/%E4%BA%A7%E5%93%81%20-%2020%20%E5%88%9B%E6%96%B0%E6%BF%80%E5%8A%B1%E4%B8%8EAI%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1.md)
     - 摘要：Flow & Surprise 激励框架与系统设计
 
+  * Phase 2A（当前进行中，按顺序看/做）
+    1. [产品 - 21 Phase 2A AI Daily Coach + Goal Setup PRD.md](file:///Users/brucewang/Documents/AIYA/goals/.trae/documents/%E4%BA%A7%E5%93%81%20-%2021%20Phase%202A%20AI%20Daily%20Coach%20%2B%20Goal%20Setup%20PRD.md)
+    2. [技术 - 19 AI Coach 输出Schema与质量门槛.md](file:///Users/brucewang/Documents/AIYA/goals/.trae/documents/%E6%8A%80%E6%9C%AF%20-%2019%20AI%20Coach%20%E8%BE%93%E5%87%BASchema%E4%B8%8E%E8%B4%A8%E9%87%8F%E9%97%A8%E6%A7%9B.md)
+    3. [产品 - 22 Phase 2A AI 留存实验计划.md](file:///Users/brucewang/Documents/AIYA/goals/.trae/documents/%E4%BA%A7%E5%93%81%20-%2022%20Phase%202A%20AI%20%E7%95%99%E5%AD%98%E5%AE%9E%E9%AA%8C%E8%AE%A1%E5%88%92.md)
+    4. [运营与交付 - 18 Phase 2A AI 留存实施拆分与验收.md](file:///Users/brucewang/Documents/AIYA/goals/.trae/documents/%E8%BF%90%E8%90%A5%E4%B8%8E%E4%BA%A4%E4%BB%98%20-%2018%20Phase%202A%20AI%20%E7%95%99%E5%AD%98%E5%AE%9E%E6%96%BD%E6%8B%86%E5%88%86%E4%B8%8E%E9%AA%8C%E6%94%B6.md)
+
 * 设计
 
   * [设计 - 03 UI_UX设计规范.md](file:///Users/brucewang/Documents/AIYA/goals/.trae/documents/%E8%AE%BE%E8%AE%A1%20-%2003%20UI_UX%E8%AE%BE%E8%AE%A1%E8%A7%84%E8%8C%83.md)
