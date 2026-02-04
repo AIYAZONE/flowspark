@@ -263,14 +263,52 @@ export async function aiReview(opts: {
     'Task: Summarize today in one sentence and provide a tomorrow anti-fail card.'
   ].join('\n')
 
-  return generateWithSingleRepair({
-    locale: opts.locale,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user }
-    ],
-    call: (messages) => callAIChatJSON({ messages }),
-    parse: parseReview
-  })
+  try {
+    return await generateWithSingleRepair({
+      locale: opts.locale,
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user }
+      ],
+      call: (messages) => callAIChatJSON({ messages }),
+      parse: parseReview
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : 'operation_failed'
+    if (message === 'missing_ai_key') throw new Error('missing_ai_key')
+    return buildFallbackReview(opts.locale, opts.score, opts.answers)
+  }
 }
 
+function buildFallbackReview(locale: Locale, score: number | null, answers: Record<string, string>): ReviewOutput {
+  const friction = answers.friction || null
+
+  const summary_sentence =
+    locale === 'zh'
+      ? (score != null && score <= 2 ? '今天不容易，但仍有推进。' : '今天完成了一个小闭环。')
+      : (score != null && score <= 2 ? 'Tough day, still made progress.' : 'Closed a small loop today.')
+
+  const risk =
+    locale === 'zh'
+      ? '明天容易被临时事务打断，导致不开工。'
+      : 'Tomorrow may get derailed by unexpected tasks.'
+
+  const iff = locale === 'zh' ? '如果明天只剩 5 分钟' : 'If tomorrow you only have 5 minutes'
+  const then = locale === 'zh' ? '就先把核心行动的第一步做完。' : 'do only the first step of the core action.'
+  const direction =
+    locale === 'zh'
+      ? '从“最小可做的一步”开始，先保证连续性。'
+      : 'Start with the smallest next step to keep momentum.'
+
+  return {
+    type: 'review',
+    summary_sentence: summary_sentence.slice(0, 30),
+    detected_friction_tag: friction,
+    tomorrow_card: {
+      risk,
+      if_then: { if: iff, then },
+      suggested_core_action_direction: direction
+    },
+    confidence: 'low'
+  }
+}
