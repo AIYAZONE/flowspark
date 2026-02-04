@@ -38,6 +38,7 @@ function getModel(provider: AIProvider) {
 export async function callAIChatJSON(opts: {
   messages: ChatMessage[]
   temperature?: number
+  timeoutMs?: number
 }): Promise<string> {
   const provider = getProvider()
   const apiKey = getApiKey(provider)
@@ -46,6 +47,10 @@ export async function callAIChatJSON(opts: {
   const endpoint = joinUrl(getBaseUrl(provider), '/chat/completions')
   const model = getModel(provider)
   const temperature = typeof opts.temperature === 'number' ? opts.temperature : 0.2
+  const timeoutMs =
+    typeof opts.timeoutMs === 'number'
+      ? opts.timeoutMs
+      : (process.env.AI_TIMEOUT_MS ? Number(process.env.AI_TIMEOUT_MS) : 12000)
 
   const makeBody = (withResponseFormat: boolean) => {
     const body: Record<string, unknown> = {
@@ -61,14 +66,24 @@ export async function callAIChatJSON(opts: {
   }
 
   const call = async (withResponseFormat: boolean) => {
-    return fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(makeBody(withResponseFormat))
-    })
+    const controller = new AbortController()
+    const timeoutId = Number.isFinite(timeoutMs) && timeoutMs > 0 ? setTimeout(() => controller.abort(), timeoutMs) : null
+    try {
+      return await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(makeBody(withResponseFormat)),
+        signal: controller.signal
+      })
+    } catch (e) {
+      if (e instanceof Error && e.name === 'AbortError') throw new Error('ai_timeout')
+      throw e
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId)
+    }
   }
 
   let response = await call(true)
@@ -82,4 +97,3 @@ export async function callAIChatJSON(opts: {
   if (!content) throw new Error('empty_ai_response')
   return content
 }
-
