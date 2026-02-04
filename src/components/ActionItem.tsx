@@ -61,8 +61,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { deleteAction, updateAction } from '@/app/(authenticated)/goals/actions'
+import { createAction, deleteAction, updateAction } from '@/app/(authenticated)/goals/actions'
 import type en from '@/i18n/en.json'
+import type { RescueOutput } from '@/lib/ai/phase2aSchemas'
+import { logEvent } from '@/lib/analytics'
 
 interface Action {
     id: string
@@ -91,12 +93,16 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const [isDeleting, setIsDeleting] = useState(false)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [detailsOpen, setDetailsOpen] = useState(false)
-    const [panelMode, setPanelMode] = useState<'view' | 'edit'>('view')
+    const [panelMode, setPanelMode] = useState<'view' | 'edit' | 'rescue'>('view')
     const [dateRangeValid, setDateRangeValid] = useState(true)
     const [swipeEnabled, setSwipeEnabled] = useState(false)
     const [isDesktop, setIsDesktop] = useState(false)
     const [draggedRecently, setDraggedRecently] = useState(false)
     const controls = useAnimationControls()
+    const [rescueReason, setRescueReason] = useState<RescueOutput['reason_tag']>('too_hard')
+    const [rescueLoading, setRescueLoading] = useState(false)
+    const [rescueError, setRescueError] = useState<string | null>(null)
+    const [rescueResult, setRescueResult] = useState<RescueOutput | null>(null)
 
     const hasDetails = true
 
@@ -197,9 +203,116 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         setDetailsOpen(true)
     }
 
+    function openRescuePanel() {
+        closeSwipe()
+        setPanelMode('rescue')
+        setRescueError(null)
+        setRescueResult(null)
+        setDetailsOpen(true)
+        logEvent('ai_rescue_click', { action_id: action.id })
+    }
+
     const handlePanelOpenChange = (open: boolean) => {
         setDetailsOpen(open)
         if (!open) setPanelMode('view')
+    }
+
+    const locale = String(dict.common.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'
+    const goalTitle = action.goals?.title || ''
+    const rescueTitleText = locale === 'zh' ? '卡住救援' : 'Rescue'
+
+    async function generateRescue() {
+        if (!goalTitle) return
+        setRescueError(null)
+        setRescueLoading(true)
+        try {
+            const res = await fetch('/api/ai/rescue', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    locale,
+                    reason_tag: rescueReason,
+                    action: { id: action.id, title: action.title, description: action.description || null },
+                    goal: { id: action.goal_id, title: goalTitle }
+                })
+            })
+            const json = (await res.json()) as { result?: RescueOutput; error?: string }
+            if (!res.ok) {
+                const key = json.error || 'operation_failed'
+                setRescueError((dict.common.errors as Record<string, string>)[key] || dict.common.errors.operation_failed)
+                return
+            }
+            if (!json.result) {
+                setRescueError(dict.common.errors.operation_failed)
+                return
+            }
+            setRescueResult(json.result)
+        } catch {
+            setRescueError(dict.common.errors.operation_failed)
+        } finally {
+            setRescueLoading(false)
+        }
+    }
+
+    async function applyRescueReplace() {
+        if (!rescueResult) return
+        setRescueLoading(true)
+        try {
+            const endDateStr = action.end_date || action.start_date
+            const description = [
+                `First step: ${rescueResult.minimal_variant.first_step}`,
+                `DoD: ${rescueResult.minimal_variant.definition_of_done}`,
+                `If-Then: 如果${rescueResult.if_then.if} 那么${rescueResult.if_then.then}`
+            ].join('\n')
+
+            const formData = new FormData()
+            formData.set('id', action.id)
+            formData.set('goal_id', action.goal_id)
+            formData.set('title', rescueResult.minimal_variant.title)
+            formData.set('type', action.type || 'core')
+            formData.set('priority', action.priority || 'medium')
+            formData.set('description', description)
+            formData.set('start_date', action.start_date)
+            formData.set('end_date', endDateStr)
+            await updateAction(formData)
+            logEvent('ai_rescue_apply', { mode: 'replace', option: '5m', action_id: action.id })
+            setPanelMode('view')
+            setDetailsOpen(false)
+        } catch {
+            setRescueError(dict.common.errors.operation_failed)
+        } finally {
+            setRescueLoading(false)
+        }
+    }
+
+    async function applyRescueAdd() {
+        if (!rescueResult) return
+        setRescueLoading(true)
+        try {
+            const endDateStr = action.end_date || action.start_date
+            const description = [
+                `First step: ${rescueResult.minimal_variant.first_step}`,
+                `DoD: ${rescueResult.minimal_variant.definition_of_done}`,
+                `If-Then: 如果${rescueResult.if_then.if} 那么${rescueResult.if_then.then}`
+            ].join('\n')
+
+            const formData = new FormData()
+            formData.set('goal_id', action.goal_id)
+            formData.set('title', rescueResult.minimal_variant.title)
+            formData.set('type', 'maintenance')
+            formData.set('priority', action.priority || 'medium')
+            formData.set('description', description)
+            formData.set('start_date', action.start_date)
+            formData.set('end_date', endDateStr)
+            await createAction(formData)
+            logEvent('ai_rescue_apply', { mode: 'add', option: '5m', action_id: action.id })
+            setPanelMode('view')
+            setDetailsOpen(false)
+        } catch {
+            setRescueError(dict.common.errors.operation_failed)
+        } finally {
+            setRescueLoading(false)
+        }
     }
 
     const getPriorityColor = (priority?: string) => {
@@ -467,16 +580,79 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                 <Dialog open={detailsOpen} onOpenChange={handlePanelOpenChange}>
                     <DialogContent className="max-w-lg">
                         <DialogHeader>
-                            <DialogTitle className="pr-8">{panelMode === 'edit' ? dict.common.edit : action.title}</DialogTitle>
+                            <DialogTitle className="pr-8">{panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}</DialogTitle>
                         </DialogHeader>
                         <div className="mt-2 space-y-4">
                             {panelMode === 'edit' ? (
                                 editForm
+                            ) : panelMode === 'rescue' ? (
+                                <div className="space-y-4">
+                                    {!goalTitle ? (
+                                        <div className="text-sm text-muted-foreground">{dict.common.errors.operation_failed}</div>
+                                    ) : (
+                                        <>
+                                            <div className="space-y-2">
+                                                <div className="text-sm font-medium">{locale === 'zh' ? '原因' : 'Reason'}</div>
+                                                <select
+                                                    value={rescueReason}
+                                                    onChange={(e) => setRescueReason(e.target.value as RescueOutput['reason_tag'])}
+                                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    disabled={rescueLoading}
+                                                >
+                                                    <option value="no_time">{locale === 'zh' ? '没时间' : 'No time'}</option>
+                                                    <option value="too_hard">{locale === 'zh' ? '太难' : 'Too hard'}</option>
+                                                    <option value="anxiety">{locale === 'zh' ? '焦虑' : 'Anxiety'}</option>
+                                                    <option value="unclear_next">{locale === 'zh' ? '不知道下一步' : 'Unclear next'}</option>
+                                                    <option value="low_energy">{locale === 'zh' ? '没精力' : 'Low energy'}</option>
+                                                    <option value="other">{locale === 'zh' ? '其他' : 'Other'}</option>
+                                                </select>
+                                                <Button type="button" onClick={generateRescue} disabled={rescueLoading}>
+                                                    {rescueLoading && <LoadingSpinner size={16} className="mr-2 text-primary-foreground/80" />}
+                                                    {locale === 'zh' ? '生成 5 分钟版本' : 'Generate 5-min version'}
+                                                </Button>
+                                                {rescueError && <div className="text-sm text-destructive">{rescueError}</div>}
+                                            </div>
+
+                                            {rescueResult ? (
+                                                <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
+                                                    <div className="text-sm font-medium">{rescueResult.minimal_variant.title}</div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        <div>{locale === 'zh' ? '第一步：' : 'First step: '}{rescueResult.minimal_variant.first_step}</div>
+                                                        <div>{locale === 'zh' ? '完成定义：' : 'DoD: '}{rescueResult.minimal_variant.definition_of_done}</div>
+                                                        <div>{locale === 'zh' ? 'If-Then：如果' : 'If-Then: if '}{rescueResult.if_then.if}{locale === 'zh' ? '那么' : ' then '}{rescueResult.if_then.then}</div>
+                                                    </div>
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button type="button" variant="outline" size="sm" onClick={() => setPanelMode('view')} disabled={rescueLoading}>
+                                                            {dict.common.back || 'Back'}
+                                                        </Button>
+                                                        <Button type="button" variant="outline" size="sm" onClick={applyRescueAdd} disabled={rescueLoading}>
+                                                            {locale === 'zh' ? '新增最小行动' : 'Add minimal'}
+                                                        </Button>
+                                                        <Button type="button" size="sm" onClick={applyRescueReplace} disabled={rescueLoading}>
+                                                            {locale === 'zh' ? '替换当前行动' : 'Replace'}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ) : null}
+                                        </>
+                                    )}
+                                </div>
                             ) : (
                                 <>
                                     {metaBadges}
                                     {viewDescription}
                                     <div className="flex justify-end gap-2">
+                                        {action.type === 'core' && !action.completed && goalTitle ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={openRescuePanel}
+                                                disabled={isLoading}
+                                            >
+                                                {rescueTitleText}
+                                            </Button>
+                                        ) : null}
                                         <Button
                                             type="button"
                                             variant="outline"
@@ -505,7 +681,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                 <Sheet open={detailsOpen} onOpenChange={handlePanelOpenChange}>
                     <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
                         <SheetHeader className="flex flex-row items-start justify-between space-y-0 gap-3">
-                            <SheetTitle className="text-base leading-snug">{panelMode === 'edit' ? dict.common.edit : action.title}</SheetTitle>
+                            <SheetTitle className="text-base leading-snug">{panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}</SheetTitle>
                             <SheetClose asChild>
                                 <Button variant="ghost" size="icon" className="rounded-full shrink-0">
                                     <X className="h-4 w-4" />
@@ -516,11 +692,75 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                         <div className="mt-4 space-y-4">
                             {panelMode === 'edit' ? (
                                 editForm
+                            ) : panelMode === 'rescue' ? (
+                                <div className="space-y-4">
+                                    {!goalTitle ? (
+                                        <div className="text-sm text-muted-foreground">{dict.common.errors.operation_failed}</div>
+                                    ) : (
+                                        <>
+                                            <div className="space-y-2">
+                                                <div className="text-sm font-medium">{locale === 'zh' ? '原因' : 'Reason'}</div>
+                                                <select
+                                                    value={rescueReason}
+                                                    onChange={(e) => setRescueReason(e.target.value as RescueOutput['reason_tag'])}
+                                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    disabled={rescueLoading}
+                                                >
+                                                    <option value="no_time">{locale === 'zh' ? '没时间' : 'No time'}</option>
+                                                    <option value="too_hard">{locale === 'zh' ? '太难' : 'Too hard'}</option>
+                                                    <option value="anxiety">{locale === 'zh' ? '焦虑' : 'Anxiety'}</option>
+                                                    <option value="unclear_next">{locale === 'zh' ? '不知道下一步' : 'Unclear next'}</option>
+                                                    <option value="low_energy">{locale === 'zh' ? '没精力' : 'Low energy'}</option>
+                                                    <option value="other">{locale === 'zh' ? '其他' : 'Other'}</option>
+                                                </select>
+                                                <Button type="button" onClick={generateRescue} disabled={rescueLoading}>
+                                                    {rescueLoading && <LoadingSpinner size={16} className="mr-2 text-primary-foreground/80" />}
+                                                    {locale === 'zh' ? '生成 5 分钟版本' : 'Generate 5-min version'}
+                                                </Button>
+                                                {rescueError && <div className="text-sm text-destructive">{rescueError}</div>}
+                                            </div>
+
+                                            {rescueResult ? (
+                                                <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
+                                                    <div className="text-sm font-medium">{rescueResult.minimal_variant.title}</div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        <div>{locale === 'zh' ? '第一步：' : 'First step: '}{rescueResult.minimal_variant.first_step}</div>
+                                                        <div>{locale === 'zh' ? '完成定义：' : 'DoD: '}{rescueResult.minimal_variant.definition_of_done}</div>
+                                                        <div>{locale === 'zh' ? 'If-Then：如果' : 'If-Then: if '}{rescueResult.if_then.if}{locale === 'zh' ? '那么' : ' then '}{rescueResult.if_then.then}</div>
+                                                    </div>
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setPanelMode('view')} disabled={rescueLoading}>
+                                                            {dict.common.back || 'Back'}
+                                                        </Button>
+                                                        <Button type="button" variant="outline" size="sm" className="flex-1" onClick={applyRescueAdd} disabled={rescueLoading}>
+                                                            {locale === 'zh' ? '新增' : 'Add'}
+                                                        </Button>
+                                                        <Button type="button" size="sm" className="flex-1" onClick={applyRescueReplace} disabled={rescueLoading}>
+                                                            {locale === 'zh' ? '替换' : 'Replace'}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ) : null}
+                                        </>
+                                    )}
+                                </div>
                             ) : (
                                 <>
                                     {metaBadges}
                                     {viewDescription}
                                     <div className="flex items-center justify-between gap-2">
+                                        {action.type === 'core' && !action.completed && goalTitle ? (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex-1"
+                                                onClick={openRescuePanel}
+                                                disabled={isLoading}
+                                            >
+                                                {rescueTitleText}
+                                            </Button>
+                                        ) : null}
                                         <Button
                                             type="button"
                                             variant="outline"

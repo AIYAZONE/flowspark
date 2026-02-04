@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Target, CalendarCheck, User } from 'lucide-react'
@@ -18,6 +19,21 @@ interface MobileNavBarProps {
 
 export function MobileNavBar({ dict }: MobileNavBarProps) {
   const pathname = usePathname()
+  const [epoch, setEpoch] = useState(0)
+
+  useEffect(() => {
+    const onResume = () => setEpoch((v) => v + 1)
+    window.addEventListener('app:resume', onResume)
+    return () => window.removeEventListener('app:resume', onResume)
+  }, [])
+
+  const isDebugNav = () => {
+    try {
+      return new URLSearchParams(window.location.search).has('debugNav')
+    } catch {
+      return false
+    }
+  }
 
   const navItems = [
     {
@@ -43,14 +59,34 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
   ]
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-t border-border/40 pb-safe-area-inset-bottom">
-      <nav className="flex items-center justify-around h-16 px-2">
+    <div
+      key={epoch}
+      className="md:hidden shrink-0 bg-background/80 backdrop-blur-lg border-t border-border/40 pb-safe-area-inset-bottom"
+    >
+      <nav
+        className="flex items-center justify-around h-16 px-2"
+        onPointerDownCapture={(e) => {
+          if (!isDebugNav()) return
+          const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
+          console.log('[debugNav] pointerdown', {
+            x: e.clientX,
+            y: e.clientY,
+            targetTag: el?.tagName,
+            targetId: el?.id,
+            targetClass: el?.className,
+          })
+        }}
+      >
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href)
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => {
+                if (!isDebugNav()) return
+                console.log('[debugNav] click', { href: item.href })
+              }}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors duration-200",
                 isActive
