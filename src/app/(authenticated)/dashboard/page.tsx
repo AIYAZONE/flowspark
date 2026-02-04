@@ -15,12 +15,21 @@ import { StatCard } from '@/components/StatCard'
 import { StreakCard } from '@/components/StreakCard'
 import { GoalProgressList } from '@/components/GoalProgressList'
 import { Target, Star } from 'lucide-react'
+import { assignVariant, isEnvEnabled } from '@/lib/experiments'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
   const dict = await getDictionary()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+  const todayPlanEnabledEnv =
+    process.env.NEXT_PUBLIC_AI_TODAY_PLAN_ENABLED ?? process.env.AI_TODAY_PLAN_ENABLED
+  const todayPlanEnabled = todayPlanEnabledEnv ? isEnvEnabled(todayPlanEnabledEnv) : true
+  const ab1TodayPlanEnabled = isEnvEnabled(process.env.AI_EXPERIMENT_AB1_TODAY_PLAN)
+  const showAIPlan = todayPlanEnabled && (!ab1TodayPlanEnabled || assignVariant(user.id, 'ab1_today_plan') === 'B')
+
+  const ab2ReviewEnabled = isEnvEnabled(process.env.AI_EXPERIMENT_AB2_REVIEW_Q)
+  const reviewQuestionsCount = ab2ReviewEnabled ? (assignVariant(user.id, 'ab2_review_q') === 'A' ? 1 : 2) : 2
   const tz = await getUserTimezone(supabase, user.id)
   const today = getTodayInTZ(tz)
   const yesterdayDate = new Date(today);
@@ -180,7 +189,7 @@ export default async function DashboardPage() {
   // Fetch active goals WITH actions count
   const { data: goalsData } = await supabase
     .from('goals')
-    .select('id, title, status, priority, start_date, end_date, actions(id, completed)')
+    .select('id, title, status, priority, start_date, end_date, success_criteria, stop_criteria, actions(id, completed)')
     .eq('status', 'active')
     .eq('user_id', user.id)
 
@@ -336,9 +345,19 @@ export default async function DashboardPage() {
                 dict={dict.dashboard.planning}
                 activeGoalsCount={activeGoalsCount}
                 yesterdayScore={yesterdayScores?.score ?? null}
-                goals={goalsData?.map(g => ({ id: g.id, title: g.title, status: g.status })) || []}
+                goals={goalsData?.map(g => ({
+                  id: g.id,
+                  title: g.title,
+                  status: g.status,
+                  priority: (g as unknown as { priority?: string | null }).priority ?? null,
+                  start_date: (g as unknown as { start_date?: string | null }).start_date ?? null,
+                  end_date: (g as unknown as { end_date?: string | null }).end_date ?? null,
+                  success_criteria: (g as unknown as { success_criteria?: string | null }).success_criteria ?? null,
+                  stop_criteria: (g as unknown as { stop_criteria?: string | null }).stop_criteria ?? null
+                })) || []}
                 dictFull={dict}
                 defaultDate={today}
+                showAIPlan={showAIPlan}
                 className="h-full"
               />
             ) : (
@@ -359,6 +378,7 @@ export default async function DashboardPage() {
               today={today}
               recent7={chartData.slice(0, 7)}
               currentScore={dailyScore ?? null}
+              reviewQuestionsCount={reviewQuestionsCount}
               className="h-full"
             />
           </div>

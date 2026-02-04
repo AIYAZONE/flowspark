@@ -307,6 +307,7 @@ export async function createAction(formData: FormData) {
 		}
 	}
 
+	revalidatePath('/dashboard');
 	revalidatePath('/today');
 	revalidatePath(`/goals/${goal_id}`);
 }

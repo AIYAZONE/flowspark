@@ -19,7 +19,9 @@ import { DateRangeFields } from '@/components/DateRangeFields'
 import { GoalCategorySelect } from '@/components/GoalCategorySelect'
 import { SubmitButton } from '@/components/SubmitButton'
 import { normalizeCategoryInput } from '@/lib/goalCategories'
+import { logEvent } from '@/lib/analytics'
 import type en from '@/i18n/en.json'
+import type { GoalBriefInput, GoalSetupStepAOutput, GoalSetupStepBOutput } from '@/lib/ai/phase2aSchemas'
 
 type Dict = typeof en
 
@@ -52,15 +54,21 @@ function makeId() {
 export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
   const submitAction = action || createGoal
   const formRef = useRef<HTMLFormElement | null>(null)
+  const newDict = dict.goals.new as unknown as Record<string, string>
   const [category, setCategory] = useState<string>('other')
   const [priority, setPriority] = useState<string>('medium')
   const [dateValid, setDateValid] = useState(true)
   const [goalTitle, setGoalTitle] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
+  const [aiStepA, setAiStepA] = useState<GoalSetupStepAOutput | null>(null)
+  const [aiAnswers, setAiAnswers] = useState<Record<string, string>>({})
+  const [aiStepB, setAiStepB] = useState<GoalSetupStepBOutput | null>(null)
   const [draftActions, setDraftActions] = useState<DraftAction[]>([])
   const [creatingActions, setCreatingActions] = useState(false)
   const hasEnabledDrafts = draftActions.some(a => a.enabled)
+  const [successCriteriaText, setSuccessCriteriaText] = useState('')
+  const [stopCriteriaText, setStopCriteriaText] = useState('')
 
   async function handleSubmit(formData: FormData) {
     // 临时调试：确认提交值（稍后移除）
@@ -73,6 +81,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
     if (goalId && draftActions.some(a => a.enabled)) {
       setCreatingActions(true)
       try {
+        const enabledCount = draftActions.filter(a => a.enabled).length
         for (const a of draftActions) {
           if (!a.enabled) continue
           const actionData = new FormData()
@@ -85,6 +94,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
           actionData.set('end_date', a.end_date)
           await createAction(actionData)
         }
+        logEvent('ai_goal_setup_apply', { applied_actions: enabledCount, used_ai: !!aiStepB })
       } finally {
         setCreatingActions(false)
       }
@@ -94,71 +104,165 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
     }
   }
 
+  function buildGoalBrief(formData: FormData): GoalBriefInput {
+    const title = ((formData.get('title') as string) || '').trim()
+    const descriptionRaw = ((formData.get('description') as string) || '').trim()
+    const start_date = ((formData.get('start_date') as string) || '').trim() || null
+    const end_date = ((formData.get('end_date') as string) || '').trim() || null
+    const success_criteria = ((formData.get('success_criteria') as string) || '').trim() || null
+    const stop_criteria = ((formData.get('stop_criteria') as string) || '').trim() || null
+
+    return {
+      title,
+      description: descriptionRaw || null,
+      start_date,
+      end_date,
+      priority: (priority as GoalBriefInput['priority']) || 'medium',
+      category: normalizeCategoryInput(category),
+      success_criteria,
+      stop_criteria,
+      user_context: { time_budget_bucket: 'unknown', constraints: [], likely_frictions: [], preference: null }
+    }
+  }
+
+  function mapStepBToDraftActions(stepB: GoalSetupStepBOutput, startDate: string, endDate: string) {
+    const ifThenLines = stepB.if_then_plans
+      .map(p => `If-Then: 如果${p.if} 那么${p.then}`)
+      .join('\n')
+
+    const drafts: DraftAction[] = []
+    for (const a of stepB.actions) {
+      const descriptionParts = [`Why: ${a.why}`, `DoD: ${a.definition_of_done}`]
+      if (ifThenLines) descriptionParts.push(ifThenLines)
+      drafts.push({
+        id: makeId(),
+        enabled: true,
+        title: a.title,
+        description: descriptionParts.join('\n'),
+        type: a.action_type,
+        priority: (a.priority || 'medium') as ActionPriority,
+        start_date: startDate,
+        end_date: endDate,
+        estimated_minutes: a.estimated_minutes
+      })
+    }
+    return drafts
+  }
+
+  function formatCriteriaMarkdown(stepB: GoalSetupStepBOutput) {
+    const successLines = stepB.success_criteria.map(c => `- ${c.type === 'outcome' ? '结果型' : '过程型'}：${c.text}`)
+    const stopLines = stepB.stop_criteria.map(c => `- ${c.type === 'resource' ? '资源' : '方向'}：${c.text}`)
+    return { success: successLines.join('\n'), stop: stopLines.join('\n') }
+  }
+
   async function handleAISplit() {
     setAiError(null)
     if (!formRef.current) return
 
     const formData = new FormData(formRef.current)
-    const goalTitle = (formData.get('title') as string) || ''
-    const goalDescription = (formData.get('description') as string) || ''
-    const startDate = (formData.get('start_date') as string) || ''
-    const endDate = (formData.get('end_date') as string) || ''
+    const startDate = ((formData.get('start_date') as string) || '').trim()
+    const endDate = ((formData.get('end_date') as string) || '').trim()
     const locale = (dict.common.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'
 
-    if (!goalTitle.trim() || !startDate || !endDate) {
+    const brief = buildGoalBrief(formData)
+
+    if (!brief.title || !startDate || !endDate) {
       setAiError(dict.common.errors.missing_fields)
       return
     }
 
     setAiLoading(true)
     try {
-      const res = await fetch('/api/ai/breakdown', {
+      logEvent('ai_goal_setup_click', {
+        source: 'new_goal',
+        has_desc: !!brief.description,
+        desc_len: brief.description ? brief.description.length : 0
+      })
+      setAiStepA(null)
+      setAiStepB(null)
+      setDraftActions([])
+      setAiAnswers({})
+
+      const res = await fetch('/api/ai/goal-setup/step-a', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goalTitle, goalDescription, startDate, endDate, locale })
+        body: JSON.stringify({ brief, locale })
       })
 
-      const json = (await res.json()) as { actions?: unknown; error?: string }
+      const json = (await res.json()) as { result?: GoalSetupStepAOutput; error?: string }
       if (!res.ok) {
         const key = json.error || 'operation_failed'
         setAiError((dict.common.errors as Record<string, string>)[key] || dict.common.errors.operation_failed)
         return
       }
 
-      const actions = Array.isArray(json.actions) ? json.actions : []
-      const drafts: DraftAction[] = []
-
-      for (const item of actions) {
-        if (!item || typeof item !== 'object') continue
-        const obj = item as Record<string, unknown>
-        const title = typeof obj.title === 'string' ? obj.title.trim() : ''
-        if (!title) continue
-        const description = typeof obj.description === 'string' ? obj.description : ''
-        const type = (typeof obj.type === 'string' ? obj.type : 'core') as ActionType
-        const priority = (typeof obj.priority === 'string' ? obj.priority : 'medium') as ActionPriority
-        const start_date = (typeof obj.start_date === 'string' ? obj.start_date : startDate)
-        const end_date = (typeof obj.end_date === 'string' ? obj.end_date : endDate)
-        const estimated_minutes = typeof obj.estimated_minutes === 'number' ? obj.estimated_minutes : undefined
-
-        drafts.push({
-          id: makeId(),
-          enabled: true,
-          title,
-          description,
-          type,
-          priority,
-          start_date,
-          end_date,
-          estimated_minutes
-        })
-      }
-
-      if (drafts.length === 0) {
+      const result = json.result
+      if (!result) {
         setAiError(dict.common.errors.operation_failed)
         return
       }
 
+      setAiStepA(result)
+      if (result.need_more_info.blocking) {
+        logEvent('ai_goal_setup_stepA_need_more', { missing: result.need_more_info.missing })
+      } else {
+        logEvent('ai_goal_setup_stepA_success', { questions: result.clarifying_questions.length })
+      }
+      if (!result.need_more_info.blocking) {
+        const initialAnswers: Record<string, string> = {}
+        for (const q of result.clarifying_questions) initialAnswers[q.id] = ''
+        setAiAnswers(initialAnswers)
+      }
+    } catch {
+      setAiError(dict.common.errors.operation_failed)
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  async function handleAIGenerateDrafts() {
+    setAiError(null)
+    if (!formRef.current) return
+    if (!aiStepA || aiStepA.need_more_info.blocking) return
+
+    const formData = new FormData(formRef.current)
+    const startDate = ((formData.get('start_date') as string) || '').trim()
+    const endDate = ((formData.get('end_date') as string) || '').trim()
+    const locale = (dict.common.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'
+    const brief = buildGoalBrief(formData)
+
+    if (!brief.title || !startDate || !endDate) {
+      setAiError(dict.common.errors.missing_fields)
+      return
+    }
+
+    setAiLoading(true)
+    try {
+      const res = await fetch('/api/ai/goal-setup/step-b', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brief, answers: aiAnswers, locale })
+      })
+      const json = (await res.json()) as { result?: GoalSetupStepBOutput; error?: string }
+      if (!res.ok) {
+        const key = json.error || 'operation_failed'
+        setAiError((dict.common.errors as Record<string, string>)[key] || dict.common.errors.operation_failed)
+        return
+      }
+
+      const result = json.result
+      if (!result) {
+        setAiError(dict.common.errors.operation_failed)
+        return
+      }
+
+      setAiStepB(result)
+      logEvent('ai_goal_setup_stepB_success', { actions: result.actions.length, has_if_then: result.if_then_plans.length > 0 })
+      const drafts = mapStepBToDraftActions(result, startDate, endDate)
       setDraftActions(drafts)
+      const criteria = formatCriteriaMarkdown(result)
+      setSuccessCriteriaText(criteria.success)
+      setStopCriteriaText(criteria.stop)
     } catch {
       setAiError(dict.common.errors.operation_failed)
     } finally {
@@ -208,6 +312,99 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
         </div>
         {aiError && <div className="text-sm text-destructive">{aiError}</div>}
       </div>
+
+      {aiStepA && (
+        <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
+          <div className="space-y-2">
+            <div className="text-sm font-medium">{newDict.aiUnderstandingTitle || 'AI 理解摘要（草案）'}</div>
+            <div className="text-sm text-muted-foreground space-y-1">
+              <div>{aiStepA.understanding.goal_summary}</div>
+              {aiStepA.understanding.key_constraints.length > 0 && (
+                <div className="text-xs">
+                  <div className="font-medium text-foreground/80">{newDict.aiConstraintsLabel || '关键约束'}</div>
+                  <ul className="list-disc pl-5">
+                    {aiStepA.understanding.key_constraints.map((c, i) => (
+                      <li key={`${c}-${i}`}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {aiStepA.understanding.likely_failure_reasons.length > 0 && (
+                <div className="text-xs">
+                  <div className="font-medium text-foreground/80">{newDict.aiFrictionsLabel || '可能阻力'}</div>
+                  <ul className="list-disc pl-5">
+                    {aiStepA.understanding.likely_failure_reasons.map((c, i) => (
+                      <li key={`${c}-${i}`}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="text-xs">
+                <div className="font-medium text-foreground/80">{newDict.aiLeverageLabel || '建议杠杆点'}</div>
+                <div>{aiStepA.understanding.leverage_point}</div>
+              </div>
+            </div>
+          </div>
+
+          {aiStepA.need_more_info.blocking ? (
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-destructive">{newDict.aiNeedMoreTitle || '还需要补充'}</div>
+              <div className="text-sm text-muted-foreground">{aiStepA.need_more_info.message}</div>
+              {aiStepA.need_more_info.missing.length > 0 && (
+                <ul className="list-disc pl-5 text-sm text-muted-foreground">
+                  {aiStepA.need_more_info.missing.map((m, i) => (
+                    <li key={`${m}-${i}`}>{m}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="text-sm font-medium">{newDict.aiQuestionsTitle || '快速澄清（2-3 题）'}</div>
+              <div className="space-y-3">
+                {aiStepA.clarifying_questions.map((q) => (
+                  <div key={q.id} className="space-y-2">
+                    <div className="text-sm">{q.question}</div>
+                    {q.type === 'single_choice' ? (
+                      <select
+                        value={aiAnswers[q.id] || ''}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setAiAnswers(prev => ({ ...prev, [q.id]: value }))
+                        }}
+                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="">{newDict.aiSelectPlaceholder || '请选择'}</option>
+                        {(q.options || []).map(opt => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <Input
+                        value={aiAnswers[q.id] || ''}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setAiAnswers(prev => ({ ...prev, [q.id]: value }))
+                        }}
+                        placeholder={newDict.aiShortAnswerPlaceholder || '一句话回答即可'}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <Button
+                type="button"
+                onClick={handleAIGenerateDrafts}
+                disabled={aiLoading || creatingActions}
+              >
+                {aiLoading && <LoadingSpinner size={16} className="mr-2 text-primary-foreground/80" />}
+                {newDict.aiGenerateDraftsButton || '生成草案'}
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
@@ -315,6 +512,8 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
           name="success_criteria"
           placeholder={dict.goals.new.successCriteriaPlaceholder}
           required
+          value={successCriteriaText}
+          onChange={(e) => setSuccessCriteriaText(e.target.value)}
         />
       </div>
 
@@ -325,6 +524,8 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
           name="stop_criteria"
           placeholder={dict.goals.new.abandonCriteriaPlaceholder}
           required
+          value={stopCriteriaText}
+          onChange={(e) => setStopCriteriaText(e.target.value)}
         />
       </div>
 

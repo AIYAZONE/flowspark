@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/Sidebar'
+import { AppResumeGuards } from '@/components/AppResumeGuards'
 import { MobileNavBar } from '@/components/MobileNavBar'
 import { getDictionary } from '@/i18n/get-dictionary'
 
@@ -26,11 +27,12 @@ export default async function AuthenticatedLayout({
     <div className="fixed inset-0 flex h-full w-full overflow-hidden bg-muted/40">
       <Sidebar dict={dict} />
       <div className="flex flex-col flex-1 h-full overflow-hidden">
-        <main className="flex-1 overflow-x-hidden overflow-y-auto px-4 sm:px-6 lg:px-8 pb-24">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto px-4 sm:px-6 lg:px-8 pb-8 md:pb-0">
           <div className="mx-auto w-full max-w-[1600px] pt-8 md:pt-10 pb-12">
             {children}
           </div>
         </main>
+        <AppResumeGuards />
         <MobileNavBar dict={dict} />
       </div>
       {modal}
