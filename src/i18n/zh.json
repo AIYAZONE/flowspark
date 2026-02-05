@@ -28,6 +28,8 @@
 		"hidePassword": "隐藏密码",
 		"showConfirmPassword": "显示确认密码",
 		"hideConfirmPassword": "隐藏确认密码",
+		"signOutConfirmTitle": "退出登录",
+		"signOutConfirmDesc": "退出登录不会丢失任何数据，你仍可以随时登录本账号。",
 		"locale": "zh-CN",
 		"errors": {
 			"unauthenticated": "用户未登录",
