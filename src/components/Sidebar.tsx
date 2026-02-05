@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Target, CalendarCheck, User, LogOut, ChevronLeft, ChevronRight, Aperture, Loader2 } from 'lucide-react'
+import { LayoutDashboard, Target, CalendarCheck, User, LogOut, ChevronLeft, ChevronRight, Aperture, Loader2, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -38,6 +39,11 @@ interface SidebarProps {
       brand: string
       signOut: string
     }
+    common: {
+      cancel: string
+      signOutConfirmTitle: string
+      signOutConfirmDesc: string
+    }
   }
 }
 
@@ -47,6 +53,7 @@ export function Sidebar({ dict }: SidebarProps) {
   const supabase = useMemo(() => createClient(), [])
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [signOutOpen, setSignOutOpen] = useState(false)
   const [tooltip, setTooltip] = useState<{ label: string; top: number; left: number } | null>(null)
   const [xp, setXp] = useState<number | null>(null)
   const [level, setLevel] = useState<number | null>(null)
@@ -189,38 +196,75 @@ export function Sidebar({ dict }: SidebarProps) {
       </div>
 
       <div className="border-t border-border/40 p-2 space-y-2">
-        {isCollapsed ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="group relative mx-auto h-10 w-12 text-muted-foreground hover:text-foreground hover:bg-muted"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-            onMouseEnter={(e) => showTooltip(dict.sidebar.signOut, e.currentTarget)}
-            onMouseLeave={hideTooltip}
-          >
-            {isSigningOut ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-            ) : (
-              <LogOut className="h-4 w-4 shrink-0" />
-            )}
-          </Button>
-        ) : (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 px-4 text-muted-foreground hover:text-foreground hover:bg-muted"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-          >
-            {isSigningOut ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-            ) : (
-              <LogOut className="h-4 w-4 shrink-0" />
-            )}
-            <span className="whitespace-nowrap">{dict.sidebar.signOut}</span>
-          </Button>
-        )}
+        <AlertDialog
+          open={signOutOpen}
+          onOpenChange={(next) => {
+            setSignOutOpen(next)
+            if (!next) setTooltip(null)
+          }}
+        >
+          {isCollapsed ? (
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="group relative mx-auto h-10 w-12 text-muted-foreground hover:text-foreground hover:bg-muted"
+                disabled={isSigningOut}
+                onMouseEnter={(e) => showTooltip(dict.sidebar.signOut, e.currentTarget)}
+                onMouseLeave={hideTooltip}
+                onClick={() => setTooltip(null)}
+              >
+                {isSigningOut ? (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                ) : (
+                  <LogOut className="h-4 w-4 shrink-0" />
+                )}
+              </Button>
+            </AlertDialogTrigger>
+          ) : (
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start gap-2 px-4 text-muted-foreground hover:text-foreground hover:bg-muted"
+                disabled={isSigningOut}
+              >
+                {isSigningOut ? (
+                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                ) : (
+                  <LogOut className="h-4 w-4 shrink-0" />
+                )}
+                <span className="whitespace-nowrap">{dict.sidebar.signOut}</span>
+              </Button>
+            </AlertDialogTrigger>
+          )}
+
+          <AlertDialogContent className="max-w-lg">
+            <button
+              type="button"
+              aria-label={dict.common.cancel}
+              className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              onClick={() => setSignOutOpen(false)}
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{dict.common.signOutConfirmTitle}</AlertDialogTitle>
+              <AlertDialogDescription>{dict.common.signOutConfirmDesc}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isSigningOut}>{dict.common.cancel}</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleSignOut}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={isSigningOut}
+              >
+                {isSigningOut && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {dict.sidebar.signOut}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {isCollapsed && tooltip && (

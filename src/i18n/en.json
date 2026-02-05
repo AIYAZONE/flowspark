@@ -26,6 +26,8 @@
 		"hidePassword": "Hide password",
 		"showConfirmPassword": "Show confirm password",
 		"hideConfirmPassword": "Hide confirm password",
+		"signOutConfirmTitle": "Sign out",
+		"signOutConfirmDesc": "Signing out won't delete any data. You can sign in to this account anytime.",
 		"noData": "No data",
 		"tryAdjustFilter": "Try adjusting your filters",
 		"locale": "en-US",

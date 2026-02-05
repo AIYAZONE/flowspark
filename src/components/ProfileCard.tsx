@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { AvatarUploader } from '@/components/AvatarUploader'
 import { Pencil, Mail, Globe, CalendarDays, Loader2, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
@@ -55,6 +56,8 @@ interface Dict {
     error: string
     edit: string
     cancel: string
+    signOutConfirmTitle: string
+    signOutConfirmDesc: string
   }
 }
 
@@ -90,6 +93,7 @@ export function ProfileCard({
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isUpdating, setIsUpdating] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
+  const [signOutOpen, setSignOutOpen] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -229,20 +233,40 @@ export function ProfileCard({
             </div>
 
             <div className="md:hidden mt-8 pt-6 border-t border-border/50">
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full justify-center gap-2 px-4 text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/20"
-                onClick={handleSignOut}
-                disabled={isSigningOut}
-              >
-                {isSigningOut ? (
-                  <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
-                ) : (
-                  <LogOut className="h-4 w-4 shrink-0" />
-                )}
-                {dict.sidebar.signOut}
-              </Button>
+              <AlertDialog open={signOutOpen} onOpenChange={setSignOutOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full justify-center gap-2 px-4 text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/20"
+                    disabled={isSigningOut}
+                  >
+                    {isSigningOut ? (
+                      <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+                    ) : (
+                      <LogOut className="h-4 w-4 shrink-0" />
+                    )}
+                    {dict.sidebar.signOut}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="max-w-lg">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>{dict.common.signOutConfirmTitle}</AlertDialogTitle>
+                    <AlertDialogDescription>{dict.common.signOutConfirmDesc}</AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isSigningOut}>{dict.common.cancel}</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleSignOut}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      disabled={isSigningOut}
+                    >
+                      {isSigningOut && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                      {dict.sidebar.signOut}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </>
         )}

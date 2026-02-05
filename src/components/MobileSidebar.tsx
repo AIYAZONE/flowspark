@@ -3,11 +3,12 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Target, CalendarCheck, User, LogOut, Menu, Loader2 } from 'lucide-react'
+import { LayoutDashboard, Target, CalendarCheck, User, LogOut, Menu, Loader2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import {
   Sheet,
   SheetContent,
@@ -25,11 +26,17 @@ interface MobileSidebarProps {
       brand: string
       signOut: string
     }
+    common: {
+      cancel: string
+      signOutConfirmTitle: string
+      signOutConfirmDesc: string
+    }
   }
 }
 
 export function MobileSidebar({ dict }: MobileSidebarProps) {
   const [open, setOpen] = useState(false)
+  const [signOutOpen, setSignOutOpen] = useState(false)
   const [isSigningOut, setIsSigningOut] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
@@ -122,19 +129,52 @@ export function MobileSidebar({ dict }: MobileSidebarProps) {
           </nav>
         </div>
         <div className="border-t p-4">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-4 px-3 py-3.5 text-base font-medium text-muted-foreground hover:text-foreground h-auto"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-          >
-            {isSigningOut ? (
-              <Loader2 className="h-6 w-6 animate-spin" />
-            ) : (
-              <LogOut className="h-6 w-6" />
-            )}
-            {dict.sidebar.signOut}
-          </Button>
+          <AlertDialog open={signOutOpen} onOpenChange={setSignOutOpen}>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-4 px-3 py-3.5 text-base font-medium text-muted-foreground hover:text-foreground h-auto"
+                disabled={isSigningOut}
+              >
+                {isSigningOut ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <LogOut className="h-6 w-6" />
+                )}
+                {dict.sidebar.signOut}
+              </Button>
+            </AlertDialogTrigger>
+
+            <AlertDialogContent className="max-w-lg">
+              <button
+                type="button"
+                aria-label={dict.common.cancel}
+                className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                onClick={() => setSignOutOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </button>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{dict.common.signOutConfirmTitle}</AlertDialogTitle>
+                <AlertDialogDescription>{dict.common.signOutConfirmDesc}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={isSigningOut}>{dict.common.cancel}</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={async () => {
+                    setSignOutOpen(false)
+                    setOpen(false)
+                    await handleSignOut()
+                  }}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={isSigningOut}
+                >
+                  {isSigningOut && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {dict.sidebar.signOut}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </SheetContent>
     </Sheet>
