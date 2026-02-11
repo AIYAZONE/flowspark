@@ -1,9 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { getLevelFromXP, XPSource, XP_VALUES } from './gamification'
 
-export async function awardXP(userId: string, source: XPSource, actionId?: string) {
+export async function awardXP(userId: string, source: XPSource, actionId?: string, amountOverride?: number) {
   const supabase = await createClient()
-  const amount = XP_VALUES[source]
+  const amount = typeof amountOverride === 'number' && Number.isFinite(amountOverride) ? Math.round(amountOverride) : XP_VALUES[source]
 
   try {
     // 1. Log the XP transaction

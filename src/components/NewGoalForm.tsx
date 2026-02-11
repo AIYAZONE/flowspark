@@ -20,6 +20,8 @@ import { GoalCategorySelect } from '@/components/GoalCategorySelect'
 import { SubmitButton } from '@/components/SubmitButton'
 import { normalizeCategoryInput } from '@/lib/goalCategories'
 import { logEvent } from '@/lib/analytics'
+import { sendAIFeedback } from '@/lib/aiFeedback'
+import { scheduleRangesWithinGoal } from '@/lib/actionScheduling'
 import type en from '@/i18n/en.json'
 import type { GoalBriefInput, GoalSetupStepAOutput, GoalSetupStepBOutput } from '@/lib/ai/phase2aSchemas'
 
@@ -55,6 +57,9 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
   const submitAction = action || createGoal
   const formRef = useRef<HTMLFormElement | null>(null)
   const newDict = dict.goals.new as unknown as Record<string, string>
+  const [createMode, setCreateMode] = useState<'manual' | 'ai'>('manual')
+  const [goalStart, setGoalStart] = useState(() => new Date().toISOString().slice(0, 10))
+  const [goalEnd, setGoalEnd] = useState(() => new Date().toISOString().slice(0, 10))
   const [category, setCategory] = useState<string>('other')
   const [priority, setPriority] = useState<string>('medium')
   const [dateValid, setDateValid] = useState(true)
@@ -75,6 +80,8 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
     // console.log('NewGoalForm submit:', Object.fromEntries((formData as unknown as Iterable<[string, FormDataEntryValue]>)))
     formData.set('category', normalizeCategoryInput(category))
     formData.set('priority', priority)
+    const goalStartDate = ((formData.get('start_date') as string) || '').trim()
+    const goalEndDate = ((formData.get('end_date') as string) || '').trim()
     const result = await submitAction(formData) as { success?: boolean; goalId?: string; title?: string } | undefined
     const goalId = result?.goalId
 
@@ -84,17 +91,27 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
         const enabledCount = draftActions.filter(a => a.enabled).length
         for (const a of draftActions) {
           if (!a.enabled) continue
+          let start_date = (a.start_date || goalStartDate).trim()
+          let end_date = (a.end_date || start_date || goalEndDate).trim()
+          if (end_date && start_date && end_date < start_date) end_date = start_date
+          if (goalStartDate && start_date && start_date < goalStartDate) start_date = goalStartDate
+          if (goalEndDate && end_date && end_date > goalEndDate) end_date = goalEndDate
+          if (goalEndDate && start_date && start_date > goalEndDate) start_date = goalEndDate
+          if (goalStartDate && end_date && end_date < goalStartDate) end_date = goalStartDate
+          if (end_date && start_date && end_date < start_date) end_date = start_date
+
           const actionData = new FormData()
           actionData.set('goal_id', goalId)
           actionData.set('title', a.title)
           actionData.set('type', a.type)
           actionData.set('priority', a.priority)
           actionData.set('description', a.description)
-          actionData.set('start_date', a.start_date)
-          actionData.set('end_date', a.end_date)
+          actionData.set('start_date', start_date)
+          actionData.set('end_date', end_date)
           await createAction(actionData)
         }
         logEvent('ai_goal_setup_apply', { applied_actions: enabledCount, used_ai: !!aiStepB })
+        sendAIFeedback('ai_goal_setup_apply', { applied_actions: enabledCount, used_ai: !!aiStepB })
       } finally {
         setCreatingActions(false)
       }
@@ -125,24 +142,32 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
     }
   }
 
-  function mapStepBToDraftActions(stepB: GoalSetupStepBOutput, startDate: string, endDate: string) {
+  function mapStepBToDraftActions(stepB: GoalSetupStepBOutput) {
     const ifThenLines = stepB.if_then_plans
       .map(p => `If-Then: 如果${p.if} 那么${p.then}`)
       .join('\n')
 
+    const ranges = scheduleRangesWithinGoal({
+      start: stepB.goal_draft.start_date,
+      end: stepB.goal_draft.end_date,
+      count: stepB.actions.length
+    })
+
     const drafts: DraftAction[] = []
-    for (const a of stepB.actions) {
+    for (const [idx, a] of stepB.actions.entries()) {
+      const numberedTitle = /^\d+\./.test(a.title.trim()) ? a.title.trim() : `${idx + 1}. ${a.title}`
       const descriptionParts = [`Why: ${a.why}`, `DoD: ${a.definition_of_done}`]
       if (ifThenLines) descriptionParts.push(ifThenLines)
+      const r = ranges[idx]
       drafts.push({
         id: makeId(),
         enabled: true,
-        title: a.title,
+        title: numberedTitle,
         description: descriptionParts.join('\n'),
         type: a.action_type,
         priority: (a.priority || 'medium') as ActionPriority,
-        start_date: startDate,
-        end_date: endDate,
+        start_date: r?.start ?? stepB.goal_draft.start_date,
+        end_date: r?.end ?? stepB.goal_draft.end_date,
         estimated_minutes: a.estimated_minutes
       })
     }
@@ -166,7 +191,15 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
 
     const brief = buildGoalBrief(formData)
 
-    if (!brief.title || !startDate || !endDate) {
+    if (!brief.title) {
+      setAiError(dict.common.errors.missing_fields)
+      return
+    }
+    if (createMode === 'ai' && !brief.description) {
+      setAiError(dict.common.errors.missing_fields)
+      return
+    }
+    if (createMode === 'manual' && (!startDate || !endDate)) {
       setAiError(dict.common.errors.missing_fields)
       return
     }
@@ -174,6 +207,11 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
     setAiLoading(true)
     try {
       logEvent('ai_goal_setup_click', {
+        source: 'new_goal',
+        has_desc: !!brief.description,
+        desc_len: brief.description ? brief.description.length : 0
+      })
+      sendAIFeedback('ai_goal_setup_click', {
         source: 'new_goal',
         has_desc: !!brief.description,
         desc_len: brief.description ? brief.description.length : 0
@@ -186,7 +224,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
       const res = await fetch('/api/ai/goal-setup/step-a', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief, locale })
+        body: JSON.stringify({ brief, locale, today: new Date().toISOString().slice(0, 10) })
       })
 
       const json = (await res.json()) as { result?: GoalSetupStepAOutput; error?: string }
@@ -205,8 +243,10 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
       setAiStepA(result)
       if (result.need_more_info.blocking) {
         logEvent('ai_goal_setup_stepA_need_more', { missing: result.need_more_info.missing })
+        sendAIFeedback('ai_goal_setup_stepA_need_more', { missing_count: result.need_more_info.missing.length })
       } else {
         logEvent('ai_goal_setup_stepA_success', { questions: result.clarifying_questions.length })
+        sendAIFeedback('ai_goal_setup_stepA_success', { questions: result.clarifying_questions.length })
       }
       if (!result.need_more_info.blocking) {
         const initialAnswers: Record<string, string> = {}
@@ -231,7 +271,15 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
     const locale = (dict.common.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'
     const brief = buildGoalBrief(formData)
 
-    if (!brief.title || !startDate || !endDate) {
+    if (!brief.title) {
+      setAiError(dict.common.errors.missing_fields)
+      return
+    }
+    if (createMode === 'ai' && !brief.description) {
+      setAiError(dict.common.errors.missing_fields)
+      return
+    }
+    if (createMode === 'manual' && (!startDate || !endDate)) {
       setAiError(dict.common.errors.missing_fields)
       return
     }
@@ -241,7 +289,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
       const res = await fetch('/api/ai/goal-setup/step-b', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ brief, answers: aiAnswers, locale })
+        body: JSON.stringify({ brief, answers: aiAnswers, locale, today: new Date().toISOString().slice(0, 10) })
       })
       const json = (await res.json()) as { result?: GoalSetupStepBOutput; error?: string }
       if (!res.ok) {
@@ -257,8 +305,14 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
       }
 
       setAiStepB(result)
+      setCategory(result.goal_draft.category)
+      setPriority(result.goal_draft.priority)
+      setGoalStart(result.goal_draft.start_date)
+      setGoalEnd(result.goal_draft.end_date)
+      setDateValid(true)
       logEvent('ai_goal_setup_stepB_success', { actions: result.actions.length, has_if_then: result.if_then_plans.length > 0 })
-      const drafts = mapStepBToDraftActions(result, startDate, endDate)
+      sendAIFeedback('ai_goal_setup_stepB_success', { actions: result.actions.length, has_if_then: result.if_then_plans.length > 0 })
+      const drafts = mapStepBToDraftActions(result)
       setDraftActions(drafts)
       const criteria = formatCriteriaMarkdown(result)
       setSuccessCriteriaText(criteria.success)
@@ -272,6 +326,23 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
 
   return (
     <form ref={formRef} action={handleSubmit} className="space-y-6">
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 p-2">
+        <button
+          type="button"
+          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${createMode === 'manual' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+          onClick={() => setCreateMode('manual')}
+        >
+          {newDict.manualCreate || '手动创建'}
+        </button>
+        <button
+          type="button"
+          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors ${createMode === 'ai' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+          onClick={() => setCreateMode('ai')}
+        >
+          {newDict.aiSplitCreate || 'AI 拆解创建'}
+        </button>
+      </div>
+
       <div className="grid gap-2">
         <Label htmlFor="title" required>{dict.goals.new.titleLabel}</Label>
         <Input
@@ -295,7 +366,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
             type="button"
             variant="outline"
             onClick={handleAISplit}
-            disabled={aiLoading || creatingActions || !goalTitle.trim() || !dateValid}
+            disabled={aiLoading || creatingActions || !goalTitle.trim() || (createMode === 'manual' && !dateValid)}
           >
             {aiLoading && <LoadingSpinner size={16} className="mr-2 text-current" />}
             {dict.goals.new.aiSplitButton || 'AI 帮我拆解'}
@@ -406,32 +477,42 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="category">{dict.goals.category.label}</Label>
-          <GoalCategorySelect dict={dict} value={category} onChange={setCategory} />
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="priority">{dict.goals.priority.label}</Label>
-          <Select name="priority" value={priority} onValueChange={setPriority}>
-            <SelectTrigger>
-              <SelectValue placeholder={dict.goals.priority.label} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="high">{dict.goals.priority.high}</SelectItem>
-              <SelectItem value="medium">{dict.goals.priority.medium}</SelectItem>
-              <SelectItem value="low">{dict.goals.priority.low}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      {createMode === 'manual' || aiStepB ? (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="category">{dict.goals.category.label}</Label>
+              <GoalCategorySelect dict={dict} value={category} onChange={setCategory} />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="priority">{dict.goals.priority.label}</Label>
+              <Select name="priority" value={priority} onValueChange={setPriority}>
+                <SelectTrigger>
+                  <SelectValue placeholder={dict.goals.priority.label} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high">{dict.goals.priority.high}</SelectItem>
+                  <SelectItem value="medium">{dict.goals.priority.medium}</SelectItem>
+                  <SelectItem value="low">{dict.goals.priority.low}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-      <DateRangeFields
-        defaultStart={new Date().toISOString().split('T')[0]}
-        defaultEnd={new Date().toISOString().split('T')[0]}
-        labels={{ start: dict.goals.new.startDate, end: dict.goals.new.endDate, error: dict.common.dateRangeInvalid }}
-        onValidityChange={setDateValid}
-      />
+          <DateRangeFields
+            defaultStart={goalStart}
+            defaultEnd={goalEnd}
+            valueStart={goalStart}
+            valueEnd={goalEnd}
+            onChange={({ start, end }) => {
+              setGoalStart(start)
+              setGoalEnd(end)
+            }}
+            labels={{ start: dict.goals.new.startDate, end: dict.goals.new.endDate, error: dict.common.dateRangeInvalid }}
+            onValidityChange={setDateValid}
+          />
+        </>
+      ) : null}
 
       {draftActions.length > 0 && (
         <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
@@ -484,6 +565,29 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
                       <option value="low">{dict.goals.priority.low}</option>
                     </select>
                   </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      type="date"
+                      value={a.start_date}
+                      onChange={(e) => {
+                        const start_date = e.target.value
+                        setDraftActions(prev => prev.map(x => {
+                          if (x.id !== a.id) return x
+                          const nextEnd = x.end_date && x.end_date < start_date ? start_date : x.end_date
+                          return { ...x, start_date, end_date: nextEnd }
+                        }))
+                      }}
+                    />
+                    <Input
+                      type="date"
+                      value={a.end_date}
+                      min={a.start_date}
+                      onChange={(e) => {
+                        const end_date = e.target.value
+                        setDraftActions(prev => prev.map(x => x.id === a.id ? { ...x, end_date } : x))
+                      }}
+                    />
+                  </div>
                   <Textarea
                     value={a.description}
                     onChange={(e) => {
@@ -505,29 +609,33 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
         </div>
       )}
 
-      <div className="grid gap-2">
-        <Label htmlFor="success_criteria" required>{dict.goals.new.successCriteriaLabel}</Label>
-        <Textarea
-          id="success_criteria"
-          name="success_criteria"
-          placeholder={dict.goals.new.successCriteriaPlaceholder}
-          required
-          value={successCriteriaText}
-          onChange={(e) => setSuccessCriteriaText(e.target.value)}
-        />
-      </div>
+      {createMode === 'manual' || aiStepB ? (
+        <>
+          <div className="grid gap-2">
+            <Label htmlFor="success_criteria" required>{dict.goals.new.successCriteriaLabel}</Label>
+            <Textarea
+              id="success_criteria"
+              name="success_criteria"
+              placeholder={dict.goals.new.successCriteriaPlaceholder}
+              required
+              value={successCriteriaText}
+              onChange={(e) => setSuccessCriteriaText(e.target.value)}
+            />
+          </div>
 
-      <div className="grid gap-2">
-        <Label htmlFor="stop_criteria" required>{dict.goals.new.abandonCriteriaLabel}</Label>
-        <Textarea
-          id="stop_criteria"
-          name="stop_criteria"
-          placeholder={dict.goals.new.abandonCriteriaPlaceholder}
-          required
-          value={stopCriteriaText}
-          onChange={(e) => setStopCriteriaText(e.target.value)}
-        />
-      </div>
+          <div className="grid gap-2">
+            <Label htmlFor="stop_criteria" required>{dict.goals.new.abandonCriteriaLabel}</Label>
+            <Textarea
+              id="stop_criteria"
+              name="stop_criteria"
+              placeholder={dict.goals.new.abandonCriteriaPlaceholder}
+              required
+              value={stopCriteriaText}
+              onChange={(e) => setStopCriteriaText(e.target.value)}
+            />
+          </div>
+        </>
+      ) : null}
 
       <div className="flex justify-end gap-4">
         {onSuccess ? (
@@ -537,7 +645,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
             <Button type="button" variant="outline">{dict.common.cancel}</Button>
           </Link>
         )}
-        <SubmitButton disabled={!dateValid || creatingActions}>
+        <SubmitButton disabled={!dateValid || creatingActions || (createMode === 'ai' && !aiStepB)}>
           {hasEnabledDrafts ? (dict.goals.new.submitWithActions || dict.goals.new.submit) : dict.goals.new.submit}
         </SubmitButton>
       </div>

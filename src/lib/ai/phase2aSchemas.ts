@@ -52,6 +52,12 @@ export interface GoalSetupStepAOutput {
 
 export interface GoalSetupStepBOutput {
   type: 'goal_setup_stepB'
+  goal_draft: {
+    category: string
+    priority: GoalPriority
+    start_date: ISODate
+    end_date: ISODate
+  }
   actions: Array<{
     title: string
     why: string
@@ -159,6 +165,22 @@ function normalizeActionPriority(value: unknown): ActionPriority | null {
   if (v === 'medium') return 'medium'
   if (v === 'low') return 'low'
   return null
+}
+
+function normalizeGoalPriority(value: unknown): GoalPriority | null {
+  if (typeof value !== 'string') return null
+  const v = value.trim().toLowerCase()
+  if (v === 'high') return 'high'
+  if (v === 'medium') return 'medium'
+  if (v === 'low') return 'low'
+  return null
+}
+
+function asISODate(value: unknown): ISODate | null {
+  const v = asTrimmedString(value)
+  if (!v) return null
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null
+  return v
 }
 
 function normalizeQuestionType(value: unknown): QuestionType | null {
@@ -289,6 +311,21 @@ export function parseGoalSetupStepB(payload: unknown): ParseResult<GoalSetupStep
   const type = asTrimmedString(payload.type)
   if (type !== 'goal_setup_stepB') violations.push('type_must_be_goal_setup_stepB')
 
+  const goalDraftRaw =
+    (isRecord(payload.goal_draft) ? payload.goal_draft : null) ??
+    (isRecord(payload.goal) ? payload.goal : null)
+  const goal_category = goalDraftRaw ? asTrimmedString(goalDraftRaw.category) : null
+  const goal_priority = goalDraftRaw ? normalizeGoalPriority(goalDraftRaw.priority) : null
+  const goal_start_date = goalDraftRaw ? asISODate(goalDraftRaw.start_date) : null
+  const goal_end_date = goalDraftRaw ? asISODate(goalDraftRaw.end_date) : null
+
+  if (!goalDraftRaw) violations.push('goal_draft_required')
+  if (!goal_category) violations.push('goal_draft_category_required')
+  if (goal_category && goal_category.length > 60) violations.push('goal_draft_category_too_long')
+  if (!goal_priority) violations.push('goal_draft_priority_required')
+  if (!goal_start_date || !goal_end_date) violations.push('goal_draft_dates_required')
+  if (goal_start_date && goal_end_date && goal_end_date < goal_start_date) violations.push('goal_draft_date_range_invalid')
+
   const actions: GoalSetupStepBOutput['actions'] = []
   if (Array.isArray(payload.actions)) {
     for (const item of payload.actions) {
@@ -368,6 +405,12 @@ export function parseGoalSetupStepB(payload: unknown): ParseResult<GoalSetupStep
     ok: true,
     value: {
       type: 'goal_setup_stepB',
+      goal_draft: {
+        category: goal_category!,
+        priority: goal_priority!,
+        start_date: goal_start_date!,
+        end_date: goal_end_date!
+      },
       actions,
       success_criteria,
       stop_criteria,
@@ -542,4 +585,3 @@ export function buildRepairPrompt(locale: 'en' | 'zh', violations: string[]) {
     'Do not add extra fields. Ensure required fields exist and all constraints are satisfied.'
   ].join('\n')
 }
-

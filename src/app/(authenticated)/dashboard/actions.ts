@@ -3,8 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { awardXP } from '@/lib/gamification-actions';
+import { rollCompletionReward } from '@/lib/rewards';
+import type { RewardResult } from '@/lib/rewards';
 
-export async function toggleAction(formData: FormData) {
+async function toggleActionInternal(formData: FormData) {
   const supabase = await createClient();
   const id = formData.get('id') as string;
   const currentCompleted = formData.get('completed') === 'true';
@@ -20,14 +22,30 @@ export async function toggleAction(formData: FormData) {
     .select('user_id, type')
     .single();
 
+  let reward: RewardResult | null = null
   if (action && nextCompleted) {
     // Award XP only on completion
     const source = action.type === 'core' ? 'core_action' : 'maintenance_action';
     await awardXP(action.user_id, source, id);
+
+    reward = rollCompletionReward({ actionType: action.type })
+    if (reward.bonusXP > 0) {
+      await awardXP(action.user_id, 'bonus', id, reward.bonusXP)
+    }
   }
 
   revalidatePath('/dashboard');
   revalidatePath('/today');
+
+  return { ok: true, completed: nextCompleted, reward }
+}
+
+export async function toggleAction(formData: FormData): Promise<void> {
+  await toggleActionInternal(formData)
+}
+
+export async function toggleActionWithReward(formData: FormData): Promise<{ ok: boolean; completed: boolean; reward: RewardResult | null }> {
+  return toggleActionInternal(formData)
 }
 
 export async function submitScore(formData: FormData) {

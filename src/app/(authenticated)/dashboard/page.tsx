@@ -16,6 +16,7 @@ import { StreakCard } from '@/components/StreakCard'
 import { GoalProgressList } from '@/components/GoalProgressList'
 import { Target, Star } from 'lucide-react'
 import { assignVariant, isEnvEnabled } from '@/lib/experiments'
+import { ExperimentExposureTracker } from '@/components/ExperimentExposureTracker'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -26,10 +27,12 @@ export default async function DashboardPage() {
     process.env.NEXT_PUBLIC_AI_TODAY_PLAN_ENABLED ?? process.env.AI_TODAY_PLAN_ENABLED
   const todayPlanEnabled = todayPlanEnabledEnv ? isEnvEnabled(todayPlanEnabledEnv) : true
   const ab1TodayPlanEnabled = isEnvEnabled(process.env.AI_EXPERIMENT_AB1_TODAY_PLAN)
-  const showAIPlan = todayPlanEnabled && (!ab1TodayPlanEnabled || assignVariant(user.id, 'ab1_today_plan') === 'B')
+  const ab1TodayPlanVariant = ab1TodayPlanEnabled ? assignVariant(user.id, 'ab1_today_plan') : null
+  const showAIPlan = todayPlanEnabled && (!ab1TodayPlanEnabled || ab1TodayPlanVariant === 'B')
 
   const ab2ReviewEnabled = isEnvEnabled(process.env.AI_EXPERIMENT_AB2_REVIEW_Q)
-  const reviewQuestionsCount = ab2ReviewEnabled ? (assignVariant(user.id, 'ab2_review_q') === 'A' ? 1 : 2) : 2
+  const ab2ReviewVariant = ab2ReviewEnabled ? assignVariant(user.id, 'ab2_review_q') : null
+  const reviewQuestionsCount = ab2ReviewEnabled ? (ab2ReviewVariant === 'A' ? 1 : 2) : 2
   const tz = await getUserTimezone(supabase, user.id)
   const today = getTodayInTZ(tz)
   const yesterdayDate = new Date(today);
@@ -296,6 +299,12 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6 pb-10">
+      <ExperimentExposureTracker
+        source="dashboard"
+        ab1TodayPlanVariant={ab1TodayPlanVariant}
+        ab2ReviewVariant={ab2ReviewVariant}
+        showAIPlan={showAIPlan}
+      />
       {/* 1. Header & Welcome */}
       <DashboardWelcome
         dict={dict.dashboard.welcome}
@@ -358,6 +367,7 @@ export default async function DashboardPage() {
                 dictFull={dict}
                 defaultDate={today}
                 showAIPlan={showAIPlan}
+                ab1TodayPlanVariant={ab1TodayPlanVariant}
                 className="h-full"
               />
             ) : (
@@ -379,6 +389,7 @@ export default async function DashboardPage() {
               recent7={chartData.slice(0, 7)}
               currentScore={dailyScore ?? null}
               reviewQuestionsCount={reviewQuestionsCount}
+              ab2ReviewVariant={ab2ReviewVariant}
               className="h-full"
             />
           </div>
