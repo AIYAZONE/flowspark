@@ -65,6 +65,7 @@ import { createAction, deleteAction, updateAction } from '@/app/(authenticated)/
 import type en from '@/i18n/en.json'
 import type { RescueOutput } from '@/lib/ai/phase2aSchemas'
 import { logEvent } from '@/lib/analytics'
+import { sendAIFeedback } from '@/lib/aiFeedback'
 
 interface Action {
     id: string
@@ -210,6 +211,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         setRescueResult(null)
         setDetailsOpen(true)
         logEvent('ai_rescue_click', { action_id: action.id })
+        sendAIFeedback('ai_rescue_click', { action_id: action.id, goal_id: action.goal_id })
     }
 
     const handlePanelOpenChange = (open: boolean) => {
@@ -276,6 +278,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             formData.set('end_date', endDateStr)
             await updateAction(formData)
             logEvent('ai_rescue_apply', { mode: 'replace', option: '5m', action_id: action.id })
+            sendAIFeedback('ai_rescue_apply', { mode: 'replace', option: '5m', action_id: action.id, goal_id: action.goal_id, reason: rescueReason })
             setPanelMode('view')
             setDetailsOpen(false)
         } catch {
@@ -306,6 +309,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             formData.set('end_date', endDateStr)
             await createAction(formData)
             logEvent('ai_rescue_apply', { mode: 'add', option: '5m', action_id: action.id })
+            sendAIFeedback('ai_rescue_apply', { mode: 'add', option: '5m', action_id: action.id, goal_id: action.goal_id, reason: rescueReason })
             setPanelMode('view')
             setDetailsOpen(false)
         } catch {

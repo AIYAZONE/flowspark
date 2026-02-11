@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import type { TodayPlanOutput } from '@/lib/ai/phase2aSchemas'
 import { logEvent } from '@/lib/analytics'
+import { sendAIFeedback } from '@/lib/aiFeedback'
 
 // We need to pass through the props required by SetCoreActionSheet
 // Since SetCoreActionSheet is complex, we assume the parent passes down compatible props or the component itself.
@@ -39,6 +40,7 @@ interface DailyPlanningCardProps {
   dictFull: any 
   defaultDate: string
   showAIPlan?: boolean
+  ab1TodayPlanVariant?: 'A' | 'B' | null
   className?: string
 }
 
@@ -50,6 +52,7 @@ export function DailyPlanningCard({
   dictFull,
   defaultDate,
   showAIPlan = true,
+  ab1TodayPlanVariant = null,
   className
 }: DailyPlanningCardProps) {
   const [aiOpen, setAiOpen] = useState(false)
@@ -103,7 +106,8 @@ export function DailyPlanningCard({
     setAiResult(null)
     setSelected(null)
     if (candidateGoals.length === 0) return
-    logEvent('ai_today_plan_click', { source: 'dashboard' })
+    logEvent('ai_today_plan_click', { source: 'dashboard', variant: ab1TodayPlanVariant })
+    sendAIFeedback('ai_today_plan_click', { source: 'dashboard', variant: ab1TodayPlanVariant })
 
     setAiLoading(true)
     try {
@@ -124,7 +128,8 @@ export function DailyPlanningCard({
         return
       }
       setAiResult(json.result)
-      logEvent('ai_today_plan_suggested', { options: json.result.recommendations.length })
+      logEvent('ai_today_plan_suggested', { options: json.result.recommendations.length, variant: ab1TodayPlanVariant })
+      sendAIFeedback('ai_today_plan_suggested', { options: json.result.recommendations.length, variant: ab1TodayPlanVariant })
     } catch {
       setAiError(dictFull?.common?.errors?.operation_failed || 'Operation failed')
     } finally {
@@ -153,7 +158,8 @@ export function DailyPlanningCard({
     setAiLoading(true)
     try {
       await createAction(formData)
-      logEvent('ai_today_plan_apply', { option: `${selected.minutes}m`, goal_id: goalId })
+      logEvent('ai_today_plan_apply', { option: `${selected.minutes}m`, goal_id: goalId, variant: ab1TodayPlanVariant })
+      sendAIFeedback('ai_today_plan_apply', { option: `${selected.minutes}m`, goal_id: goalId, variant: ab1TodayPlanVariant })
       setAiOpen(false)
     } catch {
       setAiError(dictFull?.common?.errors?.operation_failed || 'Operation failed')
@@ -217,7 +223,16 @@ export function DailyPlanningCard({
         </CardContent>
       </Card>
 
-      <Dialog open={aiOpen} onOpenChange={setAiOpen}>
+      <Dialog
+        open={aiOpen}
+        onOpenChange={(open) => {
+          if (!open && aiOpen && aiResult && !aiLoading) {
+            logEvent('ai_today_plan_dismiss', { source: 'dashboard', variant: ab1TodayPlanVariant })
+            sendAIFeedback('ai_today_plan_dismiss', { source: 'dashboard', variant: ab1TodayPlanVariant })
+          }
+          setAiOpen(open)
+        }}
+      >
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{(dictFull?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanTitle || 'AI 今日核心行动（草案）'}</DialogTitle>

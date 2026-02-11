@@ -5,7 +5,9 @@ import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import type en from '@/i18n/en.json'
-import { toggleAction } from '@/app/(authenticated)/dashboard/actions'
+import { toggleActionWithReward } from '@/app/(authenticated)/dashboard/actions'
+import { RewardLootBoxDialog } from '@/components/RewardLootBoxDialog'
+import type { RewardResult } from '@/lib/rewards'
 
 type Dict = typeof en
 
@@ -33,6 +35,8 @@ export function ActionListCompact({
   showInProgressBadge?: boolean
 }) {
   const [completedCollapsed, setCompletedCollapsed] = useState(true)
+  const [rewardOpen, setRewardOpen] = useState(false)
+  const [reward, setReward] = useState<RewardResult | null>(null)
 
   const groups = useMemo(() => {
     const incomplete = actions.filter(a => !a.completed)
@@ -104,10 +108,16 @@ export function ActionListCompact({
           disabled={isPending}
           onClick={() => {
             startTransition(() => {
-              const formData = new FormData()
-              formData.append('id', action.id)
-              formData.append('completed', action.completed ? 'true' : 'false')
-              toggleAction(formData)
+              void (async () => {
+                const formData = new FormData()
+                formData.append('id', action.id)
+                formData.append('completed', action.completed ? 'true' : 'false')
+                const result = await toggleActionWithReward(formData) as unknown as { reward?: RewardResult | null }
+                if (!action.completed && result?.reward) {
+                  setReward(result.reward)
+                  setRewardOpen(true)
+                }
+              })()
             })
           }}
           aria-label={action.completed ? 'Mark incomplete' : 'Mark complete'}
@@ -126,6 +136,7 @@ export function ActionListCompact({
 
   return (
     <div className="rounded-lg border bg-card/50 backdrop-blur-sm">
+      <RewardLootBoxDialog open={rewardOpen} onOpenChange={setRewardOpen} reward={reward} dict={dict} />
       <div style={{ maxHeight }} className="overflow-y-auto px-2 py-2">
         {/* Incomplete */}
         <div className="mb-2">

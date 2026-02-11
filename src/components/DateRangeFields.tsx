@@ -14,16 +14,31 @@ interface Labels {
 interface Props {
   defaultStart: string
   defaultEnd: string
+  valueStart?: string
+  valueEnd?: string
+  onChange?: (next: { start: string; end: string }) => void
   labels: Labels
   onValidityChange?: (valid: boolean) => void
   className?: string
 }
 
-export function DateRangeFields({ defaultStart, defaultEnd, labels, onValidityChange, className }: Props) {
+export function DateRangeFields({
+  defaultStart,
+  defaultEnd,
+  valueStart,
+  valueEnd,
+  onChange,
+  labels,
+  onValidityChange,
+  className
+}: Props) {
+  const controlled = valueStart !== undefined || valueEnd !== undefined
   const [start, setStart] = useState(defaultStart)
   const [end, setEnd] = useState(defaultEnd)
-  const valid = !!start && !!end && end >= start
-  const isRangeInvalid = !!start && !!end && end < start
+  const startValue = controlled ? (valueStart ?? '') : start
+  const endValue = controlled ? (valueEnd ?? '') : end
+  const valid = !!startValue && !!endValue && endValue >= startValue
+  const isRangeInvalid = !!startValue && !!endValue && endValue < startValue
 
   useEffect(() => {
     onValidityChange?.(valid)
@@ -37,11 +52,17 @@ export function DateRangeFields({ defaultStart, defaultEnd, labels, onValidityCh
           id="start_date"
           name="start_date"
           type="date"
-          value={start}
+          value={startValue}
           onChange={(e) => {
             const v = e.target.value
-            setStart(v)
-            if (end && end < v) setEnd(v)
+            const nextStart = v
+            const nextEnd = endValue && endValue < v ? v : endValue
+            if (controlled) {
+              onChange?.({ start: nextStart, end: nextEnd })
+              return
+            }
+            setStart(nextStart)
+            if (nextEnd !== endValue) setEnd(nextEnd)
           }}
           required
         />
@@ -52,9 +73,16 @@ export function DateRangeFields({ defaultStart, defaultEnd, labels, onValidityCh
           id="end_date"
           name="end_date"
           type="date"
-          value={end}
-          min={start}
-          onChange={(e) => setEnd(e.target.value)}
+          value={endValue}
+          min={startValue}
+          onChange={(e) => {
+            const v = e.target.value
+            if (controlled) {
+              onChange?.({ start: startValue, end: v })
+              return
+            }
+            setEnd(v)
+          }}
           required
         />
         {isRangeInvalid && <p className="text-xs text-destructive absolute top-full mt-1 left-0">{labels.error}</p>}
@@ -62,4 +90,3 @@ export function DateRangeFields({ defaultStart, defaultEnd, labels, onValidityCh
     </div>
   )
 }
-

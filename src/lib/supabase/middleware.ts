@@ -38,6 +38,16 @@ export async function updateSession(request: NextRequest) {
 		error
 	} = await supabase.auth.getUser();
 
+	function isSupabaseAuthCookieName(name: string) {
+		return (
+			name.startsWith('sb-') ||
+			name.startsWith('sb:') ||
+			name.startsWith('supabase-auth-token')
+		);
+	}
+
+	const supabaseAuthCookiesToClear: string[] = []
+
 	// Handle invalid/expired refresh token: clear supabase auth cookies and continue as unauthenticated
 	if (
 		error &&
@@ -46,8 +56,9 @@ export async function updateSession(request: NextRequest) {
 	) {
 		const allCookies = request.cookies.getAll();
 		for (const c of allCookies) {
-			if (c.name.startsWith('sb:')) {
+			if (isSupabaseAuthCookieName(c.name)) {
 				response.cookies.delete(c.name);
+				supabaseAuthCookiesToClear.push(c.name)
 			}
 		}
 	}
@@ -60,11 +71,15 @@ export async function updateSession(request: NextRequest) {
 		request.nextUrl.pathname.startsWith('/today')
 	) {
 		if (!user) {
-			return NextResponse.redirect(new URL('/login', request.url));
+			const redirectResponse = NextResponse.redirect(new URL('/login', request.url));
+			for (const name of supabaseAuthCookiesToClear) {
+				redirectResponse.cookies.delete(name);
+			}
+			return redirectResponse;
 		}
 		// Require email confirmation
 		if (!user.email_confirmed_at) {
-			return NextResponse.redirect(
+			const redirectResponse = NextResponse.redirect(
 				new URL(
 					'/login?error=' +
 						encodeURIComponent(
@@ -73,6 +88,10 @@ export async function updateSession(request: NextRequest) {
 					request.url
 				)
 			);
+			for (const name of supabaseAuthCookiesToClear) {
+				redirectResponse.cookies.delete(name);
+			}
+			return redirectResponse;
 		}
 	}
 

@@ -5,6 +5,13 @@ import type { GoalBriefInput } from '@/lib/ai/phase2aSchemas'
 
 export const runtime = 'nodejs'
 
+function asISODate(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const v = value.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null
+  return v
+}
+
 export async function POST(req: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,6 +26,7 @@ export async function POST(req: Request) {
 
   const input = body as Record<string, unknown>
   const locale = input.locale === 'zh' ? 'zh' : 'en'
+  const today = asISODate(input.today)
   const brief = (input.brief as GoalBriefInput | undefined) || (input.goalBrief as GoalBriefInput | undefined)
   const answers = (input.answers as Record<string, unknown> | undefined) || {}
   if (!brief || typeof brief !== 'object') {
@@ -32,7 +40,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await aiGoalSetupStepB({ brief, answers: coercedAnswers, locale })
+    const result = await aiGoalSetupStepB({ brief, answers: coercedAnswers, locale, today: today ?? undefined })
     return NextResponse.json({ result }, { status: 200 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'operation_failed'
@@ -45,4 +53,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status })
   }
 }
-

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog'
 import type { ReviewOutput } from '@/lib/ai/phase2aSchemas'
 import { logEvent } from '@/lib/analytics'
+import { sendAIFeedback } from '@/lib/aiFeedback'
 
 type Dict = typeof en
 
@@ -40,6 +41,7 @@ interface ScoreCardProps {
   recent7: { date: string; score: number }[]
   currentScore?: number | null
   reviewQuestionsCount?: 1 | 2
+  ab2ReviewVariant?: 'A' | 'B' | null
   className?: string
 }
 
@@ -49,6 +51,7 @@ export function ScoreCard({
   recent7: _recent7 = [],
   currentScore = null,
   reviewQuestionsCount = 2,
+  ab2ReviewVariant = null,
   className
 }: ScoreCardProps) {
   const [score, setScore] = useState<number | null>(currentScore)
@@ -74,7 +77,8 @@ export function ScoreCard({
     setReviewResult(null)
     setFriction('')
     setTomorrowTime('')
-    logEvent('ai_review_click', { source: 'dashboard', had_score: score != null })
+    logEvent('ai_review_click', { source: 'dashboard', had_score: score != null, variant: ab2ReviewVariant })
+    sendAIFeedback('ai_review_click', { source: 'dashboard', had_score: score != null, variant: ab2ReviewVariant })
   }
 
   async function generateReview() {
@@ -101,7 +105,16 @@ export function ScoreCard({
         return
       }
       setReviewResult(json.result)
-      logEvent('ai_review_generated', { questions_answered: (friction ? 1 : 0) + (reviewQuestionsCount === 2 && tomorrowTime ? 1 : 0) })
+      logEvent('ai_review_generated', {
+        questions_answered: (friction ? 1 : 0) + (reviewQuestionsCount === 2 && tomorrowTime ? 1 : 0),
+        variant: ab2ReviewVariant
+      })
+      sendAIFeedback('ai_review_generated', {
+        questions_answered: (friction ? 1 : 0) + (reviewQuestionsCount === 2 && tomorrowTime ? 1 : 0),
+        friction: friction || null,
+        tomorrow_time: (reviewQuestionsCount === 2 ? (tomorrowTime || null) : null),
+        variant: ab2ReviewVariant
+      })
     } catch {
       setReviewError(dict.common.errors.operation_failed)
     } finally {
@@ -167,7 +180,8 @@ export function ScoreCard({
         open={reviewOpen}
         onOpenChange={(open) => {
           if (!open && reviewOpen && !reviewResult) {
-            logEvent('ai_review_dismiss', { step: 'result' })
+            logEvent('ai_review_dismiss', { step: 'result', variant: ab2ReviewVariant })
+            sendAIFeedback('ai_review_dismiss', { step: 'result', variant: ab2ReviewVariant })
           }
           setReviewOpen(open)
         }}

@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/reset' ||
     pathname.startsWith('/auth/')
 
-  if (isProtectedRoute || isAuthRoute) {
+  if (pathname === '/' || isProtectedRoute || isAuthRoute) {
     return updateSession(request)
   }
 

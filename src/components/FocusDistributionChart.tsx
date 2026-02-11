@@ -2,9 +2,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import type en from '@/i18n/en.json'
 
 interface FocusDistributionChartProps {
-  dict: any
+  dict: typeof en
   data: { name: string; value: number; color: string }[]
 }
 

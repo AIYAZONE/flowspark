@@ -5,6 +5,13 @@ import type { GoalBriefInput } from '@/lib/ai/phase2aSchemas'
 
 export const runtime = 'nodejs'
 
+function asISODate(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const v = value.trim()
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) return null
+  return v
+}
+
 export async function POST(req: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -19,13 +26,14 @@ export async function POST(req: Request) {
 
   const input = body as Record<string, unknown>
   const locale = input.locale === 'zh' ? 'zh' : 'en'
+  const today = asISODate(input.today)
   const brief = (input.brief as GoalBriefInput | undefined) || (input.goalBrief as GoalBriefInput | undefined)
   if (!brief || typeof brief !== 'object') {
     return NextResponse.json({ error: 'missing_fields' }, { status: 400 })
   }
 
   try {
-    const result = await aiGoalSetupStepA({ brief, locale })
+    const result = await aiGoalSetupStepA({ brief, locale, today: today ?? undefined })
     return NextResponse.json({ result }, { status: 200 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'operation_failed'
@@ -38,4 +46,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status })
   }
 }
-
