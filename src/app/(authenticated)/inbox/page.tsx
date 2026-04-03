@@ -86,7 +86,6 @@ export default async function InboxPage() {
 								}}
 								activeGoals={(activeGoals || []).map((g) => ({ id: g.id as string, title: g.title as string }))}
 								dict={dict}
-								tz={tz}
 								startDefault={startDefault}
 								endDefault={endDefault}
 							/>
