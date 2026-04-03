@@ -87,9 +87,10 @@ interface ActionItemProps {
     dict: typeof en
     showGoalTitle?: boolean
     tz?: string
+    goals?: { id: string, title: string }[]
 }
 
-export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Shanghai' }: ActionItemProps) {
+export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Shanghai', goals = [] }: ActionItemProps) {
     const [isLoading, setIsLoading] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -166,6 +167,8 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         try {
             await updateAction(formData)
             setPanelMode('view')
+            setDetailsOpen(false)
+            closeSwipe()
         } catch (error) {
             console.error(error)
         } finally {
@@ -370,9 +373,12 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     )
 
     const editForm = (
-        <form action={handleUpdate} className="space-y-4">
+        <form
+            action={handleUpdate}
+            className="space-y-4"
+        >
             <input type="hidden" name="id" value={action.id} />
-            <input type="hidden" name="goal_id" value={action.goal_id} />
+            <input type="hidden" name="from_goal_id" value={action.goal_id} />
 
             <div className="space-y-2">
                 <Input
@@ -392,6 +398,25 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                     className="min-h-[80px] text-sm bg-background/50"
                 />
             </div>
+
+            {goals.length > 0 ? (
+                <div className="space-y-1">
+                    <Label htmlFor="goal_id" className="text-xs text-muted-foreground mb-1 block">
+                        {dict.today.goalLabel}
+                    </Label>
+                    <select
+                        name="goal_id"
+                        defaultValue={action.goal_id}
+                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                        {goals.map(goal => (
+                            <option key={goal.id} value={goal.id}>{goal.title}</option>
+                        ))}
+                    </select>
+                </div>
+            ) : (
+                <input type="hidden" name="goal_id" value={action.goal_id} />
+            )}
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">

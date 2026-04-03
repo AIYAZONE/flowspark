@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
 import type en from '@/i18n/en.json'
-import { getTodayInTZ } from '@/lib/time'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Progress } from '@/components/ui/progress'
@@ -40,16 +39,16 @@ export function TodayActionList({
   goals,
   dict,
   tz,
+  today,
   showGoalTitle = true
 }: {
   actions: Action[]
   goals: { id: string, title: string }[]
   dict: Dict
   tz: string
+  today: string
   showGoalTitle?: boolean
 }) {
-  const today = useMemo(() => getTodayInTZ(tz), [tz])
-
   const summary = useMemo(() => {
     const incomplete = actions.filter(a => !a.completed)
     const completed = actions.filter(a => a.completed)
@@ -92,7 +91,7 @@ export function TodayActionList({
       const db = getBaseDate(b)
       if (da !== db) return da < db ? -1 : 1
 
-      return a.title.localeCompare(b.title)
+      return a.id.localeCompare(b.id)
     })
 
     const must = sortedIncomplete.filter(a => (a.priority || 'medium') === 'high' || a.type === 'core')
@@ -114,7 +113,7 @@ export function TodayActionList({
         const goalTitle = items[0]?.goals?.title || goals.find(g => g.id === goalId)?.title || dict.today.ungrouped
         return { goalId, goalTitle, items }
       })
-      .sort((a, b) => b.items.length - a.items.length)
+      .sort((a, b) => (b.items.length - a.items.length) || a.goalId.localeCompare(b.goalId))
 
     return {
       sortedIncomplete,
@@ -179,7 +178,7 @@ export function TodayActionList({
           </div>
         </div>
 
-        <ActionListFilter initialActions={actions} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} />
+        <ActionListFilter initialActions={actions} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} goalsForEdit={goals} />
       </div>
     )
   }
@@ -239,7 +238,7 @@ export function TodayActionList({
         </div>
         <div className="grid gap-3">
           {(showAllMust ? focusModel.must : focusModel.must.slice(0, maxMust)).map(action => (
-            <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} />
+            <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} />
           ))}
           {focusModel.must.length === 0 ? (
             <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
@@ -267,7 +266,7 @@ export function TodayActionList({
           </div>
           <div className="grid gap-3">
             {(showAllOverdue ? focusModel.overdue : focusModel.overdue.slice(0, maxOverdue)).map(action => (
-              <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} />
+              <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} />
             ))}
           </div>
         </div>
@@ -305,7 +304,7 @@ export function TodayActionList({
                     <div className="px-3 pb-3">
                       <div className="grid gap-3">
                         {visible.map(action => (
-                          <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} />
+                          <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} />
                         ))}
                       </div>
                       {canExpand ? (
@@ -347,7 +346,7 @@ export function TodayActionList({
             <div className="px-3 pb-3">
               <div className="grid gap-3">
                 {focusModel.completed.map(action => (
-                  <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} />
+                  <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} />
                 ))}
               </div>
             </div>

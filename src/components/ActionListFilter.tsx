@@ -40,9 +40,10 @@ interface ActionListFilterProps {
     tz?: string
     goals?: { id: string, title: string }[]
     hideGoalFilter?: boolean
+    goalsForEdit?: { id: string, title: string }[]
 }
 
-export function ActionListFilter({ initialActions, dict, showGoalTitle = false, tz = 'Asia/Shanghai', goals = [], hideGoalFilter = false }: ActionListFilterProps) {
+export function ActionListFilter({ initialActions, dict, showGoalTitle = false, tz = 'Asia/Shanghai', goals = [], hideGoalFilter = false, goalsForEdit }: ActionListFilterProps) {
     const [search, setSearch] = useState('')
     const [statusFilter, setStatusFilter] = useState('incomplete')
     const [typeFilter, setTypeFilter] = useState('all')
@@ -316,6 +317,7 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
                             dict={dict}
                             showGoalTitle={showGoalTitle}
                             tz={tz}
+                            goals={goalsForEdit}
                         />
                     ))}
                 </div>

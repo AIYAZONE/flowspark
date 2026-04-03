@@ -2,7 +2,7 @@
 
 [中文](README_ZH.md) | **English**
 
-This directory contains all the SQL scripts required to initialize the Goal System database. Please execute these scripts in the Supabase SQL Editor in the following order.
+This directory contains all the SQL scripts required to initialize the FlowSpark database. Please execute these scripts in the Supabase SQL Editor in the following order.
 
 ## Script Descriptions
 
@@ -39,13 +39,41 @@ Sets up automated database triggers:
 - **New User Handling**: Automatically creates a corresponding record in the `user_profiles` table when a user registers.
 - **Timestamp Updates**: Automatically updates the `updated_at` field to the current time when a record is updated.
 
+### 5. `04_gamification.sql` (Gamification Schema)
+
+Adds minimal gamification columns and tables:
+
+- `user_profiles`: Adds `xp` and `level`.
+- `xp_logs`: Logs XP changes.
+
+### 6. `05_gamification_rls.sql` (Gamification RLS)
+
+Enables RLS and policies for `xp_logs`.
+
+### 7. `06_ai_feedback.sql` (AI Feedback Storage)
+
+Adds `ai_recent_events` to `user_profiles` for basic AI feedback/event tracking.
+
+### 8. `07_inbox.sql` (Quick Capture Inbox)
+
+Adds `inbox_items` table for quick capture, tags, and conversion to actions.
+
+### 9. `08_inbox_rls.sql` (Inbox RLS)
+
+Enables RLS and policies for `inbox_items`.
+
 ## Execution Steps
 
 1. Open the [Supabase Dashboard](https://supabase.com/dashboard).
 2. Navigate to the **SQL Editor** of your project.
 3. Copy and run the contents of the above files in order:
-   - First, run `00_init_tables.sql`
-   - Second, run `01_rls_policies.sql`
-   - Third, run `02_storage_setup.sql`
-   - Finally, run `03_functions_and_triggers.sql`
+   - `00_init_tables.sql`
+   - `01_rls_policies.sql`
+   - `02_storage_setup.sql`
+   - `03_functions_and_triggers.sql`
+   - `04_gamification.sql`
+   - `05_gamification_rls.sql`
+   - `06_ai_feedback.sql`
+   - `07_inbox.sql`
+   - `08_inbox_rls.sql`
 4. Once completed, the database initialization is finished.

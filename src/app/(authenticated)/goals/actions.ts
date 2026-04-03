@@ -5,6 +5,23 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { normalizeCategoryInput } from '@/lib/goalCategories';
 
+const ACTIVE_GOAL_LIMIT = 5;
+
+async function assertActiveGoalLimit(
+	supabase: Awaited<ReturnType<typeof createClient>>,
+	userId: string
+) {
+	const { data, error } = await supabase
+		.from('goals')
+		.select('id')
+		.eq('user_id', userId)
+		.eq('status', 'active');
+
+	if (error) throw new Error('operation_failed');
+	const activeCount = data?.length ?? 0;
+	if (activeCount >= ACTIVE_GOAL_LIMIT) throw new Error('goal_limit_reached');
+}
+
 export async function createGoal(formData: FormData) {
 	const supabase = await createClient();
 
@@ -12,6 +29,8 @@ export async function createGoal(formData: FormData) {
 		data: { user }
 	} = await supabase.auth.getUser();
 	if (!user) return;
+
+	await assertActiveGoalLimit(supabase, user.id);
 
 	const title = formData.get('title') as string;
 	const description = formData.get('description') as string;
@@ -160,7 +179,9 @@ export async function createGoalModal(formData: FormData) {
 	const {
 		data: { user }
 	} = await supabase.auth.getUser();
-	if (!user) return { error: 'User not authenticated' };
+	if (!user) return { error: 'unauthenticated' };
+
+	await assertActiveGoalLimit(supabase, user.id);
 
 	const title = formData.get('title') as string;
 	const description = formData.get('description') as string;
@@ -399,12 +420,27 @@ export async function updateAction(formData: FormData) {
 	if (!user) throw new Error('User not authenticated');
 
 	const id = formData.get('id') as string;
+	const goal_id = formData.get('goal_id') as string | null;
+	const from_goal_id = formData.get('from_goal_id') as string | null;
 	const title = formData.get('title') as string;
 	const type = formData.get('type') as string;
 	const priority = formData.get('priority') as string;
 	const description = formData.get('description') as string;
 	const start_date = formData.get('start_date') as string;
 	const end_date = formData.get('end_date') as string;
+
+	if (!goal_id) throw new Error('Missing required fields');
+
+	const { data: targetGoal, error: targetGoalError } = await supabase
+		.from('goals')
+		.select('id')
+		.eq('id', goal_id)
+		.eq('user_id', user.id)
+		.eq('status', 'active')
+		.maybeSingle();
+
+	if (targetGoalError) throw new Error(targetGoalError.message);
+	if (!targetGoal) throw new Error('operation_failed');
 
 	await supabase
 		.from('actions')
@@ -414,13 +450,16 @@ export async function updateAction(formData: FormData) {
 			priority,
 			description,
 			start_date,
-			end_date
+			end_date,
+			goal_id
 		})
 		.eq('id', id)
 		.eq('user_id', user.id);
 
 	revalidatePath('/today');
 	revalidatePath('/goals');
+	if (from_goal_id) revalidatePath(`/goals/${from_goal_id}`);
+	revalidatePath(`/goals/${goal_id}`);
 }
 
 export async function deleteAction(formData: FormData) {

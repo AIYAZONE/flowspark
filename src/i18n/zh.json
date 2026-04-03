@@ -34,6 +34,7 @@
 		"errors": {
 			"unauthenticated": "用户未登录",
 			"missing_fields": "缺少必填项",
+			"goal_limit_reached": "进行中的目标已达到上限（5 个）。目标太多会稀释注意力，建议先完成或归档一些目标再创建。",
 			"invalid_date_range": "结束日期不得早于开始日期",
 			"missing_ai_key": "未配置 AI API Key",
 			"operation_failed": "操作失败，请稍后重试",
@@ -48,6 +49,34 @@
 		"goals": "目标管理",
 		"profile": "个人中心",
 		"signOut": "退出登录"
+	},
+	"inbox": {
+		"title": "灵感收件箱",
+		"subtitle": "先收集，后处理。",
+		"cardTitle": "灵感收件箱",
+		"viewAll": "打开收件箱",
+		"openCountSuffix": "条待处理",
+		"empty": "还没有灵感记录",
+		"convertTitle": "转为行动",
+		"convertCta": "转为行动",
+		"archive": "归档",
+		"goalLabel": "归属目标",
+		"goalPlaceholder": "请选择目标",
+		"actionTitleLabel": "行动标题",
+		"actionDescLabel": "描述"
+	},
+	"quickCapture": {
+		"fabLabel": "快捷操作",
+		"addAction": "新增行动",
+		"addIdea": "灵感速记",
+		"title": "灵感速记",
+		"contentLabel": "一句话",
+		"contentPlaceholder": "随手记下你的灵感…",
+		"noteLabel": "备注",
+		"notePlaceholder": "补充更多上下文（可选）",
+		"tagsLabel": "标签",
+		"tagsPlaceholder": "例如：健康, 阅读, 产品",
+		"saveCta": "存入收件箱"
 	},
 	"landing": {
 		"hero": {

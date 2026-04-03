@@ -46,9 +46,10 @@ interface GoalDetailMobileLayoutProps {
     actions: Action[]
     dict: Dict
     initialTab?: TabKey
+    goalsForEdit?: { id: string, title: string }[]
 }
 
-export function GoalDetailMobileLayout({ goal, actions, dict, initialTab = 'actions' }: GoalDetailMobileLayoutProps) {
+export function GoalDetailMobileLayout({ goal, actions, dict, initialTab = 'actions', goalsForEdit }: GoalDetailMobileLayoutProps) {
     const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
 
     const { totalActions, completedActions } = useMemo(() => {
@@ -125,6 +126,7 @@ export function GoalDetailMobileLayout({ goal, actions, dict, initialTab = 'acti
                         dict={dict}
                         showGoalTitle={false}
                         hideGoalFilter={true}
+                        goalsForEdit={goalsForEdit}
                     />
                 </div>
             ) : (

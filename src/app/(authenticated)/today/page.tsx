@@ -1,11 +1,9 @@
-import { Plus } from 'lucide-react'
-
 import { createClient } from '@/lib/supabase/server'
-import { Button } from '@/components/ui/button'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { AddActionDialog } from '@/components/AddActionDialog'
 import { getUserTimezone, getTodayInTZ, toLocaleDateStringTZ } from '@/lib/time'
 import { TodayActionList } from '@/components/TodayActionList'
+import { InboxCard } from '@/components/InboxCard'
 
 export default async function TodayPage() {
   const supabase = await createClient()
@@ -75,6 +73,22 @@ export default async function TodayPage() {
     return false;
   });
 
+  const { count: inboxOpenCountRaw } = await supabase
+    .from('inbox_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('owner_id', user.id)
+    .eq('status', 'open')
+
+  const inboxOpenCount = inboxOpenCountRaw ?? 0
+
+  const { data: inboxRecent } = await supabase
+    .from('inbox_items')
+    .select('id, content, tags')
+    .eq('owner_id', user.id)
+    .eq('status', 'open')
+    .order('created_at', { ascending: false })
+    .limit(3)
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -90,25 +104,23 @@ export default async function TodayPage() {
       </div>
 
       <div className="grid gap-6">
+        <InboxCard
+          dict={dict}
+          openCount={inboxOpenCount}
+          recentItems={(inboxRecent || []).map((it) => ({
+            id: it.id as string,
+            content: it.content as string,
+            tags: (it.tags as string[]) || [],
+          }))}
+        />
         {/* Actions List with Filter */}
         <TodayActionList
           actions={actions || []}
           dict={dict}
           showGoalTitle={true}
           tz={tz}
+          today={today}
           goals={activeGoals || []}
-        />
-      </div>
-
-      <div className="md:hidden fixed bottom-24 right-6 z-40">
-        <AddActionDialog 
-          activeGoals={activeGoals || []} 
-          dict={dict} 
-          trigger={
-            <Button size="icon" className="h-14 w-14 rounded-full shadow-lg">
-              <Plus className="h-6 w-6" />
-            </Button>
-          } 
         />
       </div>
     </div>

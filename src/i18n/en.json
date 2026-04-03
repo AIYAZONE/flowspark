@@ -34,6 +34,7 @@
 		"errors": {
 			"unauthenticated": "User not authenticated",
 			"missing_fields": "Missing required fields",
+			"goal_limit_reached": "You already have 5 active goals. Too many goals dilute attention—consider finishing or archiving one before creating a new goal.",
 			"invalid_date_range": "End date cannot be earlier than start date",
 			"missing_ai_key": "AI API key is not configured",
 			"operation_failed": "Operation failed, please try again later",
@@ -48,6 +49,34 @@
 		"goals": "Goals",
 		"profile": "Profile",
 		"signOut": "Sign Out"
+	},
+	"inbox": {
+		"title": "Inbox",
+		"subtitle": "Capture now, process later.",
+		"cardTitle": "Inbox",
+		"viewAll": "Open Inbox",
+		"openCountSuffix": "open items",
+		"empty": "No items yet",
+		"convertTitle": "Convert to Action",
+		"convertCta": "Convert",
+		"archive": "Archive",
+		"goalLabel": "Goal",
+		"goalPlaceholder": "Select a goal",
+		"actionTitleLabel": "Action title",
+		"actionDescLabel": "Description"
+	},
+	"quickCapture": {
+		"fabLabel": "Quick actions",
+		"addAction": "Add action",
+		"addIdea": "Quick capture",
+		"title": "Quick Capture",
+		"contentLabel": "One-liner",
+		"contentPlaceholder": "Write down your idea...",
+		"noteLabel": "Note",
+		"notePlaceholder": "Add more context (optional)",
+		"tagsLabel": "Tags",
+		"tagsPlaceholder": "e.g. health, reading, product",
+		"saveCta": "Save to Inbox"
 	},
 	"landing": {
 		"hero": {

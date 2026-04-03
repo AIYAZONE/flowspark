@@ -66,6 +66,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
   const [goalTitle, setGoalTitle] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
+  const [submitError, setSubmitError] = useState<string | null>(null)
   const [aiStepA, setAiStepA] = useState<GoalSetupStepAOutput | null>(null)
   const [aiAnswers, setAiAnswers] = useState<Record<string, string>>({})
   const [aiStepB, setAiStepB] = useState<GoalSetupStepBOutput | null>(null)
@@ -76,14 +77,43 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
   const [stopCriteriaText, setStopCriteriaText] = useState('')
 
   async function handleSubmit(formData: FormData) {
+    setSubmitError(null)
     // 临时调试：确认提交值（稍后移除）
     // console.log('NewGoalForm submit:', Object.fromEntries((formData as unknown as Iterable<[string, FormDataEntryValue]>)))
     formData.set('category', normalizeCategoryInput(category))
     formData.set('priority', priority)
     const goalStartDate = ((formData.get('start_date') as string) || '').trim()
     const goalEndDate = ((formData.get('end_date') as string) || '').trim()
-    const result = await submitAction(formData) as { success?: boolean; goalId?: string; title?: string } | undefined
-    const goalId = result?.goalId
+    let result: unknown
+    try {
+      result = await submitAction(formData)
+    } catch (error) {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'digest' in error &&
+        typeof (error as { digest?: unknown }).digest === 'string' &&
+        (error as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+      ) {
+        throw error
+      }
+      const code = error instanceof Error ? error.message : 'operation_failed'
+      const errors = dict.common.errors as unknown as Record<string, string>
+      setSubmitError(errors[code] || errors.operation_failed)
+      return
+    }
+
+    if (result && typeof result === 'object' && 'error' in result) {
+      const code = typeof (result as { error?: unknown }).error === 'string'
+        ? (result as { error: string }).error
+        : 'operation_failed'
+      const errors = dict.common.errors as unknown as Record<string, string>
+      setSubmitError(errors[code] || errors.operation_failed)
+      return
+    }
+
+    const typed = result as { success?: boolean; goalId?: string; title?: string } | undefined
+    const goalId = typed?.goalId
 
     if (goalId && draftActions.some(a => a.enabled)) {
       setCreatingActions(true)
@@ -117,7 +147,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
       }
     }
     if (onSuccess) {
-      onSuccess(result && result.success ? { id: result.goalId, title: result.title } : undefined)
+      onSuccess(typed && typed.success ? { id: typed.goalId, title: typed.title } : undefined)
     }
   }
 
@@ -342,6 +372,12 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
           {newDict.aiSplitCreate || 'AI 拆解创建'}
         </button>
       </div>
+
+      {submitError && (
+        <div className="text-sm text-destructive" role="alert">
+          {submitError}
+        </div>
+      )}
 
       <div className="grid gap-2">
         <Label htmlFor="title" required>{dict.goals.new.titleLabel}</Label>
