@@ -1,4 +1,3 @@
-import type { NextConfig } from 'next';
 import withPWAInit from '@ducanh2912/next-pwa';
 
 const withPWA = withPWAInit({
@@ -9,13 +8,14 @@ const withPWA = withPWAInit({
 		skipWaiting: true,
 		runtimeCaching: [
 			{
-				urlPattern: /^https:\/\/fonts\.(?:gstatic|googleapis)\.com\/.*/i,
+				urlPattern:
+					/^https:\/\/fonts\.(?:gstatic|googleapis)\.com\/.*/i,
 				handler: 'CacheFirst',
 				options: {
 					cacheName: 'google-fonts',
 					expiration: {
 						maxEntries: 4,
-						maxAgeSeconds: 365 * 24 * 60 * 60 // 1 year
+						maxAgeSeconds: 365 * 24 * 60 * 60
 					}
 				}
 			},
@@ -26,7 +26,7 @@ const withPWA = withPWAInit({
 					cacheName: 'static-font-assets',
 					expiration: {
 						maxEntries: 4,
-						maxAgeSeconds: 7 * 24 * 60 * 60 // 7 days
+						maxAgeSeconds: 7 * 24 * 60 * 60
 					}
 				}
 			},
@@ -37,18 +37,19 @@ const withPWA = withPWAInit({
 					cacheName: 'static-image-assets',
 					expiration: {
 						maxEntries: 64,
-						maxAgeSeconds: 24 * 60 * 60 // 24 hours
+						maxAgeSeconds: 24 * 60 * 60
 					}
 				}
 			},
 			{
-				urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*/i,
+				urlPattern:
+					/^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*/i,
 				handler: 'StaleWhileRevalidate',
 				options: {
 					cacheName: 'supabase-storage',
 					expiration: {
 						maxEntries: 50,
-						maxAgeSeconds: 60 * 60 * 24 * 30 // 30 Days
+						maxAgeSeconds: 60 * 60 * 24 * 30
 					}
 				}
 			}
@@ -56,8 +57,7 @@ const withPWA = withPWAInit({
 	}
 });
 
-const nextConfig: NextConfig = {
-	/* config options here */
+const nextConfig = {
 	images: {
 		remotePatterns: [
 			{
