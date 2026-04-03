@@ -32,6 +32,13 @@ export default async function GoalDetailPage({ params }: PageProps) {
 
     if (!goal) return <div>{dict.goals.detail.notFound}</div>
 
+    const { data: activeGoals } = await supabase
+        .from('goals')
+        .select('id, title')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+
     // Get actions for this goal
     const { data: actions } = await supabase
         .from('actions')
@@ -60,7 +67,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
                 <h1 className="text-lg md:text-2xl font-bold tracking-tight">{goal.title}</h1>
             </div>
 
-            <GoalDetailMobileLayout goal={goal} actions={actions || []} dict={dict} />
+            <GoalDetailMobileLayout goal={goal} actions={actions || []} dict={dict} goalsForEdit={activeGoals || []} />
 
             <div className="hidden lg:grid gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-1">
@@ -80,6 +87,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
                         dict={dict}
                         showGoalTitle={false}
                         hideGoalFilter={true}
+                        goalsForEdit={activeGoals || []}
                     />
                 </div>
             </div>

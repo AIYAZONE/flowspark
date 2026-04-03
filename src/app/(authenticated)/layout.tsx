@@ -4,6 +4,8 @@ import { Sidebar } from '@/components/Sidebar'
 import { AppResumeGuards } from '@/components/AppResumeGuards'
 import { MobileNavBar } from '@/components/MobileNavBar'
 import { getDictionary } from '@/i18n/get-dictionary'
+import { getUserTimezone } from '@/lib/time'
+import { QuickCaptureSpeedDial } from '@/components/QuickCaptureSpeedDial'
 
 export default async function AuthenticatedLayout({
   children,
@@ -23,6 +25,15 @@ export default async function AuthenticatedLayout({
     redirect('/login')
   }
 
+  const tz = await getUserTimezone(supabase, user.id)
+
+  const { data: activeGoals } = await supabase
+    .from('goals')
+    .select('id, title')
+    .eq('status', 'active')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+
   return (
     <div className="fixed inset-0 flex h-full w-full overflow-hidden bg-muted/40">
       <Sidebar dict={dict} />
@@ -35,6 +46,7 @@ export default async function AuthenticatedLayout({
         <AppResumeGuards />
         <MobileNavBar dict={dict} />
       </div>
+      <QuickCaptureSpeedDial dict={dict} tz={tz} activeGoals={(activeGoals || []).map(g => ({ id: g.id as string, title: g.title as string }))} />
       {modal}
     </div>
   )
