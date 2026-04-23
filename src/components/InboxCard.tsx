@@ -14,16 +14,16 @@ export function InboxCard({
 	recentItems: { id: string; content: string; tags: string[] }[]
 }) {
 	return (
-		<Card>
-			<CardHeader className="pb-4">
-				<div className="flex items-center justify-between gap-4">
+		<Card className="w-full min-w-0 max-w-full">
+			<CardHeader className="w-full min-w-0 max-w-full pb-4">
+				<div className="flex w-full min-w-0 max-w-full flex-col items-start gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
 					<CardTitle className="text-xl">{dict.inbox.cardTitle}</CardTitle>
 					<Link href="/inbox" className="text-sm text-muted-foreground hover:text-foreground">
 						{dict.inbox.viewAll}
 					</Link>
 				</div>
 			</CardHeader>
-			<CardContent className="space-y-3">
+			<CardContent className="w-full min-w-0 max-w-full space-y-3">
 				<div className="text-sm">
 					<span className="font-medium">{openCount}</span>{' '}
 					<span className="text-muted-foreground">{dict.inbox.openCountSuffix}</span>

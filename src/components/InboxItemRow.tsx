@@ -22,7 +22,7 @@ export function InboxItemRow({
 	return (
 		<Card>
 			<CardContent className="p-4">
-				<div className="flex items-start justify-between gap-4">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
 					<div className="min-w-0 flex-1">
 						<div className="text-sm font-medium whitespace-pre-wrap break-words">{item.content}</div>
 						{item.tags.length > 0 ? (
@@ -39,7 +39,7 @@ export function InboxItemRow({
 						) : null}
 					</div>
 
-					<div className="flex items-center gap-2 shrink-0">
+					<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2 sm:shrink-0">
 						<ConvertInboxToActionDialog
 							item={{ id: item.id, content: item.content, note: item.note, tags: item.tags }}
 							activeGoals={activeGoals}
@@ -47,20 +47,20 @@ export function InboxItemRow({
 							startDefault={startDefault}
 							endDefault={endDefault}
 							trigger={
-								<Button size="sm">
+								<Button size="sm" className="w-full sm:w-auto">
 									{dict.inbox.convertCta}
 								</Button>
 							}
 						/>
-						<form action={archiveInboxItem}>
+						<form action={archiveInboxItem} className="w-full sm:w-auto">
 							<input type="hidden" name="id" value={item.id} />
-							<Button type="submit" size="sm" variant="outline">
+							<Button type="submit" size="sm" variant="outline" className="w-full sm:w-auto">
 								{dict.inbox.archive}
 							</Button>
 						</form>
-						<form action={deleteInboxItem}>
+						<form action={deleteInboxItem} className="w-full sm:w-auto">
 							<input type="hidden" name="id" value={item.id} />
-							<Button type="submit" size="sm" variant="ghost">
+							<Button type="submit" size="sm" variant="ghost" className="w-full sm:w-auto">
 								{dict.common.delete}
 							</Button>
 						</form>
