@@ -7,8 +7,7 @@ import { Info, ListChecks } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import { GoalDetailsCard } from '@/components/GoalDetailsCard'
-import { AddActionDialog } from '@/components/AddActionDialog'
-import { ActionListFilter } from '@/components/ActionListFilter'
+import { GoalSubItemsTabs } from '@/components/GoalSubItemsTabs'
 import type en from '@/i18n/en.json'
 
 type Dict = typeof en
@@ -44,12 +43,14 @@ type TabKey = 'actions' | 'details'
 interface GoalDetailMobileLayoutProps {
     goal: Goal
     actions: Action[]
+	entries: { id: string; kind: 'inspiration' | 'journey'; content: string; note: string; created_at: string }[]
     dict: Dict
     initialTab?: TabKey
     goalsForEdit?: { id: string, title: string }[]
+	tzDefaults: { startDefault: string; endDefault: string }
 }
 
-export function GoalDetailMobileLayout({ goal, actions, dict, initialTab = 'actions', goalsForEdit }: GoalDetailMobileLayoutProps) {
+export function GoalDetailMobileLayout({ goal, actions, entries, dict, initialTab = 'actions', goalsForEdit, tzDefaults }: GoalDetailMobileLayoutProps) {
     const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
 
     const { totalActions, completedActions } = useMemo(() => {
@@ -117,17 +118,14 @@ export function GoalDetailMobileLayout({ goal, actions, dict, initialTab = 'acti
 
             {activeTab === 'actions' ? (
                 <div className="rounded-2xl border border-border/40 bg-background/50 backdrop-blur-xl p-4 space-y-4">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-base font-semibold">{dict.goals.detail.actions}</h2>
-                        <AddActionDialog goalId={goal.id} dict={dict} />
-                    </div>
-                    <ActionListFilter
-                        initialActions={actions}
-                        dict={dict}
-                        showGoalTitle={false}
-                        hideGoalFilter={true}
-                        goalsForEdit={goalsForEdit}
-                    />
+					<GoalSubItemsTabs
+						goalId={goal.id}
+						actions={actions}
+						entries={entries}
+						dict={dict}
+						goalsForEdit={goalsForEdit}
+						tzDefaults={tzDefaults}
+					/>
                 </div>
             ) : (
                 <GoalDetailsCard goal={goal} dict={dict} />

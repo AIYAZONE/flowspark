@@ -4,14 +4,33 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { getDictionary } from '@/i18n/get-dictionary'
+import { getTodayInTZ, getUserTimezone } from '@/lib/time'
 
 import { GoalDetailsCard } from '@/components/GoalDetailsCard'
-import { ActionListFilter } from '@/components/ActionListFilter'
-import { AddActionDialog } from '@/components/AddActionDialog'
 import { GoalDetailMobileLayout } from '@/components/GoalDetailMobileLayout'
+import { GoalSubItemsTabs } from '@/components/GoalSubItemsTabs'
+
+function addDaysFromDateString(date: string, days: number): string {
+	const d = new Date(`${date}T00:00:00Z`)
+	d.setUTCDate(d.getUTCDate() + days)
+	return new Intl.DateTimeFormat('en-CA', {
+		timeZone: 'UTC',
+		year: 'numeric',
+		month: '2-digit',
+		day: '2-digit'
+	}).format(d)
+}
 
 interface PageProps {
     params: Promise<{ id: string }>
+}
+
+type RawGoalEntry = {
+	id: string
+	kind: string
+	content: string
+	note: string | null
+	created_at: string
 }
 
 export default async function GoalDetailPage({ params }: PageProps) {
@@ -49,6 +68,34 @@ export default async function GoalDetailPage({ params }: PageProps) {
         .order('priority', { ascending: false }) // High priority first
         .order('start_date', { ascending: false }) // Newest first
 
+	const tz = await getUserTimezone(supabase, user.id)
+	const startDefault = getTodayInTZ(tz)
+	const endDefault = addDaysFromDateString(startDefault, 7)
+
+	let goalEntries: RawGoalEntry[] = []
+	{
+		const { data, error } = await supabase
+			.from('goal_entries')
+			.select('id, kind, content, note, created_at')
+			.eq('goal_id', id)
+			.eq('owner_id', user.id)
+			.eq('status', 'open')
+			.order('created_at', { ascending: false })
+
+		if (error && (error.code === '42703' || error.message?.includes('column'))) {
+			const { data: legacyData } = await supabase
+				.from('goal_entries')
+				.select('id, kind, content, note, created_at')
+				.eq('goal_id', id)
+				.eq('user_id', user.id)
+				.eq('status', 'open')
+				.order('created_at', { ascending: false })
+			goalEntries = legacyData || []
+		} else {
+			goalEntries = data || []
+		}
+	}
+
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-4">
@@ -67,7 +114,20 @@ export default async function GoalDetailPage({ params }: PageProps) {
                 <h1 className="text-lg md:text-2xl font-bold tracking-tight">{goal.title}</h1>
             </div>
 
-            <GoalDetailMobileLayout goal={goal} actions={actions || []} dict={dict} goalsForEdit={activeGoals || []} />
+            <GoalDetailMobileLayout
+				goal={goal}
+				actions={actions || []}
+				entries={(goalEntries || []).map((e) => ({
+					id: e.id as string,
+					kind: e.kind as 'inspiration' | 'journey',
+					content: e.content as string,
+					note: (e.note as string) || '',
+					created_at: e.created_at as string
+				}))}
+				dict={dict}
+				goalsForEdit={activeGoals || []}
+				tzDefaults={{ startDefault, endDefault }}
+			/>
 
             <div className="hidden lg:grid gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-1">
@@ -77,18 +137,20 @@ export default async function GoalDetailPage({ params }: PageProps) {
                 </div>
 
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-semibold">{dict.goals.detail.actions}</h2>
-                        <AddActionDialog goalId={goal.id} dict={dict} />
-                    </div>
-
-                    <ActionListFilter
-                        initialActions={actions || []}
-                        dict={dict}
-                        showGoalTitle={false}
-                        hideGoalFilter={true}
-                        goalsForEdit={activeGoals || []}
-                    />
+					<GoalSubItemsTabs
+						goalId={goal.id as string}
+						actions={actions || []}
+						entries={(goalEntries || []).map((e) => ({
+							id: e.id as string,
+							kind: e.kind as 'inspiration' | 'journey',
+							content: e.content as string,
+							note: (e.note as string) || '',
+							created_at: e.created_at as string
+						}))}
+						dict={dict}
+						goalsForEdit={activeGoals || []}
+						tzDefaults={{ startDefault, endDefault }}
+					/>
                 </div>
             </div>
         </div>

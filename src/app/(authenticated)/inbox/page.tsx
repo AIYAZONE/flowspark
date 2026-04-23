@@ -59,7 +59,7 @@ export default async function InboxPage() {
 				</div>
 			</div>
 
-			<div className="grid gap-6">
+			<div className="grid min-w-0 gap-6">
 				<InboxCard
 					dict={dict}
 					openCount={inboxOpenCount}
@@ -70,7 +70,7 @@ export default async function InboxPage() {
 					}))}
 				/>
 
-				<div className="space-y-3">
+				<div className="min-w-0 space-y-3">
 					{(inboxItems || []).length === 0 ? (
 						<div className="text-sm text-muted-foreground">{dict.inbox.empty}</div>
 					) : (
