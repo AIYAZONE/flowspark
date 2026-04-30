@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Target, CalendarCheck, User, LogOut, ChevronLeft, ChevronRight, Aperture, Loader2, X } from 'lucide-react'
+import { LayoutDashboard, Target, CalendarCheck, User, LogOut, ChevronLeft, ChevronRight, Loader2, X, Sparkles } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -35,6 +35,7 @@ interface SidebarProps {
       dashboard: string
       today: string
       goals: string
+      potential: string
       profile: string
       brand: string
       signOut: string
@@ -106,6 +107,11 @@ export function Sidebar({ dict }: SidebarProps) {
       title: dict.sidebar.goals,
       href: '/goals',
       icon: Target,
+    },
+    {
+      title: dict.sidebar.potential,
+      href: '/potential',
+      icon: Sparkles,
     },
     {
       title: dict.sidebar.profile,

@@ -30,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: "FlowSpark",
     },
     icons: {
-      icon: "/icon.svg",
+      icon: "/logo.svg",
       apple: "/icons/apple-touch-icon.png",
     },
     formatDetection: {

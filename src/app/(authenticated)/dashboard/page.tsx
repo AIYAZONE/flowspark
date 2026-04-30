@@ -315,7 +315,7 @@ export default async function DashboardPage() {
   const isStage2 = !isStage0 && actions.length > 0
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="space-y-8 pb-12">
       <ExperimentExposureTracker
         source="dashboard"
         ab1TodayPlanVariant={ab1TodayPlanVariant}
@@ -323,11 +323,13 @@ export default async function DashboardPage() {
         showAIPlan={showAIPlan}
       />
       {/* 1. Header & Welcome */}
-      <DashboardWelcome
-        dict={dict.dashboard.welcome}
-        name={profile?.name || user.email?.split('@')[0] || 'Flow Seeker'}
-        isNewUser={isStage0}
-      />
+      <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-primary/5 via-background/80 to-background p-4 md:p-5 shadow-sm">
+        <DashboardWelcome
+          dict={dict.dashboard.welcome}
+          name={profile?.name || user.email?.split('@')[0] || 'Flow Seeker'}
+          isNewUser={isStage0}
+        />
+      </div>
 
       {/* 2. Top Stats Row (KPIs) - Only for active users */}
       {!isStage0 && (

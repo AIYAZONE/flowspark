@@ -16,6 +16,7 @@ interface Action {
   id: string
   title: string
   description?: string
+  created_at?: string | null
   type: string
   priority: string
   completed: boolean
@@ -29,9 +30,18 @@ interface Action {
 }
 
 const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 }
+const NEW_WINDOW_MS = 5 * 60 * 1000
 
 function getBaseDate(action: Action): string {
   return (action.end_date ?? action.start_date) || action.start_date
+}
+
+function isRecentlyCreated(action: Action): boolean {
+  if (action.completed) return false
+  if (!action.created_at) return false
+  const createdAtMs = new Date(action.created_at).getTime()
+  if (!Number.isFinite(createdAtMs)) return false
+  return Date.now() - createdAtMs <= NEW_WINDOW_MS
 }
 
 export function TodayActionList({
@@ -49,11 +59,28 @@ export function TodayActionList({
   today: string
   showGoalTitle?: boolean
 }) {
+  const isZh = String(dict.common.locale || '').toLowerCase().startsWith('zh')
+  const recentSectionLabel = isZh ? '刚创建' : 'New'
+  const recentSummaryLabel = isZh ? '刚创建' : 'new'
+
+  const allViewActions = useMemo(() => {
+    return actions
+      .map((action, index) => ({ action, index }))
+      .sort((a, b) => {
+        const aRecent = isRecentlyCreated(a.action)
+        const bRecent = isRecentlyCreated(b.action)
+        if (aRecent !== bRecent) return aRecent ? -1 : 1
+        return a.index - b.index
+      })
+      .map((entry) => entry.action)
+  }, [actions])
+
   const summary = useMemo(() => {
     const incomplete = actions.filter(a => !a.completed)
     const completed = actions.filter(a => a.completed)
     const overdue = incomplete.filter(a => getBaseDate(a) < today)
     const must = incomplete.filter(a => (a.priority || 'medium') === 'high' || a.type === 'core')
+    const recent = incomplete.filter(isRecentlyCreated)
     const total = actions.length
     const completedPct = total === 0 ? 0 : Math.round((completed.length / total) * 100)
     return {
@@ -61,6 +88,7 @@ export function TodayActionList({
       completedCount: completed.length,
       overdueCount: overdue.length,
       mustCount: must.length,
+      recentCount: recent.length,
       totalCount: total,
       completedPct
     }
@@ -72,7 +100,6 @@ export function TodayActionList({
   const focusModel = useMemo(() => {
     const incomplete = actions.filter(a => !a.completed)
     const completed = actions.filter(a => a.completed)
-    const overdue = incomplete.filter(a => getBaseDate(a) < today)
 
     const sortedIncomplete = [...incomplete].sort((a, b) => {
       const overdueA = getBaseDate(a) < today
@@ -94,14 +121,17 @@ export function TodayActionList({
       return a.id.localeCompare(b.id)
     })
 
-    const must = sortedIncomplete.filter(a => (a.priority || 'medium') === 'high' || a.type === 'core')
+    const recent = sortedIncomplete.filter(isRecentlyCreated)
+    const recentIds = new Set(recent.map(a => a.id))
+    const must = sortedIncomplete.filter(a => !recentIds.has(a.id) && ((a.priority || 'medium') === 'high' || a.type === 'core'))
 
     const remainingForGroups = new Map<string, Action[]>()
     const mustIds = new Set(must.map(a => a.id))
+    const overdue = sortedIncomplete.filter(a => !recentIds.has(a.id) && getBaseDate(a) < today)
     const overdueIds = new Set(overdue.map(a => a.id))
 
     for (const action of sortedIncomplete) {
-      if (mustIds.has(action.id) || overdueIds.has(action.id)) continue
+      if (recentIds.has(action.id) || mustIds.has(action.id) || overdueIds.has(action.id)) continue
       const key = action.goal_id || '__ungrouped__'
       const list = remainingForGroups.get(key) ?? []
       list.push(action)
@@ -117,6 +147,7 @@ export function TodayActionList({
 
     return {
       sortedIncomplete,
+      recent,
       must,
       overdue,
       completed,
@@ -178,7 +209,7 @@ export function TodayActionList({
           </div>
         </div>
 
-        <ActionListFilter initialActions={actions} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} goalsForEdit={goals} />
+        <ActionListFilter initialActions={allViewActions} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} goalsForEdit={goals} />
       </div>
     )
   }
@@ -189,7 +220,7 @@ export function TodayActionList({
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
             <div className="text-sm text-muted-foreground">
-              {dict.goals.filter.incomplete} {summary.incompleteCount} · {dict.today.focusView} {Math.min(maxMust, focusModel.must.length)} · {dict.today.delayed} {summary.overdueCount}
+              {dict.goals.filter.incomplete} {summary.incompleteCount} · {recentSummaryLabel} {summary.recentCount} · {dict.today.focusView} {Math.min(maxMust, focusModel.must.length)} · {dict.today.delayed} {summary.overdueCount}
             </div>
             {overloadTip ? (
               <div className="text-sm font-medium">{overloadTip}</div>
@@ -220,6 +251,17 @@ export function TodayActionList({
           <Progress value={summary.completedPct} />
         </div>
       </div>
+
+      {focusModel.recent.length > 0 ? (
+        <div className="space-y-3">
+          <div className="text-base font-semibold">{recentSectionLabel}</div>
+          <div className="grid gap-3">
+            {focusModel.recent.map(action => (
+              <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} isNew />
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">

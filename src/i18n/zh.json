@@ -47,6 +47,7 @@
 		"dashboard": "仪表盘",
 		"today": "今日行动",
 		"goals": "目标管理",
+		"potential": "潜力发掘",
 		"profile": "个人中心",
 		"signOut": "退出登录"
 	},
@@ -522,6 +523,44 @@
 			"copied": "已复制",
 			"unknown": "未知"
 		}
+	},
+	"potential": {
+		"title": "潜力发掘",
+		"subtitle": "输入你的背景与目标，生成可落地的潜力画像与行动建议。",
+		"profileLabel": "你的背景",
+		"profilePlaceholder": "例如：我的职业、阶段、优势、当前瓶颈……",
+		"goalLabel": "想突破的方向",
+		"goalPlaceholder": "例如：3个月内提升产品与技术双栈影响力",
+		"targetLabel": "行动归属目标",
+		"targetPlaceholder": "请选择要立即生成行动的目标",
+		"generate": "生成潜力画像",
+		"loading": "生成中...",
+		"creating": "创建中...",
+		"createNow": "点击立即生成",
+		"created": "已创建",
+		"resultTitle": "潜力画像（草案）",
+		"suggestionsTitle": "建议行动",
+		"strengthsTitle": "优势",
+		"risksTitle": "风险",
+		"opportunitiesTitle": "机会点",
+		"executionStyleTitle": "执行风格建议",
+		"next7DaysTitle": "未来 7 天节奏",
+		"historyTitle": "历史记录",
+		"reuse": "复用",
+		"deleteSession": "删除",
+		"emptyHistory": "暂无历史记录",
+		"emptyResultHint": "先生成一次潜力画像，即可看到建议行动与历史记录。"
+	},
+	"share": {
+		"title": "公开目标",
+		"createLink": "生成分享链接",
+		"revokeLink": "撤销链接",
+		"copyLink": "复制链接",
+		"copied": "已复制",
+		"readonlyHint": "该链接仅可查看，不可编辑。",
+		"openTitle": "公开目标",
+		"expired": "链接无效或已过期",
+		"emptyActions": "暂无行动"
 	},
 	"verified": {
 		"title": "邮箱验证成功",

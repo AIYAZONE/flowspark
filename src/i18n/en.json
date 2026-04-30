@@ -47,6 +47,7 @@
 		"dashboard": "Dashboard",
 		"today": "Today",
 		"goals": "Goals",
+		"potential": "Potential",
 		"profile": "Profile",
 		"signOut": "Sign Out"
 	},
@@ -522,6 +523,44 @@
 			"copied": "Copied",
 			"unknown": "Unknown"
 		}
+	},
+	"potential": {
+		"title": "Potential Discovery",
+		"subtitle": "Describe your background and focus area to generate a practical potential profile and actions.",
+		"profileLabel": "Your Background",
+		"profilePlaceholder": "e.g. role, stage, strengths, current bottlenecks...",
+		"goalLabel": "Breakthrough Direction",
+		"goalPlaceholder": "e.g. Improve product+engineering influence in 3 months",
+		"targetLabel": "Target Goal for Instant Actions",
+		"targetPlaceholder": "Select a goal for instant action creation",
+		"generate": "Generate Profile",
+		"loading": "Generating...",
+		"creating": "Creating...",
+		"createNow": "Create Now",
+		"created": "Created",
+		"resultTitle": "Potential Profile (Draft)",
+		"suggestionsTitle": "Suggested Actions",
+		"strengthsTitle": "Strengths",
+		"risksTitle": "Risks",
+		"opportunitiesTitle": "Opportunities",
+		"executionStyleTitle": "Execution Style",
+		"next7DaysTitle": "Next 7 Days Rhythm",
+		"historyTitle": "History",
+		"reuse": "Reuse",
+		"deleteSession": "Delete",
+		"emptyHistory": "No history yet",
+		"emptyResultHint": "Generate your first profile to unlock instant actions and history."
+	},
+	"share": {
+		"title": "Public Goal",
+		"createLink": "Create Share Link",
+		"revokeLink": "Revoke Link",
+		"copyLink": "Copy Link",
+		"copied": "Copied",
+		"readonlyHint": "This link is view-only.",
+		"openTitle": "Public Goal",
+		"expired": "Link is invalid or expired",
+		"emptyActions": "No actions yet"
 	},
 	"verified": {
 		"title": "Email Verified Successfully",

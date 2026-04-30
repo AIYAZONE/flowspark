@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { Pencil, Save, X, Calendar, Tag, Flag, Target, AlertCircle, LayoutDashboard, Clock, ChevronDown, ChevronUp, Star } from 'lucide-react'
+import { Pencil, Save, X, Calendar, Tag, Flag, Target, AlertCircle, LayoutDashboard, Clock, ChevronDown, ChevronUp, Star, Link2, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { SubmitButton } from '@/components/SubmitButton'
@@ -17,12 +17,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { updateGoal, toggleGoalStar } from '@/app/(authenticated)/goals/actions'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { updateGoal, toggleGoalStar, createGoalShareLink, revokeGoalShareLink } from '@/app/(authenticated)/goals/actions'
 import { DeleteGoalButton } from '@/components/DeleteGoalButton'
 import { ArchiveGoalButton } from '@/components/ArchiveGoalButton'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import { GoalCategorySelect } from '@/components/GoalCategorySelect'
-import { getCategoryLabel, normalizeCategoryInput } from '@/lib/goalCategories'
+import { normalizeCategoryInput } from '@/lib/goalCategories'
 import type en from '@/i18n/en.json'
 
 interface Goal {
@@ -42,14 +43,21 @@ interface Goal {
 interface GoalDetailsCardProps {
     goal: Goal
     dict: typeof en
+    initialShareToken?: string | null
+    initialShareExpiresAt?: string | null
 }
 
-export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
+export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialShareExpiresAt = null }: GoalDetailsCardProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
     const [isStarring, setIsStarring] = useState(false)
     const [category, setCategory] = useState<string>(goal.category || 'other')
+    const [shareOpen, setShareOpen] = useState(false)
+    const [shareLoading, setShareLoading] = useState(false)
+    const [shareToken, setShareToken] = useState<string | null>(initialShareToken)
+    const [shareExpiresAt, setShareExpiresAt] = useState<string | null>(initialShareExpiresAt)
+    const [copied, setCopied] = useState(false)
 
     async function handleSubmit(formData: FormData) {
         setIsLoading(true)
@@ -72,6 +80,50 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
             console.error(error)
         } finally {
             setIsStarring(false)
+        }
+    }
+
+    const shareUrl =
+        shareToken && typeof window !== 'undefined'
+            ? `${window.location.origin}/share/goals/${shareToken}`
+            : ''
+
+    async function handleCreateShare() {
+        setShareLoading(true)
+        try {
+            const result = await createGoalShareLink(goal.id)
+            setShareToken(result.token)
+            setShareExpiresAt(result.expiresAt)
+            setCopied(false)
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setShareLoading(false)
+        }
+    }
+
+    async function handleRevokeShare() {
+        setShareLoading(true)
+        try {
+            await revokeGoalShareLink(goal.id)
+            setShareToken(null)
+            setShareExpiresAt(null)
+            setCopied(false)
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setShareLoading(false)
+        }
+    }
+
+    async function handleCopyShare() {
+        if (!shareUrl) return
+        try {
+            await navigator.clipboard.writeText(shareUrl)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 1200)
+        } catch (error) {
+            console.error(error)
         }
     }
 
@@ -212,7 +264,7 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
     }
 
     return (
-        <Card className="group relative overflow-hidden border-border/50 bg-card/50 backdrop-blur-xl shadow-sm transition-all hover:shadow-md">
+        <Card className="group relative overflow-hidden border-border/50 bg-gradient-to-br from-card/80 via-card/60 to-card/40 backdrop-blur-xl shadow-sm transition-all hover:shadow-md">
             <CardHeader className="flex flex-row items-center justify-between border-b border-border/50 pb-6">
                 <h3 className="text-lg font-semibold tracking-tight text-foreground">{dict.goals.detail.details}</h3>
                 <div className="flex items-center gap-2">
@@ -308,16 +360,16 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                         </div>
 
                         {/* Sidebar Metadata */}
-                        <div className="w-full">
+                        <div className="w-full min-w-0">
                             {/* Status & Priority Card */}
-                            <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-4 min-w-[280px]">
+                            <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 space-y-4 w-full min-w-0">
                                 <div className="space-y-1">
                                     <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
                                             <Target className="h-4 w-4" />
                                             <span>{dict.goals.status.label}</span>
                                         </div>
-                                        <div className="scale-90 origin-right">
+                                        <div className="shrink-0 origin-right scale-90 sm:scale-100">
                                             <GoalStatusBadge
                                                 status={goal.status}
                                                 label={dict.goals.status[goal.status as keyof typeof dict.goals.status] || goal.status}
@@ -326,21 +378,21 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                                     </div>
 
                                     <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
                                             <Flag className="h-4 w-4" />
                                             <span>{dict.goals.priority.label}</span>
                                         </div>
-                                        <span className="text-sm font-medium capitalize px-2 py-0.5 rounded-md bg-secondary">
+                                        <span className="max-w-[50%] truncate text-right text-sm font-medium capitalize px-2 py-0.5 rounded-md bg-secondary sm:max-w-none">
                                             {dict.goals.priority[goal.priority as keyof typeof dict.goals.priority] || goal.priority || 'Medium'}
                                         </span>
                                     </div>
 
                                     <div className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
                                             <Tag className="h-4 w-4" />
                                             <span>{dict.goals.category.label}</span>
                                         </div>
-                                        <span className="text-sm font-medium capitalize">
+                                        <span className="max-w-[50%] truncate text-right text-sm font-medium capitalize sm:max-w-none">
                                             {dict.goals.category[goal.category as keyof typeof dict.goals.category] || goal.category || 'Other'}
                                         </span>
                                     </div>
@@ -372,9 +424,56 @@ export function GoalDetailsCard({ goal, dict }: GoalDetailsCardProps) {
                     </div>
                 </div>
             </CardContent>
-            <CardFooter className="flex justify-end gap-2 border-t border-border/50 p-6 bg-secondary/10">
-                <ArchiveGoalButton id={goal.id} isArchived={goal.status === 'archived'} dict={dict} />
-                <DeleteGoalButton id={goal.id} title={goal.title} dict={dict} />
+            <CardFooter className="flex flex-wrap justify-stretch gap-2 border-t border-border/50 p-4 bg-secondary/10 sm:justify-end sm:p-6">
+                <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full justify-center gap-1 sm:w-auto">
+                            <Link2 className="h-4 w-4" />
+                            {dict.share.title}
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{dict.share.openTitle}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                            <p className="text-sm text-muted-foreground">{dict.share.readonlyHint}</p>
+                            {shareToken && shareUrl ? (
+                                <div className="space-y-2 rounded-md border border-border/50 bg-muted/20 p-3">
+                                    <div className="break-all text-xs text-foreground/80">{shareUrl}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                        {shareExpiresAt ? `Expires: ${format(new Date(shareExpiresAt), 'yyyy-MM-dd')}` : ''}
+                                    </div>
+                                </div>
+                            ) : null}
+                            <div className="flex items-center justify-end gap-2">
+                                {shareToken ? (
+                                    <>
+                                        <Button type="button" variant="outline" onClick={handleCopyShare} disabled={shareLoading}>
+                                            {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                                            {copied ? dict.share.copied : dict.share.copyLink}
+                                        </Button>
+                                        <Button type="button" variant="destructive" onClick={handleRevokeShare} disabled={shareLoading}>
+                                            {shareLoading ? <LoadingSpinner size={14} className="mr-1 text-current" /> : null}
+                                            {dict.share.revokeLink}
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <Button type="button" onClick={handleCreateShare} disabled={shareLoading}>
+                                        {shareLoading ? <LoadingSpinner size={14} className="mr-1 text-current" /> : null}
+                                        {dict.share.createLink}
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+                <div className="w-full sm:w-auto">
+                    <ArchiveGoalButton id={goal.id} isArchived={goal.status === 'archived'} dict={dict} />
+                </div>
+                <div className="w-full sm:w-auto">
+                    <DeleteGoalButton id={goal.id} title={goal.title} dict={dict} />
+                </div>
             </CardFooter>
         </Card>
     )

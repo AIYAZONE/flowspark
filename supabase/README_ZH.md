@@ -62,6 +62,22 @@
 
 为 `inbox_items` 启用 RLS 并配置策略。
 
+### 10. `09_goal_entries.sql` (目标子项)
+
+新增 `goal_entries` 表，支持目标下灵感/心路记录，并可转为行动。
+
+### 11. `10_goal_entries_rls.sql` (目标子项 RLS)
+
+为 `goal_entries` 启用 RLS 并配置策略。
+
+### 12. `11_goal_shares.sql` (目标只读分享)
+
+新增 `goal_shares` 表，用于生成公开只读目标链接（token + snapshot）。
+
+### 13. `12_goal_shares_rls.sql` (目标分享 RLS)
+
+为 `goal_shares` 启用 RLS，并允许所有者管理自己的分享记录；公开查询仅允许未撤销/未过期记录。
+
 ## 执行步骤
 
 1. 打开 [Supabase Dashboard](https://supabase.com/dashboard)。
@@ -76,4 +92,8 @@
    - `06_ai_feedback.sql`
    - `07_inbox.sql`
    - `08_inbox_rls.sql`
+   - `09_goal_entries.sql`
+   - `10_goal_entries_rls.sql`
+   - `11_goal_shares.sql`
+   - `12_goal_shares_rls.sql`
 4. 执行完毕后，数据库即初始化完成。
