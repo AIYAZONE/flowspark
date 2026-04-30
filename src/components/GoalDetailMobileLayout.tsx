@@ -47,10 +47,11 @@ interface GoalDetailMobileLayoutProps {
     dict: Dict
     initialTab?: TabKey
     goalsForEdit?: { id: string, title: string }[]
+	shareInfo?: { token: string | null; expiresAt: string | null }
 	tzDefaults: { startDefault: string; endDefault: string }
 }
 
-export function GoalDetailMobileLayout({ goal, actions, entries, dict, initialTab = 'actions', goalsForEdit, tzDefaults }: GoalDetailMobileLayoutProps) {
+export function GoalDetailMobileLayout({ goal, actions, entries, dict, initialTab = 'actions', goalsForEdit, shareInfo, tzDefaults }: GoalDetailMobileLayoutProps) {
     const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
 
     const { totalActions, completedActions } = useMemo(() => {
@@ -73,14 +74,14 @@ export function GoalDetailMobileLayout({ goal, actions, entries, dict, initialTa
 
     return (
         <div className="space-y-4 lg:hidden">
-            <div className="rounded-2xl border border-border/40 bg-background/50 backdrop-blur-xl p-4 space-y-3">
+            <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-primary/5 via-background/70 to-background/90 backdrop-blur-xl p-4 space-y-3 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
                         <div className="flex items-center gap-2">
                             <div className="scale-90 origin-left">
                                 <GoalStatusBadge status={goal.status} label={statusLabel} />
                             </div>
-                            <span className="text-xs text-muted-foreground">
+                            <span className="inline-flex items-center rounded-full border border-border/50 bg-background/70 px-2 py-0.5 text-xs text-muted-foreground">
                                 {completedActions}/{totalActions} {dict.goals.detail.actions}
                             </span>
                         </div>
@@ -128,7 +129,12 @@ export function GoalDetailMobileLayout({ goal, actions, entries, dict, initialTa
 					/>
                 </div>
             ) : (
-                <GoalDetailsCard goal={goal} dict={dict} />
+                <GoalDetailsCard
+					goal={goal}
+					dict={dict}
+					initialShareToken={shareInfo?.token || null}
+					initialShareExpiresAt={shareInfo?.expiresAt || null}
+				/>
             )}
         </div>
     )

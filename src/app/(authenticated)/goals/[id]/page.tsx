@@ -68,6 +68,13 @@ export default async function GoalDetailPage({ params }: PageProps) {
         .order('priority', { ascending: false }) // High priority first
         .order('start_date', { ascending: false }) // Newest first
 
+    const { data: shareData } = await supabase
+        .from('goal_shares')
+        .select('token, expires_at, revoked_at')
+        .eq('goal_id', id)
+        .eq('owner_id', user.id)
+        .maybeSingle()
+
 	const tz = await getUserTimezone(supabase, user.id)
 	const startDefault = getTodayInTZ(tz)
 	const endDefault = addDaysFromDateString(startDefault, 7)
@@ -126,13 +133,22 @@ export default async function GoalDetailPage({ params }: PageProps) {
 				}))}
 				dict={dict}
 				goalsForEdit={activeGoals || []}
+				shareInfo={{
+					token: (shareData?.revoked_at ? null : (shareData?.token as string | null)) || null,
+					expiresAt: (shareData?.expires_at as string | null) || null
+				}}
 				tzDefaults={{ startDefault, endDefault }}
 			/>
 
             <div className="hidden lg:grid gap-6 lg:grid-cols-3">
                 <div className="lg:col-span-1">
                     <div className="sticky top-6">
-                        <GoalDetailsCard goal={goal} dict={dict} />
+                        <GoalDetailsCard
+                            goal={goal}
+                            dict={dict}
+                            initialShareToken={(shareData?.revoked_at ? null : (shareData?.token as string | null)) || null}
+                            initialShareExpiresAt={(shareData?.expires_at as string | null) || null}
+                        />
                     </div>
                 </div>
 

@@ -162,6 +162,7 @@ export async function convertGoalEntryToAction(formData: FormData) {
 
 	if (!entry_id || !goal_id || !title || !start_date || !end_date)
 		throw new Error('missing_fields')
+	if (new Date(end_date) < new Date(start_date)) throw new Error('invalid_date_range')
 
 	await assertGoalOwnership({ supabase, userId: user.id, goalId: goal_id })
 
@@ -246,4 +247,3 @@ export async function convertGoalEntryToAction(formData: FormData) {
 	revalidatePath('/dashboard')
 	revalidatePath(`/goals/${goal_id}`)
 }
-

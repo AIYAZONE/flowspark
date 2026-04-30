@@ -10,14 +10,26 @@ export default async function TodayPage() {
   const dict = await getDictionary()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
+  const ownerId = user.id
 
   // Get active goals for the dropdown
-  const { data: activeGoals } = await supabase
+  let { data: activeGoals } = await supabase
     .from('goals')
     .select('id, title')
-    .eq('user_id', user.id)
+    .eq('user_id', ownerId)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
+
+  // owner_id fallback for mixed-schema data
+  if (!activeGoals || activeGoals.length === 0) {
+    const fallbackGoals = await supabase
+      .from('goals')
+      .select('id, title')
+      .eq('owner_id', ownerId)
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+    activeGoals = fallbackGoals.data
+  }
 
   const tz = await getUserTimezone(supabase, user.id)
   // Get today's actions by timezone
@@ -27,7 +39,15 @@ export default async function TodayPage() {
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
   const yesterday = yesterdayDate.toISOString().split('T')[0];
 
-  const { data: rawActions } = await supabase
+  const datePredicate = [
+    `and(start_date.lte.${today},end_date.gte.${today})`,
+    `and(end_date.lt.${today},completed.eq.false)`,
+    `and(end_date.is.null,start_date.lt.${today},completed.eq.false)`,
+    `and(end_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
+    `and(end_date.is.null,start_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
+  ].join(',')
+
+  let { data: rawActions } = await supabase
     .from('actions')
     .select(`
       *,
@@ -37,18 +57,29 @@ export default async function TodayPage() {
         status
       )
     `)
-    .eq('user_id', user.id)
-    .or(
-      [
-        `and(start_date.lte.${today},end_date.gte.${today})`,
-        `and(end_date.lt.${today},completed.eq.false)`,
-        `and(end_date.is.null,start_date.lt.${today},completed.eq.false)`,
-        `and(end_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
-        `and(end_date.is.null,start_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
-      ].join(',')
-    )
+    .eq('user_id', ownerId)
+    .or(datePredicate)
     .order('completed', { ascending: true })
     .order('priority', { ascending: false })
+
+  // owner_id fallback for mixed-schema data
+  if (!rawActions || rawActions.length === 0) {
+    const fallbackActions = await supabase
+      .from('actions')
+      .select(`
+        *,
+        goals (
+          id,
+          title,
+          status
+        )
+      `)
+      .eq('owner_id', ownerId)
+      .or(datePredicate)
+      .order('completed', { ascending: true })
+      .order('priority', { ascending: false })
+    rawActions = fallbackActions.data
+  }
 
   // Filter actions in JS to accurately handle timezone "today"
   const actions = rawActions?.filter(action => {

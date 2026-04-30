@@ -29,6 +29,7 @@ import { createGoalModal } from '@/app/(authenticated)/goals/actions'
 import type en from '@/i18n/en.json'
 import { logEvent } from '@/lib/analytics'
 import { GoalRequiredIntroCard } from './GoalRequiredIntroCard'
+import type { AIBreakdownActionDraft } from '@/lib/ai/breakdown'
 
 type Dict = typeof en
 
@@ -54,6 +55,11 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
     const [actionDescription, setActionDescription] = useState('')
     const [actionType, setActionType] = useState('core')
     const [actionPriority, setActionPriority] = useState('medium')
+    const [actionStartDate, setActionStartDate] = useState('')
+    const [actionEndDate, setActionEndDate] = useState('')
+    const [aiLoading, setAiLoading] = useState(false)
+    const [aiError, setAiError] = useState<string | null>(null)
+    const [aiDrafts, setAiDrafts] = useState<AIBreakdownActionDraft[]>([])
     const titleRef = useRef<HTMLInputElement | null>(null)
 
     function handleOpenChange(next: boolean) {
@@ -66,6 +72,9 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
             setActionDescription('')
             setActionType('core')
             setActionPriority('medium')
+            setAiLoading(false)
+            setAiError(null)
+            setAiDrafts([])
             logEvent('action_click_open')
             if (!goalId && (!activeGoals || activeGoals.length === 0)) {
                 setStep('intro')
@@ -96,6 +105,69 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
     }
 
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+
+    useEffect(() => {
+        if (!open) return
+        if (step !== 'action') return
+        setActionStartDate(today)
+        setActionEndDate(today)
+    }, [open, step, today])
+
+    async function handleAISplitAction() {
+        setAiError(null)
+        setAiDrafts([])
+        const targetGoalId = goalId || selectedGoalId || ''
+        const goalTitle = goals.find((g) => g.id === targetGoalId)?.title || actionTitle.trim()
+        const locale = String(dict.common.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'
+
+        if (!targetGoalId || !actionTitle.trim()) {
+            setAiError(dict.common.errors.missing_fields)
+            return
+        }
+
+        setAiLoading(true)
+        try {
+            const res = await fetch('/api/ai/breakdown', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    goalTitle,
+                    goalDescription: actionTitle.trim(),
+                    startDate: actionStartDate || today,
+                    endDate: actionEndDate || today,
+                    locale
+                })
+            })
+            const json = (await res.json()) as { actions?: AIBreakdownActionDraft[]; error?: string }
+            if (!res.ok) {
+                const key = json.error || 'operation_failed'
+                const errors = dict.common.errors as unknown as Record<string, string>
+                setAiError(errors[key] || dict.common.errors.operation_failed)
+                return
+            }
+
+            const drafts = Array.isArray(json.actions) ? json.actions : []
+            if (drafts.length === 0) {
+                setAiError(dict.common.errors.operation_failed)
+                return
+            }
+            setAiDrafts(drafts.slice(0, 5))
+        } catch {
+            setAiError(dict.common.errors.operation_failed)
+        } finally {
+            setAiLoading(false)
+        }
+    }
+
+    function applyAIDraft(draft: AIBreakdownActionDraft) {
+        setActionTitle(draft.title)
+        setActionDescription(draft.description || '')
+        setActionType(draft.type || 'core')
+        setActionPriority(draft.priority || 'medium')
+        setActionStartDate(draft.start_date || today)
+        setActionEndDate(draft.end_date || draft.start_date || today)
+        setAiError(null)
+    }
 
     useEffect(() => {
         if (!open) return
@@ -229,6 +301,20 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                                     value={actionTitle}
                                                     onChange={(e) => setActionTitle(e.target.value)}
                                                 />
+                                                <div className="flex justify-end">
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={handleAISplitAction}
+                                                        disabled={aiLoading || !actionTitle.trim() || (!goalId && !selectedGoalId)}
+                                                    >
+                                                        {aiLoading ? dict.common.loading : dict.goals.new.aiSplitButton}
+                                                    </Button>
+                                                </div>
+                                                {aiError ? (
+                                                    <div className="text-sm text-destructive">{aiError}</div>
+                                                ) : null}
                                             </div>
 
                                             <div className="grid gap-2">
@@ -275,8 +361,9 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                             </div>
 
                                             <DateRangeFields
-                                                defaultStart={today}
-                                                defaultEnd={today}
+                                                key={`${actionStartDate}-${actionEndDate}`}
+                                                defaultStart={actionStartDate || today}
+                                                defaultEnd={actionEndDate || today}
                                                 labels={{
                                                     start: dict.today.startTime,
                                                     end: dict.today.endTime,
@@ -284,6 +371,29 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                                 }}
                                                 onValidityChange={setValid}
                                             />
+
+                                            {aiDrafts.length > 0 ? (
+                                                <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-3">
+                                                    <div className="text-sm font-medium">{dict.goals.new.aiSuggestionsTitle}</div>
+                                                    <div className="space-y-2">
+                                                        {aiDrafts.map((draft, idx) => (
+                                                            <button
+                                                                key={`${draft.title}-${idx}`}
+                                                                type="button"
+                                                                onClick={() => applyAIDraft(draft)}
+                                                                className="w-full rounded-md border border-border/60 bg-background/70 p-2 text-left hover:bg-muted/40 transition-colors"
+                                                            >
+                                                                <div className="text-sm font-medium">{draft.title}</div>
+                                                                {draft.description ? (
+                                                                    <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{draft.description}</div>
+                                                                ) : null}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            ) : null}
+
+                                            {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
                                             <Button type="submit" className="w-full" disabled={isPending || !valid || (!goalId && !selectedGoalId)}>
                                                 {isPending ? (

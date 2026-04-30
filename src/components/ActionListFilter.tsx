@@ -21,6 +21,7 @@ interface Action {
     id: string
     title: string
     description?: string
+    created_at?: string | null
     type: string
     priority: string
     completed: boolean
@@ -41,6 +42,16 @@ interface ActionListFilterProps {
     goals?: { id: string, title: string }[]
     hideGoalFilter?: boolean
     goalsForEdit?: { id: string, title: string }[]
+}
+
+const NEW_WINDOW_MS = 5 * 60 * 1000
+
+function isRecentlyCreated(action: Action): boolean {
+    if (action.completed) return false
+    if (!action.created_at) return false
+    const createdAtMs = new Date(action.created_at).getTime()
+    if (!Number.isFinite(createdAtMs)) return false
+    return Date.now() - createdAtMs <= NEW_WINDOW_MS
 }
 
 export function ActionListFilter({ initialActions, dict, showGoalTitle = false, tz = 'Asia/Shanghai', goals = [], hideGoalFilter = false, goalsForEdit }: ActionListFilterProps) {
@@ -318,6 +329,7 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
                             showGoalTitle={showGoalTitle}
                             tz={tz}
                             goals={goalsForEdit}
+                            isNew={isRecentlyCreated(action)}
                         />
                     ))}
                 </div>

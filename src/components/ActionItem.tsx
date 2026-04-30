@@ -88,9 +88,10 @@ interface ActionItemProps {
     showGoalTitle?: boolean
     tz?: string
     goals?: { id: string, title: string }[]
+    isNew?: boolean
 }
 
-export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Shanghai', goals = [] }: ActionItemProps) {
+export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Shanghai', goals = [], isNew = false }: ActionItemProps) {
     const [isLoading, setIsLoading] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -223,6 +224,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     }
 
     const locale = String(dict.common.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'
+    const newBadgeText = locale === 'zh' ? '刚创建' : 'NEW'
     const goalTitle = action.goals?.title || ''
     const rescueTitleText = locale === 'zh' ? '卡住救援' : 'Rescue'
 
@@ -480,7 +482,10 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     )
 
     return (
-        <div className="group relative overflow-hidden rounded-xl border border-border/40 bg-card transition-all duration-300 md:hover:shadow-sm md:hover:border-primary/20 md:hover:bg-muted/10">
+        <div className={cn(
+            "group relative overflow-hidden rounded-xl border border-border/40 bg-card transition-all duration-300 md:hover:shadow-sm md:hover:border-primary/20 md:hover:bg-muted/10",
+            isNew && "border-primary/40 bg-primary/[0.04]"
+        )}>
             <div className="absolute inset-y-0 right-0 z-0 w-32 md:hidden">
                 <div className="flex h-full w-full items-stretch">
                     <button
@@ -540,6 +545,11 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                 ) : null}
                             </div>
                             <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground items-center">
+                                {isNew && (
+                                    <span className="px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium border border-primary/30">
+                                        {newBadgeText}
+                                    </span>
+                                )}
                                 {isOverdue && (
                                     <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 font-medium border border-red-500/20">
                                         {dict.today.delayed}
@@ -777,39 +787,41 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                 <>
                                     {metaBadges}
                                     {viewDescription}
-                                    <div className="flex items-center justify-between gap-2">
-                                        {action.type === 'core' && !action.completed && goalTitle ? (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                className="flex-1"
-                                                onClick={openRescuePanel}
-                                                disabled={isLoading}
-                                            >
-                                                {rescueTitleText}
-                                            </Button>
-                                        ) : null}
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex-1"
-                                            onClick={() => setPanelMode('edit')}
-                                            disabled={isLoading}
-                                        >
-                                            {dict.common.edit}
-                                        </Button>
+                                    <div className="space-y-2">
                                         <Button
                                             type="button"
                                             variant="destructive"
                                             size="sm"
-                                            className="flex-1"
+                                            className="w-full"
                                             onClick={() => setDeleteDialogOpen(true)}
                                             disabled={isDeleting}
                                         >
                                             {dict.common.delete}
                                         </Button>
+                                        <div className="flex items-center justify-between gap-2">
+                                            {action.type === 'core' && !action.completed && goalTitle ? (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex-1"
+                                                    onClick={openRescuePanel}
+                                                    disabled={isLoading}
+                                                >
+                                                    {rescueTitleText}
+                                                </Button>
+                                            ) : null}
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex-1"
+                                                onClick={() => setPanelMode('edit')}
+                                                disabled={isLoading}
+                                            >
+                                                {dict.common.edit}
+                                            </Button>
+                                        </div>
                                     </div>
                                 </>
                             )}

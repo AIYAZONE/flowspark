@@ -430,8 +430,11 @@ export async function updateAction(formData: FormData) {
 	const end_date = formData.get('end_date') as string;
 
 	if (!goal_id) throw new Error('Missing required fields');
+	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
+		throw new Error('invalid_date_range');
+	}
 
-	const { data: targetGoal, error: targetGoalError } = await supabase
+	let { data: targetGoal, error: targetGoalError } = await supabase
 		.from('goals')
 		.select('id')
 		.eq('id', goal_id)
@@ -439,22 +442,50 @@ export async function updateAction(formData: FormData) {
 		.eq('status', 'active')
 		.maybeSingle();
 
+	// Fallback for owner_id-based schemas.
+	if (!targetGoal && !targetGoalError) {
+		const fallback = await supabase
+			.from('goals')
+			.select('id')
+			.eq('id', goal_id)
+			.eq('owner_id', user.id)
+			.eq('status', 'active')
+			.maybeSingle();
+		targetGoal = fallback.data;
+		targetGoalError = fallback.error;
+	}
+
 	if (targetGoalError) throw new Error(targetGoalError.message);
 	if (!targetGoal) throw new Error('operation_failed');
 
-	await supabase
+	const payload = {
+		title,
+		type,
+		priority,
+		description,
+		start_date,
+		end_date,
+		goal_id
+	};
+
+	const { error } = await supabase
 		.from('actions')
-		.update({
-			title,
-			type,
-			priority,
-			description,
-			start_date,
-			end_date,
-			goal_id
-		})
+		.update(payload)
 		.eq('id', id)
 		.eq('user_id', user.id);
+
+	if (error) {
+		if (error.code === '42703' || error.message?.includes('column')) {
+			const { error: fallbackError } = await supabase
+				.from('actions')
+				.update(payload)
+				.eq('id', id)
+				.eq('owner_id', user.id);
+			if (fallbackError) throw new Error('operation_failed');
+		} else {
+			throw new Error('operation_failed');
+		}
+	}
 
 	revalidatePath('/today');
 	revalidatePath('/goals');
@@ -553,4 +584,153 @@ export async function replaceGoalCategory(params: { from: string; to: string }) 
 	revalidatePath('/today');
 
 	return { success: true as const, updatedCount: data?.length ?? 0 };
+}
+
+type ShareSnapshot = {
+	goal: {
+		id: string;
+		title: string;
+		description: string;
+		start_date: string;
+		end_date: string;
+		success_criteria: string;
+		stop_criteria: string;
+		status: string;
+		priority?: string | null;
+		category?: string | null;
+	};
+	actions: Array<{
+		id: string;
+		title: string;
+		description?: string | null;
+		type: string;
+		priority: string;
+		completed: boolean;
+		start_date: string;
+		end_date?: string | null;
+	}>;
+};
+
+async function fetchGoalForShare(params: {
+	supabase: Awaited<ReturnType<typeof createClient>>;
+	userId: string;
+	goalId: string;
+}): Promise<ShareSnapshot> {
+	const { supabase, userId, goalId } = params;
+	let { data: goal, error } = await supabase
+		.from('goals')
+		.select('id, title, description, start_date, end_date, success_criteria, stop_criteria, status, priority, category')
+		.eq('id', goalId)
+		.eq('owner_id', userId)
+		.maybeSingle();
+
+	if (!goal && !error) {
+		const fallback = await supabase
+			.from('goals')
+			.select('id, title, description, start_date, end_date, success_criteria, stop_criteria, status, priority, category')
+			.eq('id', goalId)
+			.eq('user_id', userId)
+			.maybeSingle();
+		goal = fallback.data;
+		error = fallback.error;
+	}
+	if (error || !goal) throw new Error('operation_failed');
+
+	let { data: actions, error: actionsError } = await supabase
+		.from('actions')
+		.select('id, title, description, type, priority, completed, start_date, end_date')
+		.eq('goal_id', goalId)
+		.eq('owner_id', userId)
+		.order('completed', { ascending: true })
+		.order('priority', { ascending: false })
+		.order('start_date', { ascending: true });
+
+	if (actionsError) {
+		const fallback = await supabase
+			.from('actions')
+			.select('id, title, description, type, priority, completed, start_date, end_date')
+			.eq('goal_id', goalId)
+			.eq('user_id', userId)
+			.order('completed', { ascending: true })
+			.order('priority', { ascending: false })
+			.order('start_date', { ascending: true });
+		actions = fallback.data;
+		actionsError = fallback.error;
+	}
+
+	if (actionsError) throw new Error('operation_failed');
+
+	return {
+		goal: {
+			id: goal.id as string,
+			title: (goal.title as string) || '',
+			description: (goal.description as string) || '',
+			start_date: (goal.start_date as string) || '',
+			end_date: (goal.end_date as string) || '',
+			success_criteria: (goal.success_criteria as string) || '',
+			stop_criteria: (goal.stop_criteria as string) || '',
+			status: (goal.status as string) || 'active',
+			priority: (goal.priority as string | null) || null,
+			category: (goal.category as string | null) || null
+		},
+		actions: (actions || []).map((a) => ({
+			id: a.id as string,
+			title: (a.title as string) || '',
+			description: (a.description as string | null) || null,
+			type: (a.type as string) || 'core',
+			priority: (a.priority as string) || 'medium',
+			completed: Boolean(a.completed),
+			start_date: (a.start_date as string) || '',
+			end_date: (a.end_date as string | null) || null
+		}))
+	};
+}
+
+export async function createGoalShareLink(goalId: string) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) throw new Error('unauthenticated');
+	if (!goalId) throw new Error('missing_fields');
+
+	const snapshot = await fetchGoalForShare({ supabase, userId: user.id, goalId });
+	const token = crypto.randomUUID();
+	const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(); // 30 days
+
+	const { error } = await supabase
+		.from('goal_shares')
+		.upsert({
+			owner_id: user.id,
+			goal_id: goalId,
+			token,
+			snapshot,
+			revoked_at: null,
+			expires_at: expiresAt
+		}, { onConflict: 'owner_id,goal_id' });
+
+	if (error) throw new Error('operation_failed');
+
+	revalidatePath(`/goals/${goalId}`);
+	return { token, expiresAt };
+}
+
+export async function revokeGoalShareLink(goalId: string) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) throw new Error('unauthenticated');
+	if (!goalId) throw new Error('missing_fields');
+
+	const { error } = await supabase
+		.from('goal_shares')
+		.update({ revoked_at: new Date().toISOString() })
+		.eq('goal_id', goalId)
+		.eq('owner_id', user.id);
+
+	if (error) throw new Error('operation_failed');
+
+	revalidatePath(`/goals/${goalId}`);
+	return { success: true as const };
 }

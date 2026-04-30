@@ -62,6 +62,22 @@ Adds `inbox_items` table for quick capture, tags, and conversion to actions.
 
 Enables RLS and policies for `inbox_items`.
 
+### 10. `09_goal_entries.sql` (Goal Entries)
+
+Adds `goal_entries` table for inspiration/journey entries under goals and conversion to actions.
+
+### 11. `10_goal_entries_rls.sql` (Goal Entries RLS)
+
+Enables RLS and policies for `goal_entries`.
+
+### 12. `11_goal_shares.sql` (Goal Read-only Sharing)
+
+Adds `goal_shares` table for public read-only goal links (`token + snapshot`).
+
+### 13. `12_goal_shares_rls.sql` (Goal Shares RLS)
+
+Enables RLS for `goal_shares`; owners can manage their records, public reads are limited to active (not revoked / not expired) records.
+
 ## Execution Steps
 
 1. Open the [Supabase Dashboard](https://supabase.com/dashboard).
@@ -76,4 +92,8 @@ Enables RLS and policies for `inbox_items`.
    - `06_ai_feedback.sql`
    - `07_inbox.sql`
    - `08_inbox_rls.sql`
+   - `09_goal_entries.sql`
+   - `10_goal_entries_rls.sql`
+   - `11_goal_shares.sql`
+   - `12_goal_shares_rls.sql`
 4. Once completed, the database initialization is finished.

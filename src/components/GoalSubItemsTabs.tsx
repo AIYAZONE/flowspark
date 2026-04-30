@@ -86,7 +86,7 @@ export function GoalSubItemsTabs({
 						onClick={() => setActiveTab('actions')}
 					>
 						<ListChecks className="h-4 w-4 mr-1" />
-						{dict.goals.detail.tabActions}
+						{dict.goals.detail.tabActions} ({actions.length})
 					</Button>
 					<Button
 						type="button"
@@ -96,7 +96,7 @@ export function GoalSubItemsTabs({
 						onClick={() => setActiveTab('inspiration')}
 					>
 						<Lightbulb className="h-4 w-4 mr-1" />
-						{dict.goals.detail.tabInspiration}
+						{dict.goals.detail.tabInspiration} ({inspirationEntries.length})
 					</Button>
 					<Button
 						type="button"
@@ -106,7 +106,7 @@ export function GoalSubItemsTabs({
 						onClick={() => setActiveTab('journey')}
 					>
 						<Sparkles className="h-4 w-4 mr-1" />
-						{dict.goals.detail.tabJourney}
+						{dict.goals.detail.tabJourney} ({journeyEntries.length})
 					</Button>
 				</div>
 
