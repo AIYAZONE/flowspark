@@ -73,6 +73,30 @@ export async function archiveInboxItem(formData: FormData) {
 	revalidatePath('/inbox')
 }
 
+export async function unarchiveInboxItem(formData: FormData) {
+	const supabase = await createClient()
+	const {
+		data: { user }
+	} = await supabase.auth.getUser()
+	if (!user) throw new Error('unauthenticated')
+
+	const id = (formData.get('id') as string | null) || ''
+	if (!id) throw new Error('missing_fields')
+
+	const { error } = await supabase
+		.from('inbox_items')
+		.update({ status: 'open' })
+		.eq('id', id)
+		.eq('owner_id', user.id)
+		.eq('status', 'archived')
+
+	if (error) throw new Error('operation_failed')
+
+	revalidatePath('/today')
+	revalidatePath('/dashboard')
+	revalidatePath('/inbox')
+}
+
 export async function deleteInboxItem(formData: FormData) {
 	const supabase = await createClient()
 	const {
@@ -88,6 +112,35 @@ export async function deleteInboxItem(formData: FormData) {
 		.delete()
 		.eq('id', id)
 		.eq('owner_id', user.id)
+
+	if (error) throw new Error('operation_failed')
+
+	revalidatePath('/today')
+	revalidatePath('/dashboard')
+	revalidatePath('/inbox')
+}
+
+export async function updateInboxItem(formData: FormData) {
+	const supabase = await createClient()
+	const {
+		data: { user }
+	} = await supabase.auth.getUser()
+	if (!user) throw new Error('unauthenticated')
+
+	const id = (formData.get('id') as string | null) || ''
+	const content = ((formData.get('content') as string | null) || '').trim()
+	const note = ((formData.get('note') as string | null) || '').trim()
+	const rawTags = (formData.get('tags') as string | null) || ''
+	const tags = parseTags(rawTags)
+
+	if (!id || !content) throw new Error('missing_fields')
+
+	const { error } = await supabase
+		.from('inbox_items')
+		.update({ content, note, tags })
+		.eq('id', id)
+		.eq('owner_id', user.id)
+		.eq('status', 'open')
 
 	if (error) throw new Error('operation_failed')
 
