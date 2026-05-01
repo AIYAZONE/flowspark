@@ -53,60 +53,67 @@ export function QuickCaptureDialog({
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogTrigger asChild>{trigger}</DialogTrigger>
-			<DialogFormContent className="sm:max-w-md">
-				<DialogHeader>
-					<DialogTitle>{dict.quickCapture.title}</DialogTitle>
-				</DialogHeader>
-				<form action={handleSubmit} className="space-y-4">
-					<div className="space-y-2">
-						<Label htmlFor="content" required>
-							{dict.quickCapture.contentLabel}
-						</Label>
-						<Input
-							ref={contentRef}
-							id="content"
-							name="content"
-							placeholder={dict.quickCapture.contentPlaceholder}
-							required
-						/>
-					</div>
+			<DialogFormContent mobileMode="fullscreen" className="sm:max-w-md">
+				<div className="flex h-dvh flex-col sm:h-auto">
+					<DialogHeader className="border-b border-border/60 px-4 pb-3 pt-5 text-left sm:border-b-0 sm:px-0 sm:pb-0 sm:pt-0">
+						<DialogTitle>{dict.quickCapture.title}</DialogTitle>
+					</DialogHeader>
 
-					{expanded ? (
-						<div className="space-y-4">
+					<form action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+						<div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-0">
 							<div className="space-y-2">
-								<Label htmlFor="note">{dict.quickCapture.noteLabel}</Label>
-								<Textarea id="note" name="note" rows={4} placeholder={dict.quickCapture.notePlaceholder} />
+								<Label htmlFor="content" required>
+									{dict.quickCapture.contentLabel}
+								</Label>
+								<Input
+									ref={contentRef}
+									id="content"
+									name="content"
+									placeholder={dict.quickCapture.contentPlaceholder}
+									required
+								/>
 							</div>
-							<div className="space-y-2">
-								<Label htmlFor="tags">{dict.quickCapture.tagsLabel}</Label>
-								<Input id="tags" name="tags" placeholder={dict.quickCapture.tagsPlaceholder} />
+
+							{expanded ? (
+								<div className="space-y-4">
+									<div className="space-y-2">
+										<Label htmlFor="note">{dict.quickCapture.noteLabel}</Label>
+										<Textarea id="note" name="note" rows={5} placeholder={dict.quickCapture.notePlaceholder} />
+									</div>
+									<div className="space-y-2">
+										<Label htmlFor="tags">{dict.quickCapture.tagsLabel}</Label>
+										<Input id="tags" name="tags" placeholder={dict.quickCapture.tagsPlaceholder} />
+									</div>
+								</div>
+							) : null}
+
+							{error ? <div className="text-sm text-destructive">{error}</div> : null}
+						</div>
+
+						<div className="border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur sm:border-t-0 sm:bg-transparent sm:px-0 sm:py-0">
+							<div className="flex items-center justify-between gap-2">
+								<Button type="button" variant="ghost" onClick={() => setExpanded((v) => !v)} disabled={isPending}>
+									{expanded ? dict.common.showLess : dict.common.showMore}
+								</Button>
+								<div className="flex items-center gap-2">
+									<Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
+										{dict.common.cancel}
+									</Button>
+									<Button type="submit" disabled={isPending}>
+										{isPending ? (
+											<>
+												<LoadingSpinner className="mr-2 h-4 w-4" />
+												{dict.common.saving}
+											</>
+										) : (
+											dict.quickCapture.saveCta
+										)}
+									</Button>
+								</div>
 							</div>
 						</div>
-					) : null}
-
-					<div className="flex items-center justify-between">
-						<Button type="button" variant="ghost" onClick={() => setExpanded((v) => !v)} disabled={isPending}>
-							{expanded ? dict.common.showLess : dict.common.showMore}
-						</Button>
-						<div className="flex items-center gap-2">
-							<Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
-								{dict.common.cancel}
-							</Button>
-							<Button type="submit" disabled={isPending}>
-								{isPending ? (
-									<>
-										<LoadingSpinner className="mr-2 h-4 w-4" />
-										{dict.common.saving}
-									</>
-								) : (
-									dict.quickCapture.saveCta
-								)}
-							</Button>
-						</div>
-					</div>
-
-					{error ? <div className="text-sm text-destructive">{error}</div> : null}
-				</form>
+					</form>
+				</div>
 			</DialogFormContent>
 		</Dialog>
 	)
