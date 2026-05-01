@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { Search, SlidersHorizontal, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Sheet, SheetClose, SheetFormContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
 import {
     Select,
     SelectContent,
@@ -159,7 +159,7 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
                             ) : null}
                         </Button>
 
-                        <SheetContent side="bottom" className="rounded-t-2xl">
+                        <SheetFormContent side="bottom" className="rounded-t-2xl">
                             <SheetHeader className="flex flex-row items-center justify-between space-y-0">
                                 <SheetTitle className="text-base">{dict.common.filters}</SheetTitle>
                                 <SheetClose asChild>
@@ -242,7 +242,7 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
                                     </SheetClose>
                                 </div>
                             </div>
-                        </SheetContent>
+                        </SheetFormContent>
                     </Sheet>
                 </div>
 

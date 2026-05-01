@@ -12,14 +12,14 @@ import {
 } from '@/components/ui/select'
 import {
   Dialog,
-  DialogContent,
+  DialogFormContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Sheet,
-  SheetContent,
+  SheetFormContent,
   SheetFooter,
   SheetHeader,
   SheetTitle,
@@ -148,7 +148,7 @@ export function GoalCategorySelect({ dict, value, onChange, enableBulkReplace }:
 
       {isDesktop ? (
         <Dialog open={customOpen} onOpenChange={setCustomOpen}>
-          <DialogContent className="max-w-sm gap-3">
+          <DialogFormContent className="max-w-sm gap-3">
             <DialogHeader>
               <DialogTitle>{dict.goals.category.custom}</DialogTitle>
             </DialogHeader>
@@ -209,11 +209,11 @@ export function GoalCategorySelect({ dict, value, onChange, enableBulkReplace }:
                 {dict.common.save}
               </Button>
             </DialogFooter>
-          </DialogContent>
+          </DialogFormContent>
         </Dialog>
       ) : (
         <Sheet open={customOpen} onOpenChange={setCustomOpen}>
-          <SheetContent side="bottom" className="pb-6">
+          <SheetFormContent side="bottom" className="pb-6">
             <SheetHeader>
               <SheetTitle>{dict.goals.category.custom}</SheetTitle>
             </SheetHeader>
@@ -274,7 +274,7 @@ export function GoalCategorySelect({ dict, value, onChange, enableBulkReplace }:
                 {dict.common.save}
               </Button>
             </SheetFooter>
-          </SheetContent>
+          </SheetFormContent>
         </Sheet>
       )}
     </>

@@ -1,14 +1,15 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useMemo, useRef, useState, useTransition } from 'react'
 import type en from '@/i18n/en.json'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogFormContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { updateInboxItem } from '@/app/(authenticated)/inbox/actions'
+import { useMobileInputVisible } from '@/components/ui/use-mobile-input-visible'
 
 type Dict = typeof en
 
@@ -50,10 +51,7 @@ export function EditInboxItemDialog({
 		setTags(initialTags)
 	}
 
-	useEffect(() => {
-		if (!open) return
-		contentRef.current?.focus()
-	}, [open])
+	useMobileInputVisible(open, contentRef)
 
 	async function handleSubmit(formData: FormData) {
 		setError(null)
@@ -72,7 +70,7 @@ export function EditInboxItemDialog({
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			{trigger ? <DialogTrigger asChild>{trigger}</DialogTrigger> : null}
-			<DialogContent className="sm:max-w-md">
+			<DialogFormContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>{dict.inbox.editTitle}</DialogTitle>
 				</DialogHeader>
@@ -132,7 +130,7 @@ export function EditInboxItemDialog({
 						</Button>
 					</div>
 				</form>
-			</DialogContent>
+			</DialogFormContent>
 		</Dialog>
 	)
 }

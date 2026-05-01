@@ -51,13 +51,13 @@ import { toggleAction } from '@/app/(authenticated)/dashboard/actions'
 import {
     Sheet,
     SheetClose,
-    SheetContent,
+    SheetFormContent,
     SheetHeader,
     SheetTitle,
 } from '@/components/ui/sheet'
 import {
     Dialog,
-    DialogContent,
+    DialogFormContent,
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
@@ -617,7 +617,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
 
             {isDesktop ? (
                 <Dialog open={detailsOpen} onOpenChange={handlePanelOpenChange}>
-                    <DialogContent className="max-w-lg">
+                    <DialogFormContent className="max-w-lg">
                         <DialogHeader>
                             <DialogTitle className="pr-8">{panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}</DialogTitle>
                         </DialogHeader>
@@ -714,11 +714,11 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                 </>
                             )}
                         </div>
-                    </DialogContent>
+                    </DialogFormContent>
                 </Dialog>
             ) : (
                 <Sheet open={detailsOpen} onOpenChange={handlePanelOpenChange}>
-                    <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
+                    <SheetFormContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
                         <SheetHeader className="flex flex-row items-start justify-between space-y-0 gap-3">
                             <SheetTitle className="text-base leading-snug">{panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}</SheetTitle>
                             <SheetClose asChild>
@@ -826,7 +826,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                 </>
                             )}
                         </div>
-                    </SheetContent>
+                    </SheetFormContent>
                 </Sheet>
             )}
 

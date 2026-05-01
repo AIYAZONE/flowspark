@@ -1,15 +1,16 @@
 'use client'
 
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import { Sparkles } from 'lucide-react'
 import type en from '@/i18n/en.json'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogFormContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { createGoalEntry } from '@/app/(authenticated)/goals/entries/actions'
+import { useMobileInputVisible } from '@/components/ui/use-mobile-input-visible'
 
 type Dict = typeof en
 
@@ -39,11 +40,7 @@ export function AddGoalEntryDialog({
 		setNote('')
 	}
 
-	useEffect(() => {
-		if (!open) return
-		if (!contentRef.current) return
-		contentRef.current.focus()
-	}, [open])
+	useMobileInputVisible(open, contentRef)
 
 	async function handleSubmit(formData: FormData) {
 		setError(null)
@@ -74,7 +71,7 @@ export function AddGoalEntryDialog({
 					</Button>
 				)}
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-md">
+			<DialogFormContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 				</DialogHeader>
@@ -125,8 +122,7 @@ export function AddGoalEntryDialog({
 						</Button>
 					</div>
 				</form>
-			</DialogContent>
+			</DialogFormContent>
 		</Dialog>
 	)
 }
-

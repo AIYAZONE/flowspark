@@ -53,6 +53,30 @@ const DialogContent = React.forwardRef<
 ))
 DialogContent.displayName = DialogPrimitive.Content.displayName
 
+interface DialogFormContentProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
+  mobileMode?: "sheet" | "fullscreen"
+}
+
+const DialogFormContent = React.forwardRef<
+  React.ElementRef<typeof DialogPrimitive.Content>,
+  DialogFormContentProps
+>(({ className, mobileMode = "sheet", children, ...props }, ref) => (
+  <DialogContent
+    ref={ref}
+    className={cn(
+      "gap-0 p-0 sm:gap-4 sm:p-6",
+      mobileMode === "sheet"
+        ? "left-0 right-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 rounded-t-2xl border-b-0 max-h-[92dvh] overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:w-full sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:border sm:pb-6"
+        : "inset-0 w-[100vw] h-[100dvh] max-w-none translate-x-0 translate-y-0 rounded-none max-h-none overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:left-[50%] sm:top-[50%] sm:inset-auto sm:h-auto sm:w-full sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:max-h-[85vh] sm:overflow-y-auto sm:border sm:pb-6",
+      className
+    )}
+    {...props}
+  >
+    {children}
+  </DialogContent>
+))
+DialogFormContent.displayName = "DialogFormContent"
+
 const DialogHeader = ({
   className,
   ...props
@@ -115,6 +139,7 @@ export {
   DialogClose,
   DialogTrigger,
   DialogContent,
+  DialogFormContent,
   DialogHeader,
   DialogFooter,
   DialogTitle,

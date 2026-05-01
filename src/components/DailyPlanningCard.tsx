@@ -9,7 +9,7 @@ import { createAction } from '@/app/(authenticated)/goals/actions'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import {
   Dialog,
-  DialogContent,
+  DialogFormContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -233,7 +233,7 @@ export function DailyPlanningCard({
           setAiOpen(open)
         }}
       >
-        <DialogContent className="max-w-lg">
+        <DialogFormContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{(dictFull?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanTitle || 'AI 今日核心行动（草案）'}</DialogTitle>
           </DialogHeader>
@@ -287,7 +287,7 @@ export function DailyPlanningCard({
               {aiLoading ? ((dictFull?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanLoading || '正在生成...') : ((dictFull?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanHint || '点击按钮生成今日建议')}
             </div>
           )}
-        </DialogContent>
+        </DialogFormContent>
       </Dialog>
     </div>
   )
