@@ -1,14 +1,15 @@
 'use client'
 
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import type en from '@/i18n/en.json'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogFormContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { createInboxItem } from '@/app/(authenticated)/inbox/actions'
+import { useMobileInputVisible } from '@/components/ui/use-mobile-input-visible'
 
 type Dict = typeof en
 
@@ -33,11 +34,7 @@ export function QuickCaptureDialog({
 		}
 	}
 
-	useEffect(() => {
-		if (!open) return
-		if (!contentRef.current) return
-		contentRef.current.focus()
-	}, [open])
+	useMobileInputVisible(open, contentRef)
 
 	async function handleSubmit(formData: FormData) {
 		setError(null)
@@ -56,7 +53,7 @@ export function QuickCaptureDialog({
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogTrigger asChild>{trigger}</DialogTrigger>
-			<DialogContent className="sm:max-w-md">
+			<DialogFormContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>{dict.quickCapture.title}</DialogTitle>
 				</DialogHeader>
@@ -110,7 +107,7 @@ export function QuickCaptureDialog({
 
 					{error ? <div className="text-sm text-destructive">{error}</div> : null}
 				</form>
-			</DialogContent>
+			</DialogFormContent>
 		</Dialog>
 	)
 }

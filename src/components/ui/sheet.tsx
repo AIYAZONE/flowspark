@@ -3,7 +3,6 @@
 import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { cva, type VariantProps } from "class-variance-authority"
-import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -70,6 +69,31 @@ const SheetContent = React.forwardRef<
 ))
 SheetContent.displayName = SheetPrimitive.Content.displayName
 
+interface SheetFormContentProps extends SheetContentProps {
+  mobileMode?: "sheet" | "fullscreen"
+}
+
+const SheetFormContent = React.forwardRef<
+  React.ElementRef<typeof SheetPrimitive.Content>,
+  SheetFormContentProps
+>(({ side = "bottom", mobileMode = "sheet", className, children, ...props }, ref) => (
+  <SheetContent
+    ref={ref}
+    side={side}
+    className={cn(
+      "p-0",
+      mobileMode === "sheet"
+        ? "max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:max-h-[85vh] sm:pb-6"
+        : "h-[100dvh] max-h-[100dvh] rounded-none overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:h-auto sm:max-h-[85vh] sm:rounded-lg sm:pb-6",
+      className
+    )}
+    {...props}
+  >
+    {children}
+  </SheetContent>
+))
+SheetFormContent.displayName = "SheetFormContent"
+
 const SheetHeader = ({
   className,
   ...props
@@ -129,6 +153,7 @@ export {
   SheetTrigger,
   SheetClose,
   SheetContent,
+  SheetFormContent,
   SheetHeader,
   SheetFooter,
   SheetTitle,

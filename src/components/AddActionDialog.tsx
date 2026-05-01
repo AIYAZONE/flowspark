@@ -11,7 +11,7 @@ import { DateRangeFields } from '@/components/DateRangeFields'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
     Dialog,
-    DialogContent,
+    DialogFormContent,
     DialogHeader,
     DialogTitle,
     DialogTrigger,
@@ -30,6 +30,7 @@ import type en from '@/i18n/en.json'
 import { logEvent } from '@/lib/analytics'
 import { GoalRequiredIntroCard } from './GoalRequiredIntroCard'
 import type { AIBreakdownActionDraft } from '@/lib/ai/breakdown'
+import { useMobileInputVisible } from '@/components/ui/use-mobile-input-visible'
 
 type Dict = typeof en
 
@@ -178,12 +179,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
         }
     }, [open, step, showGoalCreatedBanner])
 
-    useEffect(() => {
-        if (!open) return
-        if (step !== 'action') return
-        if (!titleRef.current) return
-        titleRef.current.focus()
-    }, [open, step])
+    useMobileInputVisible(open && step === 'action', titleRef)
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -195,9 +191,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogContent
-                className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto p-0 overflow-hidden block"
-            >
+            <DialogFormContent className="sm:max-w-[600px] sm:max-h-[85vh] p-0 block">
                 {step === 'intro' ? (
                     <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-primary/10 via-background to-background px-6 pb-8 pt-10">
                         <div className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-primary/15 blur-3xl" />
@@ -415,7 +409,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                         </AnimatePresence>
                     </div>
                 )}
-            </DialogContent>
+            </DialogFormContent>
         </Dialog>
     )
 }

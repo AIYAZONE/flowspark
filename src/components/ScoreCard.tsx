@@ -8,7 +8,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { submitScore } from '@/app/(authenticated)/dashboard/actions'
 import {
   Dialog,
-  DialogContent,
+  DialogFormContent,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -186,7 +186,7 @@ export function ScoreCard({
           setReviewOpen(open)
         }}
       >
-        <DialogContent className="max-w-lg">
+        <DialogFormContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>{(dict.dashboard as unknown as Record<string, string>).aiReviewTitle || (locale === 'zh' ? 'AI 夜间复盘（草案）' : 'AI Review (draft)')}</DialogTitle>
           </DialogHeader>
@@ -252,7 +252,7 @@ export function ScoreCard({
               </div>
             ) : null}
           </div>
-        </DialogContent>
+        </DialogFormContent>
       </Dialog>
     </div>
   )

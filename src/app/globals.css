@@ -159,3 +159,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .mobile-form-scroll {
+    max-height: 92dvh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
+  }
+}

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Sheet,
-  SheetContent,
+  SheetFormContent,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -29,6 +29,7 @@ import type en from '@/i18n/en.json'
 import { AnimatePresence, motion } from 'framer-motion'
 import { GoalRequiredIntroCard } from './GoalRequiredIntroCard'
 import { Target } from 'lucide-react'
+import { useMobileInputVisible } from '@/components/ui/use-mobile-input-visible'
 type Dict = typeof en
 
 type Goal = {
@@ -53,7 +54,16 @@ export function SetCoreActionSheet({ goals, dict, defaultDate, trigger }: SetCor
   const [submitted, setSubmitted] = useState(false)
   const [showGoalCreatedBanner, setShowGoalCreatedBanner] = useState(false)
   const [actionTitle, setActionTitle] = useState('')
+  const [isDesktop, setIsDesktop] = useState(false)
   const titleRef = useRef<HTMLInputElement | null>(null)
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 640px)')
+    const sync = () => setIsDesktop(media.matches)
+    sync()
+    media.addEventListener('change', sync)
+    return () => media.removeEventListener('change', sync)
+  }, [])
 
   async function handleSubmit(formData: FormData) {
     setIsLoading(true)
@@ -96,12 +106,7 @@ export function SetCoreActionSheet({ goals, dict, defaultDate, trigger }: SetCor
     return () => window.clearTimeout(id)
   }, [open, step, showGoalCreatedBanner])
 
-  useEffect(() => {
-    if (!open) return
-    if (step !== 'action') return
-    if (!titleRef.current) return
-    titleRef.current.focus()
-  }, [open, step])
+  useMobileInputVisible(open && step === 'action', titleRef)
 
   return (
     <Sheet open={open} onOpenChange={handleOpenChange}>
@@ -112,8 +117,8 @@ export function SetCoreActionSheet({ goals, dict, defaultDate, trigger }: SetCor
           </Button>
         )}
       </SheetTrigger>
-      <SheetContent
-        side="right"
+      <SheetFormContent
+        side={isDesktop ? 'right' : 'bottom'}
         className="sm:max-w-sm p-0"
       >
         {step === 'intro' ? (
@@ -242,7 +247,7 @@ export function SetCoreActionSheet({ goals, dict, defaultDate, trigger }: SetCor
             </AnimatePresence>
           </div>
         )}
-      </SheetContent>
+      </SheetFormContent>
     </Sheet>
   )
 }

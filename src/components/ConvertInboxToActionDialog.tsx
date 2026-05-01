@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useMemo, useRef, useState, useTransition } from 'react'
 import type en from '@/i18n/en.json'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogFormContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,6 +11,7 @@ import { DateRangeFields } from '@/components/DateRangeFields'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { convertInboxItemToAction } from '@/app/(authenticated)/inbox/actions'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useMobileInputVisible } from '@/components/ui/use-mobile-input-visible'
 
 type Dict = typeof en
 
@@ -58,11 +59,7 @@ export function ConvertInboxToActionDialog({
 		setPriority('medium')
 	}
 
-	useEffect(() => {
-		if (!open) return
-		if (!titleRef.current) return
-		titleRef.current.focus()
-	}, [open])
+	useMobileInputVisible(open, titleRef)
 
 	async function handleSubmit(formData: FormData) {
 		setError(null)
@@ -81,7 +78,7 @@ export function ConvertInboxToActionDialog({
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogTrigger asChild>{trigger}</DialogTrigger>
-			<DialogContent className="sm:max-w-md">
+			<DialogFormContent className="sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>{dict.inbox.convertTitle}</DialogTitle>
 				</DialogHeader>
@@ -189,7 +186,7 @@ export function ConvertInboxToActionDialog({
 						</Button>
 					</div>
 				</form>
-			</DialogContent>
+			</DialogFormContent>
 		</Dialog>
 	)
 }
