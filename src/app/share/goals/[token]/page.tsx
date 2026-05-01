@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
+import Link from 'next/link'
 
 type ShareSnapshot = {
   goal: {
@@ -27,12 +28,23 @@ type ShareSnapshot = {
 
 interface PageProps {
   params: Promise<{ token: string }>
+  searchParams: Promise<{ lang?: string }>
 }
 
-export default async function PublicGoalSharePage({ params }: PageProps) {
+function normalizeLocale(lang?: string): 'zh' | 'en' | undefined {
+  if (!lang) return undefined
+  const normalized = lang.toLowerCase()
+  if (normalized === 'zh' || normalized === 'en') return normalized
+  return undefined
+}
+
+export default async function PublicGoalSharePage({ params, searchParams }: PageProps) {
   const { token } = await params
+  const { lang } = await searchParams
+  const locale = normalizeLocale(lang)
   const supabase = await createClient()
-  const dict = await getDictionary()
+  const dict = await getDictionary(locale)
+  const currentLang = locale || 'en'
 
   const { data: share } = await supabase
     .from('goal_shares')
@@ -55,14 +67,34 @@ export default async function PublicGoalSharePage({ params }: PageProps) {
   const snapshot = share.snapshot as ShareSnapshot
   const goal = snapshot.goal
   const actions = snapshot.actions || []
+  const statusLabelMap = dict.goals.status as unknown as Record<string, string>
+  const typeLabelMap = dict.today.types as unknown as Record<string, string>
+  const priorityLabelMap = dict.goals.priority as unknown as Record<string, string>
+  const goalStatusLabel = statusLabelMap[goal.status] || goal.status
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
-      <div className="space-y-2">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
         <h1 className="text-2xl font-bold tracking-tight">{goal.title}</h1>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <GoalStatusBadge status={goal.status} label={goal.status} />
+          <GoalStatusBadge status={goal.status} label={goalStatusLabel} />
           <span>{goal.start_date} ~ {goal.end_date}</span>
+        </div>
+        </div>
+        <div className="inline-flex items-center gap-1 rounded-md border border-border/60 p-1 text-xs">
+          <Link
+            href={`/share/goals/${token}?lang=zh`}
+            className={currentLang === 'zh' ? 'rounded-sm bg-primary px-2 py-1 text-primary-foreground' : 'rounded-sm px-2 py-1 text-muted-foreground hover:text-foreground'}
+          >
+            中文
+          </Link>
+          <Link
+            href={`/share/goals/${token}?lang=en`}
+            className={currentLang === 'en' ? 'rounded-sm bg-primary px-2 py-1 text-primary-foreground' : 'rounded-sm px-2 py-1 text-muted-foreground hover:text-foreground'}
+          >
+            EN
+          </Link>
         </div>
       </div>
 
@@ -88,7 +120,7 @@ export default async function PublicGoalSharePage({ params }: PageProps) {
                 <div className="text-sm font-medium">{a.title}</div>
                 {a.description ? <div className="mt-1 text-xs text-muted-foreground">{a.description}</div> : null}
                 <div className="mt-2 text-xs text-muted-foreground">
-                  {a.completed ? dict.goals.filter.completed : dict.goals.filter.incomplete} · {a.type} · {a.priority}
+                  {a.completed ? dict.goals.filter.completed : dict.goals.filter.incomplete} · {typeLabelMap[a.type] || a.type} · {priorityLabelMap[a.priority] || a.priority}
                 </div>
               </div>
             ))
