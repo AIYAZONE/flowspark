@@ -61,19 +61,26 @@ const DialogFormContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogFormContentProps
 >(({ className, mobileMode = "sheet", children, ...props }, ref) => (
-  <DialogContent
-    ref={ref}
-    className={cn(
-      "gap-0 p-0 sm:gap-4 sm:p-6",
-      mobileMode === "sheet"
-        ? "left-0 right-0 top-auto bottom-0 w-full max-w-none translate-x-0 translate-y-0 rounded-t-2xl border-b-0 max-h-[92dvh] overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:w-full sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:border sm:pb-6"
-        : "inset-0 w-[100vw] h-[100dvh] max-w-none translate-x-0 translate-y-0 rounded-none max-h-none overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:left-[50%] sm:top-[50%] sm:inset-auto sm:h-auto sm:w-full sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:max-h-[85vh] sm:overflow-y-auto sm:border sm:pb-6",
-      className
-    )}
-    {...props}
-  >
-    {children}
-  </DialogContent>
+  <DialogPortal>
+    <DialogOverlay />
+    <DialogPrimitive.Content
+      ref={ref}
+      className={cn(
+        "fixed z-50 gap-0 border bg-background p-0 shadow-lg duration-200 data-[state=closed]:pointer-events-none data-[state=open]:animate-in data-[state=closed]:animate-out sm:gap-4 sm:p-6",
+        mobileMode === "sheet"
+          ? "left-0 right-0 bottom-0 top-auto w-full max-w-none rounded-t-2xl border-b-0 max-h-[92dvh] overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+1rem)] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:left-[50%] sm:right-auto sm:top-[50%] sm:bottom-auto sm:w-full sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:border sm:pb-6 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%] sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]"
+          : "inset-0 h-dvh w-screen max-w-none rounded-none max-h-none overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+1rem)] data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 sm:left-[50%] sm:top-[50%] sm:inset-auto sm:h-auto sm:w-full sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg sm:max-h-[85vh] sm:overflow-y-auto sm:border sm:pb-6 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%] sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]",
+        className
+      )}
+      {...props}
+    >
+      {children}
+      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+        <X className="h-4 w-4" />
+        <span className="sr-only">Close</span>
+      </DialogPrimitive.Close>
+    </DialogPrimitive.Content>
+  </DialogPortal>
 ))
 DialogFormContent.displayName = "DialogFormContent"
 
