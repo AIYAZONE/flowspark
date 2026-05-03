@@ -1,7 +1,6 @@
 'use client'
 
 import Link from 'next/link'
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { login } from '@/app/(auth)/login/actions'
@@ -23,6 +22,7 @@ interface Dict {
       missing_credentials?: string
       invalid_credentials?: string
       email_not_confirmed?: string
+      auth_service_unreachable?: string
       unexpected_error?: string
       session_expired?: string
       auth_code_error?: string
@@ -37,9 +37,10 @@ export function LoginForm({ dict, error: initialError, message }: { dict: Dict, 
     if (err === 'missing_credentials') return dict.login.errors?.missing_credentials || err
     if (err === 'invalid_credentials') return dict.login.errors?.invalid_credentials || err
     if (err === 'email_not_confirmed') return dict.login.errors?.email_not_confirmed || err
+    if (err === 'auth_service_unreachable') return dict.login.errors?.auth_service_unreachable || dict.login.errors?.unexpected_error || err
     if (err === 'unexpected_error') return dict.login.errors?.unexpected_error || err
     if (err === 'session_expired') return dict.login.errors?.session_expired || err
-    return err
+    return dict.login.errors?.unexpected_error || err
   }
 
   const error = getErrorMessage(initialError || '')

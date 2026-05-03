@@ -6,6 +6,22 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getSiteUrl } from '@/lib/get-site-url';
 
+function mapLoginErrorCode(message: string): string {
+	const lower = message.toLowerCase();
+	if (lower.includes('invalid login credentials')) return 'invalid_credentials';
+	if (lower.includes('email not confirmed')) return 'email_not_confirmed';
+	if (
+		lower.includes('fetch failed') ||
+		lower.includes('failed to fetch') ||
+		lower.includes('network') ||
+		lower.includes('econnrefused') ||
+		lower.includes('enotfound')
+	) {
+		return 'auth_service_unreachable';
+	}
+	return 'unexpected_error';
+}
+
 export async function login(formData: FormData) {
 	try {
 		const supabase = await createClient();
@@ -24,12 +40,7 @@ export async function login(formData: FormData) {
 
 		if (error) {
 			console.error('Login error:', error);
-			let code = error.message;
-			if (error.message.includes('Invalid login credentials')) {
-				code = 'invalid_credentials';
-			} else if (error.message.includes('Email not confirmed')) {
-				code = 'email_not_confirmed';
-			}
+			const code = mapLoginErrorCode(error.message || '');
 			redirect('/login?error=' + encodeURIComponent(code));
 		}
 
