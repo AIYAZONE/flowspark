@@ -50,7 +50,7 @@ export function QuickCaptureSpeedDial({
 	tz: string
 }) {
 	const [open, setOpen] = useState(false)
-	const [isTouchDevice, setIsTouchDevice] = useState(false)
+	const [canDragFab, setCanDragFab] = useState(false)
 	const [dragging, setDragging] = useState(false)
 	const [fabPosition, setFabPosition] = useState<FabPosition | null>(null)
 	const wrapperRef = useRef<HTMLDivElement | null>(null)
@@ -71,8 +71,9 @@ export function QuickCaptureSpeedDial({
 
 	useEffect(() => {
 		if (typeof window === 'undefined') return
-		const media = window.matchMedia('(hover: none) and (pointer: coarse)')
-		const sync = () => setIsTouchDevice(media.matches)
+		// Allow dragging on touch devices and small mobile viewport (for desktop responsive debugging too).
+		const media = window.matchMedia('(hover: none) and (pointer: coarse), (max-width: 767px)')
+		const sync = () => setCanDragFab(media.matches)
 		sync()
 		if (typeof media.addEventListener === 'function') {
 			media.addEventListener('change', sync)
@@ -84,7 +85,7 @@ export function QuickCaptureSpeedDial({
 
 	useEffect(() => {
 		if (typeof window === 'undefined') return
-		if (!isTouchDevice) return
+		if (!canDragFab) return
 
 		const fabWidth = fabButtonRef.current?.offsetWidth ?? 56
 		const fabHeight = fabButtonRef.current?.offsetHeight ?? 56
@@ -99,11 +100,11 @@ export function QuickCaptureSpeedDial({
 		} catch {
 			window.setTimeout(() => setFabPosition(getDefaultPosition(fabWidth, fabHeight)), 0)
 		}
-	}, [isTouchDevice])
+	}, [canDragFab])
 
 	useEffect(() => {
 		if (typeof window === 'undefined') return
-		if (!isTouchDevice || !fabPosition) return
+		if (!canDragFab || !fabPosition) return
 		const onResize = () => {
 			const fabWidth = fabButtonRef.current?.offsetWidth ?? 56
 			const fabHeight = fabButtonRef.current?.offsetHeight ?? 56
@@ -111,7 +112,7 @@ export function QuickCaptureSpeedDial({
 		}
 		window.addEventListener('resize', onResize)
 		return () => window.removeEventListener('resize', onResize)
-	}, [isTouchDevice, fabPosition])
+	}, [canDragFab, fabPosition])
 
 	function clearLongPressTimer() {
 		if (longPressTimerRef.current) {
@@ -121,7 +122,7 @@ export function QuickCaptureSpeedDial({
 	}
 
 	function handlePointerDown(e: React.PointerEvent<HTMLButtonElement>) {
-		if (!isTouchDevice) return
+		if (!canDragFab) return
 		movedRef.current = false
 		pointerStartRef.current = { x: e.clientX, y: e.clientY }
 		const currentRect = wrapperRef.current?.getBoundingClientRect()
@@ -140,9 +141,9 @@ export function QuickCaptureSpeedDial({
 	}
 
 	function handlePointerMove(e: React.PointerEvent<HTMLButtonElement>) {
-		if (!isTouchDevice) return
+		if (!canDragFab) return
 		const movedDistance = Math.hypot(e.clientX - pointerStartRef.current.x, e.clientY - pointerStartRef.current.y)
-		if (!dragging && movedDistance > 8) {
+		if (!dragging && movedDistance > 16) {
 			movedRef.current = true
 			clearLongPressTimer()
 		}
@@ -170,14 +171,14 @@ export function QuickCaptureSpeedDial({
 	}
 
 	const wrapperClassName = cn(
-		'fixed z-50 md:right-6 md:bottom-6',
-		isTouchDevice && fabPosition ? '' : 'right-[10px] bottom-[calc(7.25rem+env(safe-area-inset-bottom))]'
+		'fixed z-50 md:hidden',
+		canDragFab && fabPosition ? '' : 'right-[10px] bottom-[calc(7.25rem+env(safe-area-inset-bottom))]'
 	)
 
 	return (
 		<>
 			{open ? <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} /> : null}
-			<div ref={wrapperRef} className={wrapperClassName} style={isTouchDevice && fabPosition ? { left: fabPosition.left, top: fabPosition.top } : undefined}>
+			<div ref={wrapperRef} className={wrapperClassName} style={canDragFab && fabPosition ? { left: fabPosition.left, top: fabPosition.top } : undefined}>
 				<div className={cn('flex flex-col items-end gap-3 transition-all', open ? 'mb-3 opacity-100 max-h-40' : 'opacity-0 max-h-0 overflow-hidden pointer-events-none')}>
 					<AddActionDialog
 						activeGoals={activeGoals}
