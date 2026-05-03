@@ -96,6 +96,20 @@ export function ProfileCard({
   const [signOutOpen, setSignOutOpen] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+  const isEn = currentLocale === 'en'
+
+  const formatTimezoneLabel = (tz?: string | null) => {
+    const key = tz || 'UTC'
+    const labels: Record<string, { zh: string; en: string }> = {
+      UTC: { zh: '协调世界时 (UTC)', en: 'Coordinated Universal Time (UTC)' },
+      'Asia/Shanghai': { zh: '中国标准时间 (UTC+8)', en: 'China Standard Time (UTC+8)' },
+      'America/New_York': { zh: '美国东部时间 (UTC-5/UTC-4)', en: 'Eastern Time (UTC-5/UTC-4)' },
+      'Europe/London': { zh: '英国时间 (UTC+0/UTC+1)', en: 'United Kingdom Time (UTC+0/UTC+1)' }
+    }
+    const localized = labels[key]
+    if (localized) return isEn ? localized.en : localized.zh
+    return key
+  }
 
   const handleSignOut = async () => {
     setIsSigningOut(true)
@@ -214,7 +228,7 @@ export function ProfileCard({
                 <span className="text-sm text-muted-foreground flex items-center gap-2">
                   <Globe className="h-4 w-4" /> {dict.profile.timezone}
                 </span>
-                <span className="font-medium truncate pl-6">{timezone || 'UTC'}</span>
+                <span className="font-medium truncate pl-6">{formatTimezoneLabel(timezone)}</span>
               </div>
 
               <div className="flex flex-col gap-1">
@@ -294,10 +308,10 @@ export function ProfileCard({
                   <SelectValue placeholder={dict.profile.timezone} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="UTC">UTC</SelectItem>
-                  <SelectItem value="Asia/Shanghai">Asia/Shanghai</SelectItem>
-                  <SelectItem value="America/New_York">America/New_York</SelectItem>
-                  <SelectItem value="Europe/London">Europe/London</SelectItem>
+                  <SelectItem value="UTC">{formatTimezoneLabel('UTC')}</SelectItem>
+                  <SelectItem value="Asia/Shanghai">{formatTimezoneLabel('Asia/Shanghai')}</SelectItem>
+                  <SelectItem value="America/New_York">{formatTimezoneLabel('America/New_York')}</SelectItem>
+                  <SelectItem value="Europe/London">{formatTimezoneLabel('Europe/London')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
