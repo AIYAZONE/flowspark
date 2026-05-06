@@ -333,26 +333,26 @@ export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialS
                         </div>
 
                         {/* Dates */}
-                        <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 flex flex-row justify-between gap-8">
-                            <div className="flex items-start gap-3">
+                        <div className="rounded-xl border border-border/50 bg-secondary/20 p-4 flex flex-wrap items-start gap-4 sm:gap-8">
+                            <div className="flex min-w-[12rem] flex-1 items-start gap-3">
                                 <div className="mt-0.5 rounded-md bg-primary/10 p-1.5 text-primary">
                                     <Calendar className="h-4 w-4" />
                                 </div>
                                 <div className="space-y-0.5">
                                     <p className="text-xs text-muted-foreground">{dict.goals.detail.startDate}</p>
-                                    <p className="text-sm font-medium font-mono">
+                                    <p className="text-sm font-medium font-mono tabular-nums whitespace-nowrap">
                                         {format(new Date(goal.start_date), dict.goals.detail.dateFormat)}
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="flex items-start gap-3">
+                            <div className="flex min-w-[12rem] flex-1 items-start gap-3">
                                 <div className="mt-0.5 rounded-md bg-primary/10 p-1.5 text-primary">
                                     <Clock className="h-4 w-4" />
                                 </div>
                                 <div className="space-y-0.5">
                                     <p className="text-xs text-muted-foreground">{dict.goals.detail.endDate}</p>
-                                    <p className="text-sm font-medium font-mono">
+                                    <p className="text-sm font-medium font-mono tabular-nums whitespace-nowrap">
                                         {format(new Date(goal.end_date), dict.goals.detail.dateFormat)}
                                     </p>
                                 </div>
