@@ -61,7 +61,15 @@ export default async function GoalDetailPage({ params }: PageProps) {
     // Get actions for this goal
     const { data: actions } = await supabase
         .from('actions')
-        .select('*')
+        .select(`
+            *,
+            action_sub_items (
+                id,
+                title,
+                completed,
+                sort_order
+            )
+        `)
         .eq('goal_id', id)
         .eq('user_id', user.id)
         .order('completed', { ascending: true }) // Uncompleted first

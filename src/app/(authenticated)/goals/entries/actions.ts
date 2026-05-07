@@ -77,6 +77,48 @@ export async function createGoalEntry(formData: FormData) {
 	revalidatePath(`/goals/${goal_id}`)
 }
 
+export async function updateGoalEntry(formData: FormData) {
+	const supabase = await createClient()
+	const {
+		data: { user }
+	} = await supabase.auth.getUser()
+	if (!user) throw new Error('unauthenticated')
+
+	const id = (formData.get('id') as string | null) || ''
+	const goal_id = (formData.get('goal_id') as string | null) || ''
+	const content = ((formData.get('content') as string | null) || '').trim()
+	const note = ((formData.get('note') as string | null) || '').trim()
+
+	if (!id || !goal_id || !content) throw new Error('missing_fields')
+
+	await assertGoalOwnership({ supabase, userId: user.id, goalId: goal_id })
+
+	const { error } = await supabase
+		.from('goal_entries')
+		.update({ content, note })
+		.eq('id', id)
+		.eq('goal_id', goal_id)
+		.eq('owner_id', user.id)
+		.eq('status', 'open')
+
+	if (error) {
+		if (error.code === '42703' || error.message?.includes('column')) {
+			const { error: legacyError } = await supabase
+				.from('goal_entries')
+				.update({ content, note })
+				.eq('id', id)
+				.eq('goal_id', goal_id)
+				.eq('user_id', user.id)
+				.eq('status', 'open')
+			if (legacyError) throw new Error('operation_failed')
+		} else {
+			throw new Error('operation_failed')
+		}
+	}
+
+	revalidatePath(`/goals/${goal_id}`)
+}
+
 export async function archiveGoalEntry(formData: FormData) {
 	const supabase = await createClient()
 	const {

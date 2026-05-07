@@ -7,6 +7,40 @@ import { normalizeCategoryInput } from '@/lib/goalCategories';
 
 const ACTIVE_GOAL_LIMIT = 5;
 
+type ActionInsertPayload = {
+	goal_id: string;
+	title: string;
+	type: string;
+	priority: string;
+	description: string;
+	start_date: string;
+	end_date: string;
+	completed: boolean;
+};
+
+type ActionSubItemInsertPayload = {
+	action_id: string;
+	title: string;
+	completed: boolean;
+	sort_order: number;
+};
+
+type ActionSubItemUpsertPayload = {
+	id?: string;
+	title: string;
+	completed: boolean;
+	sort_order: number;
+};
+
+type ActionAttachmentInsertPayload = {
+	action_id: string;
+	file_path: string;
+	public_url: string;
+	mime_type: string | null;
+	size_bytes: number | null;
+	bucket: string;
+};
+
 async function assertActiveGoalLimit(
 	supabase: Awaited<ReturnType<typeof createClient>>,
 	userId: string
@@ -20,6 +54,260 @@ async function assertActiveGoalLimit(
 	if (error) throw new Error('operation_failed');
 	const activeCount = data?.length ?? 0;
 	if (activeCount >= ACTIVE_GOAL_LIMIT) throw new Error('goal_limit_reached');
+}
+
+function parseSubItems(
+	raw: FormDataEntryValue | null
+): ActionSubItemInsertPayload[] {
+	if (typeof raw !== 'string' || !raw.trim()) return [];
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		throw new Error('invalid_json');
+	}
+	if (!Array.isArray(parsed)) return [];
+
+	const items: ActionSubItemInsertPayload[] = [];
+	for (const [idx, item] of parsed.entries()) {
+		if (!item || typeof item !== 'object') continue;
+		const row = item as Record<string, unknown>;
+		const title = typeof row.title === 'string' ? row.title.trim() : '';
+		if (!title) continue;
+		const sort_order =
+			typeof row.sort_order === 'number' &&
+			Number.isFinite(row.sort_order)
+				? Math.max(0, Math.round(row.sort_order))
+				: idx;
+		items.push({
+			action_id: '',
+			title,
+			completed: false,
+			sort_order
+		});
+		if (items.length >= 20) break;
+	}
+	return items;
+}
+
+function parseSubItemsForUpdate(
+	raw: FormDataEntryValue | null
+): ActionSubItemUpsertPayload[] {
+	if (typeof raw !== 'string' || !raw.trim()) return [];
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		throw new Error('invalid_json');
+	}
+	if (!Array.isArray(parsed)) return [];
+
+	const items: ActionSubItemUpsertPayload[] = [];
+	for (const [idx, item] of parsed.entries()) {
+		if (!item || typeof item !== 'object') continue;
+		const row = item as Record<string, unknown>;
+		const title = typeof row.title === 'string' ? row.title.trim() : '';
+		if (!title) continue;
+		const sort_order =
+			typeof row.sort_order === 'number' &&
+			Number.isFinite(row.sort_order)
+				? Math.max(0, Math.round(row.sort_order))
+				: idx;
+		items.push({
+			id: typeof row.id === 'string' ? row.id : undefined,
+			title,
+			completed: Boolean(row.completed),
+			sort_order
+		});
+		if (items.length >= 20) break;
+	}
+	return items;
+}
+
+function parseAttachmentManifest(
+	raw: FormDataEntryValue | null
+): ActionAttachmentInsertPayload[] {
+	if (typeof raw !== 'string' || !raw.trim()) return [];
+	let parsed: unknown;
+	try {
+		parsed = JSON.parse(raw);
+	} catch {
+		throw new Error('invalid_json');
+	}
+	if (!Array.isArray(parsed)) return [];
+
+	const rows: ActionAttachmentInsertPayload[] = [];
+	for (const item of parsed) {
+		if (!item || typeof item !== 'object') continue;
+		const row = item as Record<string, unknown>;
+		const file_path =
+			typeof row.file_path === 'string' ? row.file_path.trim() : '';
+		const public_url =
+			typeof row.public_url === 'string' ? row.public_url.trim() : '';
+		if (!file_path || !public_url) continue;
+		rows.push({
+			action_id: '',
+			file_path,
+			public_url,
+			mime_type: typeof row.mime_type === 'string' ? row.mime_type : null,
+			size_bytes:
+				typeof row.size_bytes === 'number' &&
+				Number.isFinite(row.size_bytes)
+					? Math.max(0, Math.round(row.size_bytes))
+					: null,
+			bucket:
+				typeof row.bucket === 'string' && row.bucket.trim()
+					? row.bucket.trim()
+					: 'action-images'
+		});
+		if (rows.length >= 12) break;
+	}
+	return rows;
+}
+
+async function insertActionWithFallback(params: {
+	supabase: Awaited<ReturnType<typeof createClient>>;
+	userId: string;
+	payload: ActionInsertPayload;
+	selectFields?: string;
+}) {
+	const { supabase, userId, payload, selectFields } = params;
+	const runInsert = async (insertPayload: Record<string, unknown>) => {
+		const query = supabase.from('actions').insert(insertPayload);
+		if (selectFields) return query.select(selectFields).single();
+		return query;
+	};
+
+	let data: Record<string, unknown> | null = null;
+
+	const attempt1 = await runInsert({
+		...payload,
+		user_id: userId,
+		owner_id: userId
+	});
+	if (!attempt1.error) {
+		data =
+			(attempt1 as { data?: Record<string, unknown> | null }).data ??
+			null;
+		return { data };
+	}
+
+	const columnMissing =
+		attempt1.error.code === '42703' ||
+		attempt1.error.message?.includes('column');
+	if (!columnMissing) throw attempt1.error;
+
+	const attempt2 = await runInsert({
+		...payload,
+		user_id: userId
+	});
+	if (!attempt2.error) {
+		data =
+			(attempt2 as { data?: Record<string, unknown> | null }).data ??
+			null;
+		return { data };
+	}
+
+	const attempt3 = await runInsert({
+		...payload,
+		owner_id: userId
+	});
+	if (attempt3.error) throw attempt3.error;
+
+	data = (attempt3 as { data?: Record<string, unknown> | null }).data ?? null;
+	return { data };
+}
+
+async function insertActionSubItemsWithFallback(params: {
+	supabase: Awaited<ReturnType<typeof createClient>>;
+	userId: string;
+	items: ActionSubItemInsertPayload[];
+}) {
+	const { supabase, userId, items } = params;
+	if (items.length === 0) return;
+
+	const payload = items.map((item) => ({
+		...item,
+		user_id: userId,
+		owner_id: userId
+	}));
+
+	const { error } = await supabase.from('action_sub_items').insert(payload);
+	if (!error) return;
+
+	const columnMissing =
+		error.code === '42703' || error.message?.includes('column');
+	if (!columnMissing) throw error;
+
+	const { error: error2 } = await supabase.from('action_sub_items').insert(
+		payload.map((item) => ({
+			action_id: item.action_id,
+			title: item.title,
+			completed: item.completed,
+			sort_order: item.sort_order,
+			user_id: item.user_id
+		}))
+	);
+	if (!error2) return;
+
+	const { error: error3 } = await supabase.from('action_sub_items').insert(
+		payload.map((item) => ({
+			action_id: item.action_id,
+			title: item.title,
+			completed: item.completed,
+			sort_order: item.sort_order,
+			owner_id: item.owner_id
+		}))
+	);
+	if (error3) throw error3;
+}
+
+async function insertActionAttachmentsWithFallback(params: {
+	supabase: Awaited<ReturnType<typeof createClient>>;
+	userId: string;
+	items: ActionAttachmentInsertPayload[];
+}) {
+	const { supabase, userId, items } = params;
+	if (items.length === 0) return;
+
+	const payload = items.map((item) => ({
+		...item,
+		user_id: userId,
+		owner_id: userId
+	}));
+
+	const { error } = await supabase.from('action_attachments').insert(payload);
+	if (!error) return;
+
+	const columnMissing =
+		error.code === '42703' || error.message?.includes('column');
+	if (!columnMissing) throw error;
+
+	const { error: error2 } = await supabase.from('action_attachments').insert(
+		payload.map((item) => ({
+			action_id: item.action_id,
+			file_path: item.file_path,
+			public_url: item.public_url,
+			mime_type: item.mime_type,
+			size_bytes: item.size_bytes,
+			bucket: item.bucket,
+			user_id: item.user_id
+		}))
+	);
+	if (!error2) return;
+
+	const { error: error3 } = await supabase.from('action_attachments').insert(
+		payload.map((item) => ({
+			action_id: item.action_id,
+			file_path: item.file_path,
+			public_url: item.public_url,
+			mime_type: item.mime_type,
+			size_bytes: item.size_bytes,
+			bucket: item.bucket,
+			owner_id: item.owner_id
+		}))
+	);
+	if (error3) throw error3;
 }
 
 export async function createGoal(formData: FormData) {
@@ -197,19 +485,23 @@ export async function createGoalModal(formData: FormData) {
 	}
 
 	// 使用 select() 以返回插入记录的 id 与标题
-	const { data, error } = await supabase.from('goals').insert({
-		user_id: user.id,
-		owner_id: user.id,
-		title,
-		description,
-		start_date,
-		end_date,
-		success_criteria,
-		stop_criteria,
-		status: 'active',
-		priority,
-		category
-	}).select('id,title').single();
+	const { data, error } = await supabase
+		.from('goals')
+		.insert({
+			user_id: user.id,
+			owner_id: user.id,
+			title,
+			description,
+			start_date,
+			end_date,
+			success_criteria,
+			stop_criteria,
+			status: 'active',
+			priority,
+			category
+		})
+		.select('id,title')
+		.single();
 
 	if (error) {
 		console.error('Error creating goal:', error);
@@ -223,17 +515,21 @@ export async function createGoalModal(formData: FormData) {
 			console.warn(
 				'Database schema missing columns, falling back to basic fields.'
 			);
-			const { data: legacyData, error: legacyError } = await supabase.from('goals').insert({
-				user_id: user.id,
-				owner_id: user.id,
-				title,
-				description,
-				start_date,
-				end_date,
-				success_criteria,
-				stop_criteria,
-				status: 'active'
-			}).select('id,title').single();
+			const { data: legacyData, error: legacyError } = await supabase
+				.from('goals')
+				.insert({
+					user_id: user.id,
+					owner_id: user.id,
+					title,
+					description,
+					start_date,
+					end_date,
+					success_criteria,
+					stop_criteria,
+					status: 'active'
+				})
+				.select('id,title')
+				.single();
 
 			if (legacyError) {
 				console.error('Legacy create goal failed:', legacyError);
@@ -241,14 +537,22 @@ export async function createGoalModal(formData: FormData) {
 			}
 			// 成功（兼容旧架构）
 			revalidatePath('/goals');
-			return { success: true, goalId: legacyData?.id as string | undefined, title: legacyData?.title as string | undefined };
+			return {
+				success: true,
+				goalId: legacyData?.id as string | undefined,
+				title: legacyData?.title as string | undefined
+			};
 		} else {
 			throw new Error('operation_failed');
 		}
 	}
 
 	revalidatePath('/goals');
-	return { success: true, goalId: data?.id as string | undefined, title: data?.title as string | undefined };
+	return {
+		success: true,
+		goalId: data?.id as string | undefined,
+		title: data?.title as string | undefined
+	};
 }
 
 export async function createAction(formData: FormData) {
@@ -270,6 +574,9 @@ export async function createAction(formData: FormData) {
 	const description = formData.get('description') as string;
 	const start_date = formData.get('start_date') as string;
 	const end_date = formData.get('end_date') as string;
+	const attachments = parseAttachmentManifest(
+		formData.get('attachment_manifest')
+	);
 
 	if (!goal_id || !title || !start_date || !end_date) {
 		throw new Error('Missing required fields');
@@ -285,52 +592,226 @@ export async function createAction(formData: FormData) {
 		end_date,
 		completed: false
 	};
+	try {
+		const inserted = await insertActionWithFallback({
+			supabase,
+			userId: user.id,
+			payload: baseData,
+			selectFields: 'id'
+		});
+		const actionId = (inserted.data?.id as string) || null;
+		if (!actionId) throw new Error('operation_failed');
 
-	// Attempt 1: Try with both user_id and owner_id (Standard for current schema)
-	const { error } = await supabase.from('actions').insert({
-		...baseData,
-		user_id: user.id,
-		owner_id: user.id
-	});
-
-	if (error) {
-		console.error('Create action failed (Attempt 1):', error);
-
-		// Check for column missing error (Postgres code 42703 or message text)
-		if (error.code === '42703' || error.message?.includes('column')) {
-			// Attempt 2: Try with only user_id (Legacy schema)
-			const { error: error2 } = await supabase.from('actions').insert({
-				...baseData,
-				user_id: user.id
+		if (attachments.length > 0) {
+			await insertActionAttachmentsWithFallback({
+				supabase,
+				userId: user.id,
+				items: attachments.map((item) => ({
+					...item,
+					action_id: actionId
+				}))
 			});
-
-			if (error2) {
-				console.error('Create action failed (Attempt 2):', error2);
-
-				// Attempt 3: Try with only owner_id (Future schema)
-				const { error: error3 } = await supabase
-					.from('actions')
-					.insert({
-						...baseData,
-						owner_id: user.id
-					});
-
-				if (error3) {
-					console.error(
-						'Failed to create action (Attempt 3):',
-						error3
-					);
-					throw new Error('operation_failed');
-				}
-			}
-		} else {
-			throw new Error(error.message);
 		}
+	} catch (error) {
+		console.error('Failed to create action:', error);
+		throw new Error('operation_failed');
 	}
 
 	revalidatePath('/dashboard');
 	revalidatePath('/today');
 	revalidatePath(`/goals/${goal_id}`);
+}
+
+export async function createActionWithSubItems(formData: FormData) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) throw new Error('User not authenticated');
+
+	const goal_id = formData.get('goal_id') as string;
+	const title = formData.get('title') as string;
+	const rawType = formData.get('type') as string;
+	const type = rawType || 'core';
+	const priority = (formData.get('priority') as string) || 'medium';
+	const description = (formData.get('description') as string) || '';
+	const start_date = formData.get('start_date') as string;
+	const end_date = formData.get('end_date') as string;
+	if (!goal_id || !title || !start_date || !end_date) {
+		throw new Error('Missing required fields');
+	}
+
+	const subItems = parseSubItems(formData.get('sub_items'));
+	const attachments = parseAttachmentManifest(
+		formData.get('attachment_manifest')
+	);
+
+	let createdActionId: string | null = null;
+	try {
+		const inserted = await insertActionWithFallback({
+			supabase,
+			userId: user.id,
+			payload: {
+				goal_id,
+				title,
+				type,
+				priority,
+				description,
+				start_date,
+				end_date,
+				completed: false
+			},
+			selectFields: 'id'
+		});
+		createdActionId = (inserted.data?.id as string) || null;
+		if (!createdActionId) throw new Error('operation_failed');
+
+		if (subItems.length > 0) {
+			await insertActionSubItemsWithFallback({
+				supabase,
+				userId: user.id,
+				items: subItems.map((item) => ({
+					...item,
+					action_id: createdActionId as string
+				}))
+			});
+		}
+		if (attachments.length > 0) {
+			await insertActionAttachmentsWithFallback({
+				supabase,
+				userId: user.id,
+				items: attachments.map((item) => ({
+					...item,
+					action_id: createdActionId as string
+				}))
+			});
+		}
+	} catch (error) {
+		if (createdActionId) {
+			const remove = await supabase
+				.from('actions')
+				.delete()
+				.eq('id', createdActionId)
+				.eq('owner_id', user.id);
+			if (remove.error) {
+				await supabase
+					.from('actions')
+					.delete()
+					.eq('id', createdActionId)
+					.eq('user_id', user.id);
+			}
+		}
+		console.error('Failed to create action with sub items:', error);
+		throw new Error('operation_failed');
+	}
+
+	revalidatePath('/dashboard');
+	revalidatePath('/today');
+	revalidatePath('/goals');
+	revalidatePath(`/goals/${goal_id}`);
+	return { actionId: createdActionId };
+}
+
+export async function toggleActionSubItem(formData: FormData) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) throw new Error('unauthenticated');
+
+	const id = formData.get('id') as string;
+	const goal_id = (formData.get('goal_id') as string) || null;
+	const currentCompleted = formData.get('completed') === 'true';
+	if (!id) throw new Error('missing_fields');
+
+	let actionId: string | null = null;
+	let fetchError: { message?: string; code?: string } | null = null;
+	const byOwner = await supabase
+		.from('action_sub_items')
+		.select('action_id')
+		.eq('id', id)
+		.eq('owner_id', user.id)
+		.maybeSingle();
+	actionId = (byOwner.data?.action_id as string | null) || null;
+	fetchError = byOwner.error;
+	if (!actionId && !fetchError) {
+		const byUser = await supabase
+			.from('action_sub_items')
+			.select('action_id')
+			.eq('id', id)
+			.eq('user_id', user.id)
+			.maybeSingle();
+		actionId = (byUser.data?.action_id as string | null) || null;
+		fetchError = byUser.error;
+	}
+	if (fetchError || !actionId) throw new Error('operation_failed');
+
+	const nextCompleted = !currentCompleted;
+	let { error } = await supabase
+		.from('action_sub_items')
+		.update({
+			completed: nextCompleted,
+			updated_at: new Date().toISOString()
+		})
+		.eq('id', id)
+		.eq('owner_id', user.id);
+
+	if (error) {
+		const fallback = await supabase
+			.from('action_sub_items')
+			.update({
+				completed: nextCompleted,
+				updated_at: new Date().toISOString()
+			})
+			.eq('id', id)
+			.eq('user_id', user.id);
+		error = fallback.error;
+	}
+	if (error) throw new Error('operation_failed');
+
+	// 双向联动：子行动全完成 => 父行动完成；存在未完成 => 父行动未完成
+	let subItems:
+		| Array<{ completed: boolean }>
+		| null = null;
+	const listByOwner = await supabase
+		.from('action_sub_items')
+		.select('completed')
+		.eq('action_id', actionId)
+		.eq('owner_id', user.id);
+	subItems = (listByOwner.data as Array<{ completed: boolean }> | null) ?? null;
+	if (!subItems && !listByOwner.error) {
+		const listByUser = await supabase
+			.from('action_sub_items')
+			.select('completed')
+			.eq('action_id', actionId)
+			.eq('user_id', user.id);
+		subItems =
+			(listByUser.data as Array<{ completed: boolean }> | null) ?? null;
+	}
+	if (subItems && subItems.length > 0) {
+		const parentCompleted = subItems.every((item) => item.completed);
+		let parentUpdateError: { message?: string; code?: string } | null = null;
+		const parentByOwner = await supabase
+			.from('actions')
+			.update({ completed: parentCompleted })
+			.eq('id', actionId)
+			.eq('owner_id', user.id);
+		parentUpdateError = parentByOwner.error;
+		if (parentUpdateError) {
+			const parentByUser = await supabase
+				.from('actions')
+				.update({ completed: parentCompleted })
+				.eq('id', actionId)
+				.eq('user_id', user.id);
+			parentUpdateError = parentByUser.error;
+		}
+		if (parentUpdateError) throw new Error('operation_failed');
+	}
+
+	revalidatePath('/today');
+	revalidatePath('/goals');
+	if (goal_id) revalidatePath(`/goals/${goal_id}`);
+	return { ok: true as const, completed: nextCompleted };
 }
 
 export async function updateGoal(formData: FormData) {
@@ -428,6 +909,7 @@ export async function updateAction(formData: FormData) {
 	const description = formData.get('description') as string;
 	const start_date = formData.get('start_date') as string;
 	const end_date = formData.get('end_date') as string;
+	const subItemsUpdate = parseSubItemsForUpdate(formData.get('sub_items'));
 
 	if (!goal_id) throw new Error('Missing required fields');
 	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
@@ -487,6 +969,39 @@ export async function updateAction(formData: FormData) {
 		}
 	}
 
+	// Replace sub-items when editor submits sub_items payload.
+	if (formData.has('sub_items')) {
+		let deleteError: { message?: string; code?: string } | null = null;
+		const removeByOwner = await supabase
+			.from('action_sub_items')
+			.delete()
+			.eq('action_id', id)
+			.eq('owner_id', user.id);
+		deleteError = removeByOwner.error;
+		if (deleteError) {
+			const removeByUser = await supabase
+				.from('action_sub_items')
+				.delete()
+				.eq('action_id', id)
+				.eq('user_id', user.id);
+			deleteError = removeByUser.error;
+		}
+		if (deleteError) throw new Error('operation_failed');
+
+		if (subItemsUpdate.length > 0) {
+			await insertActionSubItemsWithFallback({
+				supabase,
+				userId: user.id,
+				items: subItemsUpdate.map((item) => ({
+					action_id: id,
+					title: item.title,
+					completed: item.completed,
+					sort_order: item.sort_order
+				}))
+			});
+		}
+	}
+
 	revalidatePath('/today');
 	revalidatePath('/goals');
 	if (from_goal_id) revalidatePath(`/goals/${from_goal_id}`);
@@ -502,6 +1017,43 @@ export async function deleteAction(formData: FormData) {
 
 	const id = formData.get('id') as string;
 	const goal_id = formData.get('goal_id') as string | null;
+
+	let { data: attachments } = await supabase
+		.from('action_attachments')
+		.select('file_path,bucket')
+		.eq('action_id', id)
+		.eq('owner_id', user.id);
+
+	if (!attachments || attachments.length === 0) {
+		const fallback = await supabase
+			.from('action_attachments')
+			.select('file_path,bucket')
+			.eq('action_id', id)
+			.eq('user_id', user.id);
+		attachments = fallback.data;
+	}
+
+	if (attachments && attachments.length > 0) {
+		const bucketMap = new Map<string, string[]>();
+		for (const row of attachments) {
+			const bucket = (row.bucket as string) || 'action-images';
+			const filePath = (row.file_path as string) || '';
+			if (!filePath) continue;
+			const arr = bucketMap.get(bucket) ?? [];
+			arr.push(filePath);
+			bucketMap.set(bucket, arr);
+		}
+		for (const [bucket, paths] of bucketMap.entries()) {
+			if (paths.length === 0) continue;
+			const remove = await supabase.storage.from(bucket).remove(paths);
+			if (remove.error) {
+				console.error(
+					'Error deleting action attachment files:',
+					remove.error
+				);
+			}
+		}
+	}
 
 	const { error } = await supabase
 		.from('actions')
@@ -556,7 +1108,10 @@ export async function deleteGoal(formData: FormData) {
 	redirect('/goals');
 }
 
-export async function replaceGoalCategory(params: { from: string; to: string }) {
+export async function replaceGoalCategory(params: {
+	from: string;
+	to: string;
+}) {
 	const supabase = await createClient();
 	const {
 		data: { user }
@@ -619,7 +1174,9 @@ async function fetchGoalForShare(params: {
 	const { supabase, userId, goalId } = params;
 	let { data: goal, error } = await supabase
 		.from('goals')
-		.select('id, title, description, start_date, end_date, success_criteria, stop_criteria, status, priority, category')
+		.select(
+			'id, title, description, start_date, end_date, success_criteria, stop_criteria, status, priority, category'
+		)
 		.eq('id', goalId)
 		.eq('owner_id', userId)
 		.maybeSingle();
@@ -627,7 +1184,9 @@ async function fetchGoalForShare(params: {
 	if (!goal && !error) {
 		const fallback = await supabase
 			.from('goals')
-			.select('id, title, description, start_date, end_date, success_criteria, stop_criteria, status, priority, category')
+			.select(
+				'id, title, description, start_date, end_date, success_criteria, stop_criteria, status, priority, category'
+			)
 			.eq('id', goalId)
 			.eq('user_id', userId)
 			.maybeSingle();
@@ -638,7 +1197,9 @@ async function fetchGoalForShare(params: {
 
 	let { data: actions, error: actionsError } = await supabase
 		.from('actions')
-		.select('id, title, description, type, priority, completed, start_date, end_date')
+		.select(
+			'id, title, description, type, priority, completed, start_date, end_date'
+		)
 		.eq('goal_id', goalId)
 		.eq('owner_id', userId)
 		.order('completed', { ascending: true })
@@ -648,7 +1209,9 @@ async function fetchGoalForShare(params: {
 	if (actionsError) {
 		const fallback = await supabase
 			.from('actions')
-			.select('id, title, description, type, priority, completed, start_date, end_date')
+			.select(
+				'id, title, description, type, priority, completed, start_date, end_date'
+			)
 			.eq('goal_id', goalId)
 			.eq('user_id', userId)
 			.order('completed', { ascending: true })
@@ -694,20 +1257,27 @@ export async function createGoalShareLink(goalId: string) {
 	if (!user) throw new Error('unauthenticated');
 	if (!goalId) throw new Error('missing_fields');
 
-	const snapshot = await fetchGoalForShare({ supabase, userId: user.id, goalId });
+	const snapshot = await fetchGoalForShare({
+		supabase,
+		userId: user.id,
+		goalId
+	});
 	const token = crypto.randomUUID();
-	const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString(); // 30 days
+	const expiresAt = new Date(
+		Date.now() + 1000 * 60 * 60 * 24 * 30
+	).toISOString(); // 30 days
 
-	const { error } = await supabase
-		.from('goal_shares')
-		.upsert({
+	const { error } = await supabase.from('goal_shares').upsert(
+		{
 			owner_id: user.id,
 			goal_id: goalId,
 			token,
 			snapshot,
 			revoked_at: null,
 			expires_at: expiresAt
-		}, { onConflict: 'owner_id,goal_id' });
+		},
+		{ onConflict: 'owner_id,goal_id' }
+	);
 
 	if (error) throw new Error('operation_failed');
 

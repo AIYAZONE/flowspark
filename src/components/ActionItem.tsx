@@ -27,9 +27,12 @@ function CompleteButton({ completed, type }: { completed: boolean, type: string 
     )
 }
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { motion, useAnimationControls } from 'framer-motion'
-import { CheckCircle2, ChevronRight, Circle, Pencil, Save, Trash2, X, Calendar } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { CheckCircle2, ChevronDown, ChevronRight, Circle, Pencil, Save, Trash2, X, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { SubmitButton } from '@/components/SubmitButton'
@@ -45,7 +48,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { DateRangeFields } from '@/components/DateRangeFields'
 import { toggleAction } from '@/app/(authenticated)/dashboard/actions'
 import {
@@ -61,11 +63,41 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { createAction, deleteAction, updateAction } from '@/app/(authenticated)/goals/actions'
+import { createAction, deleteAction, toggleActionSubItem, updateAction } from '@/app/(authenticated)/goals/actions'
 import type en from '@/i18n/en.json'
 import type { RescueOutput } from '@/lib/ai/phase2aSchemas'
 import { logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
+import { createClient } from '@/lib/supabase/client'
+import { ActionDescriptionEditor, type ActionAttachmentDraft } from '@/components/ActionDescriptionEditor'
+
+function DescriptionMarkdown(props: { markdown: string; compact?: boolean }) {
+    const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(props.markdown.trim())
+    const safeHtml = props.markdown
+        .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
+        .replace(/<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi, '')
+        .replace(/\son\w+="[^"]*"/gi, '')
+        .replace(/\son\w+='[^']*'/gi, '')
+        .replace(/\son\w+=\S+/gi, '')
+        .replace(/javascript:/gi, '')
+    return (
+        <div className={cn(
+            "prose prose-sm dark:prose-invert max-w-none break-words",
+            "prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0",
+            "prose-img:my-2 prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-border/40",
+            props.compact && "max-h-24 overflow-hidden"
+        )}>
+            {looksLikeHtml ? (
+                <div dangerouslySetInnerHTML={{ __html: safeHtml }} />
+            ) : (
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {props.markdown}
+                </ReactMarkdown>
+            )}
+        </div>
+    )
+}
 
 interface Action {
     id: string
@@ -80,6 +112,12 @@ interface Action {
     goals?: {
         title: string
     } | null
+    action_sub_items?: Array<{
+        id: string
+        title: string
+        completed: boolean
+        sort_order: number
+    }>
 }
 
 interface ActionItemProps {
@@ -91,7 +129,14 @@ interface ActionItemProps {
     isNew?: boolean
 }
 
+type EditSubItemDraft = {
+    id?: string
+    title: string
+    completed: boolean
+}
+
 export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Shanghai', goals = [], isNew = false }: ActionItemProps) {
+    const router = useRouter()
     const [isLoading, setIsLoading] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -106,8 +151,74 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const [rescueLoading, setRescueLoading] = useState(false)
     const [rescueError, setRescueError] = useState<string | null>(null)
     const [rescueResult, setRescueResult] = useState<RescueOutput | null>(null)
+    const [subItemsOpen, setSubItemsOpen] = useState(false)
+    const [subItemBusyId, setSubItemBusyId] = useState<string | null>(null)
+    const [uploadUserId, setUploadUserId] = useState<string>('')
+    const [editTitle, setEditTitle] = useState(action.title)
+    const [editDescription, setEditDescription] = useState(action.description || '')
+    const [editGoalId, setEditGoalId] = useState(action.goal_id)
+    const [editType, setEditType] = useState(action.type || 'core')
+    const [editPriority, setEditPriority] = useState(action.priority || 'medium')
+    const [editStartDate, setEditStartDate] = useState(action.start_date)
+    const [editEndDate, setEditEndDate] = useState(action.end_date || action.start_date)
+    const [editSubItems, setEditSubItems] = useState<EditSubItemDraft[]>(
+        (action.action_sub_items || []).map((item) => ({
+            id: item.id,
+            title: item.title,
+            completed: Boolean(item.completed)
+        }))
+    )
+    const [editAttachmentsDraft, setEditAttachmentsDraft] = useState<ActionAttachmentDraft[]>([])
+    const [editDescriptionUploading, setEditDescriptionUploading] = useState(false)
+    const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
+    const [discardIntent, setDiscardIntent] = useState<'switch_to_view' | 'close_panel'>('switch_to_view')
+    const unsavedConfirmText = (dict.goals.new as Record<string, string>).confirmDiscardChanges || '你有未保存的修改，确认放弃吗？'
+
+    function resetEditDraftFromAction() {
+        setEditTitle(action.title)
+        setEditDescription(action.description || '')
+        setEditGoalId(action.goal_id)
+        setEditType(action.type || 'core')
+        setEditPriority(action.priority || 'medium')
+        setEditStartDate(action.start_date)
+        setEditEndDate(action.end_date || action.start_date)
+        setEditSubItems(
+            (action.action_sub_items || []).map((item) => ({
+                id: item.id,
+                title: item.title,
+                completed: Boolean(item.completed)
+            }))
+        )
+        setEditAttachmentsDraft([])
+        setEditDescriptionUploading(false)
+    }
+
+    const isEditDirty = (() => {
+        const baseStart = action.start_date || ''
+        const baseEnd = action.end_date || action.start_date || ''
+        return (
+            editTitle !== action.title ||
+            editDescription !== (action.description || '') ||
+            editGoalId !== action.goal_id ||
+            editType !== (action.type || 'core') ||
+            editPriority !== (action.priority || 'medium') ||
+            editStartDate !== baseStart ||
+            editEndDate !== baseEnd ||
+            JSON.stringify(editSubItems) !==
+                JSON.stringify(
+                    (action.action_sub_items || []).map((item) => ({
+                        id: item.id,
+                        title: item.title,
+                        completed: Boolean(item.completed)
+                    }))
+                ) ||
+            editAttachmentsDraft.length > 0
+        )
+    })()
 
     const hasDetails = true
+    const subItems = [...(action.action_sub_items || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    const subItemsCompletedCount = subItems.filter((item) => item.completed).length
 
     const closeSwipe = () => {
         controls.start({ x: 0, transition: { type: 'spring', stiffness: 420, damping: 34 } })
@@ -162,8 +273,16 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         return () => media.removeListener(sync)
     }, [])
 
+    useEffect(() => {
+        const supabase = createClient()
+        void supabase.auth.getUser().then(({ data }) => {
+            const uid = data.user?.id || ''
+            setUploadUserId(uid)
+        })
+    }, [])
+
     async function handleUpdate(formData: FormData) {
-        if (!dateRangeValid) return
+        if (!dateRangeValid || editDescriptionUploading) return
         setIsLoading(true)
         try {
             await updateAction(formData)
@@ -174,6 +293,30 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             console.error(error)
         } finally {
             setIsLoading(false)
+        }
+    }
+
+    function confirmDiscardAndProceed() {
+        setDiscardDialogOpen(false)
+        resetEditDraftFromAction()
+        setPanelMode('view')
+        if (discardIntent === 'close_panel') {
+            setDetailsOpen(false)
+            closeSwipe()
+        }
+    }
+
+    function requestExitEdit(intent: 'switch_to_view' | 'close_panel') {
+        if (isEditDirty) {
+            setDiscardIntent(intent)
+            setDiscardDialogOpen(true)
+            return
+        }
+        resetEditDraftFromAction()
+        setPanelMode('view')
+        if (intent === 'close_panel') {
+            setDetailsOpen(false)
+            closeSwipe()
         }
     }
 
@@ -204,6 +347,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
 
     function openEditPanel() {
         closeSwipe()
+        resetEditDraftFromAction()
         setPanelMode('edit')
         setDetailsOpen(true)
     }
@@ -219,6 +363,10 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     }
 
     const handlePanelOpenChange = (open: boolean) => {
+        if (!open && panelMode === 'edit') {
+            requestExitEdit('close_panel')
+            return
+        }
         setDetailsOpen(open)
         if (!open) setPanelMode('view')
     }
@@ -324,6 +472,22 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         }
     }
 
+    async function onToggleSubItem(id: string, currentCompleted: boolean) {
+        setSubItemBusyId(id)
+        try {
+            const formData = new FormData()
+            formData.set('id', id)
+            formData.set('goal_id', action.goal_id)
+            formData.set('completed', currentCompleted ? 'true' : 'false')
+            await toggleActionSubItem(formData)
+            router.refresh()
+        } catch {
+            // no-op
+        } finally {
+            setSubItemBusyId(null)
+        }
+    }
+
     const getPriorityColor = (priority?: string) => {
         switch (priority) {
             case 'high': return 'bg-red-500/10 text-red-500 border-red-500/20'
@@ -366,7 +530,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
 
     const viewDescription = action.description ? (
         <div className="rounded-lg border border-border/50 bg-secondary/20 p-4 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-            {action.description}
+            <DescriptionMarkdown markdown={action.description} />
         </div>
     ) : (
         <div className="rounded-lg border border-border/50 bg-secondary/10 p-4 text-sm text-muted-foreground/70">
@@ -381,11 +545,26 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         >
             <input type="hidden" name="id" value={action.id} />
             <input type="hidden" name="from_goal_id" value={action.goal_id} />
+            <input
+                type="hidden"
+                name="sub_items"
+                value={JSON.stringify(
+                    editSubItems
+                        .map((item, idx) => ({
+                            id: item.id,
+                            title: item.title.trim(),
+                            completed: item.completed,
+                            sort_order: idx
+                        }))
+                        .filter((item) => item.title.length > 0)
+                )}
+            />
 
             <div className="space-y-2">
                 <Input
                     name="title"
-                    defaultValue={action.title}
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
                     required
                     className="bg-background/50 font-medium"
                     placeholder={dict.today.actionTitlePlaceholder}
@@ -393,12 +572,19 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             </div>
 
             <div className="space-y-2">
-                <Textarea
-                    name="description"
-                    defaultValue={action.description}
-                    placeholder={dict.today.descriptionPlaceholder}
-                    className="min-h-[80px] text-sm bg-background/50"
-                />
+                {uploadUserId ? (
+                    <ActionDescriptionEditor
+                        userId={uploadUserId}
+                        value={editDescription}
+                        onChange={setEditDescription}
+                        attachments={editAttachmentsDraft}
+                        onAttachmentsChange={setEditAttachmentsDraft}
+                        onUploadingChange={setEditDescriptionUploading}
+                        dict={dict}
+                    />
+                ) : (
+                    <div className="text-xs text-muted-foreground">{dict.common.loading}</div>
+                )}
             </div>
 
             {goals.length > 0 ? (
@@ -408,7 +594,8 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                     </Label>
                     <select
                         name="goal_id"
-                        defaultValue={action.goal_id}
+                        value={editGoalId}
+                        onChange={(e) => setEditGoalId(e.target.value)}
                         className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {goals.map(goal => (
@@ -425,7 +612,8 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                     <Label htmlFor="type" className="text-xs text-muted-foreground mb-1 block">{dict.today.typeLabel}</Label>
                     <select
                         name="type"
-                        defaultValue={action.type}
+                        value={editType}
+                        onChange={(e) => setEditType(e.target.value)}
                         className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <option value="core">{dict.today.types.core}</option>
@@ -439,7 +627,8 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                     <Label htmlFor="priority" className="text-xs text-muted-foreground mb-1 block">{dict.today.priorityLabel}</Label>
                     <select
                         name="priority"
-                        defaultValue={action.priority || 'medium'}
+                        value={editPriority}
+                        onChange={(e) => setEditPriority(e.target.value)}
                         className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         <option value="high">{dict.goals.priority.high}</option>
@@ -451,20 +640,109 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
 
             <div className="space-y-1">
                 <DateRangeFields
-                    defaultStart={action.start_date}
-                    defaultEnd={action.end_date || action.start_date}
+                    defaultStart={editStartDate}
+                    defaultEnd={editEndDate}
+                    valueStart={editStartDate}
+                    valueEnd={editEndDate}
+                    onChange={({ start, end }) => {
+                        setEditStartDate(start)
+                        setEditEndDate(end)
+                    }}
                     labels={{ start: dict.today.startTime, end: dict.today.endTime, error: dict.common.dateRangeInvalid }}
                     onValidityChange={setDateRangeValid}
                     className="grid-cols-2"
                 />
             </div>
 
+            <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                    <Label className="text-xs text-muted-foreground">
+                        {(dict.today as unknown as Record<string, string>).subItemsLabel || '子行动'}
+                    </Label>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                            setEditSubItems((prev) => [
+                                ...prev,
+                                { title: '', completed: false }
+                            ])
+                        }
+                    >
+                        {(dict.goals.new as Record<string, string>).subItemsAdd || '新增子行动'}
+                    </Button>
+                </div>
+                {editSubItems.length === 0 ? (
+                    <div className="text-xs text-muted-foreground">
+                        {(dict.goals.new as Record<string, string>).subItemsEmptyHint || '可手动添加子行动'}
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {editSubItems.map((item, idx) => (
+                            <div key={item.id || `draft-${idx}`} className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    className="shrink-0"
+                                    onClick={() =>
+                                        setEditSubItems((prev) =>
+                                            prev.map((x, i) =>
+                                                i === idx
+                                                    ? { ...x, completed: !x.completed }
+                                                    : x
+                                            )
+                                        )
+                                    }
+                                >
+                                    {item.completed ? (
+                                        <CheckCircle2 className="h-4 w-4 text-primary" />
+                                    ) : (
+                                        <Circle className="h-4 w-4 text-muted-foreground" />
+                                    )}
+                                </button>
+                                <Input
+                                    value={item.title}
+                                    onChange={(e) =>
+                                        setEditSubItems((prev) =>
+                                            prev.map((x, i) =>
+                                                i === idx
+                                                    ? { ...x, title: e.target.value }
+                                                    : x
+                                            )
+                                        )
+                                    }
+                                    placeholder={`${(dict.goals.new as Record<string, string>).subItemsPlaceholder || '子行动'} ${idx + 1}`}
+                                />
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() =>
+                                        setEditSubItems((prev) =>
+                                            prev.filter((_, i) => i !== idx)
+                                        )
+                                    }
+                                >
+                                    {dict.common.delete || '删除'}
+                                </Button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {editDescriptionUploading ? (
+                <div className="text-xs text-muted-foreground">
+                    {(dict.goals.new as Record<string, string>).wait_upload_complete || '图片上传中，请稍后提交。'}
+                </div>
+            ) : null}
+
             <div className="flex justify-end gap-2 pt-2">
                 <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => setPanelMode('view')}
+                    onClick={() => requestExitEdit('switch_to_view')}
                     disabled={isLoading}
                 >
                     <X className="h-4 w-4 mr-1" />
@@ -472,7 +750,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                 </Button>
                 <SubmitButton
                     size="sm"
-                    disabled={!dateRangeValid}
+                    disabled={!dateRangeValid || editDescriptionUploading}
                 >
                     <Save className="h-4 w-4 mr-1" />
                     {dict.common.save}
@@ -579,9 +857,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                             {action.description ? (
                                 <div className="mt-3 rounded-md bg-muted/30 p-2 text-xs text-muted-foreground">
                                     <div className="mb-1 font-medium opacity-70">{dict.today.descriptionLabel}</div>
-                                    <div className="line-clamp-2 whitespace-pre-wrap leading-relaxed">
-                                        {action.description}
-                                    </div>
+                                    <DescriptionMarkdown markdown={action.description} compact />
                                 </div>
                             ) : null}
                         </button>
@@ -613,6 +889,43 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                         </Button>
                     </div>
                 </div>
+
+                {subItems.length > 0 ? (
+                    <div className="mt-2 ml-11 rounded-md border border-border/40 bg-secondary/15 p-2">
+                        <button
+                            type="button"
+                            className="flex w-full items-center justify-between text-xs text-muted-foreground"
+                            onClick={() => setSubItemsOpen((prev) => !prev)}
+                        >
+                            <span>
+                                {(dict.today as unknown as Record<string, string>).subItemsLabel || '子行动'} {subItemsCompletedCount}/{subItems.length}
+                            </span>
+                            {subItemsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                        </button>
+                        {subItemsOpen ? (
+                            <div className="mt-2 space-y-1">
+                                {subItems.map((item) => (
+                                    <button
+                                        key={item.id}
+                                        type="button"
+                                        className="flex w-full items-center gap-2 rounded px-1 py-1 text-left text-xs hover:bg-background/50"
+                                        onClick={() => onToggleSubItem(item.id, item.completed)}
+                                        disabled={subItemBusyId === item.id}
+                                    >
+                                        {item.completed ? (
+                                            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
+                                        ) : (
+                                            <Circle className="h-3.5 w-3.5 text-muted-foreground" />
+                                        )}
+                                        <span className={item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}>
+                                            {item.title}
+                                        </span>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : null}
+                    </div>
+                ) : null}
             </motion.div>
 
             {isDesktop ? (
@@ -696,7 +1009,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            onClick={() => setPanelMode('edit')}
+                                            onClick={openEditPanel}
                                             disabled={isLoading}
                                         >
                                             {dict.common.edit}
@@ -816,7 +1129,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                                 variant="outline"
                                                 size="sm"
                                                 className="flex-1"
-                                                onClick={() => setPanelMode('edit')}
+                                                onClick={openEditPanel}
                                                 disabled={isLoading}
                                             >
                                                 {dict.common.edit}
@@ -829,6 +1142,30 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                     </SheetFormContent>
                 </Sheet>
             )}
+
+            <AlertDialog
+                open={discardDialogOpen}
+                onOpenChange={setDiscardDialogOpen}
+            >
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{locale === 'zh' ? '放弃未保存修改？' : 'Discard unsaved changes?'}</AlertDialogTitle>
+                        <AlertDialogDescription>{unsavedConfirmText}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{locale === 'zh' ? '继续编辑' : 'Keep editing'}</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => {
+                                e.preventDefault()
+                                confirmDiscardAndProceed()
+                            }}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {locale === 'zh' ? '放弃修改' : 'Discard changes'}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
 
             <AlertDialog
                 open={deleteDialogOpen}
