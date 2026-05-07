@@ -1,42 +1,42 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
-import { Sparkles } from 'lucide-react'
 import type en from '@/i18n/en.json'
 import { Dialog, DialogFormContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { createGoalEntry } from '@/app/(authenticated)/goals/entries/actions'
+import { updateGoalEntry } from '@/app/(authenticated)/goals/entries/actions'
 import { useMobileInputVisible } from '@/components/ui/use-mobile-input-visible'
 
 type Dict = typeof en
 
-export function AddGoalEntryDialog({
+export function EditGoalEntryDialog({
+	entry,
 	goalId,
-	kind,
 	dict,
 	trigger
 }: {
+	entry: { id: string; kind: 'inspiration' | 'journey'; content: string; note: string }
 	goalId: string
-	kind: 'inspiration' | 'journey'
 	dict: Dict
-	trigger?: React.ReactNode | null
+	trigger: React.ReactNode
 }) {
 	const [open, setOpen] = useState(false)
 	const [isPending, startTransition] = useTransition()
 	const [error, setError] = useState<string | null>(null)
-	const [content, setContent] = useState('')
-	const [note, setNote] = useState('')
 	const contentRef = useRef<HTMLTextAreaElement | null>(null)
+
+	const [content, setContent] = useState(entry.content)
+	const [note, setNote] = useState(entry.note || '')
 
 	function handleOpenChange(next: boolean) {
 		setOpen(next)
 		if (!next) return
 		setError(null)
-		setContent('')
-		setNote('')
+		setContent(entry.content)
+		setNote(entry.note || '')
 	}
 
 	useMobileInputVisible(open, contentRef)
@@ -45,7 +45,7 @@ export function AddGoalEntryDialog({
 		setError(null)
 		startTransition(async () => {
 			try {
-				await createGoalEntry(formData)
+				await updateGoalEntry(formData)
 				setOpen(false)
 			} catch (err) {
 				const key = err instanceof Error ? err.message : 'operation_failed'
@@ -56,41 +56,32 @@ export function AddGoalEntryDialog({
 	}
 
 	const title =
-		kind === 'inspiration' ? dict.goals.detail.addInspiration : dict.goals.detail.addJourney
+		entry.kind === 'inspiration' ? dict.goals.detail.editInspiration : dict.goals.detail.editJourney
 	const contentPlaceholder =
-		kind === 'inspiration'
+		entry.kind === 'inspiration'
 			? dict.goals.detail.inspirationContentPlaceholder
 			: dict.goals.detail.journeyContentPlaceholder
 	const notePlaceholder =
-		kind === 'inspiration'
+		entry.kind === 'inspiration'
 			? dict.goals.detail.inspirationNotePlaceholder
 			: dict.goals.detail.journeyNotePlaceholder
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
-			<DialogTrigger asChild>
-				{trigger ? (
-					trigger
-				) : (
-					<Button size="sm" className="gap-1">
-						<Sparkles className="h-4 w-4" />
-						{title}
-					</Button>
-				)}
-			</DialogTrigger>
+			<DialogTrigger asChild>{trigger}</DialogTrigger>
 			<DialogFormContent className="sm:max-w-lg">
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 				</DialogHeader>
 				<form action={handleSubmit} className="space-y-4">
+					<input type="hidden" name="id" value={entry.id} />
 					<input type="hidden" name="goal_id" value={goalId} />
-					<input type="hidden" name="kind" value={kind} />
 
 					<div className="space-y-2">
-						<Label htmlFor={`content-${kind}`}>{dict.goals.detail.entryContentLabel}</Label>
+						<Label htmlFor={`content-edit-${entry.id}`}>{dict.goals.detail.entryContentLabel}</Label>
 						<Textarea
 							ref={contentRef}
-							id={`content-${kind}`}
+							id={`content-edit-${entry.id}`}
 							name="content"
 							value={content}
 							onChange={(e) => setContent(e.target.value)}
@@ -101,9 +92,9 @@ export function AddGoalEntryDialog({
 					</div>
 
 					<div className="space-y-2">
-						<Label htmlFor={`note-${kind}`}>{dict.quickCapture.noteLabel}</Label>
+						<Label htmlFor={`note-edit-${entry.id}`}>{dict.quickCapture.noteLabel}</Label>
 						<Textarea
-							id={`note-${kind}`}
+							id={`note-edit-${entry.id}`}
 							name="note"
 							value={note}
 							onChange={(e) => setNote(e.target.value)}
@@ -134,3 +125,4 @@ export function AddGoalEntryDialog({
 		</Dialog>
 	)
 }
+

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { DateRangeFields } from '@/components/DateRangeFields'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
@@ -23,7 +22,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import { createAction } from '@/app/(authenticated)/goals/actions'
+import { createActionWithSubItems } from '@/app/(authenticated)/goals/actions'
 import { NewGoalForm } from './NewGoalForm'
 import { createGoalModal } from '@/app/(authenticated)/goals/actions'
 import type en from '@/i18n/en.json'
@@ -31,6 +30,8 @@ import { logEvent } from '@/lib/analytics'
 import { GoalRequiredIntroCard } from './GoalRequiredIntroCard'
 import type { AIBreakdownActionDraft } from '@/lib/ai/breakdown'
 import { useMobileInputVisible } from '@/components/ui/use-mobile-input-visible'
+import { createClient } from '@/lib/supabase/client'
+import { ActionDescriptionEditor, type ActionAttachmentDraft } from '@/components/ActionDescriptionEditor'
 
 type Dict = typeof en
 
@@ -40,6 +41,16 @@ interface AddActionDialogProps {
     dict: Dict
     tz?: string
     trigger?: React.ReactNode
+}
+
+type SubItemDraft = {
+    id: string
+    title: string
+}
+
+function makeDraftId() {
+    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID()
+    return `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
 export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai', trigger }: AddActionDialogProps) {
@@ -61,6 +72,10 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
     const [aiLoading, setAiLoading] = useState(false)
     const [aiError, setAiError] = useState<string | null>(null)
     const [aiDrafts, setAiDrafts] = useState<AIBreakdownActionDraft[]>([])
+    const [subItemsDraft, setSubItemsDraft] = useState<SubItemDraft[]>([])
+    const [attachmentsDraft, setAttachmentsDraft] = useState<ActionAttachmentDraft[]>([])
+    const [descriptionUploading, setDescriptionUploading] = useState(false)
+    const [uploadUserId, setUploadUserId] = useState<string>('')
     const titleRef = useRef<HTMLInputElement | null>(null)
 
     function handleOpenChange(next: boolean) {
@@ -76,6 +91,9 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
             setAiLoading(false)
             setAiError(null)
             setAiDrafts([])
+            setSubItemsDraft([])
+            setAttachmentsDraft([])
+            setDescriptionUploading(false)
             logEvent('action_click_open')
             if (!goalId && (!activeGoals || activeGoals.length === 0)) {
                 setStep('intro')
@@ -94,7 +112,11 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
         setError(null)
         startTransition(async () => {
             try {
-                await createAction(formData)
+                const normalizedSubItems = subItemsDraft
+                    .map((item, idx) => ({ title: item.title.trim(), sort_order: idx }))
+                    .filter((item) => item.title.length > 0)
+                formData.set('sub_items', JSON.stringify(normalizedSubItems))
+                await createActionWithSubItems(formData)
                 setSubmitted(true)
                 logEvent('action_create_success', { goalId: goalId || selectedGoalId })
                 setOpen(false)
@@ -161,13 +183,25 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
     }
 
     function applyAIDraft(draft: AIBreakdownActionDraft) {
-        setActionTitle(draft.title)
-        setActionDescription(draft.description || '')
-        setActionType(draft.type || 'core')
-        setActionPriority(draft.priority || 'medium')
-        setActionStartDate(draft.start_date || today)
-        setActionEndDate(draft.end_date || draft.start_date || today)
+        const title = draft.title.trim()
+        if (!title) return
+        setSubItemsDraft((prev) => {
+            if (prev.some((item) => item.title.trim() === title)) return prev
+            return [...prev, { id: makeDraftId(), title }]
+        })
         setAiError(null)
+    }
+
+    function importAllAIDraftsAsSubItems() {
+        if (aiDrafts.length === 0) return
+        setSubItemsDraft((prev) => {
+            const existing = new Set(prev.map((item) => item.title.trim()))
+            const imported = aiDrafts
+                .map((draft) => draft.title.trim())
+                .filter((title) => title && !existing.has(title))
+                .map((title) => ({ id: makeDraftId(), title }))
+            return [...prev, ...imported]
+        })
     }
 
     useEffect(() => {
@@ -178,6 +212,15 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
             return () => window.clearTimeout(id)
         }
     }, [open, step, showGoalCreatedBanner])
+
+    useEffect(() => {
+        if (!open) return
+        const supabase = createClient()
+        void supabase.auth.getUser().then(({ data }) => {
+            const uid = data.user?.id || ''
+            setUploadUserId(uid)
+        })
+    }, [open])
 
     useMobileInputVisible(open && step === 'action', titleRef)
 
@@ -312,15 +355,61 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                             </div>
 
                                             <div className="grid gap-2">
-                                                <Label htmlFor="description">{dict.today.descriptionLabel}</Label>
-                                                <Textarea
-                                                    id="description"
-                                                    name="description"
-                                                    placeholder={dict.today.descriptionPlaceholder}
-                                                    className="min-h-[120px]"
-                                                    value={actionDescription}
-                                                    onChange={(e) => setActionDescription(e.target.value)}
-                                                />
+                                                {uploadUserId ? (
+                                                    <ActionDescriptionEditor
+                                                        userId={uploadUserId}
+                                                        value={actionDescription}
+                                                        onChange={setActionDescription}
+                                                        attachments={attachmentsDraft}
+                                                        onAttachmentsChange={setAttachmentsDraft}
+                                                        onUploadingChange={setDescriptionUploading}
+                                                        dict={dict}
+                                                    />
+                                                ) : (
+                                                    <div className="text-xs text-muted-foreground">{dict.common.loading}</div>
+                                                )}
+                                            </div>
+
+                                            <div className="grid gap-2">
+                                                <div className="flex items-center justify-between">
+                                                    <Label>{(dict.goals.new as Record<string, string>).subItemsLabel || '子行动'}</Label>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => setSubItemsDraft((prev) => [...prev, { id: makeDraftId(), title: '' }])}
+                                                    >
+                                                        {(dict.goals.new as Record<string, string>).subItemsAdd || '新增子行动'}
+                                                    </Button>
+                                                </div>
+                                                {subItemsDraft.length === 0 ? (
+                                                    <div className="text-xs text-muted-foreground">
+                                                        {(dict.goals.new as Record<string, string>).subItemsEmptyHint || '可手动添加，或使用 AI 拆解后导入为子行动'}
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        {subItemsDraft.map((item, idx) => (
+                                                            <div key={item.id} className="flex items-center gap-2">
+                                                                <Input
+                                                                    value={item.title}
+                                                                    placeholder={`${(dict.goals.new as Record<string, string>).subItemsPlaceholder || '子行动'} ${idx + 1}`}
+                                                                    onChange={(e) => {
+                                                                        const nextTitle = e.target.value
+                                                                        setSubItemsDraft((prev) => prev.map((x) => x.id === item.id ? { ...x, title: nextTitle } : x))
+                                                                    }}
+                                                                />
+                                                                <Button
+                                                                    type="button"
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    onClick={() => setSubItemsDraft((prev) => prev.filter((x) => x.id !== item.id))}
+                                                                >
+                                                                    {(dict.common.delete || '删除')}
+                                                                </Button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="grid grid-cols-2 gap-4">
@@ -368,7 +457,12 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
 
                                             {aiDrafts.length > 0 ? (
                                                 <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-3">
-                                                    <div className="text-sm font-medium">{dict.goals.new.aiSuggestionsTitle}</div>
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <div className="text-sm font-medium">{dict.goals.new.aiSuggestionsTitle}</div>
+                                                        <Button type="button" variant="outline" size="sm" onClick={importAllAIDraftsAsSubItems}>
+                                                            {(dict.goals.new as Record<string, string>).aiImportSubItems || '全部导入为子行动'}
+                                                        </Button>
+                                                    </div>
                                                     <div className="space-y-2">
                                                         {aiDrafts.map((draft, idx) => (
                                                             <button
@@ -381,6 +475,9 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                                                 {draft.description ? (
                                                                     <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{draft.description}</div>
                                                                 ) : null}
+                                                                <div className="mt-1 text-[11px] text-primary">
+                                                                    {(dict.goals.new as Record<string, string>).aiImportOneSubItem || '点击导入为子行动'}
+                                                                </div>
                                                             </button>
                                                         ))}
                                                     </div>
@@ -389,7 +486,13 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
 
                                             {error ? <div className="text-sm text-destructive">{error}</div> : null}
 
-                                            <Button type="submit" className="w-full" disabled={isPending || !valid || (!goalId && !selectedGoalId)}>
+                                            {descriptionUploading ? (
+                                                <div className="text-xs text-muted-foreground">
+                                                    {(dict.goals.new as Record<string, string>).wait_upload_complete || '图片上传中，请稍后提交。'}
+                                                </div>
+                                            ) : null}
+
+                                            <Button type="submit" className="w-full" disabled={isPending || !valid || (!goalId && !selectedGoalId) || descriptionUploading}>
                                                 {isPending ? (
                                                     <>
                                                         <LoadingSpinner size={16} className="mr-2 text-current" />

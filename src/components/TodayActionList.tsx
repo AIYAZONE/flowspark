@@ -27,6 +27,12 @@ interface Action {
     id: string
     title: string
   }
+  action_sub_items?: Array<{
+    id: string
+    title: string
+    completed: boolean
+    sort_order: number
+  }>
 }
 
 const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 }

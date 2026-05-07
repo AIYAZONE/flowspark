@@ -8,6 +8,7 @@ import { AddActionDialog } from '@/components/AddActionDialog'
 import { ActionListFilter } from '@/components/ActionListFilter'
 import { AddGoalEntryDialog } from '@/components/AddGoalEntryDialog'
 import { GoalEntryRow } from '@/components/GoalEntryRow'
+import { cn } from '@/lib/utils'
 
 type Dict = typeof en
 
@@ -35,6 +36,12 @@ interface Action {
 		id: string
 		title: string
 	}
+	action_sub_items?: Array<{
+		id: string
+		title: string
+		completed: boolean
+		sort_order: number
+	}>
 }
 
 export function GoalSubItemsTabs({
@@ -126,7 +133,14 @@ export function GoalSubItemsTabs({
 					goalsForEdit={goalsForEdit}
 				/>
 			) : (
-				<div className="space-y-3">
+				<div
+					className={cn(
+						'space-y-3',
+						activeTab === 'journey'
+							? 'relative before:absolute before:left-7 before:top-2 before:bottom-2 before:w-px before:bg-border/40'
+							: null
+					)}
+				>
 					{(activeTab === 'inspiration' ? inspirationEntries : journeyEntries).length === 0 ? (
 						<div className="text-sm text-muted-foreground">
 							{activeTab === 'inspiration' ? dict.goals.detail.emptyInspiration : dict.goals.detail.emptyJourney}

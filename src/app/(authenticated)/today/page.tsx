@@ -51,6 +51,12 @@ export default async function TodayPage() {
     .from('actions')
     .select(`
       *,
+      action_sub_items (
+        id,
+        title,
+        completed,
+        sort_order
+      ),
       goals (
         id,
         title,
@@ -68,6 +74,12 @@ export default async function TodayPage() {
       .from('actions')
       .select(`
         *,
+        action_sub_items (
+          id,
+          title,
+          completed,
+          sort_order
+        ),
         goals (
           id,
           title,
