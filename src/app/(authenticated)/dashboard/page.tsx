@@ -18,6 +18,7 @@ import { InboxCard } from '@/components/InboxCard'
 import { Target, Star } from 'lucide-react'
 import { assignVariant, isEnvEnabled } from '@/lib/experiments'
 import { ExperimentExposureTracker } from '@/components/ExperimentExposureTracker'
+import { calcCompletionPercent } from '@/lib/progress'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -223,7 +224,7 @@ export default async function DashboardPage() {
     const total = (g.actions as any[])?.length || 0
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const completed = (g.actions as any[])?.filter((a: any) => a.completed).length || 0
-    const progress = total > 0 ? (completed / total) * 100 : 0
+    const progress = calcCompletionPercent(completed, total)
 
     return {
       id: g.id,
@@ -303,6 +304,8 @@ export default async function DashboardPage() {
       }
     }
   }
+  const streakMilestones = [1, 3, 7, 10, 30]
+  const nextMilestone = streakMilestones.find((milestone) => streak < milestone) ?? streakMilestones[streakMilestones.length - 1]
 
   const chartData = recentScores?.map(s => ({ date: s.score_date, score: s.score })) || []
 
@@ -339,7 +342,7 @@ export default async function DashboardPage() {
             <StreakCard
               dict={dict}
               streak={streak}
-              nextMilestone={10}
+              nextMilestone={nextMilestone}
               recent7={chartData.slice(-7)}
             />
           </div>

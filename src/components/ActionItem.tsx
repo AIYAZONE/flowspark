@@ -66,6 +66,7 @@ import {
 import { createAction, deleteAction, toggleActionSubItem, updateAction } from '@/app/(authenticated)/goals/actions'
 import type en from '@/i18n/en.json'
 import type { RescueOutput } from '@/lib/ai/phase2aSchemas'
+import type { AIBreakdownActionDraft } from '@/lib/ai/breakdown'
 import { logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
 import { createClient } from '@/lib/supabase/client'
@@ -170,6 +171,9 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     )
     const [editAttachmentsDraft, setEditAttachmentsDraft] = useState<ActionAttachmentDraft[]>([])
     const [editDescriptionUploading, setEditDescriptionUploading] = useState(false)
+    const [editAiLoading, setEditAiLoading] = useState(false)
+    const [editAiError, setEditAiError] = useState<string | null>(null)
+    const [editAiDrafts, setEditAiDrafts] = useState<AIBreakdownActionDraft[]>([])
     const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
     const [discardIntent, setDiscardIntent] = useState<'switch_to_view' | 'close_panel'>('switch_to_view')
     const unsavedConfirmText = (dict.goals.new as Record<string, string>).confirmDiscardChanges || '你有未保存的修改，确认放弃吗？'
@@ -191,6 +195,9 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         )
         setEditAttachmentsDraft([])
         setEditDescriptionUploading(false)
+        setEditAiLoading(false)
+        setEditAiError(null)
+        setEditAiDrafts([])
     }
 
     const isEditDirty = (() => {
@@ -488,6 +495,72 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         }
     }
 
+    async function handleAISplitForEdit() {
+        setEditAiError(null)
+        setEditAiDrafts([])
+        const goalTitle =
+            goals.find((g) => g.id === editGoalId)?.title ||
+            action.goals?.title ||
+            editTitle.trim()
+        if (!editGoalId || !editTitle.trim()) {
+            setEditAiError(dict.common.errors.missing_fields)
+            return
+        }
+        setEditAiLoading(true)
+        try {
+            const res = await fetch('/api/ai/breakdown', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    goalTitle,
+                    goalDescription: editTitle.trim(),
+                    startDate: editStartDate,
+                    endDate: editEndDate,
+                    locale
+                })
+            })
+            const json = (await res.json()) as { actions?: AIBreakdownActionDraft[]; error?: string }
+            if (!res.ok) {
+                const key = json.error || 'operation_failed'
+                const errors = dict.common.errors as unknown as Record<string, string>
+                setEditAiError(errors[key] || dict.common.errors.operation_failed)
+                return
+            }
+            const drafts = Array.isArray(json.actions) ? json.actions : []
+            if (drafts.length === 0) {
+                setEditAiError(dict.common.errors.operation_failed)
+                return
+            }
+            setEditAiDrafts(drafts.slice(0, 5))
+        } catch {
+            setEditAiError(dict.common.errors.operation_failed)
+        } finally {
+            setEditAiLoading(false)
+        }
+    }
+
+    function applyEditAIDraft(draft: AIBreakdownActionDraft) {
+        const title = draft.title.trim()
+        if (!title) return
+        setEditSubItems((prev) => {
+            if (prev.some((item) => item.title.trim() === title)) return prev
+            return [...prev, { title, completed: false }]
+        })
+        setEditAiError(null)
+    }
+
+    function importAllEditAIDrafts() {
+        if (editAiDrafts.length === 0) return
+        setEditSubItems((prev) => {
+            const existing = new Set(prev.map((item) => item.title.trim()))
+            const imported = editAiDrafts
+                .map((draft) => draft.title.trim())
+                .filter((title) => title && !existing.has(title))
+                .map((title) => ({ title, completed: false }))
+            return [...prev, ...imported]
+        })
+    }
+
     const getPriorityColor = (priority?: string) => {
         switch (priority) {
             case 'high': return 'bg-red-500/10 text-red-500 border-red-500/20'
@@ -659,20 +732,32 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                     <Label className="text-xs text-muted-foreground">
                         {(dict.today as unknown as Record<string, string>).subItemsLabel || '子行动'}
                     </Label>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                            setEditSubItems((prev) => [
-                                ...prev,
-                                { title: '', completed: false }
-                            ])
-                        }
-                    >
-                        {(dict.goals.new as Record<string, string>).subItemsAdd || '新增子行动'}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAISplitForEdit}
+                            disabled={editAiLoading || !editTitle.trim() || !editGoalId}
+                        >
+                            {editAiLoading ? dict.common.loading : dict.goals.new.aiSplitButton}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                                setEditSubItems((prev) => [
+                                    ...prev,
+                                    { title: '', completed: false }
+                                ])
+                            }
+                        >
+                            {(dict.goals.new as Record<string, string>).subItemsAdd || '新增子行动'}
+                        </Button>
+                    </div>
                 </div>
+                {editAiError ? <div className="text-xs text-destructive">{editAiError}</div> : null}
                 {editSubItems.length === 0 ? (
                     <div className="text-xs text-muted-foreground">
                         {(dict.goals.new as Record<string, string>).subItemsEmptyHint || '可手动添加子行动'}
@@ -729,6 +814,34 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                         ))}
                     </div>
                 )}
+                {editAiDrafts.length > 0 ? (
+                    <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="text-sm font-medium">{dict.goals.new.aiSuggestionsTitle}</div>
+                            <Button type="button" variant="outline" size="sm" onClick={importAllEditAIDrafts}>
+                                {(dict.goals.new as Record<string, string>).aiImportSubItems || '全部导入为子行动'}
+                            </Button>
+                        </div>
+                        <div className="space-y-2">
+                            {editAiDrafts.map((draft, idx) => (
+                                <button
+                                    key={`${draft.title}-${idx}`}
+                                    type="button"
+                                    onClick={() => applyEditAIDraft(draft)}
+                                    className="w-full rounded-md border border-border/60 bg-background/70 p-2 text-left hover:bg-muted/40 transition-colors"
+                                >
+                                    <div className="text-sm font-medium">{draft.title}</div>
+                                    {draft.description ? (
+                                        <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{draft.description}</div>
+                                    ) : null}
+                                    <div className="mt-1 text-[11px] text-primary">
+                                        {(dict.goals.new as Record<string, string>).aiImportOneSubItem || '点击导入为子行动'}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                ) : null}
             </div>
 
             {editDescriptionUploading ? (

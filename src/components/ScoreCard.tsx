@@ -186,18 +186,23 @@ export function ScoreCard({
           setReviewOpen(open)
         }}
       >
-        <DialogFormContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{(dict.dashboard as unknown as Record<string, string>).aiReviewTitle || (locale === 'zh' ? 'AI 夜间复盘（草案）' : 'AI Review (draft)')}</DialogTitle>
+        <DialogFormContent mobileMode="fullscreen" className="sm:max-w-lg p-4 sm:p-6">
+          <DialogHeader className="pr-10 text-left sm:text-left">
+            <DialogTitle>
+              {(dict.dashboard as unknown as Record<string, string>).aiReviewTitle || (locale === 'zh' ? 'AI 夜间复盘（草案）' : 'AI Review (draft)')}
+            </DialogTitle>
+            <div className="text-xs text-muted-foreground">
+              {locale === 'zh' ? '回答 0-2 个问题后生成简洁建议' : 'Answer 0-2 questions and generate concise suggestions'}
+            </div>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3">
               <div className="text-sm font-medium">{locale === 'zh' ? '今天最大的阻力是什么？' : 'What was the biggest friction today?'}</div>
               <select
                 value={friction}
                 onChange={(e) => setFriction(e.target.value)}
-                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-11 w-full items-center justify-between rounded-md border border-input bg-background/60 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={reviewLoading}
               >
                 <option value="">{locale === 'zh' ? '可跳过' : 'Skip'}</option>
@@ -211,12 +216,12 @@ export function ScoreCard({
             </div>
 
             {reviewQuestionsCount === 2 ? (
-              <div className="space-y-2">
+              <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3">
                 <div className="text-sm font-medium">{locale === 'zh' ? '明天大概能投入多久？' : 'How much time can you invest tomorrow?'}</div>
                 <select
                   value={tomorrowTime}
                   onChange={(e) => setTomorrowTime(e.target.value)}
-                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-11 w-full items-center justify-between rounded-md border border-input bg-background/60 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={reviewLoading}
                 >
                   <option value="">{locale === 'zh' ? '可跳过' : 'Skip'}</option>
@@ -229,7 +234,7 @@ export function ScoreCard({
               </div>
             ) : null}
 
-            <div className="flex justify-end gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <Button type="button" variant="outline" onClick={() => setReviewOpen(false)} disabled={reviewLoading}>
                 {dict.common.cancel}
               </Button>
