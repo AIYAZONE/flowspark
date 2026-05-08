@@ -9,6 +9,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Progress } from '@/components/ui/progress'
 import { ActionItem } from '@/components/ActionItem'
 import { ActionListFilter } from '@/components/ActionListFilter'
+import { calcCompletionPercent } from '@/lib/progress'
 
 type Dict = typeof en
 
@@ -88,7 +89,7 @@ export function TodayActionList({
     const must = incomplete.filter(a => (a.priority || 'medium') === 'high' || a.type === 'core')
     const recent = incomplete.filter(isRecentlyCreated)
     const total = actions.length
-    const completedPct = total === 0 ? 0 : Math.round((completed.length / total) * 100)
+    const completedPct = calcCompletionPercent(completed.length, total)
     return {
       incompleteCount: incomplete.length,
       completedCount: completed.length,

@@ -28,6 +28,7 @@ interface PageProps {
 type RawGoalEntry = {
 	id: string
 	kind: string
+	status: string | null
 	content: string
 	note: string | null
 	created_at: string
@@ -91,19 +92,17 @@ export default async function GoalDetailPage({ params }: PageProps) {
 	{
 		const { data, error } = await supabase
 			.from('goal_entries')
-			.select('id, kind, content, note, created_at')
+			.select('id, kind, status, content, note, created_at')
 			.eq('goal_id', id)
 			.eq('owner_id', user.id)
-			.eq('status', 'open')
 			.order('created_at', { ascending: false })
 
 		if (error && (error.code === '42703' || error.message?.includes('column'))) {
 			const { data: legacyData } = await supabase
 				.from('goal_entries')
-				.select('id, kind, content, note, created_at')
+				.select('id, kind, status, content, note, created_at')
 				.eq('goal_id', id)
 				.eq('user_id', user.id)
-				.eq('status', 'open')
 				.order('created_at', { ascending: false })
 			goalEntries = legacyData || []
 		} else {
@@ -135,6 +134,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
 				entries={(goalEntries || []).map((e) => ({
 					id: e.id as string,
 					kind: e.kind as 'inspiration' | 'journey',
+					status: (e.status as 'open' | 'archived' | null) || 'open',
 					content: e.content as string,
 					note: (e.note as string) || '',
 					created_at: e.created_at as string
@@ -167,6 +167,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
 						entries={(goalEntries || []).map((e) => ({
 							id: e.id as string,
 							kind: e.kind as 'inspiration' | 'journey',
+							status: (e.status as 'open' | 'archived' | null) || 'open',
 							content: e.content as string,
 							note: (e.note as string) || '',
 							created_at: e.created_at as string

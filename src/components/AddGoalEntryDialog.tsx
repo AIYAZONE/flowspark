@@ -121,7 +121,7 @@ export function AddGoalEntryDialog({
 						<Button type="submit" disabled={isPending || !content.trim()}>
 							{isPending ? (
 								<>
-									<LoadingSpinner className="mr-2 h-4 w-4" />
+									<LoadingSpinner className="mr-2 h-4 w-4 text-current" />
 									{dict.common.saving}
 								</>
 							) : (
