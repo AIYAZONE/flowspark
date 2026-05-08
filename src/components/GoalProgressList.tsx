@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import { ArrowRight, Target } from 'lucide-react'
 import Link from 'next/link'
+import { calcDaysLeft, getUrgencyProgressColor } from '@/lib/progress'
 
 interface GoalProgress {
   id: string
@@ -19,17 +19,10 @@ interface GoalProgressListProps {
 }
 
 export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
-  const getProgressColor = (progress: number) => {
-    if (progress >= 80) return 'bg-emerald-500'
-    if (progress >= 40) return 'bg-blue-500'
-    return 'bg-amber-500'
-  }
-
-  const getDaysLeft = (dateStr?: string) => {
-    if (!dateStr) return null
-    const diff = Math.ceil((new Date(dateStr).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-    if (diff < 0) return dict.dashboard.goals.overdue || 'Overdue'
-    return (dict.dashboard.goals.daysLeft || '{days} days left').replace('{days}', diff.toString())
+  const getDaysLeftLabel = (daysLeft: number | null) => {
+    if (daysLeft == null) return null
+    if (daysLeft < 0) return dict.dashboard.goals.overdue || 'Overdue'
+    return (dict.dashboard.goals.daysLeft || '{days} days left').replace('{days}', daysLeft.toString())
   }
 
   return (
@@ -59,6 +52,10 @@ export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
           </div>
         ) : (
           goals.map((goal) => (
+            (() => {
+              const daysLeftValue = calcDaysLeft(goal.end_date)
+              const daysLeftLabel = getDaysLeftLabel(daysLeftValue)
+              return (
             <Link
               key={goal.id}
               href={`/goals/${goal.id}`}
@@ -74,8 +71,8 @@ export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
                       {goal.end_date && (
                         <>
                           <span className="w-0.5 h-0.5 bg-muted-foreground/50 rounded-full" />
-                          <span className={getDaysLeft(goal.end_date) === 'Overdue' ? 'text-destructive font-medium' : ''}>
-                            {getDaysLeft(goal.end_date)}
+                          <span className={daysLeftValue != null && daysLeftValue < 0 ? 'text-destructive font-medium' : ''}>
+                            {daysLeftLabel}
                           </span>
                         </>
                       )}
@@ -89,12 +86,14 @@ export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
                 </div>
                 <div className="h-2.5 w-full bg-muted/50 rounded-full overflow-hidden">
                   <div
-                    className={`h-full transition-all duration-500 ease-out rounded-full ${getProgressColor(goal.progress)}`}
+                    className={`h-full transition-all duration-500 ease-out rounded-full ${getUrgencyProgressColor(daysLeftValue)}`}
                     style={{ width: `${goal.progress}%` }}
                   />
                 </div>
               </div>
             </Link>
+              )
+            })()
           ))
         )}
       </CardContent>

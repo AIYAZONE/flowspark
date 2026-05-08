@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { ArrowRight, CheckCircle2, Circle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { calcCompletionPercent } from '@/lib/progress'
 
 interface FlowDict {
   title: string
@@ -30,7 +31,7 @@ export function FocusCard({
   className
 }: FocusCardProps) {
   const isAllDone = completedActions === totalActions && totalActions > 0
-  const progressPercent = totalActions > 0 ? (completedActions / totalActions) * 100 : 0
+  const progressPercent = calcCompletionPercent(completedActions, totalActions)
 
   return (
     <Card className={`relative overflow-hidden border-primary/20 bg-gradient-to-br from-background to-primary/5 ${className}`}>

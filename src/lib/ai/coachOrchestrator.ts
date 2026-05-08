@@ -1,8 +1,33 @@
 import { getConfiguredAIModel } from '@/lib/ai/client'
-import { aiTodayPlan } from '@/lib/ai/phase2a'
-import type { TodayPlanOutput } from '@/lib/ai/phase2aSchemas'
+import { buildCoachContext } from '@/lib/ai/contextBuilder'
+import { aiWeeklyInsight } from '@/lib/ai/insights'
+import { aiRescue, aiReview, aiTodayPlan } from '@/lib/ai/phase2a'
+import {
+  buildRescueStrategy,
+  buildReviewStrategy,
+  buildTodayStrategy,
+  evaluateRescueQuality,
+  evaluateReviewQuality,
+  evaluateTodayPlanQuality,
+} from '@/lib/ai/strategy'
+import type {
+  RescueOutput,
+  ReviewOutput,
+  TodayPlanOutput,
+} from '@/lib/ai/phase2aSchemas'
 import { createRecommendation } from '@/lib/ai/recommendationStore'
-import type { TodayPlanApiResponse } from '@/lib/ai/types'
+import { upsertGrowthProfileSummary } from '@/lib/userState'
+import type {
+  CoachApiResponse,
+  CoachContext,
+  RecommendationQuality,
+  RecommendationStrategySummary,
+  RescueApiResponse,
+  ReviewApiResponse,
+  TodayPlanApiResponse,
+  WeeklyInsightApiResponse,
+  WeeklyInsightOutput,
+} from '@/lib/ai/types'
 import type { createClient } from '@/lib/supabase/server'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
@@ -17,40 +42,9 @@ type GoalCandidate = {
   stop_criteria?: string | null
 }
 
-type RecentContext = {
-  completion_rate_7d?: number | null
-  core_created_7d?: number | null
-  core_completed_7d?: number | null
-  daily_score_avg_7d?: number | null
-  momentum_bucket?: 'high' | 'medium' | 'low' | 'unknown'
-  likely_frictions?: string[] | null
-}
-
-type RecentActionRow = {
-  type?: string | null
-  completed?: boolean | null
-  created_at?: string | null
-  updated_at?: string | null
-}
-
-type RecentScoreRow = {
-  score?: number | null
-}
-
-function asString(value: unknown): string | null {
-  return typeof value === 'string' ? value : null
-}
-
-function isoDateNDaysAgo(days: number) {
-  const d = new Date()
-  d.setUTCDate(d.getUTCDate() - days)
-  return d.toISOString().slice(0, 10)
-}
-
-function isoTimestampNDaysAgo(days: number) {
-  const d = new Date()
-  d.setUTCDate(d.getUTCDate() - days)
-  return d.toISOString()
+function isMissingRelationError(message: string | undefined) {
+  const text = (message || '').toLowerCase()
+  return text.includes('does not exist') || text.includes('relation') || text.includes('schema cache')
 }
 
 function pickPrimaryGoal(goals: GoalCandidate[]) {
@@ -66,17 +60,29 @@ function pickPrimaryGoal(goals: GoalCandidate[]) {
   })[0] || goals[0]
 }
 
+function mapContextGoals(context: CoachContext): GoalCandidate[] {
+  return context.goals.map(goal => ({
+    id: goal.id,
+    title: goal.title,
+    priority: goal.priority,
+    start_date: goal.startDate,
+    end_date: goal.endDate,
+    success_criteria: goal.successCriteria,
+    stop_criteria: goal.stopCriteria,
+  }))
+}
+
 function buildFallbackTodayPlan(params: {
   locale: 'en' | 'zh'
   goals: GoalCandidate[]
-  recentContext: RecentContext
+  context: CoachContext
 }): TodayPlanOutput {
   const primaryGoal = pickPrimaryGoal(params.goals)
   const lowMomentum =
-    params.recentContext.momentum_bucket === 'low' ||
-    params.recentContext.momentum_bucket === 'unknown' ||
-    (typeof params.recentContext.completion_rate_7d === 'number' &&
-      params.recentContext.completion_rate_7d < 0.5)
+    params.context.behavior.momentumBucket === 'low' ||
+    params.context.behavior.momentumBucket === 'unknown' ||
+    (typeof params.context.behavior.completionRate7d === 'number' &&
+      params.context.behavior.completionRate7d < 0.5)
 
   if (params.locale === 'zh') {
     return {
@@ -85,30 +91,30 @@ function buildFallbackTodayPlan(params: {
         {
           kind: 'core',
           goal_id: primaryGoal?.id || null,
-          reason: lowMomentum ? '先用低摩擦的一步恢复今天的行动感。' : '优先推进当前最重要且最接近窗口期的目标。',
+          reason: lowMomentum ? '先用一个最容易开始的小动作把今天启动起来。' : '先推进当前最重要、最接近结果的一步。',
           variants: [
             {
               minutes: 5,
-              title: `打开并梳理${primaryGoal?.title || '当前目标'}`,
-              first_step: '打开相关页面并写一行',
-              definition_of_done: '写下今天要推进的最小一步。'
+              title: `写下${primaryGoal?.title || '当前目标'}的下一步`,
+              first_step: '打开文档并写下一步',
+              definition_of_done: '明确今天先做哪一步。',
             },
             {
               minutes: 10,
-              title: `推进${primaryGoal?.title || '当前目标'}的一步`,
-              first_step: '先完成最小可交付部分',
-              definition_of_done: '产出一个可见的小结果并记录。'
+              title: `完成${primaryGoal?.title || '当前目标'}的一小段`,
+              first_step: '先做最小可交付片段',
+              definition_of_done: '产出一个可见小结果。',
             },
             {
               minutes: 20,
-              title: `完成${primaryGoal?.title || '当前目标'}的小闭环`,
-              first_step: '按顺序完成一个完整片段',
-              definition_of_done: '完成一段可复用或可提交的结果。'
-            }
-          ]
-        }
+              title: `推进${primaryGoal?.title || '当前目标'}的关键片段`,
+              first_step: '连续完成一个关键片段',
+              definition_of_done: '完成一段可直接复用结果。',
+            },
+          ],
+        },
       ],
-      confidence: 'low'
+      confidence: 'low',
     }
   }
 
@@ -119,31 +125,176 @@ function buildFallbackTodayPlan(params: {
         kind: 'core',
         goal_id: primaryGoal?.id || null,
         reason: lowMomentum
-          ? 'Start with a low-friction action to regain momentum today.'
-          : 'Prioritize the most important goal that is closest to execution.',
+          ? 'Start with the easiest small move that gets you moving today.'
+          : 'Start with the most important next step that can create visible progress today.',
         variants: [
           {
             minutes: 5,
-            title: `Open and scope ${primaryGoal?.title || 'your goal'}`,
-            first_step: 'Open the page and write one line',
-            definition_of_done: 'You define the smallest next step for today.'
+            title: `Define the next step for ${primaryGoal?.title || 'your goal'}`,
+            first_step: 'Open the doc and write the next step',
+            definition_of_done: 'You know exactly what to do first today.',
           },
           {
             minutes: 10,
-            title: `Move ${primaryGoal?.title || 'your goal'} forward`,
-            first_step: 'Finish the smallest deliverable first',
-            definition_of_done: 'You produce one visible small result.'
+            title: `Finish one small part of ${primaryGoal?.title || 'your goal'}`,
+            first_step: 'Complete the smallest deliverable first',
+            definition_of_done: 'You produce one visible small result.',
           },
           {
             minutes: 20,
-            title: `Close a small loop on ${primaryGoal?.title || 'your goal'}`,
-            first_step: 'Complete one focused work block',
-            definition_of_done: 'You finish one reusable or shareable output.'
-          }
-        ]
-      }
+            title: `Push a key section of ${primaryGoal?.title || 'your goal'}`,
+            first_step: 'Stay on one focused work block',
+            definition_of_done: 'You finish one reusable output.',
+          },
+        ],
+      },
     ],
-    confidence: 'low'
+    confidence: 'low',
+  }
+}
+
+function buildFallbackRescuePlan(params: {
+  locale: 'zh' | 'en'
+  reasonTag: RescueOutput['reason_tag']
+  actionTitle: string
+}): RescueOutput {
+  if (params.locale === 'zh') {
+    return {
+      type: 'rescue',
+      reason_tag: params.reasonTag,
+      minimal_variant: {
+        minutes: 5,
+        title: `先推进${params.actionTitle}的最小版本`,
+        first_step: '先打开相关内容并改一小处',
+        definition_of_done: '完成一个 5 分钟内看得见的最小结果。',
+      },
+      if_then: {
+        if: '你又开始犹豫或卡住',
+        then: '只做第一步并在 5 分钟后决定是否继续',
+      },
+      confidence: 'low',
+    }
+  }
+
+  return {
+    type: 'rescue',
+    reason_tag: params.reasonTag,
+    minimal_variant: {
+      minutes: 5,
+      title: `Make the smallest version of ${params.actionTitle}`,
+      first_step: 'Open the relevant work and change one small thing',
+      definition_of_done: 'Finish one visible output within five minutes.',
+    },
+    if_then: {
+      if: 'you start hesitating again',
+      then: 'do only the first step and decide again after five minutes',
+    },
+    confidence: 'low',
+  }
+}
+
+function buildFallbackReviewPlan(params: {
+  locale: 'zh' | 'en'
+  friction: string | null
+}): ReviewOutput {
+  if (params.locale === 'zh') {
+    return {
+      type: 'review',
+      summary_sentence: params.friction ? '今天的主要阻力已经被识别出来。' : '今天已经完成一次最小复盘。',
+      detected_friction_tag: params.friction,
+      tomorrow_card: {
+        risk: params.friction ? '明天容易在同样阻力点再次掉线。' : '明天可能因为起步慢而拖延。',
+        if_then: {
+          if: '你还没开始今天的第一步',
+          then: '先做一个 5 分钟能完成的最小动作',
+        },
+        suggested_core_action_direction: '优先选择低摩擦、可快速见到结果的核心行动',
+      },
+      confidence: 'low',
+    }
+  }
+
+  return {
+    type: 'review',
+    summary_sentence: params.friction ? 'You already identified the main friction for today.' : 'You completed a minimal end-of-day review.',
+    detected_friction_tag: params.friction,
+    tomorrow_card: {
+      risk: params.friction ? 'Tomorrow may fail at the same friction point again.' : 'Tomorrow may drift because starting feels slow.',
+      if_then: {
+        if: 'you still have not started the first step',
+        then: 'do one five-minute starter task first',
+      },
+      suggested_core_action_direction: 'Choose a low-friction core action with a fast visible outcome first',
+    },
+    confidence: 'low',
+  }
+}
+
+async function persistRecommendation<T>(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  scene: 'today_plan' | 'rescue' | 'review' | 'weekly_insight'
+  strategyVersion: string
+  promptVersion: string
+  inputSummary: unknown
+  output: T & { confidence?: 'low' | 'medium' | 'high' }
+  fallbackUsed: boolean
+  qualityLabels?: RecommendationQuality | null
+  strategySummary?: RecommendationStrategySummary | null
+}) {
+  const {
+    supabase,
+    userId,
+    scene,
+    strategyVersion,
+    promptVersion,
+    inputSummary,
+    output,
+    fallbackUsed,
+    qualityLabels = null,
+    strategySummary = null,
+  } = params
+  const recommendationId = await createRecommendation({
+    supabase,
+    userId,
+    scene,
+    strategyVersion,
+    promptVersion,
+    model: fallbackUsed ? 'fallback_rule_v1' : getConfiguredAIModel(),
+    inputSummary,
+    outputPayload: output,
+    confidence: output.confidence,
+    fallbackUsed,
+    qualityLabels,
+    strategySummary,
+  })
+
+  return recommendationId
+}
+
+async function recordFrictionEvent(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  scene: 'rescue' | 'review'
+  reasonTag: string | null
+  goalId?: string | null
+  actionId?: string | null
+  detail?: string | null
+}) {
+  const { supabase, userId, scene, reasonTag, goalId = null, actionId = null, detail = null } = params
+  if (!reasonTag) return
+
+  const { error } = await supabase.from('user_friction_events').insert({
+    user_id: userId,
+    goal_id: goalId,
+    action_id: actionId,
+    scene,
+    reason_tag: reasonTag,
+    detail,
+  })
+
+  if (error && !isMissingRelationError(error.message)) {
+    console.error('recordFrictionEvent failed', error)
   }
 }
 
@@ -154,143 +305,379 @@ export async function planToday(params: {
   today: string
   goals: GoalCandidate[]
   requestedRecentContext?: Record<string, unknown>
+  timezone?: string
 }): Promise<TodayPlanApiResponse> {
-  const { supabase, userId, locale, today, goals, requestedRecentContext } = params
-  const sinceDate = isoDateNDaysAgo(7)
-  const sinceTs = isoTimestampNDaysAgo(7)
+  const { supabase, userId, locale, today, goals, requestedRecentContext, timezone } = params
+  const context = await buildCoachContext({
+    supabase,
+    userId,
+    scene: 'today_plan',
+    locale,
+    timezone,
+  })
 
-  const [{ data: recentActions }, { data: recentScores }, { data: profile }] = await Promise.all([
-    supabase
-      .from('actions')
-      .select('type, completed, created_at, updated_at')
-      .eq('user_id', userId)
-      .or(`created_at.gte.${sinceTs},updated_at.gte.${sinceTs}`)
-      .limit(200),
-    supabase
-      .from('daily_scores')
-      .select('score_date, score')
-      .eq('user_id', userId)
-      .gte('score_date', sinceDate)
-      .order('score_date', { ascending: true })
-      .limit(14),
-    supabase
-      .from('user_profiles')
-      .select('ai_recent_events')
-      .eq('id', userId)
-      .maybeSingle()
-  ])
-
-  const actionRows = (recentActions || []) as RecentActionRow[]
-  const scoreRows = (recentScores || []) as RecentScoreRow[]
-
-  const coreCreated7d = actionRows.filter(
-    a => a.type === 'core' && typeof a.created_at === 'string' && a.created_at >= sinceTs
-  ).length
-  const coreCompleted7d = actionRows.filter(
-    a => a.type === 'core' && a.completed === true && typeof a.updated_at === 'string' && a.updated_at >= sinceTs
-  ).length
-  const completionRate7d =
-    coreCreated7d > 0 ? Math.min(1, coreCompleted7d / coreCreated7d) : null
-
-  const scores = scoreRows
-    .map((scoreRow: RecentScoreRow) => (typeof scoreRow.score === 'number' ? scoreRow.score : null))
-    .filter((s): s is number => typeof s === 'number')
-  const dailyScoreAvg7d = scores.length
-    ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10
-    : null
-
-  const momentumBucket =
-    coreCompleted7d >= 4 ? 'high'
-      : coreCompleted7d >= 2 ? 'medium'
-        : coreCreated7d >= 1 ? 'low'
-          : 'unknown'
-
-  const recentEvents = Array.isArray((profile as { ai_recent_events?: unknown } | null)?.ai_recent_events)
-    ? ((profile as { ai_recent_events: unknown[] }).ai_recent_events)
-    : []
-
-  const frictionCounts = new Map<string, number>()
-  for (const event of recentEvents) {
-    if (!event || typeof event !== 'object') continue
-    const evt = event as Record<string, unknown>
-    const ts = asString(evt.ts)
-    if (ts && ts < sinceTs) continue
-    const name = asString(evt.name) || ''
-    const meta =
-      evt.meta && typeof evt.meta === 'object' && !Array.isArray(evt.meta)
-        ? (evt.meta as Record<string, unknown>)
-        : null
-    if (!meta) continue
-    if (name === 'ai_rescue_apply') {
-      const reason = asString(meta.reason)
-      if (reason) frictionCounts.set(reason, (frictionCounts.get(reason) || 0) + 1)
-    }
-    if (name === 'ai_review_generated') {
-      const friction = asString(meta.friction)
-      if (friction) frictionCounts.set(friction, (frictionCounts.get(friction) || 0) + 1)
-    }
-  }
-
-  const likelyFrictions = [...frictionCounts.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 2)
-    .map(([key]) => key)
-
-  const derivedRecentContext: RecentContext = {
-    completion_rate_7d: completionRate7d,
-    core_created_7d: coreCreated7d,
-    core_completed_7d: coreCompleted7d,
-    daily_score_avg_7d: dailyScoreAvg7d,
-    momentum_bucket: momentumBucket,
-    likely_frictions: likelyFrictions.length ? likelyFrictions : null
-  }
-
+  const effectiveGoals = goals.length > 0 ? goals : mapContextGoals(context)
   let output: TodayPlanOutput
   let fallbackUsed = false
+  const strategy = buildTodayStrategy({
+    context,
+    goals: effectiveGoals,
+  })
+  let qualityLabels: RecommendationQuality | null = null
 
   try {
     output = await aiTodayPlan({
       locale,
       today,
-      goals,
+      goals: effectiveGoals,
       recent_context: {
         ...(requestedRecentContext ?? {}),
-        ...derivedRecentContext
-      }
+        completion_rate_7d: context.behavior.completionRate7d ?? null,
+        completion_rate_30d: context.behavior.completionRate30d ?? null,
+        daily_score_avg_7d: context.behavior.scoreAvg7d ?? null,
+        momentum_bucket: context.behavior.momentumBucket ?? 'unknown',
+        likely_frictions: context.frictions.slice(0, 2).map(item => item.reasonTag),
+        active_time_bucket: context.behavior.activeTimeBucket ?? null,
+      } as Record<string, unknown>,
+      strategy: {
+        difficulty_mode: strategy.difficultyMode,
+        risk_level: strategy.riskLevel,
+        selected_goal_id: strategy.selectedGoalId ?? null,
+        grounding_hints: strategy.groundingHints,
+        user_profile_summary: context.profile.summary ?? null,
+        preferred_time_bucket: context.profile.preferredTimeBucket ?? context.behavior.activeTimeBucket ?? null,
+      },
     })
+    qualityLabels = evaluateTodayPlanQuality({ output, strategy })
+    if (qualityLabels.requires_fallback) {
+      output = buildFallbackTodayPlan({
+        locale,
+        goals: strategy.selectedGoalId
+          ? effectiveGoals.filter(goal => goal.id === strategy.selectedGoalId)
+          : effectiveGoals,
+        context,
+      })
+      fallbackUsed = true
+    }
   } catch {
     output = buildFallbackTodayPlan({
       locale,
-      goals,
-      recentContext: derivedRecentContext
+      goals: effectiveGoals,
+      context,
     })
     fallbackUsed = true
+    qualityLabels = {
+      schema_valid: false,
+      actionability_score: 1,
+      adoption_ready: false,
+      requires_fallback: true,
+      reasons: ['model_failed_or_invalid_output'],
+    }
   }
 
-  const recommendationId = await createRecommendation({
+  const recommendationId = await persistRecommendation({
     supabase,
     userId,
     scene: 'today_plan',
-    strategyVersion: 'phase_a_v1',
-    promptVersion: 'today_plan_v1',
-    model: fallbackUsed ? 'fallback_rule_v1' : getConfiguredAIModel(),
+    strategyVersion: strategy.strategyVersion,
+    promptVersion: strategy.promptVersion,
     inputSummary: {
       today,
       locale,
-      goalIds: goals.map(goal => goal.id),
-      recentContext: derivedRecentContext
+      goalIds: effectiveGoals.map(goal => goal.id),
+      context: {
+        behavior: context.behavior,
+        frictions: context.frictions,
+      },
     },
-    outputPayload: output,
-    confidence: output.confidence,
-    fallbackUsed
+    output,
+    fallbackUsed,
+    qualityLabels,
+    strategySummary: strategy,
   })
 
   return {
     ok: true,
     scene: 'today_plan',
     recommendationId,
+    strategyVersion: strategy.strategyVersion,
+    promptVersion: strategy.promptVersion,
+    model: fallbackUsed ? 'fallback_rule_v1' : getConfiguredAIModel(),
     data: output,
     confidence: output.confidence,
-    fallbackUsed
+    fallbackUsed,
   }
+}
+
+export async function planRescue(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  locale: 'en' | 'zh'
+  reasonTag: RescueOutput['reason_tag']
+  action: { id: string; title: string; description?: string | null }
+  goal: { id: string; title: string }
+  timezone?: string
+}): Promise<RescueApiResponse> {
+  const { supabase, userId, locale, reasonTag, action, goal, timezone } = params
+  const context = await buildCoachContext({
+    supabase,
+    userId,
+    scene: 'rescue',
+    locale,
+    timezone,
+  })
+
+  let output: RescueOutput
+  let fallbackUsed = false
+  const strategy = buildRescueStrategy({
+    context,
+    reasonTag,
+    actionTitle: action.title,
+  })
+  let qualityLabels: RecommendationQuality | null = null
+  try {
+    output = await aiRescue({
+      locale,
+      reason_tag: reasonTag,
+      action,
+      goal,
+      strategy: {
+        difficulty_mode: strategy.difficultyMode,
+        risk_level: strategy.riskLevel,
+        grounding_hints: strategy.groundingHints,
+      },
+    })
+    qualityLabels = evaluateRescueQuality(output)
+    if (qualityLabels.requires_fallback) {
+      output = buildFallbackRescuePlan({
+        locale,
+        reasonTag,
+        actionTitle: action.title,
+      })
+      fallbackUsed = true
+    }
+  } catch {
+    output = buildFallbackRescuePlan({
+      locale,
+      reasonTag,
+      actionTitle: action.title,
+    })
+    fallbackUsed = true
+    qualityLabels = {
+      schema_valid: false,
+      actionability_score: 1,
+      adoption_ready: false,
+      requires_fallback: true,
+      reasons: ['model_failed_or_invalid_output'],
+    }
+  }
+
+  const recommendationId = await persistRecommendation({
+    supabase,
+    userId,
+    scene: 'rescue',
+    strategyVersion: strategy.strategyVersion,
+    promptVersion: strategy.promptVersion,
+    inputSummary: {
+      locale,
+      reasonTag,
+      action,
+      goal,
+      context: {
+        behavior: context.behavior,
+        frictions: context.frictions,
+      },
+    },
+    output,
+    fallbackUsed,
+    qualityLabels,
+    strategySummary: strategy,
+  })
+
+  await recordFrictionEvent({
+    supabase,
+    userId,
+    scene: 'rescue',
+    reasonTag,
+    goalId: goal.id,
+    actionId: action.id,
+    detail: action.title,
+  })
+
+  return {
+    ok: true,
+    scene: 'rescue',
+    recommendationId,
+    strategyVersion: strategy.strategyVersion,
+    promptVersion: strategy.promptVersion,
+    model: fallbackUsed ? 'fallback_rule_v1' : getConfiguredAIModel(),
+    data: output,
+    confidence: output.confidence,
+    fallbackUsed,
+  }
+}
+
+export async function planReview(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  locale: 'en' | 'zh'
+  today: string
+  score: number | null
+  answers: Record<string, string>
+  timezone?: string
+}): Promise<ReviewApiResponse> {
+  const { supabase, userId, locale, today, score, answers, timezone } = params
+  const context = await buildCoachContext({
+    supabase,
+    userId,
+    scene: 'review',
+    locale,
+    timezone,
+  })
+
+  let output: ReviewOutput
+  let fallbackUsed = false
+  const strategy = buildReviewStrategy({
+    context,
+    score,
+    answers,
+  })
+  let qualityLabels: RecommendationQuality | null = null
+  try {
+    output = await aiReview({
+      locale,
+      today,
+      score,
+      answers,
+      strategy: {
+        difficulty_mode: strategy.difficultyMode,
+        risk_level: strategy.riskLevel,
+        grounding_hints: strategy.groundingHints,
+      },
+    })
+    qualityLabels = evaluateReviewQuality(output)
+    if (qualityLabels.requires_fallback) {
+      output = buildFallbackReviewPlan({
+        locale,
+        friction: answers.friction || null,
+      })
+      fallbackUsed = true
+    }
+  } catch {
+    output = buildFallbackReviewPlan({
+      locale,
+      friction: answers.friction || null,
+    })
+    fallbackUsed = true
+    qualityLabels = {
+      schema_valid: false,
+      actionability_score: 1,
+      adoption_ready: false,
+      requires_fallback: true,
+      reasons: ['model_failed_or_invalid_output'],
+    }
+  }
+
+  const recommendationId = await persistRecommendation({
+    supabase,
+    userId,
+    scene: 'review',
+    strategyVersion: strategy.strategyVersion,
+    promptVersion: strategy.promptVersion,
+    inputSummary: {
+      today,
+      score,
+      answers,
+      context: {
+        behavior: context.behavior,
+        frictions: context.frictions,
+      },
+    },
+    output,
+    fallbackUsed,
+    qualityLabels,
+    strategySummary: strategy,
+  })
+
+  await recordFrictionEvent({
+    supabase,
+    userId,
+    scene: 'review',
+    reasonTag: output.detected_friction_tag || answers.friction || null,
+    detail: output.summary_sentence,
+  })
+
+  return {
+    ok: true,
+    scene: 'review',
+    recommendationId,
+    strategyVersion: strategy.strategyVersion,
+    promptVersion: strategy.promptVersion,
+    model: fallbackUsed ? 'fallback_rule_v1' : getConfiguredAIModel(),
+    data: output,
+    confidence: output.confidence,
+    fallbackUsed,
+  }
+}
+
+export async function planWeeklyInsight(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  locale: 'en' | 'zh'
+  timezone?: string
+}): Promise<WeeklyInsightApiResponse> {
+  const { supabase, userId, locale, timezone } = params
+  const context = await buildCoachContext({
+    supabase,
+    userId,
+    scene: 'weekly_insight',
+    locale,
+    timezone,
+  })
+  const { output, fallbackUsed } = await aiWeeklyInsight({ context })
+  const recommendationId = await persistRecommendation({
+    supabase,
+    userId,
+    scene: 'weekly_insight',
+    strategyVersion: 'phase_d_v1',
+    promptVersion: 'weekly_insight_v1',
+    inputSummary: {
+      context: {
+        profile: context.profile,
+        behavior: context.behavior,
+        frictions: context.frictions,
+        recentAI: context.recentAI,
+      },
+    },
+    output,
+    fallbackUsed,
+  })
+
+  try {
+    await upsertGrowthProfileSummary({
+      supabase,
+      userId,
+      summary: output.summary,
+      currentStage: output.momentum,
+      riskOfDropout:
+        output.momentum === 'low' && output.topFriction ? output.topFriction : null,
+    })
+  } catch (error) {
+    if (!(error instanceof Error) || !isMissingRelationError(error.message)) {
+      console.error('upsertGrowthProfileSummary failed', error)
+    }
+  }
+
+  const response: CoachApiResponse<WeeklyInsightOutput> = {
+    ok: true,
+    scene: 'weekly_insight',
+    recommendationId,
+    strategyVersion: 'phase_d_v1',
+    promptVersion: 'weekly_insight_v1',
+    model: fallbackUsed ? 'fallback_rule_v1' : getConfiguredAIModel(),
+    data: output,
+    confidence: output.confidence,
+    fallbackUsed,
+  }
+  return response
 }

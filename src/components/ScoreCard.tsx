@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import type { ReviewOutput } from '@/lib/ai/phase2aSchemas'
+import type { ReviewApiResponse } from '@/lib/ai/types'
 import { logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
 
@@ -54,11 +55,14 @@ export function ScoreCard({
   ab2ReviewVariant = null,
   className
 }: ScoreCardProps) {
+  void _recent7
   const [score, setScore] = useState<number | null>(currentScore)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [reviewResult, setReviewResult] = useState<ReviewOutput | null>(null)
+  const [reviewRecommendationId, setReviewRecommendationId] = useState<string | null>(null)
+  const [reviewOutcomeState, setReviewOutcomeState] = useState<'idle' | 'dismissed'>('idle')
   const [friction, setFriction] = useState<string>('')
   const [tomorrowTime, setTomorrowTime] = useState<string>('')
 
@@ -75,6 +79,8 @@ export function ScoreCard({
     setReviewOpen(true)
     setReviewError(null)
     setReviewResult(null)
+    setReviewRecommendationId(null)
+    setReviewOutcomeState('idle')
     setFriction('')
     setTomorrowTime('')
     logEvent('ai_review_click', { source: 'dashboard', had_score: score != null, variant: ab2ReviewVariant })
@@ -94,17 +100,18 @@ export function ScoreCard({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ today, score, answers, locale })
       })
-      const json = (await res.json()) as { result?: ReviewOutput; error?: string }
+      const json = (await res.json()) as ReviewApiResponse & { error?: string }
       if (!res.ok) {
         const key = json.error || 'operation_failed'
         setReviewError((dict.common.errors as Record<string, string>)[key] || dict.common.errors.operation_failed)
         return
       }
-      if (!json.result) {
+      if (!json.data || !json.recommendationId) {
         setReviewError(dict.common.errors.operation_failed)
         return
       }
-      setReviewResult(json.result)
+      setReviewResult(json.data)
+      setReviewRecommendationId(json.recommendationId)
       logEvent('ai_review_generated', {
         questions_answered: (friction ? 1 : 0) + (reviewQuestionsCount === 2 && tomorrowTime ? 1 : 0),
         variant: ab2ReviewVariant
@@ -179,25 +186,37 @@ export function ScoreCard({
       <Dialog
         open={reviewOpen}
         onOpenChange={(open) => {
-          if (!open && reviewOpen && !reviewResult) {
+          if (!open && reviewOpen && reviewRecommendationId && reviewOutcomeState === 'idle') {
+            setReviewOutcomeState('dismissed')
+            void fetch(`/api/ai/recommendations/${reviewRecommendationId}/dismiss`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ feedbackLabel: reviewResult ? 'close_result' : 'dismiss' })
+            }).catch(() => {
+            })
             logEvent('ai_review_dismiss', { step: 'result', variant: ab2ReviewVariant })
             sendAIFeedback('ai_review_dismiss', { step: 'result', variant: ab2ReviewVariant })
           }
           setReviewOpen(open)
         }}
       >
-        <DialogFormContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{(dict.dashboard as unknown as Record<string, string>).aiReviewTitle || (locale === 'zh' ? 'AI 夜间复盘（草案）' : 'AI Review (draft)')}</DialogTitle>
+        <DialogFormContent mobileMode="fullscreen" className="sm:max-w-lg p-4 sm:p-6">
+          <DialogHeader className="pr-10 text-left sm:text-left">
+            <DialogTitle>
+              {(dict.dashboard as unknown as Record<string, string>).aiReviewTitle || (locale === 'zh' ? 'AI 夜间复盘（草案）' : 'AI Review (draft)')}
+            </DialogTitle>
+            <div className="text-xs text-muted-foreground">
+              {locale === 'zh' ? '回答 0-2 个问题后生成简洁建议' : 'Answer 0-2 questions and generate concise suggestions'}
+            </div>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3">
               <div className="text-sm font-medium">{locale === 'zh' ? '今天最大的阻力是什么？' : 'What was the biggest friction today?'}</div>
               <select
                 value={friction}
                 onChange={(e) => setFriction(e.target.value)}
-                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-11 w-full items-center justify-between rounded-md border border-input bg-background/60 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={reviewLoading}
               >
                 <option value="">{locale === 'zh' ? '可跳过' : 'Skip'}</option>
@@ -211,12 +230,12 @@ export function ScoreCard({
             </div>
 
             {reviewQuestionsCount === 2 ? (
-              <div className="space-y-2">
+              <div className="space-y-2 rounded-xl border border-border/60 bg-muted/20 p-3">
                 <div className="text-sm font-medium">{locale === 'zh' ? '明天大概能投入多久？' : 'How much time can you invest tomorrow?'}</div>
                 <select
                   value={tomorrowTime}
                   onChange={(e) => setTomorrowTime(e.target.value)}
-                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex h-11 w-full items-center justify-between rounded-md border border-input bg-background/60 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={reviewLoading}
                 >
                   <option value="">{locale === 'zh' ? '可跳过' : 'Skip'}</option>
@@ -229,7 +248,7 @@ export function ScoreCard({
               </div>
             ) : null}
 
-            <div className="flex justify-end gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <Button type="button" variant="outline" onClick={() => setReviewOpen(false)} disabled={reviewLoading}>
                 {dict.common.cancel}
               </Button>

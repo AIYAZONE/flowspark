@@ -149,6 +149,14 @@ export async function aiTodayPlan(opts: {
 		momentum_bucket?: 'high' | 'medium' | 'low' | 'unknown';
 		likely_frictions?: string[] | null;
 	};
+	strategy?: {
+		difficulty_mode?: 'starter' | 'balanced' | 'push';
+		risk_level?: 'low' | 'medium' | 'high';
+		selected_goal_id?: string | null;
+		grounding_hints?: string[];
+		user_profile_summary?: string | null;
+		preferred_time_bucket?: string | null;
+	};
 }): Promise<TodayPlanOutput> {
 	const system = [
 		jsonOnlyRule(opts.locale),
@@ -169,11 +177,20 @@ export async function aiTodayPlan(opts: {
 		'  "confidence":"low|medium|high"',
 		'}',
 		'Hard rules:',
-		'- recommendations: 1 core + up to 2 alt.',
+		'- recommendations: exactly 1 core and at most 1 alt.',
 		'- core goal_id must be one of provided goal ids unless you truly cannot decide.',
-		'- variants must include 5/10/20 with same intent at different granularity.',
+		'- variants must include 5/10/20 and represent estimated time options for the SAME action intent.',
 		'- first_step must be 1 sentence <= 30 chars (Chinese) / <= 30 chars overall.',
-		'- titles executable (verb + object).'
+		'- titles executable (verb + object).',
+		'- title must describe a real action the user can do today, not a slogan or abstract summary.',
+		'- reason explains why this action is recommended today; reason must not replace the action itself.',
+		'- stay grounded in the provided goal title and criteria.',
+		'- avoid vague phrases such as “推进MVP搭建”, “挑战新关卡”, “打怪”, “副本”, “升级”, “关键模块”, “系统优化” unless the goal title itself clearly uses those words.',
+		'- do not invent a different domain from the goal title.',
+		'- if you provide an alt recommendation, it must still be concrete and realistic today.',
+		'- if strategy.selected_goal_id is provided, the core recommendation must use that goal_id.',
+		'- if strategy.difficulty_mode is starter, make the 5-minute variant extremely easy to start.',
+		'- if strategy.difficulty_mode is push, keep the 20-minute variant ambitious but still finishable today.'
 	].join('\n');
 
 	const user = [
@@ -182,13 +199,21 @@ export async function aiTodayPlan(opts: {
 		formatContext(opts.goals),
 		'Recent context (optional JSON):',
 		formatContext(opts.recent_context ?? {}),
+		'Strategy context (optional JSON):',
+		formatContext(opts.strategy ?? {}),
 		'Task:',
-		'- Pick ONE best core action for today and provide 5/10/20 variants.',
-		'- Provide up to two alternative options (kind=alt).',
+		'- Pick ONE best core action for today and provide 5/10/20 estimated-time variants.',
+		'- Provide at most one alternative option (kind=alt) only if there is a clearly valid second choice.',
+		'- Every title should read like a task in a to-do list, not a strategy statement.',
+		'- Prefer specific outputs, files, pages, conversations, drafts, or review actions over generic progress wording.',
+		'- Use strategy.grounding_hints and user_profile_summary when explaining reason.',
 		'Difficulty policy:',
 		'- If momentum_bucket is high/medium: make the 10/20 variants slightly more challenging (still executable today).',
 		'- If momentum_bucket is low/unknown or completion_rate_7d is low: make the 5-minute variant a very low-friction starter task.',
-		'- Always keep 5/10/20 variants aligned to the same intent (granularity differs, not goal).'
+		'- Always keep 5/10/20 variants aligned to the same intent (granularity differs, not goal).',
+		'Quality bar:',
+		'- Good: “整理登录流程待修问题”, “写出首页文案初稿”, “补完支付回调测试”',
+		'- Bad: “推进系统MVP搭建”, “挑战副本”, “继续升级项目”, “完成关键模块”'
 	].join('\n');
 
 	return generateWithSingleRepair({
@@ -207,6 +232,11 @@ export async function aiRescue(opts: {
 	reason_tag: RescueOutput['reason_tag'];
 	action: { id: string; title: string; description?: string | null };
 	goal: { id: string; title: string };
+	strategy?: {
+		difficulty_mode?: 'starter' | 'balanced' | 'push';
+		risk_level?: 'low' | 'medium' | 'high';
+		grounding_hints?: string[];
+	};
 }): Promise<RescueOutput> {
 	const system = [
 		jsonOnlyRule(opts.locale),
@@ -231,6 +261,8 @@ export async function aiRescue(opts: {
 		'Current action (JSON):',
 		formatContext(opts.action),
 		`Reason tag: ${opts.reason_tag}`,
+		'Strategy context (optional JSON):',
+		formatContext(opts.strategy ?? {}),
 		'Task: Provide a 5-minute minimal version + if-then + first step.'
 	].join('\n');
 
@@ -250,6 +282,11 @@ export async function aiReview(opts: {
 	today: string;
 	score: number | null;
 	answers: Record<string, string>;
+	strategy?: {
+		difficulty_mode?: 'starter' | 'balanced' | 'push';
+		risk_level?: 'low' | 'medium' | 'high';
+		grounding_hints?: string[];
+	};
 }): Promise<ReviewOutput> {
 	const system = [
 		jsonOnlyRule(opts.locale),
@@ -277,6 +314,8 @@ export async function aiReview(opts: {
 		`Score: ${opts.score == null ? 'null' : String(opts.score)}`,
 		'Answers (JSON):',
 		formatContext(opts.answers),
+		'Strategy context (optional JSON):',
+		formatContext(opts.strategy ?? {}),
 		'Task: Summarize today in one sentence and provide a tomorrow anti-fail card.'
 	].join('\n');
 

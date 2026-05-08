@@ -226,8 +226,54 @@ function ensureMinutesInRange(value: number, min: number, max: number): number |
 function isExecutableTitle(title: string): boolean {
   if (!title.trim()) return false
   if (title.length < 3) return false
-  const vague = ['提升', '优化', '更好', '加强', '努力', '坚持', '学习更多', '变得更好', 'be better', 'improve', 'optimize']
+  const vague = [
+    '提升',
+    '优化',
+    '更好',
+    '加强',
+    '努力',
+    '坚持',
+    '学习更多',
+    '变得更好',
+    '推进mvp',
+    'mvp搭建',
+    '关键模块',
+    '系统优化',
+    '挑战新关卡',
+    '打怪',
+    '副本',
+    '升级项目',
+    'be better',
+    'improve',
+    'optimize',
+    'level up',
+    'boss fight',
+    'quest',
+    'module work',
+  ]
   const lower = title.toLowerCase()
+  return !vague.some(v => lower.includes(v.toLowerCase()))
+}
+
+function isConcreteReason(reason: string): boolean {
+  if (!reason.trim()) return false
+  const vague = [
+    '适合推进',
+    '适合挑战',
+    '关键任务',
+    '关键模块',
+    '继续升级',
+    '高动量下',
+    '低动量下',
+    '更适合今天',
+    '推进mvp',
+    '挑战关卡',
+    'fit for momentum',
+    'key module',
+    'level up',
+    'quest',
+  ]
+  const lower = reason.toLowerCase()
   return !vague.some(v => lower.includes(v.toLowerCase()))
 }
 
@@ -428,6 +474,8 @@ export function parseTodayPlan(payload: unknown): ParseResult<TodayPlanOutput> {
   if (type !== 'today_plan') violations.push('type_must_be_today_plan')
 
   const recommendations: TodayPlanOutput['recommendations'] = []
+  let coreCount = 0
+  let altCount = 0
   if (Array.isArray(payload.recommendations)) {
     for (const item of payload.recommendations) {
       if (!isRecord(item)) continue
@@ -436,6 +484,7 @@ export function parseTodayPlan(payload: unknown): ParseResult<TodayPlanOutput> {
       const goal_id = asTrimmedString(item.goal_id) ?? null
       const reason = asTrimmedString(item.reason)
       if (!kind || !reason) continue
+      if (!isConcreteReason(reason)) continue
 
       const variants: TodayPlanOutput['recommendations'][number]['variants'] = []
       if (Array.isArray(item.variants)) {
@@ -458,12 +507,22 @@ export function parseTodayPlan(payload: unknown): ParseResult<TodayPlanOutput> {
       const has20 = variants.some(v => v.minutes === 20)
       if (!has5 || !has10 || !has20) continue
 
+      if (kind === 'core') {
+        if (coreCount >= 1) continue
+        coreCount += 1
+      }
+      if (kind === 'alt') {
+        if (altCount >= 1) continue
+        altCount += 1
+      }
+
       recommendations.push({ kind, goal_id, reason, variants })
-      if (recommendations.length >= 3) break
+      if (recommendations.length >= 2) break
     }
   }
 
   if (recommendations.length === 0) violations.push('recommendations_min_1')
+  if (!recommendations.some(item => item.kind === 'core')) violations.push('recommendations_need_core')
 
   const confidence = normalizeConfidence(payload.confidence)
 

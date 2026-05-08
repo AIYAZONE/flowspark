@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { aiReview } from '@/lib/ai/phase2a'
+import { planReview } from '@/lib/ai/coachOrchestrator'
 
 export const runtime = 'nodejs'
 
@@ -29,8 +29,15 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await aiReview({ locale, today, score, answers: coercedAnswers })
-    return NextResponse.json({ result }, { status: 200 })
+    const response = await planReview({
+      supabase,
+      userId: user.id,
+      locale,
+      today,
+      score,
+      answers: coercedAnswers,
+    })
+    return NextResponse.json(response, { status: 200 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'operation_failed'
     const status =
@@ -42,4 +49,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status })
   }
 }
-
