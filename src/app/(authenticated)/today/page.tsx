@@ -1,9 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { AddActionDialog } from '@/components/AddActionDialog'
+import { AITodayPlanButton } from '@/components/AITodayPlanButton'
 import { getUserTimezone, getTodayInTZ, toLocaleDateStringTZ } from '@/lib/time'
 import { TodayActionList } from '@/components/TodayActionList'
 import { InboxCard } from '@/components/InboxCard'
+import { assignVariant, isEnvEnabled } from '@/lib/experiments'
 
 export default async function TodayPage() {
   const supabase = await createClient()
@@ -11,6 +13,12 @@ export default async function TodayPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
   const ownerId = user.id
+  const todayPlanEnabledEnv =
+    process.env.NEXT_PUBLIC_AI_TODAY_PLAN_ENABLED ?? process.env.AI_TODAY_PLAN_ENABLED
+  const todayPlanEnabled = todayPlanEnabledEnv ? isEnvEnabled(todayPlanEnabledEnv) : true
+  const ab1TodayPlanEnabled = isEnvEnabled(process.env.AI_EXPERIMENT_AB1_TODAY_PLAN)
+  const ab1TodayPlanVariant = ab1TodayPlanEnabled ? assignVariant(user.id, 'ab1_today_plan') : null
+  const showAIPlan = todayPlanEnabled && (!ab1TodayPlanEnabled || ab1TodayPlanVariant === 'B')
 
   // Get active goals for the dropdown
   let { data: activeGoals } = await supabase
@@ -147,6 +155,27 @@ export default async function TodayPage() {
       </div>
 
       <div className="grid gap-6">
+        {showAIPlan ? (
+          <div className="rounded-xl border border-dashed bg-card/60 p-4 sm:p-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <div className="text-sm font-medium">
+                  {dict.dashboard.planning.aiPlanTitle}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {dict.dashboard.planning.desc.replace('{count}', String(activeGoals?.length || 0))}
+                </div>
+              </div>
+              <AITodayPlanButton
+                dict={dict}
+                goals={activeGoals || []}
+                defaultDate={today}
+                ab1TodayPlanVariant={ab1TodayPlanVariant}
+                triggerClassName="w-full sm:w-auto"
+              />
+            </div>
+          </div>
+        ) : null}
         <InboxCard
           dict={dict}
           openCount={inboxOpenCount}

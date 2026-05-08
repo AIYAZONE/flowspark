@@ -10,8 +10,9 @@ import { QuickCaptureDialog } from '@/components/QuickCaptureDialog'
 
 type Dict = typeof en
 const FAB_POSITION_KEY = 'quick-capture-fab-position-v2'
-const LONG_PRESS_MS = 320
+const LONG_PRESS_MS = 460
 const DRAG_MARGIN = 8
+const CANCEL_LONG_PRESS_MOVE = 10
 const DEFAULT_RIGHT_INSET = 10
 const DEFAULT_BOTTOM_INSET = 114
 const BOTTOM_RESERVED_AREA = 120
@@ -125,6 +126,7 @@ export function QuickCaptureSpeedDial({
 		if (!canDragFab) return
 		movedRef.current = false
 		pointerStartRef.current = { x: e.clientX, y: e.clientY }
+		if (open) return
 		const currentRect = wrapperRef.current?.getBoundingClientRect()
 		dragStartRef.current = {
 			left: currentRect?.left ?? 0,
@@ -135,6 +137,9 @@ export function QuickCaptureSpeedDial({
 		e.currentTarget.setPointerCapture(e.pointerId)
 		clearLongPressTimer()
 		longPressTimerRef.current = window.setTimeout(() => {
+			if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+				navigator.vibrate(12)
+			}
 			setDragging(true)
 			setOpen(false)
 		}, LONG_PRESS_MS)
@@ -143,7 +148,7 @@ export function QuickCaptureSpeedDial({
 	function handlePointerMove(e: React.PointerEvent<HTMLButtonElement>) {
 		if (!canDragFab) return
 		const movedDistance = Math.hypot(e.clientX - pointerStartRef.current.x, e.clientY - pointerStartRef.current.y)
-		if (!dragging && movedDistance > 16) {
+		if (!dragging && movedDistance > CANCEL_LONG_PRESS_MOVE) {
 			movedRef.current = true
 			clearLongPressTimer()
 		}

@@ -59,6 +59,18 @@ export default async function ProfilePage() {
             </Button>
           </CardContent>
         </Card>
+
+        <Card className="shadow-none">
+          <CardHeader>
+            <CardTitle className="text-base">{dict.profile.aiAnalyticsTitle}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-muted-foreground">{dict.profile.aiAnalyticsDesc}</div>
+            <Button asChild variant="outline" className="rounded-full">
+              <Link href="/profile/ai-insights">{dict.profile.openAIAnalytics}</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

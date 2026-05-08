@@ -63,9 +63,11 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { createAction, deleteAction, toggleActionSubItem, updateAction } from '@/app/(authenticated)/goals/actions'
+import { createActionAndReturnId, deleteAction, toggleActionSubItem, updateAction } from '@/app/(authenticated)/goals/actions'
 import type en from '@/i18n/en.json'
 import type { RescueOutput } from '@/lib/ai/phase2aSchemas'
+import type { RescueApiResponse } from '@/lib/ai/types'
+import type { AIBreakdownActionDraft } from '@/lib/ai/breakdown'
 import { logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
 import { createClient } from '@/lib/supabase/client'
@@ -151,6 +153,8 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const [rescueLoading, setRescueLoading] = useState(false)
     const [rescueError, setRescueError] = useState<string | null>(null)
     const [rescueResult, setRescueResult] = useState<RescueOutput | null>(null)
+    const [rescueRecommendationId, setRescueRecommendationId] = useState<string | null>(null)
+    const [rescueOutcomeState, setRescueOutcomeState] = useState<'idle' | 'adopted' | 'dismissed'>('idle')
     const [subItemsOpen, setSubItemsOpen] = useState(false)
     const [subItemBusyId, setSubItemBusyId] = useState<string | null>(null)
     const [uploadUserId, setUploadUserId] = useState<string>('')
@@ -170,6 +174,9 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     )
     const [editAttachmentsDraft, setEditAttachmentsDraft] = useState<ActionAttachmentDraft[]>([])
     const [editDescriptionUploading, setEditDescriptionUploading] = useState(false)
+    const [editAiLoading, setEditAiLoading] = useState(false)
+    const [editAiError, setEditAiError] = useState<string | null>(null)
+    const [editAiDrafts, setEditAiDrafts] = useState<AIBreakdownActionDraft[]>([])
     const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
     const [discardIntent, setDiscardIntent] = useState<'switch_to_view' | 'close_panel'>('switch_to_view')
     const unsavedConfirmText = (dict.goals.new as Record<string, string>).confirmDiscardChanges || '你有未保存的修改，确认放弃吗？'
@@ -191,6 +198,9 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         )
         setEditAttachmentsDraft([])
         setEditDescriptionUploading(false)
+        setEditAiLoading(false)
+        setEditAiError(null)
+        setEditAiDrafts([])
     }
 
     const isEditDirty = (() => {
@@ -357,6 +367,8 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         setPanelMode('rescue')
         setRescueError(null)
         setRescueResult(null)
+        setRescueRecommendationId(null)
+        setRescueOutcomeState('idle')
         setDetailsOpen(true)
         logEvent('ai_rescue_click', { action_id: action.id })
         sendAIFeedback('ai_rescue_click', { action_id: action.id, goal_id: action.goal_id })
@@ -366,6 +378,15 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         if (!open && panelMode === 'edit') {
             requestExitEdit('close_panel')
             return
+        }
+        if (!open && panelMode === 'rescue' && rescueResult && rescueRecommendationId && rescueOutcomeState === 'idle') {
+            setRescueOutcomeState('dismissed')
+            void fetch(`/api/ai/recommendations/${rescueRecommendationId}/dismiss`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ feedbackLabel: 'dismiss' })
+            }).catch(() => {
+            })
         }
         setDetailsOpen(open)
         if (!open) setPanelMode('view')
@@ -380,6 +401,8 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         if (!goalTitle) return
         setRescueError(null)
         setRescueLoading(true)
+        setRescueRecommendationId(null)
+        setRescueOutcomeState('idle')
         try {
             const res = await fetch('/api/ai/rescue', {
                 method: 'POST',
@@ -391,17 +414,18 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                     goal: { id: action.goal_id, title: goalTitle }
                 })
             })
-            const json = (await res.json()) as { result?: RescueOutput; error?: string }
+            const json = (await res.json()) as RescueApiResponse & { error?: string }
             if (!res.ok) {
                 const key = json.error || 'operation_failed'
                 setRescueError((dict.common.errors as Record<string, string>)[key] || dict.common.errors.operation_failed)
                 return
             }
-            if (!json.result) {
+            if (!json.data || !json.recommendationId) {
                 setRescueError(dict.common.errors.operation_failed)
                 return
             }
-            setRescueResult(json.result)
+            setRescueResult(json.data)
+            setRescueRecommendationId(json.recommendationId)
         } catch {
             setRescueError(dict.common.errors.operation_failed)
         } finally {
@@ -429,7 +453,22 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             formData.set('description', description)
             formData.set('start_date', action.start_date)
             formData.set('end_date', endDateStr)
+            if (rescueRecommendationId) {
+                formData.set('ai_recommendation_id', rescueRecommendationId)
+            }
             await updateAction(formData)
+            if (rescueRecommendationId) {
+                setRescueOutcomeState('adopted')
+                void fetch(`/api/ai/recommendations/${rescueRecommendationId}/adopt`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        optionSelected: '5m',
+                        actionId: action.id
+                    })
+                }).catch(() => {
+                })
+            }
             logEvent('ai_rescue_apply', { mode: 'replace', option: '5m', action_id: action.id })
             sendAIFeedback('ai_rescue_apply', { mode: 'replace', option: '5m', action_id: action.id, goal_id: action.goal_id, reason: rescueReason })
             setPanelMode('view')
@@ -460,7 +499,22 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             formData.set('description', description)
             formData.set('start_date', action.start_date)
             formData.set('end_date', endDateStr)
-            await createAction(formData)
+            if (rescueRecommendationId) {
+                formData.set('ai_recommendation_id', rescueRecommendationId)
+            }
+            const created = await createActionAndReturnId(formData) as { actionId?: string | null }
+            if (rescueRecommendationId) {
+                setRescueOutcomeState('adopted')
+                void fetch(`/api/ai/recommendations/${rescueRecommendationId}/adopt`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        optionSelected: '5m',
+                        actionId: created?.actionId || null
+                    })
+                }).catch(() => {
+                })
+            }
             logEvent('ai_rescue_apply', { mode: 'add', option: '5m', action_id: action.id })
             sendAIFeedback('ai_rescue_apply', { mode: 'add', option: '5m', action_id: action.id, goal_id: action.goal_id, reason: rescueReason })
             setPanelMode('view')
@@ -486,6 +540,72 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         } finally {
             setSubItemBusyId(null)
         }
+    }
+
+    async function handleAISplitForEdit() {
+        setEditAiError(null)
+        setEditAiDrafts([])
+        const goalTitle =
+            goals.find((g) => g.id === editGoalId)?.title ||
+            action.goals?.title ||
+            editTitle.trim()
+        if (!editGoalId || !editTitle.trim()) {
+            setEditAiError(dict.common.errors.missing_fields)
+            return
+        }
+        setEditAiLoading(true)
+        try {
+            const res = await fetch('/api/ai/breakdown', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    goalTitle,
+                    goalDescription: editTitle.trim(),
+                    startDate: editStartDate,
+                    endDate: editEndDate,
+                    locale
+                })
+            })
+            const json = (await res.json()) as { actions?: AIBreakdownActionDraft[]; error?: string }
+            if (!res.ok) {
+                const key = json.error || 'operation_failed'
+                const errors = dict.common.errors as unknown as Record<string, string>
+                setEditAiError(errors[key] || dict.common.errors.operation_failed)
+                return
+            }
+            const drafts = Array.isArray(json.actions) ? json.actions : []
+            if (drafts.length === 0) {
+                setEditAiError(dict.common.errors.operation_failed)
+                return
+            }
+            setEditAiDrafts(drafts.slice(0, 5))
+        } catch {
+            setEditAiError(dict.common.errors.operation_failed)
+        } finally {
+            setEditAiLoading(false)
+        }
+    }
+
+    function applyEditAIDraft(draft: AIBreakdownActionDraft) {
+        const title = draft.title.trim()
+        if (!title) return
+        setEditSubItems((prev) => {
+            if (prev.some((item) => item.title.trim() === title)) return prev
+            return [...prev, { title, completed: false }]
+        })
+        setEditAiError(null)
+    }
+
+    function importAllEditAIDrafts() {
+        if (editAiDrafts.length === 0) return
+        setEditSubItems((prev) => {
+            const existing = new Set(prev.map((item) => item.title.trim()))
+            const imported = editAiDrafts
+                .map((draft) => draft.title.trim())
+                .filter((title) => title && !existing.has(title))
+                .map((title) => ({ title, completed: false }))
+            return [...prev, ...imported]
+        })
     }
 
     const getPriorityColor = (priority?: string) => {
@@ -659,20 +779,32 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                     <Label className="text-xs text-muted-foreground">
                         {(dict.today as unknown as Record<string, string>).subItemsLabel || '子行动'}
                     </Label>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                            setEditSubItems((prev) => [
-                                ...prev,
-                                { title: '', completed: false }
-                            ])
-                        }
-                    >
-                        {(dict.goals.new as Record<string, string>).subItemsAdd || '新增子行动'}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={handleAISplitForEdit}
+                            disabled={editAiLoading || !editTitle.trim() || !editGoalId}
+                        >
+                            {editAiLoading ? dict.common.loading : dict.goals.new.aiSplitButton}
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                                setEditSubItems((prev) => [
+                                    ...prev,
+                                    { title: '', completed: false }
+                                ])
+                            }
+                        >
+                            {(dict.goals.new as Record<string, string>).subItemsAdd || '新增子行动'}
+                        </Button>
+                    </div>
                 </div>
+                {editAiError ? <div className="text-xs text-destructive">{editAiError}</div> : null}
                 {editSubItems.length === 0 ? (
                     <div className="text-xs text-muted-foreground">
                         {(dict.goals.new as Record<string, string>).subItemsEmptyHint || '可手动添加子行动'}
@@ -729,6 +861,34 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                         ))}
                     </div>
                 )}
+                {editAiDrafts.length > 0 ? (
+                    <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="text-sm font-medium">{dict.goals.new.aiSuggestionsTitle}</div>
+                            <Button type="button" variant="outline" size="sm" onClick={importAllEditAIDrafts}>
+                                {(dict.goals.new as Record<string, string>).aiImportSubItems || '全部导入为子行动'}
+                            </Button>
+                        </div>
+                        <div className="space-y-2">
+                            {editAiDrafts.map((draft, idx) => (
+                                <button
+                                    key={`${draft.title}-${idx}`}
+                                    type="button"
+                                    onClick={() => applyEditAIDraft(draft)}
+                                    className="w-full rounded-md border border-border/60 bg-background/70 p-2 text-left hover:bg-muted/40 transition-colors"
+                                >
+                                    <div className="text-sm font-medium">{draft.title}</div>
+                                    {draft.description ? (
+                                        <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{draft.description}</div>
+                                    ) : null}
+                                    <div className="mt-1 text-[11px] text-primary">
+                                        {(dict.goals.new as Record<string, string>).aiImportOneSubItem || '点击导入为子行动'}
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                ) : null}
             </div>
 
             {editDescriptionUploading ? (

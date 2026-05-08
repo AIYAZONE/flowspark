@@ -1,11 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { getDictionary } from '@/i18n/get-dictionary'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import Link from 'next/link'
+import { PublicGoalReadonlyView } from '@/components/PublicGoalReadonlyView'
 
 type ShareSnapshot = {
   goal: {
+    id?: string
     title: string
     description: string
     start_date: string
@@ -13,6 +15,8 @@ type ShareSnapshot = {
     success_criteria: string
     stop_criteria: string
     status: string
+    priority?: string | null
+    category?: string | null
   }
   actions: Array<{
     id: string
@@ -23,6 +27,14 @@ type ShareSnapshot = {
     type: string
     start_date: string
     end_date?: string | null
+  }>
+  entries?: Array<{
+    id: string
+    kind: 'inspiration' | 'journey'
+    status: 'open' | 'archived'
+    content: string
+    note?: string | null
+    created_at: string
   }>
 }
 
@@ -48,7 +60,7 @@ export default async function PublicGoalSharePage({ params, searchParams }: Page
 
   const { data: share } = await supabase
     .from('goal_shares')
-    .select('snapshot, revoked_at, expires_at')
+    .select('snapshot, goal_id, revoked_at, expires_at')
     .eq('token', token)
     .maybeSingle()
 
@@ -64,12 +76,31 @@ export default async function PublicGoalSharePage({ params, searchParams }: Page
     )
   }
 
-  const snapshot = share.snapshot as ShareSnapshot
+  const snapshotRaw = (share.snapshot || {}) as Record<string, unknown>
+  const snapshot = snapshotRaw as ShareSnapshot
   const goal = snapshot.goal
   const actions = snapshot.actions || []
+  const rawEntries =
+    (snapshot.entries as ShareSnapshot['entries']) ||
+    (snapshotRaw.goal_entries as ShareSnapshot['entries']) ||
+    (snapshotRaw.inspirations as ShareSnapshot['entries']) ||
+    []
+
+  let entries: NonNullable<ShareSnapshot['entries']> = rawEntries || []
+  if (!entries.length && share.goal_id) {
+    const { data: fallbackEntries } = await supabase
+      .from('goal_entries')
+      .select('id, kind, status, content, note, created_at')
+      .eq('goal_id', share.goal_id)
+      .in('kind', ['inspiration', 'journey'])
+      .in('status', ['open', 'archived'])
+      .order('created_at', { ascending: false })
+    entries = (fallbackEntries || []) as NonNullable<ShareSnapshot['entries']>
+  }
   const statusLabelMap = dict.goals.status as unknown as Record<string, string>
   const typeLabelMap = dict.today.types as unknown as Record<string, string>
   const priorityLabelMap = dict.goals.priority as unknown as Record<string, string>
+  const categoryLabelMap = dict.goals.category as unknown as Record<string, string>
   const goalStatusLabel = statusLabelMap[goal.status] || goal.status
 
   return (
@@ -98,35 +129,51 @@ export default async function PublicGoalSharePage({ params, searchParams }: Page
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{dict.goals.detail.description}</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground whitespace-pre-wrap">
-          {goal.description || dict.common.noDescription}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{dict.goals.detail.actions}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {actions.length === 0 ? (
-            <div className="text-sm text-muted-foreground">{dict.share.emptyActions}</div>
-          ) : (
-            actions.map((a) => (
-              <div key={a.id} className="rounded-md border border-border/50 bg-muted/20 p-3">
-                <div className="text-sm font-medium">{a.title}</div>
-                {a.description ? <div className="mt-1 text-xs text-muted-foreground">{a.description}</div> : null}
-                <div className="mt-2 text-xs text-muted-foreground">
-                  {a.completed ? dict.goals.filter.completed : dict.goals.filter.incomplete} · {typeLabelMap[a.type] || a.type} · {priorityLabelMap[a.priority] || a.priority}
-                </div>
-              </div>
-            ))
-          )}
-        </CardContent>
-      </Card>
+      <PublicGoalReadonlyView
+        goal={{
+          title: goal.title || '',
+          description: goal.description || '',
+          start_date: goal.start_date || '',
+          end_date: goal.end_date || '',
+          status: goal.status || 'active',
+          priority: goal.priority || null,
+          category: goal.category || null,
+          success_criteria: goal.success_criteria || '',
+          stop_criteria: goal.stop_criteria || ''
+        }}
+        actions={actions}
+        entries={entries}
+        labels={{
+          actions: dict.goals.detail.actions,
+          inspiration: dict.goals.detail.tabInspiration,
+          journey: dict.goals.detail.tabJourney,
+          details: dict.goals.detail.details,
+          timeline: dict.goals.detail.timeline,
+          description: dict.goals.detail.description,
+          startDate: dict.goals.detail.startDate,
+          endDate: dict.goals.detail.endDate,
+          status: dict.goals.status.label,
+          priority: dict.goals.priority.label,
+          category: dict.goals.category.label,
+          successCriteria: dict.goals.detail.successCriteria,
+          stopCriteria: dict.goals.detail.abandonCriteria,
+          emptyActions: dict.share.emptyActions,
+          emptyInspiration: dict.goals.detail.emptyInspiration,
+          emptyJourney: dict.goals.detail.emptyJourney,
+          completed: dict.goals.filter.completed,
+          incomplete: dict.goals.filter.incomplete,
+          allStatus: dict.goals.filter.allStatus,
+          allType: dict.goals.filter.allType,
+          allPriority: dict.goals.filter.allPriority,
+          searchActionsPlaceholder: dict.goals.filter.searchActionsPlaceholder,
+          entryOpen: dict.goals.status.active,
+          entryArchived: dict.goals.status.archived
+        }}
+        typeLabelMap={typeLabelMap}
+        priorityLabelMap={priorityLabelMap}
+        statusLabelMap={statusLabelMap}
+        categoryLabelMap={categoryLabelMap}
+      />
     </div>
   )
 }
