@@ -557,7 +557,7 @@ export async function createGoalModal(formData: FormData) {
 	};
 }
 
-export async function createAction(formData: FormData) {
+export async function createActionAndReturnId(formData: FormData) {
 	const supabase = await createClient();
 	const {
 		data: { user }
@@ -607,6 +607,7 @@ export async function createAction(formData: FormData) {
 		});
 		createdActionId = (inserted.data?.id as string) || null;
 		if (!createdActionId) throw new Error('operation_failed');
+		const actionId = createdActionId;
 
 		if (attachments.length > 0) {
 			await insertActionAttachmentsWithFallback({
@@ -614,7 +615,7 @@ export async function createAction(formData: FormData) {
 				userId: user.id,
 				items: attachments.map((item) => ({
 					...item,
-					action_id: createdActionId
+					action_id: actionId
 				}))
 			});
 		}
@@ -627,6 +628,10 @@ export async function createAction(formData: FormData) {
 	revalidatePath('/today');
 	revalidatePath(`/goals/${goal_id}`);
 	return { actionId: createdActionId };
+}
+
+export async function createAction(formData: FormData): Promise<void> {
+	await createActionAndReturnId(formData);
 }
 
 export async function createActionWithSubItems(formData: FormData) {
