@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import type { TodayPlanOutput } from '@/lib/ai/phase2aSchemas'
+import type { TodayPlanApiResponse } from '@/lib/ai/types'
 import { logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
 
@@ -59,6 +60,8 @@ export function DailyPlanningCard({
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
   const [aiResult, setAiResult] = useState<TodayPlanOutput | null>(null)
+  const [aiRecommendationId, setAiRecommendationId] = useState<string | null>(null)
+  const [aiOutcomeState, setAiOutcomeState] = useState<'idle' | 'adopted' | 'dismissed'>('idle')
   const [selected, setSelected] = useState<{ recIndex: number; minutes: 5 | 10 | 20 } | null>(null)
 
   const locale = useMemo(() => {
@@ -104,6 +107,8 @@ export function DailyPlanningCard({
     setAiOpen(true)
     setAiError(null)
     setAiResult(null)
+    setAiRecommendationId(null)
+    setAiOutcomeState('idle')
     setSelected(null)
     if (candidateGoals.length === 0) return
     logEvent('ai_today_plan_click', { source: 'dashboard', variant: ab1TodayPlanVariant })
@@ -116,20 +121,21 @@ export function DailyPlanningCard({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ today: defaultDate, goals: candidateGoals, locale })
       })
-      const json = (await res.json()) as { result?: TodayPlanOutput; error?: string }
+      const json = (await res.json()) as TodayPlanApiResponse & { error?: string }
       if (!res.ok) {
         const key = json.error || 'operation_failed'
         const msg = (dictFull?.common?.errors as Record<string, string> | undefined)?.[key]
         setAiError(msg || dictFull?.common?.errors?.operation_failed || 'Operation failed')
         return
       }
-      if (!json.result) {
+      if (!json.ok || !json.data || !json.recommendationId) {
         setAiError(dictFull?.common?.errors?.operation_failed || 'Operation failed')
         return
       }
-      setAiResult(json.result)
-      logEvent('ai_today_plan_suggested', { options: json.result.recommendations.length, variant: ab1TodayPlanVariant })
-      sendAIFeedback('ai_today_plan_suggested', { options: json.result.recommendations.length, variant: ab1TodayPlanVariant })
+      setAiResult(json.data)
+      setAiRecommendationId(json.recommendationId)
+      logEvent('ai_today_plan_suggested', { options: json.data.recommendations.length, variant: ab1TodayPlanVariant })
+      sendAIFeedback('ai_today_plan_suggested', { options: json.data.recommendations.length, variant: ab1TodayPlanVariant })
     } catch {
       setAiError(dictFull?.common?.errors?.operation_failed || 'Operation failed')
     } finally {
@@ -137,8 +143,23 @@ export function DailyPlanningCard({
     }
   }
 
+  async function dismissRecommendation() {
+    if (!aiRecommendationId || aiOutcomeState !== 'idle') return
+    setAiOutcomeState('dismissed')
+    logEvent('ai_today_plan_dismiss', { source: 'dashboard', variant: ab1TodayPlanVariant })
+    sendAIFeedback('ai_today_plan_dismiss', { source: 'dashboard', variant: ab1TodayPlanVariant })
+    try {
+      await fetch(`/api/ai/recommendations/${aiRecommendationId}/dismiss`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ feedbackLabel: 'dismiss' })
+      })
+    } catch {
+    }
+  }
+
   async function applySelected() {
-    if (!aiResult || !selected) return
+    if (!aiResult || !selected || !aiRecommendationId) return
     const rec = aiResult.recommendations[selected.recIndex]
     const variant = rec?.variants.find(v => v.minutes === selected.minutes)
     if (!rec || !variant) return
@@ -154,10 +175,22 @@ export function DailyPlanningCard({
     formData.set('description', [`First step: ${variant.first_step}`, `DoD: ${variant.definition_of_done}`, `Reason: ${rec.reason}`].join('\n'))
     formData.set('start_date', defaultDate)
     formData.set('end_date', defaultDate)
+    formData.set('ai_recommendation_id', aiRecommendationId)
 
     setAiLoading(true)
     try {
-      await createAction(formData)
+      const created = await createAction(formData) as { actionId?: string | null }
+      const optionSelected = `${selected.minutes}m` as '5m' | '10m' | '20m'
+      setAiOutcomeState('adopted')
+      void fetch(`/api/ai/recommendations/${aiRecommendationId}/adopt`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          optionSelected,
+          actionId: created?.actionId || null
+        })
+      }).catch(() => {
+      })
       logEvent('ai_today_plan_apply', { option: `${selected.minutes}m`, goal_id: goalId, variant: ab1TodayPlanVariant })
       sendAIFeedback('ai_today_plan_apply', { option: `${selected.minutes}m`, goal_id: goalId, variant: ab1TodayPlanVariant })
       setAiOpen(false)
@@ -226,9 +259,8 @@ export function DailyPlanningCard({
       <Dialog
         open={aiOpen}
         onOpenChange={(open) => {
-          if (!open && aiOpen && aiResult && !aiLoading) {
-            logEvent('ai_today_plan_dismiss', { source: 'dashboard', variant: ab1TodayPlanVariant })
-            sendAIFeedback('ai_today_plan_dismiss', { source: 'dashboard', variant: ab1TodayPlanVariant })
+          if (!open && aiOpen && aiResult && !aiLoading && aiOutcomeState === 'idle') {
+            void dismissRecommendation()
           }
           setAiOpen(open)
         }}

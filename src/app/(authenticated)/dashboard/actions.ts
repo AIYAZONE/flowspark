@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { setRecommendationCompletion } from '@/lib/ai/recommendationStore';
 import { awardXP } from '@/lib/gamification-actions';
 import { rollCompletionReward } from '@/lib/rewards';
 import type { RewardResult } from '@/lib/rewards';
@@ -19,7 +20,7 @@ async function toggleActionInternal(formData: FormData) {
       updated_at: new Date().toISOString()
     })
     .eq('id', id)
-    .select('user_id, type')
+    .select('user_id, type, ai_recommendation_id')
     .single();
 
   let reward: RewardResult | null = null
@@ -32,6 +33,15 @@ async function toggleActionInternal(formData: FormData) {
     if (reward.bonusXP > 0) {
       await awardXP(action.user_id, 'bonus', id, reward.bonusXP)
     }
+  }
+
+  if (action?.ai_recommendation_id) {
+    await setRecommendationCompletion({
+      supabase,
+      recommendationId: action.ai_recommendation_id,
+      userId: action.user_id,
+      completed: nextCompleted
+    })
   }
 
   revalidatePath('/dashboard');
