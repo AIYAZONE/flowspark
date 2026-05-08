@@ -15,10 +15,12 @@ import { StatCard } from '@/components/StatCard'
 import { StreakCard } from '@/components/StreakCard'
 import { GoalProgressList } from '@/components/GoalProgressList'
 import { InboxCard } from '@/components/InboxCard'
+import { WeeklyInsightCard } from '@/components/WeeklyInsightCard'
 import { Target, Star } from 'lucide-react'
 import { assignVariant, isEnvEnabled } from '@/lib/experiments'
 import { ExperimentExposureTracker } from '@/components/ExperimentExposureTracker'
 import { calcCompletionPercent } from '@/lib/progress'
+import { getLatestWeeklyInsight } from '@/lib/ai/insightStore'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -48,6 +50,11 @@ export default async function DashboardPage() {
     .eq('status', 'open')
 
   const inboxOpenCount = inboxOpenCountRaw ?? 0
+  const locale = String(dict.common.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'
+  const weeklyInsight = await getLatestWeeklyInsight({
+    supabase,
+    userId: user.id,
+  })
 
   const { data: inboxRecent } = await supabase
     .from('inbox_items')
@@ -413,6 +420,14 @@ export default async function DashboardPage() {
               reviewQuestionsCount={reviewQuestionsCount}
               ab2ReviewVariant={ab2ReviewVariant}
               className="h-full"
+            />
+          </div>
+
+          <div className="lg:col-span-3">
+            <WeeklyInsightCard
+              dict={dict.dashboard.planning}
+              locale={locale}
+              insight={weeklyInsight}
             />
           </div>
 

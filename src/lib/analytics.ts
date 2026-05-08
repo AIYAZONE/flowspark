@@ -1,5 +1,13 @@
 type AnalyticsValue = string | number | boolean | null
 type AnalyticsPayload = Record<string, AnalyticsValue>
+type AIEventMeta = {
+  recommendation_id?: string | null
+  scene?: string | null
+  strategy_version?: string | null
+  prompt_version?: string | null
+  model?: string | null
+  variant_minutes?: number | null
+}
 
 function clampString(value: string, maxLen: number) {
   const v = value.trim()
@@ -49,4 +57,11 @@ export function logEvent(name: string, payload?: unknown) {
     })
     .catch(() => {
     })
+}
+
+export function logAIEvent(name: string, payload?: unknown, meta?: AIEventMeta) {
+  logEvent(name, {
+    ...(payload && typeof payload === 'object' && !Array.isArray(payload) ? payload : {}),
+    ...(meta || {}),
+  })
 }

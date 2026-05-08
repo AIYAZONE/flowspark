@@ -169,11 +169,17 @@ export async function aiTodayPlan(opts: {
 		'  "confidence":"low|medium|high"',
 		'}',
 		'Hard rules:',
-		'- recommendations: 1 core + up to 2 alt.',
+		'- recommendations: exactly 1 core and at most 1 alt.',
 		'- core goal_id must be one of provided goal ids unless you truly cannot decide.',
-		'- variants must include 5/10/20 with same intent at different granularity.',
+		'- variants must include 5/10/20 and represent estimated time options for the SAME action intent.',
 		'- first_step must be 1 sentence <= 30 chars (Chinese) / <= 30 chars overall.',
-		'- titles executable (verb + object).'
+		'- titles executable (verb + object).',
+		'- title must describe a real action the user can do today, not a slogan or abstract summary.',
+		'- reason explains why this action is recommended today; reason must not replace the action itself.',
+		'- stay grounded in the provided goal title and criteria.',
+		'- avoid vague phrases such as “推进MVP搭建”, “挑战新关卡”, “打怪”, “副本”, “升级”, “关键模块”, “系统优化” unless the goal title itself clearly uses those words.',
+		'- do not invent a different domain from the goal title.',
+		'- if you provide an alt recommendation, it must still be concrete and realistic today.'
 	].join('\n');
 
 	const user = [
@@ -183,12 +189,17 @@ export async function aiTodayPlan(opts: {
 		'Recent context (optional JSON):',
 		formatContext(opts.recent_context ?? {}),
 		'Task:',
-		'- Pick ONE best core action for today and provide 5/10/20 variants.',
-		'- Provide up to two alternative options (kind=alt).',
+		'- Pick ONE best core action for today and provide 5/10/20 estimated-time variants.',
+		'- Provide at most one alternative option (kind=alt) only if there is a clearly valid second choice.',
+		'- Every title should read like a task in a to-do list, not a strategy statement.',
+		'- Prefer specific outputs, files, pages, conversations, drafts, or review actions over generic progress wording.',
 		'Difficulty policy:',
 		'- If momentum_bucket is high/medium: make the 10/20 variants slightly more challenging (still executable today).',
 		'- If momentum_bucket is low/unknown or completion_rate_7d is low: make the 5-minute variant a very low-friction starter task.',
-		'- Always keep 5/10/20 variants aligned to the same intent (granularity differs, not goal).'
+		'- Always keep 5/10/20 variants aligned to the same intent (granularity differs, not goal).',
+		'Quality bar:',
+		'- Good: “整理登录流程待修问题”, “写出首页文案初稿”, “补完支付回调测试”',
+		'- Bad: “推进系统MVP搭建”, “挑战副本”, “继续升级项目”, “完成关键模块”'
 	].join('\n');
 
 	return generateWithSingleRepair({

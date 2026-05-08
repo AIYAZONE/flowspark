@@ -6,6 +6,7 @@ import { setRecommendationCompletion } from '@/lib/ai/recommendationStore';
 import { awardXP } from '@/lib/gamification-actions';
 import { rollCompletionReward } from '@/lib/rewards';
 import type { RewardResult } from '@/lib/rewards';
+import { upsertBehaviorSnapshot } from '@/lib/snapshots';
 
 async function toggleActionInternal(formData: FormData) {
   const supabase = await createClient();
@@ -41,6 +42,14 @@ async function toggleActionInternal(formData: FormData) {
       recommendationId: action.ai_recommendation_id,
       userId: action.user_id,
       completed: nextCompleted
+    })
+  }
+
+  if (action?.user_id) {
+    await upsertBehaviorSnapshot({
+      supabase,
+      userId: action.user_id,
+      snapshotDate: new Date().toISOString().slice(0, 10)
     })
   }
 
@@ -104,4 +113,9 @@ export async function submitScore(formData: FormData) {
 	}
 
 	revalidatePath('/dashboard');
+	await upsertBehaviorSnapshot({
+		supabase,
+		userId: user.id,
+		snapshotDate: date
+	});
 }

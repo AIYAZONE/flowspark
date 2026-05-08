@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import type { ReviewOutput } from '@/lib/ai/phase2aSchemas'
+import type { ReviewApiResponse } from '@/lib/ai/types'
 import { logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
 
@@ -54,11 +55,14 @@ export function ScoreCard({
   ab2ReviewVariant = null,
   className
 }: ScoreCardProps) {
+  void _recent7
   const [score, setScore] = useState<number | null>(currentScore)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewError, setReviewError] = useState<string | null>(null)
   const [reviewResult, setReviewResult] = useState<ReviewOutput | null>(null)
+  const [reviewRecommendationId, setReviewRecommendationId] = useState<string | null>(null)
+  const [reviewOutcomeState, setReviewOutcomeState] = useState<'idle' | 'dismissed'>('idle')
   const [friction, setFriction] = useState<string>('')
   const [tomorrowTime, setTomorrowTime] = useState<string>('')
 
@@ -75,6 +79,8 @@ export function ScoreCard({
     setReviewOpen(true)
     setReviewError(null)
     setReviewResult(null)
+    setReviewRecommendationId(null)
+    setReviewOutcomeState('idle')
     setFriction('')
     setTomorrowTime('')
     logEvent('ai_review_click', { source: 'dashboard', had_score: score != null, variant: ab2ReviewVariant })
@@ -94,17 +100,18 @@ export function ScoreCard({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ today, score, answers, locale })
       })
-      const json = (await res.json()) as { result?: ReviewOutput; error?: string }
+      const json = (await res.json()) as ReviewApiResponse & { error?: string }
       if (!res.ok) {
         const key = json.error || 'operation_failed'
         setReviewError((dict.common.errors as Record<string, string>)[key] || dict.common.errors.operation_failed)
         return
       }
-      if (!json.result) {
+      if (!json.data || !json.recommendationId) {
         setReviewError(dict.common.errors.operation_failed)
         return
       }
-      setReviewResult(json.result)
+      setReviewResult(json.data)
+      setReviewRecommendationId(json.recommendationId)
       logEvent('ai_review_generated', {
         questions_answered: (friction ? 1 : 0) + (reviewQuestionsCount === 2 && tomorrowTime ? 1 : 0),
         variant: ab2ReviewVariant
@@ -179,7 +186,14 @@ export function ScoreCard({
       <Dialog
         open={reviewOpen}
         onOpenChange={(open) => {
-          if (!open && reviewOpen && !reviewResult) {
+          if (!open && reviewOpen && reviewRecommendationId && reviewOutcomeState === 'idle') {
+            setReviewOutcomeState('dismissed')
+            void fetch(`/api/ai/recommendations/${reviewRecommendationId}/dismiss`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ feedbackLabel: reviewResult ? 'close_result' : 'dismiss' })
+            }).catch(() => {
+            })
             logEvent('ai_review_dismiss', { step: 'result', variant: ab2ReviewVariant })
             sendAIFeedback('ai_review_dismiss', { step: 'result', variant: ab2ReviewVariant })
           }
