@@ -1164,6 +1164,14 @@ type ShareSnapshot = {
 		start_date: string;
 		end_date?: string | null;
 	}>;
+	entries: Array<{
+		id: string;
+		kind: 'inspiration' | 'journey';
+		status: 'open' | 'archived';
+		content: string;
+		note?: string | null;
+		created_at: string;
+	}>;
 };
 
 async function fetchGoalForShare(params: {
@@ -1223,6 +1231,28 @@ async function fetchGoalForShare(params: {
 
 	if (actionsError) throw new Error('operation_failed');
 
+	let {
+		data: entries,
+		error: entriesError
+	} = await supabase
+		.from('goal_entries')
+		.select('id, kind, status, content, note, created_at')
+		.eq('goal_id', goalId)
+		.eq('owner_id', userId)
+		.order('created_at', { ascending: false });
+
+	if (entriesError) {
+		const fallback = await supabase
+			.from('goal_entries')
+			.select('id, kind, status, content, note, created_at')
+			.eq('goal_id', goalId)
+			.eq('user_id', userId)
+			.order('created_at', { ascending: false });
+		entries = fallback.data;
+		entriesError = fallback.error;
+	}
+	if (entriesError) throw new Error('operation_failed');
+
 	return {
 		goal: {
 			id: goal.id as string,
@@ -1245,7 +1275,21 @@ async function fetchGoalForShare(params: {
 			completed: Boolean(a.completed),
 			start_date: (a.start_date as string) || '',
 			end_date: (a.end_date as string | null) || null
-		}))
+		})),
+		entries: (entries || [])
+			.filter(
+				(e) =>
+					(e.kind === 'inspiration' || e.kind === 'journey') &&
+					(e.status === 'open' || e.status === 'archived')
+			)
+			.map((e) => ({
+				id: e.id as string,
+				kind: e.kind as 'inspiration' | 'journey',
+				status: (e.status as 'open' | 'archived') || 'open',
+				content: (e.content as string) || '',
+				note: (e.note as string | null) || null,
+				created_at: (e.created_at as string) || ''
+			}))
 	};
 }
 
@@ -1283,6 +1327,44 @@ export async function createGoalShareLink(goalId: string) {
 
 	revalidatePath(`/goals/${goalId}`);
 	return { token, expiresAt };
+}
+
+export async function refreshGoalShareSnapshot(goalId: string) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) throw new Error('unauthenticated');
+	if (!goalId) throw new Error('missing_fields');
+
+	const snapshot = await fetchGoalForShare({
+		supabase,
+		userId: user.id,
+		goalId
+	});
+
+	const { data: existing, error: findError } = await supabase
+		.from('goal_shares')
+		.select('token, expires_at, revoked_at')
+		.eq('goal_id', goalId)
+		.eq('owner_id', user.id)
+		.maybeSingle();
+	if (findError) throw new Error('operation_failed');
+	if (!existing?.token || existing.revoked_at) throw new Error('operation_failed');
+
+	const { error } = await supabase
+		.from('goal_shares')
+		.update({ snapshot })
+		.eq('goal_id', goalId)
+		.eq('owner_id', user.id)
+		.eq('token', existing.token);
+	if (error) throw new Error('operation_failed');
+
+	revalidatePath(`/goals/${goalId}`);
+	return {
+		token: existing.token as string,
+		expiresAt: (existing.expires_at as string | null) || null
+	};
 }
 
 export async function revokeGoalShareLink(goalId: string) {
