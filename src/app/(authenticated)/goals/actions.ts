@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { setRecommendationCompletion } from '@/lib/ai/recommendationStore';
 import { createClient } from '@/lib/supabase/server';
 import { normalizeCategoryInput } from '@/lib/goalCategories';
 
@@ -16,6 +17,7 @@ type ActionInsertPayload = {
 	start_date: string;
 	end_date: string;
 	completed: boolean;
+	ai_recommendation_id?: string | null;
 };
 
 type ActionSubItemInsertPayload = {
@@ -574,6 +576,8 @@ export async function createAction(formData: FormData) {
 	const description = formData.get('description') as string;
 	const start_date = formData.get('start_date') as string;
 	const end_date = formData.get('end_date') as string;
+	const ai_recommendation_id =
+		(formData.get('ai_recommendation_id') as string | null) || null;
 	const attachments = parseAttachmentManifest(
 		formData.get('attachment_manifest')
 	);
@@ -590,8 +594,10 @@ export async function createAction(formData: FormData) {
 		description: description || '',
 		start_date,
 		end_date,
-		completed: false
+		completed: false,
+		ai_recommendation_id
 	};
+	let createdActionId: string | null = null;
 	try {
 		const inserted = await insertActionWithFallback({
 			supabase,
@@ -599,8 +605,8 @@ export async function createAction(formData: FormData) {
 			payload: baseData,
 			selectFields: 'id'
 		});
-		const actionId = (inserted.data?.id as string) || null;
-		if (!actionId) throw new Error('operation_failed');
+		createdActionId = (inserted.data?.id as string) || null;
+		if (!createdActionId) throw new Error('operation_failed');
 
 		if (attachments.length > 0) {
 			await insertActionAttachmentsWithFallback({
@@ -608,7 +614,7 @@ export async function createAction(formData: FormData) {
 				userId: user.id,
 				items: attachments.map((item) => ({
 					...item,
-					action_id: actionId
+					action_id: createdActionId
 				}))
 			});
 		}
@@ -620,6 +626,7 @@ export async function createAction(formData: FormData) {
 	revalidatePath('/dashboard');
 	revalidatePath('/today');
 	revalidatePath(`/goals/${goal_id}`);
+	return { actionId: createdActionId };
 }
 
 export async function createActionWithSubItems(formData: FormData) {
@@ -791,21 +798,38 @@ export async function toggleActionSubItem(formData: FormData) {
 	if (subItems && subItems.length > 0) {
 		const parentCompleted = subItems.every((item) => item.completed);
 		let parentUpdateError: { message?: string; code?: string } | null = null;
+		let parentRecommendationId: string | null = null;
 		const parentByOwner = await supabase
 			.from('actions')
 			.update({ completed: parentCompleted })
 			.eq('id', actionId)
-			.eq('owner_id', user.id);
+			.eq('owner_id', user.id)
+			.select('ai_recommendation_id')
+			.maybeSingle();
 		parentUpdateError = parentByOwner.error;
+		parentRecommendationId =
+			(parentByOwner.data?.ai_recommendation_id as string | null) ?? null;
 		if (parentUpdateError) {
 			const parentByUser = await supabase
 				.from('actions')
 				.update({ completed: parentCompleted })
 				.eq('id', actionId)
-				.eq('user_id', user.id);
+				.eq('user_id', user.id)
+				.select('ai_recommendation_id')
+				.maybeSingle();
 			parentUpdateError = parentByUser.error;
+			parentRecommendationId =
+				(parentByUser.data?.ai_recommendation_id as string | null) ?? null;
 		}
 		if (parentUpdateError) throw new Error('operation_failed');
+		if (parentRecommendationId) {
+			await setRecommendationCompletion({
+				supabase,
+				recommendationId: parentRecommendationId,
+				userId: user.id,
+				completed: parentCompleted
+			});
+		}
 	}
 
 	revalidatePath('/today');
