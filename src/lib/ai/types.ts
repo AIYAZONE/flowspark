@@ -12,6 +12,27 @@ export type CoachScene =
   | 'weekly_insight'
 
 export type CoachConfidence = 'low' | 'medium' | 'high'
+export type CoachDifficultyMode = 'starter' | 'balanced' | 'push'
+export type CoachRiskLevel = 'low' | 'medium' | 'high'
+
+export type RecommendationQuality = {
+  schema_valid: boolean
+  actionability_score: number
+  adoption_ready: boolean
+  requires_fallback: boolean
+  reasons: string[]
+}
+
+export type RecommendationStrategySummary = {
+  scene: CoachScene
+  strategyVersion: string
+  promptVersion: string
+  difficultyMode?: CoachDifficultyMode
+  riskLevel?: CoachRiskLevel
+  selectedGoalId?: string | null
+  groundingHints: string[]
+  fallbackPolicy: string[]
+}
 
 export type CoachApiResponse<T> = {
   ok: boolean
@@ -58,6 +79,7 @@ export type CoachContext = {
     completionRate30d?: number | null
     scoreAvg7d?: number | null
     momentumBucket?: CoachMomentumBucket
+    activeTimeBucket?: string | null
   }
   frictions: Array<{
     reasonTag: string

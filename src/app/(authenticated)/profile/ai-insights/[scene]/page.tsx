@@ -63,6 +63,8 @@ type SceneAnalyticsDict = {
   aiAnalyticsDetailIfThen: string
   aiAnalyticsDetailSelectedOption: string
   aiAnalyticsDetailCompletionMinutes: string
+  aiAnalyticsDetailStrategySummary: string
+  aiAnalyticsDetailQualityLabels: string
   aiAnalyticsStatusGenerated: string
   aiAnalyticsStatusAdopted: string
   aiAnalyticsStatusCompleted: string

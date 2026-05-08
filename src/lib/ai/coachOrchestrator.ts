@@ -2,6 +2,14 @@ import { getConfiguredAIModel } from '@/lib/ai/client'
 import { buildCoachContext } from '@/lib/ai/contextBuilder'
 import { aiWeeklyInsight } from '@/lib/ai/insights'
 import { aiRescue, aiReview, aiTodayPlan } from '@/lib/ai/phase2a'
+import {
+  buildRescueStrategy,
+  buildReviewStrategy,
+  buildTodayStrategy,
+  evaluateRescueQuality,
+  evaluateReviewQuality,
+  evaluateTodayPlanQuality,
+} from '@/lib/ai/strategy'
 import type {
   RescueOutput,
   ReviewOutput,
@@ -12,6 +20,8 @@ import { upsertGrowthProfileSummary } from '@/lib/userState'
 import type {
   CoachApiResponse,
   CoachContext,
+  RecommendationQuality,
+  RecommendationStrategySummary,
   RescueApiResponse,
   ReviewApiResponse,
   TodayPlanApiResponse,
@@ -229,8 +239,21 @@ async function persistRecommendation<T>(params: {
   inputSummary: unknown
   output: T & { confidence?: 'low' | 'medium' | 'high' }
   fallbackUsed: boolean
+  qualityLabels?: RecommendationQuality | null
+  strategySummary?: RecommendationStrategySummary | null
 }) {
-  const { supabase, userId, scene, strategyVersion, promptVersion, inputSummary, output, fallbackUsed } = params
+  const {
+    supabase,
+    userId,
+    scene,
+    strategyVersion,
+    promptVersion,
+    inputSummary,
+    output,
+    fallbackUsed,
+    qualityLabels = null,
+    strategySummary = null,
+  } = params
   const recommendationId = await createRecommendation({
     supabase,
     userId,
@@ -242,6 +265,8 @@ async function persistRecommendation<T>(params: {
     outputPayload: output,
     confidence: output.confidence,
     fallbackUsed,
+    qualityLabels,
+    strategySummary,
   })
 
   return recommendationId
@@ -294,6 +319,11 @@ export async function planToday(params: {
   const effectiveGoals = goals.length > 0 ? goals : mapContextGoals(context)
   let output: TodayPlanOutput
   let fallbackUsed = false
+  const strategy = buildTodayStrategy({
+    context,
+    goals: effectiveGoals,
+  })
+  let qualityLabels: RecommendationQuality | null = null
 
   try {
     output = await aiTodayPlan({
@@ -307,8 +337,28 @@ export async function planToday(params: {
         daily_score_avg_7d: context.behavior.scoreAvg7d ?? null,
         momentum_bucket: context.behavior.momentumBucket ?? 'unknown',
         likely_frictions: context.frictions.slice(0, 2).map(item => item.reasonTag),
+        active_time_bucket: context.behavior.activeTimeBucket ?? null,
       } as Record<string, unknown>,
+      strategy: {
+        difficulty_mode: strategy.difficultyMode,
+        risk_level: strategy.riskLevel,
+        selected_goal_id: strategy.selectedGoalId ?? null,
+        grounding_hints: strategy.groundingHints,
+        user_profile_summary: context.profile.summary ?? null,
+        preferred_time_bucket: context.profile.preferredTimeBucket ?? context.behavior.activeTimeBucket ?? null,
+      },
     })
+    qualityLabels = evaluateTodayPlanQuality({ output, strategy })
+    if (qualityLabels.requires_fallback) {
+      output = buildFallbackTodayPlan({
+        locale,
+        goals: strategy.selectedGoalId
+          ? effectiveGoals.filter(goal => goal.id === strategy.selectedGoalId)
+          : effectiveGoals,
+        context,
+      })
+      fallbackUsed = true
+    }
   } catch {
     output = buildFallbackTodayPlan({
       locale,
@@ -316,14 +366,21 @@ export async function planToday(params: {
       context,
     })
     fallbackUsed = true
+    qualityLabels = {
+      schema_valid: false,
+      actionability_score: 1,
+      adoption_ready: false,
+      requires_fallback: true,
+      reasons: ['model_failed_or_invalid_output'],
+    }
   }
 
   const recommendationId = await persistRecommendation({
     supabase,
     userId,
     scene: 'today_plan',
-    strategyVersion: 'phase_b_v1',
-    promptVersion: 'today_plan_v2',
+    strategyVersion: strategy.strategyVersion,
+    promptVersion: strategy.promptVersion,
     inputSummary: {
       today,
       locale,
@@ -335,14 +392,16 @@ export async function planToday(params: {
     },
     output,
     fallbackUsed,
+    qualityLabels,
+    strategySummary: strategy,
   })
 
   return {
     ok: true,
     scene: 'today_plan',
     recommendationId,
-    strategyVersion: 'phase_b_v1',
-    promptVersion: 'today_plan_v2',
+    strategyVersion: strategy.strategyVersion,
+    promptVersion: strategy.promptVersion,
     model: fallbackUsed ? 'fallback_rule_v1' : getConfiguredAIModel(),
     data: output,
     confidence: output.confidence,
@@ -370,13 +429,33 @@ export async function planRescue(params: {
 
   let output: RescueOutput
   let fallbackUsed = false
+  const strategy = buildRescueStrategy({
+    context,
+    reasonTag,
+    actionTitle: action.title,
+  })
+  let qualityLabels: RecommendationQuality | null = null
   try {
     output = await aiRescue({
       locale,
       reason_tag: reasonTag,
       action,
       goal,
+      strategy: {
+        difficulty_mode: strategy.difficultyMode,
+        risk_level: strategy.riskLevel,
+        grounding_hints: strategy.groundingHints,
+      },
     })
+    qualityLabels = evaluateRescueQuality(output)
+    if (qualityLabels.requires_fallback) {
+      output = buildFallbackRescuePlan({
+        locale,
+        reasonTag,
+        actionTitle: action.title,
+      })
+      fallbackUsed = true
+    }
   } catch {
     output = buildFallbackRescuePlan({
       locale,
@@ -384,14 +463,21 @@ export async function planRescue(params: {
       actionTitle: action.title,
     })
     fallbackUsed = true
+    qualityLabels = {
+      schema_valid: false,
+      actionability_score: 1,
+      adoption_ready: false,
+      requires_fallback: true,
+      reasons: ['model_failed_or_invalid_output'],
+    }
   }
 
   const recommendationId = await persistRecommendation({
     supabase,
     userId,
     scene: 'rescue',
-    strategyVersion: 'phase_b_v1',
-    promptVersion: 'rescue_v1',
+    strategyVersion: strategy.strategyVersion,
+    promptVersion: strategy.promptVersion,
     inputSummary: {
       locale,
       reasonTag,
@@ -404,6 +490,8 @@ export async function planRescue(params: {
     },
     output,
     fallbackUsed,
+    qualityLabels,
+    strategySummary: strategy,
   })
 
   await recordFrictionEvent({
@@ -420,8 +508,8 @@ export async function planRescue(params: {
     ok: true,
     scene: 'rescue',
     recommendationId,
-    strategyVersion: 'phase_b_v1',
-    promptVersion: 'rescue_v1',
+    strategyVersion: strategy.strategyVersion,
+    promptVersion: strategy.promptVersion,
     model: fallbackUsed ? 'fallback_rule_v1' : getConfiguredAIModel(),
     data: output,
     confidence: output.confidence,
@@ -449,22 +537,53 @@ export async function planReview(params: {
 
   let output: ReviewOutput
   let fallbackUsed = false
+  const strategy = buildReviewStrategy({
+    context,
+    score,
+    answers,
+  })
+  let qualityLabels: RecommendationQuality | null = null
   try {
-    output = await aiReview({ locale, today, score, answers })
+    output = await aiReview({
+      locale,
+      today,
+      score,
+      answers,
+      strategy: {
+        difficulty_mode: strategy.difficultyMode,
+        risk_level: strategy.riskLevel,
+        grounding_hints: strategy.groundingHints,
+      },
+    })
+    qualityLabels = evaluateReviewQuality(output)
+    if (qualityLabels.requires_fallback) {
+      output = buildFallbackReviewPlan({
+        locale,
+        friction: answers.friction || null,
+      })
+      fallbackUsed = true
+    }
   } catch {
     output = buildFallbackReviewPlan({
       locale,
       friction: answers.friction || null,
     })
     fallbackUsed = true
+    qualityLabels = {
+      schema_valid: false,
+      actionability_score: 1,
+      adoption_ready: false,
+      requires_fallback: true,
+      reasons: ['model_failed_or_invalid_output'],
+    }
   }
 
   const recommendationId = await persistRecommendation({
     supabase,
     userId,
     scene: 'review',
-    strategyVersion: 'phase_b_v1',
-    promptVersion: 'review_v1',
+    strategyVersion: strategy.strategyVersion,
+    promptVersion: strategy.promptVersion,
     inputSummary: {
       today,
       score,
@@ -476,6 +595,8 @@ export async function planReview(params: {
     },
     output,
     fallbackUsed,
+    qualityLabels,
+    strategySummary: strategy,
   })
 
   await recordFrictionEvent({
@@ -490,8 +611,8 @@ export async function planReview(params: {
     ok: true,
     scene: 'review',
     recommendationId,
-    strategyVersion: 'phase_b_v1',
-    promptVersion: 'review_v1',
+    strategyVersion: strategy.strategyVersion,
+    promptVersion: strategy.promptVersion,
     model: fallbackUsed ? 'fallback_rule_v1' : getConfiguredAIModel(),
     data: output,
     confidence: output.confidence,

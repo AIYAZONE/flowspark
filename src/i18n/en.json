@@ -582,6 +582,8 @@
 		"aiAnalyticsDetailIfThen": "If-Then Plan",
 		"aiAnalyticsDetailSelectedOption": "Selected Option",
 		"aiAnalyticsDetailCompletionMinutes": "Completion Minutes",
+		"aiAnalyticsDetailStrategySummary": "Strategy Summary",
+		"aiAnalyticsDetailQualityLabels": "Quality Labels",
 		"advancedActions": "Advanced",
 		"email": "Email",
 		"name": "Name",

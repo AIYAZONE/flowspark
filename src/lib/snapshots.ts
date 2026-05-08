@@ -12,6 +12,7 @@ type SnapshotSummary = {
   completionRate30d: number | null
   scoreAvg7d: number | null
   momentumBucket: 'high' | 'medium' | 'low' | 'unknown'
+  activeTimeBucket: string | null
 }
 
 function isoDateNDaysAgo(days: number) {
@@ -70,11 +71,25 @@ function summarizeBehavior(params: {
     : coreCreated7d >= 1 ? 'low'
     : 'unknown'
 
+  const activeHours = recentActions
+    .map(action => action.updated_at || action.created_at || null)
+    .filter((value): value is string => typeof value === 'string')
+    .map(value => new Date(value).getHours())
+  const avgHour = activeHours.length
+    ? Math.round(activeHours.reduce((sum, hour) => sum + hour, 0) / activeHours.length)
+    : null
+  const activeTimeBucket =
+    avgHour == null ? null
+    : avgHour < 11 ? 'morning'
+    : avgHour < 17 ? 'afternoon'
+    : 'evening'
+
   return {
     completionRate7d,
     completionRate30d,
     scoreAvg7d,
     momentumBucket,
+    activeTimeBucket,
     actionsCreated7d: coreCreated7d,
     actionsCompleted7d: coreCompleted7d,
   }
@@ -89,7 +104,7 @@ export async function getBehaviorSnapshotSummary(params: {
 
   const { data: snapshotRow, error: snapshotError } = await supabase
     .from('user_behavior_daily_snapshots')
-    .select('completion_rate, momentum_bucket, daily_score')
+    .select('completion_rate, momentum_bucket, daily_score, active_time_bucket')
     .eq('user_id', userId)
     .eq('snapshot_date', today)
     .maybeSingle()
@@ -101,6 +116,7 @@ export async function getBehaviorSnapshotSummary(params: {
       scoreAvg7d: (snapshotRow.daily_score as number | null) ?? null,
       momentumBucket:
         (snapshotRow.momentum_bucket as SnapshotSummary['momentumBucket'] | null) ?? 'unknown',
+      activeTimeBucket: (snapshotRow.active_time_bucket as string | null) ?? null,
     }
   }
 
@@ -138,6 +154,7 @@ export async function getBehaviorSnapshotSummary(params: {
     completionRate30d: summary.completionRate30d,
     scoreAvg7d: summary.scoreAvg7d,
     momentumBucket: summary.momentumBucket,
+    activeTimeBucket: summary.activeTimeBucket,
   }
 }
 
@@ -186,7 +203,7 @@ export async function upsertBehaviorSnapshot(params: {
       completion_rate: summary.completionRate7d,
       daily_score: summary.scoreAvg7d == null ? null : Math.round(summary.scoreAvg7d),
       momentum_bucket: summary.momentumBucket,
-      active_time_bucket: null,
+      active_time_bucket: summary.activeTimeBucket,
       created_at: new Date().toISOString(),
     },
     { onConflict: 'user_id,snapshot_date' }

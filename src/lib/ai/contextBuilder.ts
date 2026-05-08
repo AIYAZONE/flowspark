@@ -216,6 +216,7 @@ export async function buildCoachContext(params: {
       completionRate30d: behavior.completionRate30d,
       scoreAvg7d: behavior.scoreAvg7d,
       momentumBucket: behavior.momentumBucket,
+      activeTimeBucket: behavior.activeTimeBucket,
     },
     frictions: fallbackFrictions,
     recentAI,
