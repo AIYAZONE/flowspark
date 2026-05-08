@@ -582,6 +582,8 @@
 		"aiAnalyticsDetailIfThen": "If-Then 方案",
 		"aiAnalyticsDetailSelectedOption": "用户选择",
 		"aiAnalyticsDetailCompletionMinutes": "完成时长",
+		"aiAnalyticsDetailStrategySummary": "策略摘要",
+		"aiAnalyticsDetailQualityLabels": "质量标签",
 		"advancedActions": "高级操作",
 		"email": "邮箱",
 		"name": "姓名",

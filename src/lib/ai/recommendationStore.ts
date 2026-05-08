@@ -1,5 +1,10 @@
 import type { createClient } from '@/lib/supabase/server'
-import type { CoachConfidence, CoachScene } from '@/lib/ai/types'
+import type {
+  CoachConfidence,
+  CoachScene,
+  RecommendationQuality,
+  RecommendationStrategySummary,
+} from '@/lib/ai/types'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -41,6 +46,11 @@ function toJSONValue(value: unknown): JSONValue {
   return String(value)
 }
 
+function isMissingColumnError(error: { code?: string | null; message?: string | null } | null | undefined) {
+  const text = (error?.message || '').toLowerCase()
+  return error?.code === '42703' || text.includes('column') || text.includes('schema cache')
+}
+
 async function updateRecommendationStatus(params: {
   supabase: SupabaseServerClient
   recommendationId: string
@@ -68,6 +78,8 @@ export async function createRecommendation(params: {
   outputPayload: unknown
   confidence?: CoachConfidence
   fallbackUsed?: boolean
+  qualityLabels?: RecommendationQuality | null
+  strategySummary?: RecommendationStrategySummary | null
 }) {
   const {
     supabase,
@@ -79,27 +91,49 @@ export async function createRecommendation(params: {
     inputSummary,
     outputPayload,
     confidence,
-    fallbackUsed = false
+    fallbackUsed = false,
+    qualityLabels = null,
+    strategySummary = null,
   } = params
 
-  const { data, error } = await supabase
+  const baseInsert = {
+    user_id: userId,
+    scene,
+    strategy_version: strategyVersion,
+    prompt_version: promptVersion,
+    model,
+    input_summary: inputSummary == null ? null : toJSONValue(inputSummary),
+    output_payload: toJSONValue(outputPayload),
+    confidence: confidence ?? null,
+    fallback_used: fallbackUsed,
+    status: 'generated' as const,
+  }
+
+  let { data, error } = await supabase
     .from('ai_recommendations')
     .insert({
-      user_id: userId,
-      scene,
-      strategy_version: strategyVersion,
-      prompt_version: promptVersion,
-      model,
-      input_summary: inputSummary == null ? null : toJSONValue(inputSummary),
-      output_payload: toJSONValue(outputPayload),
-      confidence: confidence ?? null,
-      fallback_used: fallbackUsed,
-      status: 'generated'
+      ...baseInsert,
+      quality_labels: qualityLabels == null ? null : toJSONValue(qualityLabels),
+      strategy_summary: strategySummary == null ? null : toJSONValue(strategySummary),
     })
     .select('id')
     .single()
 
+  if (error && isMissingColumnError(error)) {
+    const fallback = await supabase
+      .from('ai_recommendations')
+      .insert(baseInsert)
+      .select('id')
+      .single()
+
+    data = fallback.data
+    error = fallback.error
+  }
+
   if (error) throw error
+  if (!data?.id) {
+    throw new Error('Failed to create ai_recommendation record')
+  }
   return data.id as string
 }
 

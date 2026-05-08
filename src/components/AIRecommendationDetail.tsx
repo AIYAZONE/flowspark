@@ -19,6 +19,8 @@ type RecommendationDetailDict = {
   aiAnalyticsDetailIfThen: string
   aiAnalyticsDetailSelectedOption: string
   aiAnalyticsDetailCompletionMinutes: string
+  aiAnalyticsDetailStrategySummary: string
+  aiAnalyticsDetailQualityLabels: string
   aiAnalyticsStatusGenerated: string
   aiAnalyticsStatusAdopted: string
   aiAnalyticsStatusCompleted: string
@@ -125,6 +127,35 @@ function outputSummary(detail: AIRecommendationDetailRow, dict: RecommendationDe
   return []
 }
 
+function strategyRows(detail: AIRecommendationDetailRow) {
+  const summary = asRecord(detail.strategy_summary)
+  if (!summary) return []
+  const hints = Array.isArray(summary.groundingHints)
+    ? summary.groundingHints.filter(item => typeof item === 'string')
+    : []
+  return [
+    { label: 'difficulty', value: asString(summary.difficultyMode) },
+    { label: 'risk', value: asString(summary.riskLevel) },
+    { label: 'goal', value: asString(summary.selectedGoalId) },
+    { label: 'hints', value: hints.length ? hints.join(' / ') : null },
+  ].filter(row => row.value)
+}
+
+function qualityRows(detail: AIRecommendationDetailRow) {
+  const quality = asRecord(detail.quality_labels)
+  if (!quality) return []
+  const reasons = Array.isArray(quality.reasons)
+    ? quality.reasons.filter(item => typeof item === 'string')
+    : []
+  return [
+    { label: 'schema', value: typeof quality.schema_valid === 'boolean' ? String(quality.schema_valid) : null },
+    { label: 'score', value: typeof quality.actionability_score === 'number' ? String(quality.actionability_score) : null },
+    { label: 'ready', value: typeof quality.adoption_ready === 'boolean' ? String(quality.adoption_ready) : null },
+    { label: 'fallback', value: typeof quality.requires_fallback === 'boolean' ? String(quality.requires_fallback) : null },
+    { label: 'reasons', value: reasons.length ? reasons.join(' / ') : null },
+  ].filter(row => row.value)
+}
+
 export function AIRecommendationDetail(props: {
   detail: AIRecommendationDetailRow | null
   dict: RecommendationDetailDict
@@ -145,6 +176,8 @@ export function AIRecommendationDetail(props: {
 
   const detail = props.detail
   const outputRows = outputSummary(detail, props.dict)
+  const strategyInfo = strategyRows(detail)
+  const qualityInfo = qualityRows(detail)
 
   return (
     <Card>
@@ -224,6 +257,33 @@ export function AIRecommendationDetail(props: {
             </div>
           </div>
         </div>
+
+        {(strategyInfo.length > 0 || qualityInfo.length > 0) ? (
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="space-y-3 rounded-2xl border p-4">
+              <div className="text-sm font-semibold">{props.dict.aiAnalyticsDetailStrategySummary}</div>
+              <div className="space-y-3 text-sm">
+                {strategyInfo.map((row, index) => (
+                  <div key={`${row.label}-${index}`} className="flex items-start justify-between gap-3">
+                    <span className="text-muted-foreground">{row.label}</span>
+                    <span className="text-right font-medium">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-3 rounded-2xl border p-4">
+              <div className="text-sm font-semibold">{props.dict.aiAnalyticsDetailQualityLabels}</div>
+              <div className="space-y-3 text-sm">
+                {qualityInfo.map((row, index) => (
+                  <div key={`${row.label}-${index}`} className="flex items-start justify-between gap-3">
+                    <span className="text-muted-foreground">{row.label}</span>
+                    <span className="text-right font-medium">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   )

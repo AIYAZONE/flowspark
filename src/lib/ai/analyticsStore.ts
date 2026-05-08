@@ -42,6 +42,14 @@ export type AIRecommendationDetailRow = AIRecentRecommendationRow & {
   input_summary: unknown
   output_payload: unknown
   completion_minutes: number | null
+  quality_labels: unknown
+  strategy_summary: unknown
+}
+
+type RecommendationDetailRecord = Record<string, unknown> & {
+  ai_recommendation_outcomes?: unknown
+  quality_labels?: unknown
+  strategy_summary?: unknown
 }
 
 function isoDaysAgo(days: number) {
@@ -53,6 +61,11 @@ function isoDaysAgo(days: number) {
 function isMissingRelationError(message: string | undefined) {
   const text = (message || '').toLowerCase()
   return text.includes('does not exist') || text.includes('relation') || text.includes('schema cache')
+}
+
+function isMissingColumnError(error: { code?: string | null; message?: string | null } | null | undefined) {
+  const text = (error?.message || '').toLowerCase()
+  return error?.code === '42703' || text.includes('column') || text.includes('schema cache')
 }
 
 function toNumber(value: unknown) {
@@ -264,7 +277,10 @@ export async function getRecommendationDetail(params: {
   recommendationId: string
 }): Promise<AIRecommendationDetailRow | null> {
   const { supabase, userId, recommendationId } = params
-  const { data, error } = await supabase
+  let data: RecommendationDetailRecord | null = null
+  let error: { code?: string | null; message?: string | null } | null = null
+
+  const primary = await supabase
     .from('ai_recommendations')
     .select(`
       id,
@@ -277,6 +293,8 @@ export async function getRecommendationDetail(params: {
       fallback_used,
       input_summary,
       output_payload,
+      quality_labels,
+      strategy_summary,
       created_at,
       ai_recommendation_outcomes (
         adopted,
@@ -289,6 +307,40 @@ export async function getRecommendationDetail(params: {
     .eq('id', recommendationId)
     .eq('user_id', userId)
     .maybeSingle()
+
+  data = (primary.data as RecommendationDetailRecord | null) ?? null
+  error = primary.error
+
+  if (error && isMissingColumnError(error)) {
+    const fallback = await supabase
+      .from('ai_recommendations')
+      .select(`
+        id,
+        scene,
+        strategy_version,
+        prompt_version,
+        model,
+        confidence,
+        status,
+        fallback_used,
+        input_summary,
+        output_payload,
+        created_at,
+        ai_recommendation_outcomes (
+          adopted,
+          completed,
+          option_selected,
+          feedback_label,
+          completion_minutes
+        )
+      `)
+      .eq('id', recommendationId)
+      .eq('user_id', userId)
+      .maybeSingle()
+
+    data = (fallback.data as RecommendationDetailRecord | null) ?? null
+    error = fallback.error
+  }
 
   if (error) throw error
   if (!data) return null
@@ -310,6 +362,8 @@ export async function getRecommendationDetail(params: {
     ...recent,
     input_summary: data.input_summary ?? null,
     output_payload: data.output_payload ?? null,
+    quality_labels: data.quality_labels ?? null,
+    strategy_summary: data.strategy_summary ?? null,
     completion_minutes:
       typeof outcome.completion_minutes === 'number' && Number.isFinite(outcome.completion_minutes)
         ? outcome.completion_minutes
