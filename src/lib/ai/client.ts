@@ -26,10 +26,11 @@ function getBaseUrl(provider: AIProvider) {
   )
 }
 
-function getModel(provider: AIProvider) {
+export function getConfiguredAIModel(provider?: AIProvider) {
+  const resolvedProvider = provider || getProvider()
   return (
     process.env.AI_MODEL ||
-    (provider === 'deepseek'
+    (resolvedProvider === 'deepseek'
       ? (process.env.DEEPSEEK_MODEL || 'deepseek-chat')
       : (process.env.OPENAI_MODEL || 'gpt-4o-mini'))
   )
@@ -45,7 +46,7 @@ export async function callAIChatJSON(opts: {
   if (!apiKey) throw new Error('missing_ai_key')
 
   const endpoint = joinUrl(getBaseUrl(provider), '/chat/completions')
-  const model = getModel(provider)
+  const model = getConfiguredAIModel(provider)
   const temperature = typeof opts.temperature === 'number' ? opts.temperature : 0.2
   const timeoutMs =
     typeof opts.timeoutMs === 'number'
