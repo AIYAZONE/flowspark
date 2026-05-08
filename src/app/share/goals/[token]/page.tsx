@@ -86,7 +86,7 @@ export default async function PublicGoalSharePage({ params, searchParams }: Page
     (snapshotRaw.inspirations as ShareSnapshot['entries']) ||
     []
 
-  let entries = rawEntries || []
+  let entries: NonNullable<ShareSnapshot['entries']> = rawEntries || []
   if (!entries.length && share.goal_id) {
     const { data: fallbackEntries } = await supabase
       .from('goal_entries')
@@ -95,7 +95,7 @@ export default async function PublicGoalSharePage({ params, searchParams }: Page
       .in('kind', ['inspiration', 'journey'])
       .in('status', ['open', 'archived'])
       .order('created_at', { ascending: false })
-    entries = (fallbackEntries || []) as ShareSnapshot['entries']
+    entries = (fallbackEntries || []) as NonNullable<ShareSnapshot['entries']>
   }
   const statusLabelMap = dict.goals.status as unknown as Record<string, string>
   const typeLabelMap = dict.today.types as unknown as Record<string, string>

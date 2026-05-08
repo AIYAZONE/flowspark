@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import { aiRescue } from '@/lib/ai/phase2a'
+import { planRescue } from '@/lib/ai/coachOrchestrator'
 
 export const runtime = 'nodejs'
 
@@ -39,13 +39,15 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await aiRescue({
+    const response = await planRescue({
+      supabase,
+      userId: user.id,
       locale,
-      reason_tag: reason_tag as never,
+      reasonTag: reason_tag as never,
       action: actionPayload,
-      goal: goalPayload
+      goal: goalPayload,
     })
-    return NextResponse.json({ result }, { status: 200 })
+    return NextResponse.json(response, { status: 200 })
   } catch (error) {
     const message = error instanceof Error ? error.message : 'operation_failed'
     const status =
@@ -57,4 +59,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: message }, { status })
   }
 }
-

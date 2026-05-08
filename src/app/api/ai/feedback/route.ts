@@ -18,6 +18,9 @@ const ALLOWED_EVENT_NAMES = new Set([
   'ai_review_click',
   'ai_review_generated',
   'ai_review_dismiss',
+  'ai_weekly_insight_view',
+  'ai_weekly_insight_generate',
+  'ai_weekly_insight_open_report',
 ])
 
 type JSONValue = string | number | boolean | null
@@ -91,4 +94,3 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: 'operation_failed' }, { status: 500 })
   return NextResponse.json({ ok: true }, { status: 200 })
 }
-

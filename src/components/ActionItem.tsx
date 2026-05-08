@@ -63,9 +63,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog'
-import { createAction, deleteAction, toggleActionSubItem, updateAction } from '@/app/(authenticated)/goals/actions'
+import { createActionAndReturnId, deleteAction, toggleActionSubItem, updateAction } from '@/app/(authenticated)/goals/actions'
 import type en from '@/i18n/en.json'
 import type { RescueOutput } from '@/lib/ai/phase2aSchemas'
+import type { RescueApiResponse } from '@/lib/ai/types'
 import type { AIBreakdownActionDraft } from '@/lib/ai/breakdown'
 import { logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
@@ -152,6 +153,8 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const [rescueLoading, setRescueLoading] = useState(false)
     const [rescueError, setRescueError] = useState<string | null>(null)
     const [rescueResult, setRescueResult] = useState<RescueOutput | null>(null)
+    const [rescueRecommendationId, setRescueRecommendationId] = useState<string | null>(null)
+    const [rescueOutcomeState, setRescueOutcomeState] = useState<'idle' | 'adopted' | 'dismissed'>('idle')
     const [subItemsOpen, setSubItemsOpen] = useState(false)
     const [subItemBusyId, setSubItemBusyId] = useState<string | null>(null)
     const [uploadUserId, setUploadUserId] = useState<string>('')
@@ -364,6 +367,8 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         setPanelMode('rescue')
         setRescueError(null)
         setRescueResult(null)
+        setRescueRecommendationId(null)
+        setRescueOutcomeState('idle')
         setDetailsOpen(true)
         logEvent('ai_rescue_click', { action_id: action.id })
         sendAIFeedback('ai_rescue_click', { action_id: action.id, goal_id: action.goal_id })
@@ -373,6 +378,15 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         if (!open && panelMode === 'edit') {
             requestExitEdit('close_panel')
             return
+        }
+        if (!open && panelMode === 'rescue' && rescueResult && rescueRecommendationId && rescueOutcomeState === 'idle') {
+            setRescueOutcomeState('dismissed')
+            void fetch(`/api/ai/recommendations/${rescueRecommendationId}/dismiss`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ feedbackLabel: 'dismiss' })
+            }).catch(() => {
+            })
         }
         setDetailsOpen(open)
         if (!open) setPanelMode('view')
@@ -387,6 +401,8 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         if (!goalTitle) return
         setRescueError(null)
         setRescueLoading(true)
+        setRescueRecommendationId(null)
+        setRescueOutcomeState('idle')
         try {
             const res = await fetch('/api/ai/rescue', {
                 method: 'POST',
@@ -398,17 +414,18 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                     goal: { id: action.goal_id, title: goalTitle }
                 })
             })
-            const json = (await res.json()) as { result?: RescueOutput; error?: string }
+            const json = (await res.json()) as RescueApiResponse & { error?: string }
             if (!res.ok) {
                 const key = json.error || 'operation_failed'
                 setRescueError((dict.common.errors as Record<string, string>)[key] || dict.common.errors.operation_failed)
                 return
             }
-            if (!json.result) {
+            if (!json.data || !json.recommendationId) {
                 setRescueError(dict.common.errors.operation_failed)
                 return
             }
-            setRescueResult(json.result)
+            setRescueResult(json.data)
+            setRescueRecommendationId(json.recommendationId)
         } catch {
             setRescueError(dict.common.errors.operation_failed)
         } finally {
@@ -436,7 +453,22 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             formData.set('description', description)
             formData.set('start_date', action.start_date)
             formData.set('end_date', endDateStr)
+            if (rescueRecommendationId) {
+                formData.set('ai_recommendation_id', rescueRecommendationId)
+            }
             await updateAction(formData)
+            if (rescueRecommendationId) {
+                setRescueOutcomeState('adopted')
+                void fetch(`/api/ai/recommendations/${rescueRecommendationId}/adopt`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        optionSelected: '5m',
+                        actionId: action.id
+                    })
+                }).catch(() => {
+                })
+            }
             logEvent('ai_rescue_apply', { mode: 'replace', option: '5m', action_id: action.id })
             sendAIFeedback('ai_rescue_apply', { mode: 'replace', option: '5m', action_id: action.id, goal_id: action.goal_id, reason: rescueReason })
             setPanelMode('view')
@@ -467,7 +499,22 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             formData.set('description', description)
             formData.set('start_date', action.start_date)
             formData.set('end_date', endDateStr)
-            await createAction(formData)
+            if (rescueRecommendationId) {
+                formData.set('ai_recommendation_id', rescueRecommendationId)
+            }
+            const created = await createActionAndReturnId(formData) as { actionId?: string | null }
+            if (rescueRecommendationId) {
+                setRescueOutcomeState('adopted')
+                void fetch(`/api/ai/recommendations/${rescueRecommendationId}/adopt`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        optionSelected: '5m',
+                        actionId: created?.actionId || null
+                    })
+                }).catch(() => {
+                })
+            }
             logEvent('ai_rescue_apply', { mode: 'add', option: '5m', action_id: action.id })
             sendAIFeedback('ai_rescue_apply', { mode: 'add', option: '5m', action_id: action.id, goal_id: action.goal_id, reason: rescueReason })
             setPanelMode('view')

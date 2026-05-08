@@ -7,7 +7,7 @@ import { Info, ListChecks } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import { GoalDetailsCard } from '@/components/GoalDetailsCard'
-import { GoalSubItemsTabs } from '@/components/GoalSubItemsTabs'
+import { GoalSubItemsTabs, type GoalEntry } from '@/components/GoalSubItemsTabs'
 import type en from '@/i18n/en.json'
 
 type Dict = typeof en
@@ -43,7 +43,7 @@ type TabKey = 'actions' | 'details'
 interface GoalDetailMobileLayoutProps {
     goal: Goal
     actions: Action[]
-	entries: { id: string; kind: 'inspiration' | 'journey'; content: string; note: string; created_at: string }[]
+	entries: GoalEntry[]
     dict: Dict
     initialTab?: TabKey
     goalsForEdit?: { id: string, title: string }[]

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { setRecommendationCompletion } from '@/lib/ai/recommendationStore';
 import { createClient } from '@/lib/supabase/server';
 import { normalizeCategoryInput } from '@/lib/goalCategories';
+import { upsertBehaviorSnapshot } from '@/lib/snapshots';
 
 const ACTIVE_GOAL_LIMIT = 5;
 
@@ -627,6 +628,11 @@ export async function createActionAndReturnId(formData: FormData) {
 	revalidatePath('/dashboard');
 	revalidatePath('/today');
 	revalidatePath(`/goals/${goal_id}`);
+	await upsertBehaviorSnapshot({
+		supabase,
+		userId: user.id,
+		snapshotDate: start_date
+	});
 	return { actionId: createdActionId };
 }
 
@@ -835,6 +841,11 @@ export async function toggleActionSubItem(formData: FormData) {
 				completed: parentCompleted
 			});
 		}
+		await upsertBehaviorSnapshot({
+			supabase,
+			userId: user.id,
+			snapshotDate: new Date().toISOString().slice(0, 10)
+		});
 	}
 
 	revalidatePath('/today');
@@ -938,6 +949,8 @@ export async function updateAction(formData: FormData) {
 	const description = formData.get('description') as string;
 	const start_date = formData.get('start_date') as string;
 	const end_date = formData.get('end_date') as string;
+	const ai_recommendation_id =
+		(formData.get('ai_recommendation_id') as string | null) || null;
 	const subItemsUpdate = parseSubItemsForUpdate(formData.get('sub_items'));
 
 	if (!goal_id) throw new Error('Missing required fields');
@@ -976,7 +989,8 @@ export async function updateAction(formData: FormData) {
 		description,
 		start_date,
 		end_date,
-		goal_id
+		goal_id,
+		ai_recommendation_id
 	};
 
 	const { error } = await supabase
@@ -1035,6 +1049,11 @@ export async function updateAction(formData: FormData) {
 	revalidatePath('/goals');
 	if (from_goal_id) revalidatePath(`/goals/${from_goal_id}`);
 	revalidatePath(`/goals/${goal_id}`);
+	await upsertBehaviorSnapshot({
+		supabase,
+		userId: user.id,
+		snapshotDate: start_date
+	});
 }
 
 export async function deleteAction(formData: FormData) {
