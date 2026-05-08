@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { SetCoreActionSheet } from '@/components/SetCoreActionSheet'
-import { createAction } from '@/app/(authenticated)/goals/actions'
+import { createActionAndReturnId } from '@/app/(authenticated)/goals/actions'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import {
   Dialog,
@@ -179,7 +179,7 @@ export function DailyPlanningCard({
 
     setAiLoading(true)
     try {
-      const created = await createAction(formData) as { actionId?: string | null }
+      const created = await createActionAndReturnId(formData) as { actionId?: string | null }
       const optionSelected = `${selected.minutes}m` as '5m' | '10m' | '20m'
       setAiOutcomeState('adopted')
       void fetch(`/api/ai/recommendations/${aiRecommendationId}/adopt`, {
