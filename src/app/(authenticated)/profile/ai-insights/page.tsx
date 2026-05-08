@@ -54,6 +54,8 @@ type AIAnalyticsDict = {
   aiAnalyticsStatusCompleted: string
   aiAnalyticsStatusDismissed: string
   aiAnalyticsStatusFallback: string
+  aiAnalyticsOpenDetail: string
+  aiAnalyticsBackToOverview: string
 }
 
 function formatPercent(value: number) {
@@ -208,7 +210,11 @@ export default async function AIInsightsPage(props: {
               profileDict.aiAnalyticsColumnFallbackRate,
             ]}
             rows={formatMetricRows(sortedSceneMetrics, row => [
-              <div className="font-medium">{row.scene || '-'}</div>,
+              row.scene ? (
+                <Link className="font-medium text-primary hover:underline" href={`/profile/ai-insights/${row.scene}${days ? `?range=${days}` : ''}`}>
+                  {row.scene}
+                </Link>
+              ) : '-',
               String(row.recommendation_count),
               <span className="font-medium">{formatPercent(row.adoption_rate)}</span>,
               <span className="font-medium">{formatPercent(row.completion_rate)}</span>,
@@ -266,6 +272,7 @@ export default async function AIInsightsPage(props: {
               profileDict.aiAnalyticsColumnStatus,
               profileDict.aiAnalyticsColumnOption,
               profileDict.aiAnalyticsColumnCreatedAt,
+              profileDict.aiAnalyticsOpenDetail,
             ]}
             rows={formatRecentRows(recentRecommendations, row => [
               <div className="font-medium">{row.scene || '-'}</div>,
@@ -285,6 +292,11 @@ export default async function AIInsightsPage(props: {
               row.created_at
                 ? new Date(row.created_at).toLocaleString(locale)
                 : '-',
+              <Button asChild size="sm" variant="outline" className="rounded-full">
+                <Link href={`/profile/ai-insights/${row.scene}${days ? `?range=${days}&rid=${row.recommendation_id}` : `?rid=${row.recommendation_id}`}`}>
+                  {profileDict.aiAnalyticsOpenDetail}
+                </Link>
+              </Button>,
             ])}
           />
         </>

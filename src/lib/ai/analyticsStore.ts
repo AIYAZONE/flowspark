@@ -35,6 +35,13 @@ export type AIRecentRecommendationRow = {
 
 type MetricsQueryOptions = {
   days?: number
+  scene?: string
+}
+
+export type AIRecommendationDetailRow = AIRecentRecommendationRow & {
+  input_summary: unknown
+  output_payload: unknown
+  completion_minutes: number | null
 }
 
 function isoDaysAgo(days: number) {
@@ -114,13 +121,32 @@ function groupRows(rows: AIRecentRecommendationRow[], keyFn: (row: AIRecentRecom
   }))
 }
 
+function mapRecentRow(row: Record<string, unknown>): AIRecentRecommendationRow {
+  return {
+    recommendation_id: String(row.recommendation_id || row.id || ''),
+    scene: String(row.scene || ''),
+    strategy_version: String(row.strategy_version || ''),
+    prompt_version: String(row.prompt_version || ''),
+    model: String(row.model || ''),
+    confidence: typeof row.confidence === 'string' ? row.confidence : null,
+    status: String(row.status || ''),
+    fallback_used: Boolean(row.fallback_used),
+    adopted: typeof row.adopted === 'boolean' ? row.adopted : null,
+    completed: typeof row.completed === 'boolean' ? row.completed : null,
+    option_selected: typeof row.option_selected === 'string' ? row.option_selected : null,
+    feedback_label: typeof row.feedback_label === 'string' ? row.feedback_label : null,
+    created_at: String(row.created_at || ''),
+  }
+}
+
 export async function getRecentRecommendations(params: {
   supabase: SupabaseServerClient
   userId: string
   limit?: number
   days?: number
+  scene?: string
 }) : Promise<AIRecentRecommendationRow[]> {
-  const { supabase, userId, limit = 20, days } = params
+  const { supabase, userId, limit = 20, days, scene } = params
   const since = typeof days === 'number' && days > 0 ? isoDaysAgo(days) : null
   let recentQuery = supabase
     .from('ai_recommendation_recent_view')
@@ -132,36 +158,31 @@ export async function getRecentRecommendations(params: {
   if (since) {
     recentQuery = recentQuery.gte('created_at', since)
   }
+  if (scene) {
+    recentQuery = recentQuery.eq('scene', scene)
+  }
 
   const { data, error } = await recentQuery
 
   if (!error && data) {
-    return (data as Record<string, unknown>[]).map(row => ({
-      recommendation_id: String(row.recommendation_id || ''),
-      scene: String(row.scene || ''),
-      strategy_version: String(row.strategy_version || ''),
-      prompt_version: String(row.prompt_version || ''),
-      model: String(row.model || ''),
-      confidence: typeof row.confidence === 'string' ? row.confidence : null,
-      status: String(row.status || ''),
-      fallback_used: Boolean(row.fallback_used),
-      adopted: typeof row.adopted === 'boolean' ? row.adopted : null,
-      completed: typeof row.completed === 'boolean' ? row.completed : null,
-      option_selected: typeof row.option_selected === 'string' ? row.option_selected : null,
-      feedback_label: typeof row.feedback_label === 'string' ? row.feedback_label : null,
-      created_at: String(row.created_at || ''),
-    }))
+    return (data as Record<string, unknown>[]).map(mapRecentRow)
   }
 
   if (error && !isMissingRelationError(error.message)) throw error
 
-  const fallback = await supabase
+  let fallbackQuery = supabase
     .from('ai_recommendations')
     .select('id, scene, strategy_version, prompt_version, model, confidence, status, fallback_used, created_at, ai_recommendation_outcomes(adopted, completed, option_selected, feedback_label)')
     .eq('user_id', userId)
     .gte('created_at', since || '1970-01-01T00:00:00.000Z')
     .order('created_at', { ascending: false })
     .limit(limit)
+
+  if (scene) {
+    fallbackQuery = fallbackQuery.eq('scene', scene)
+  }
+
+  const fallback = await fallbackQuery
 
   if (fallback.error) throw fallback.error
 
@@ -199,6 +220,7 @@ export async function getAISceneMetrics(params: {
     userId,
     limit: 400,
     days: options?.days,
+    scene: options?.scene,
   })
   return groupRows(recent, row => row.scene).sort((a, b) => b.recommendation_count - a.recommendation_count)
 }
@@ -214,6 +236,7 @@ export async function getAIStrategyMetrics(params: {
     userId,
     limit: 400,
     days: options?.days,
+    scene: options?.scene,
   })
   return groupRows(recent, row => `${row.scene}:${row.strategy_version}:${row.prompt_version}`)
     .sort((a, b) => b.recommendation_count - a.recommendation_count)
@@ -230,6 +253,98 @@ export async function getAIModelMetrics(params: {
     userId,
     limit: 400,
     days: options?.days,
+    scene: options?.scene,
   })
   return groupRows(recent, row => `${row.scene}:${row.model}`).sort((a, b) => b.recommendation_count - a.recommendation_count)
+}
+
+export async function getRecommendationDetail(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  recommendationId: string
+}): Promise<AIRecommendationDetailRow | null> {
+  const { supabase, userId, recommendationId } = params
+  const { data, error } = await supabase
+    .from('ai_recommendations')
+    .select(`
+      id,
+      scene,
+      strategy_version,
+      prompt_version,
+      model,
+      confidence,
+      status,
+      fallback_used,
+      input_summary,
+      output_payload,
+      created_at,
+      ai_recommendation_outcomes (
+        adopted,
+        completed,
+        option_selected,
+        feedback_label,
+        completion_minutes
+      )
+    `)
+    .eq('id', recommendationId)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return null
+
+  const outcomes = Array.isArray(data.ai_recommendation_outcomes)
+    ? (data.ai_recommendation_outcomes as Array<Record<string, unknown>>)
+    : []
+  const outcome = outcomes[0] || {}
+  const recent = mapRecentRow({
+    ...data,
+    recommendation_id: data.id,
+    adopted: outcome.adopted,
+    completed: outcome.completed,
+    option_selected: outcome.option_selected,
+    feedback_label: outcome.feedback_label,
+  })
+
+  return {
+    ...recent,
+    input_summary: data.input_summary ?? null,
+    output_payload: data.output_payload ?? null,
+    completion_minutes:
+      typeof outcome.completion_minutes === 'number' && Number.isFinite(outcome.completion_minutes)
+        ? outcome.completion_minutes
+        : null,
+  }
+}
+
+export async function getAISceneDetail(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  scene: string
+  days?: number
+}) {
+  const { supabase, userId, scene, days } = params
+  const [sceneMetrics, strategyMetrics, modelMetrics, recentRecommendations] = await Promise.all([
+    getAISceneMetrics({ supabase, userId, options: { days, scene } }),
+    getAIStrategyMetrics({ supabase, userId, options: { days, scene } }),
+    getAIModelMetrics({ supabase, userId, options: { days, scene } }),
+    getRecentRecommendations({ supabase, userId, limit: 40, days, scene }),
+  ])
+
+  return {
+    summary: sceneMetrics[0] || {
+      scene,
+      recommendation_count: 0,
+      adopted_count: 0,
+      completed_count: 0,
+      dismissed_count: 0,
+      adoption_rate: 0,
+      completion_rate: 0,
+      fallback_rate: 0,
+      avg_confidence_score: null,
+    },
+    strategyMetrics,
+    modelMetrics,
+    recentRecommendations,
+  }
 }
