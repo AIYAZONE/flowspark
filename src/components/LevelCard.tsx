@@ -26,6 +26,7 @@ export function LevelCard({ dict, level, currentXP, nextLevelXP, lastLog, classN
     if (source.includes('core')) return dict.today.types.core
     if (source.includes('maintenance')) return dict.today.types.maintenance
     if (source.includes('streak')) return dict.dashboard.stats.streak.replace('{days}', '')
+    if (source.includes('bonus')) return dict.dashboard.stats.rules.bonus
     return source
   }
 
@@ -49,7 +50,7 @@ export function LevelCard({ dict, level, currentXP, nextLevelXP, lastLog, classN
           </div>
           <div className="flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400 bg-yellow-500/10 px-2 py-1 rounded-full border border-yellow-500/10 group-hover:bg-yellow-500/20 transition-colors">
             <Trophy className="h-3 w-3" />
-            <span className="font-medium">Rules</span>
+            <span className="font-medium">{dict.dashboard.stats.rules.title}</span>
           </div>
         </CardHeader>
         <CardContent>

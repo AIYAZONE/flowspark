@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { Pencil, Save, X, Calendar, Tag, Flag, Target, AlertCircle, LayoutDashboard, Clock, ChevronDown, ChevronUp, Star, Link2, Copy, Check } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -18,7 +18,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { updateGoal, toggleGoalStar, createGoalShareLink, revokeGoalShareLink } from '@/app/(authenticated)/goals/actions'
+import { updateGoal, toggleGoalStar, createGoalShareLink, refreshGoalShareSnapshot, revokeGoalShareLink } from '@/app/(authenticated)/goals/actions'
 import { DeleteGoalButton } from '@/components/DeleteGoalButton'
 import { ArchiveGoalButton } from '@/components/ArchiveGoalButton'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
@@ -55,9 +55,31 @@ export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialS
     const [category, setCategory] = useState<string>(goal.category || 'other')
     const [shareOpen, setShareOpen] = useState(false)
     const [shareLoading, setShareLoading] = useState(false)
+    const [shareSyncing, setShareSyncing] = useState(false)
     const [shareToken, setShareToken] = useState<string | null>(initialShareToken)
     const [shareExpiresAt, setShareExpiresAt] = useState<string | null>(initialShareExpiresAt)
     const [copied, setCopied] = useState(false)
+
+    useEffect(() => {
+        if (!shareOpen || !shareToken) return
+        let active = true
+        void (async () => {
+            setShareSyncing(true)
+            try {
+                const refreshed = await refreshGoalShareSnapshot(goal.id)
+                if (!active) return
+                setShareToken(refreshed.token)
+                setShareExpiresAt(refreshed.expiresAt)
+            } catch (error) {
+                console.error(error)
+            } finally {
+                if (active) setShareSyncing(false)
+            }
+        })()
+        return () => {
+            active = false
+        }
+    }, [goal.id, shareOpen, shareToken])
 
     async function handleSubmit(formData: FormData) {
         setIsLoading(true)
@@ -438,11 +460,14 @@ export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialS
                         </DialogHeader>
                         <div className="space-y-3">
                             <p className="text-sm text-muted-foreground">{dict.share.readonlyHint}</p>
+                            {shareSyncing ? (
+                                <div className="text-xs text-muted-foreground">{dict.common.loading}</div>
+                            ) : null}
                             {shareToken && shareUrl ? (
                                 <div className="space-y-2 rounded-md border border-border/50 bg-muted/20 p-3">
                                     <div className="break-all text-xs text-foreground/80">{shareUrl}</div>
                                     <div className="text-xs text-muted-foreground">
-                                        {shareExpiresAt ? `Expires: ${format(new Date(shareExpiresAt), 'yyyy-MM-dd')}` : ''}
+                                        {shareExpiresAt ? `${dict.share.expiresLabel || 'Expires'}: ${format(new Date(shareExpiresAt), 'yyyy-MM-dd')}` : ''}
                                     </div>
                                 </div>
                             ) : null}

@@ -576,6 +576,7 @@
 		"revokeLink": "Revoke Link",
 		"copyLink": "Copy Link",
 		"copied": "Copied",
+		"expiresLabel": "Expires",
 		"readonlyHint": "This link is view-only.",
 		"openTitle": "Public Goal",
 		"expired": "Link is invalid or expired",
