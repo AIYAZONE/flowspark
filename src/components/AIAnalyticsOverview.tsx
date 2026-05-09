@@ -20,18 +20,22 @@ export function AIAnalyticsOverview({ dict, metrics }: Props) {
     {
       title: dict.aiAnalyticsTotal || '总建议数',
       value: String(total),
+      helpText: dict.aiAnalyticsTotalHelp || '这段时间系统一共给了你多少条 AI 建议。',
     },
     {
       title: dict.aiAnalyticsAdoptionRate || '采纳率',
       value: total ? formatPercent(adopted / total) : '0%',
+      helpText: dict.aiAnalyticsAdoptionRateHelp || '你看到建议后，愿意采纳继续执行的比例。',
     },
     {
       title: dict.aiAnalyticsCompletionRate || '完成率',
       value: total ? formatPercent(completed / total) : '0%',
+      helpText: dict.aiAnalyticsCompletionRateHelp || '被采纳的建议里，最终推进到完成的比例。',
     },
     {
       title: dict.aiAnalyticsFallbackRate || 'Fallback 占比',
       value: total ? formatPercent(fallback / total) : '0%',
+      helpText: dict.aiAnalyticsFallbackRateHelp || '系统没用 AI 主结果，而是改走规则兜底的比例。',
     },
   ]
 
@@ -44,6 +48,7 @@ export function AIAnalyticsOverview({ dict, metrics }: Props) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-semibold tracking-tight">{card.value}</div>
+            <div className="mt-2 text-xs leading-5 text-muted-foreground">{card.helpText}</div>
           </CardContent>
         </Card>
       ))}

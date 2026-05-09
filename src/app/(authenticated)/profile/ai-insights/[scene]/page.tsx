@@ -15,6 +15,15 @@ import {
   getAISceneDetail,
   getRecommendationDetail,
 } from '@/lib/ai/analyticsStore'
+import {
+  formatAIConfidenceLabel,
+  formatAIModelLabel,
+  formatAIOptionLabel,
+  formatAIStrategyLabel,
+  formatAIStatusLabel,
+  formatAIPromptLabel,
+  getAIFieldHelpText,
+} from '@/lib/ai/analyticsPresentation'
 
 const VALID_SCENES = ['today_plan', 'rescue', 'review', 'weekly_insight'] as const
 
@@ -70,6 +79,8 @@ type SceneAnalyticsDict = {
   aiAnalyticsStatusCompleted: string
   aiAnalyticsStatusDismissed: string
   aiAnalyticsStatusFallback: string
+  aiAnalyticsTechnicalTitle: string
+  aiAnalyticsTechnicalDesc: string
 }
 
 function formatPercent(value: number) {
@@ -83,13 +94,13 @@ function formatStatus(value: {
   feedback_label: string | null
   fallback_used: boolean
 }, dict: SceneAnalyticsDict) {
-  if (value.completed) return dict.aiAnalyticsStatusCompleted
-  if (value.adopted) return dict.aiAnalyticsStatusAdopted
-  if (value.status === 'dismissed' || value.feedback_label === 'dismiss' || value.feedback_label === 'close_result') {
-    return dict.aiAnalyticsStatusDismissed
-  }
-  if (value.fallback_used) return dict.aiAnalyticsStatusFallback
-  return dict.aiAnalyticsStatusGenerated
+  return formatAIStatusLabel({
+    completed: value.completed,
+    adopted: value.adopted,
+    status: value.status,
+    feedbackLabel: value.feedback_label,
+    fallbackUsed: value.fallback_used,
+  }, dict.aiAnalyticsStatusGenerated === '已生成' ? 'zh' : 'en')
 }
 
 export default async function AISceneInsightsPage(props: {
@@ -132,6 +143,7 @@ export default async function AISceneInsightsPage(props: {
     ? await getRecommendationDetail({ supabase, userId: user.id, recommendationId: selectedId })
     : null
   const locale = currentLocale === 'zh' ? 'zh-CN' : 'en-US'
+  const presentationLocale = currentLocale === 'zh' ? 'zh' : 'en'
 
   const buildSceneHref = (rid?: string) => {
     const params = new URLSearchParams()
@@ -169,7 +181,8 @@ export default async function AISceneInsightsPage(props: {
       </div>
 
       <AIAnalyticsTable
-        title={profileDict.aiAnalyticsStrategy}
+        title={profileDict.aiAnalyticsTechnicalTitle || profileDict.aiAnalyticsStrategy}
+        description={profileDict.aiAnalyticsTechnicalDesc || getAIFieldHelpText('strategy', presentationLocale)}
         columns={[
           profileDict.aiAnalyticsColumnStrategy,
           profileDict.aiAnalyticsColumnPrompt,
@@ -178,8 +191,14 @@ export default async function AISceneInsightsPage(props: {
           profileDict.aiAnalyticsColumnCompletionRate,
         ]}
         rows={formatMetricRows(sceneDetail.strategyMetrics, row => [
-          <div className="font-medium">{row.strategy_version || '-'}</div>,
-          row.prompt_version || '-',
+          <div key="strategy" className="space-y-1">
+            <div className="font-medium">{formatAIStrategyLabel(scene, row.strategy_version, presentationLocale)}</div>
+            <div className="text-xs text-muted-foreground">{row.strategy_version || '-'}</div>
+          </div>,
+          <div key="prompt" className="space-y-1">
+            <div className="font-medium">{formatAIPromptLabel(scene, row.prompt_version, presentationLocale)}</div>
+            <div className="text-xs text-muted-foreground">{row.prompt_version || '-'}</div>
+          </div>,
           String(row.recommendation_count),
           formatPercent(row.adoption_rate),
           formatPercent(row.completion_rate),
@@ -188,6 +207,7 @@ export default async function AISceneInsightsPage(props: {
 
       <AIAnalyticsTable
         title={profileDict.aiAnalyticsModel}
+        description={getAIFieldHelpText('model', presentationLocale)}
         columns={[
           profileDict.aiAnalyticsColumnModel,
           profileDict.aiAnalyticsColumnRecommendations,
@@ -196,11 +216,19 @@ export default async function AISceneInsightsPage(props: {
           profileDict.aiAnalyticsColumnConfidence,
         ]}
         rows={formatMetricRows(sceneDetail.modelMetrics, row => [
-          <div className="font-medium">{row.model || '-'}</div>,
+          <div key="model" className="space-y-1">
+            <div className="font-medium">{formatAIModelLabel(row.model, presentationLocale)}</div>
+            <div className="text-xs text-muted-foreground">{row.model || '-'}</div>
+          </div>,
           String(row.recommendation_count),
           formatPercent(row.adoption_rate),
           formatPercent(row.completion_rate),
-          row.avg_confidence_score == null ? '-' : String(row.avg_confidence_score),
+          row.avg_confidence_score == null
+            ? '-'
+            : formatAIConfidenceLabel(
+                row.avg_confidence_score >= 2.5 ? 'high' : row.avg_confidence_score >= 1.5 ? 'medium' : 'low',
+                presentationLocale
+              ),
         ])}
       />
 
@@ -215,12 +243,18 @@ export default async function AISceneInsightsPage(props: {
           profileDict.aiAnalyticsOpenDetail,
         ]}
         rows={formatRecentRows(sceneDetail.recentRecommendations, row => [
-          <div className="font-medium">{row.strategy_version || '-'}</div>,
-          row.model || '-',
+          <div key="strategy" className="space-y-1">
+            <div className="font-medium">{formatAIStrategyLabel(scene, row.strategy_version, presentationLocale)}</div>
+            <div className="text-xs text-muted-foreground">{row.strategy_version || '-'}</div>
+          </div>,
+          <div key="model" className="space-y-1">
+            <div className="font-medium">{formatAIModelLabel(row.model, presentationLocale)}</div>
+            <div className="text-xs text-muted-foreground">{row.model || '-'}</div>
+          </div>,
           formatStatus(row, profileDict),
-          row.option_selected || row.feedback_label || '-',
+          formatAIOptionLabel(row.option_selected || row.feedback_label, presentationLocale),
           row.created_at ? new Date(row.created_at).toLocaleString(locale) : '-',
-          <Button asChild size="sm" variant={row.recommendation_id === selectedId ? 'secondary' : 'outline'} className="rounded-full">
+          <Button key="detail" asChild size="sm" variant={row.recommendation_id === selectedId ? 'secondary' : 'outline'} className="rounded-full">
             <Link href={buildSceneHref(row.recommendation_id)}>{profileDict.aiAnalyticsOpenDetail}</Link>
           </Button>,
         ])}

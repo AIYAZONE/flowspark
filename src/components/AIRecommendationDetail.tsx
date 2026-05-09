@@ -1,5 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { AIRecommendationDetailRow } from '@/lib/ai/analyticsStore'
+import {
+  formatAIBooleanLabel,
+  formatAIConfidenceLabel,
+  formatAIFallbackLabel,
+  formatAIFrictionLabel,
+  formatAIModelLabel,
+  formatAIOptionLabel,
+  formatAIStrategyLabel,
+  formatAIStatusLabel,
+  formatAIPromptLabel,
+  getAIFieldHelpText,
+} from '@/lib/ai/analyticsPresentation'
 
 type RecommendationDetailDict = {
   aiAnalyticsDetailTitle: string
@@ -26,6 +38,8 @@ type RecommendationDetailDict = {
   aiAnalyticsStatusCompleted: string
   aiAnalyticsStatusDismissed: string
   aiAnalyticsStatusFallback: string
+  aiAnalyticsTechnicalTitle: string
+  aiAnalyticsTechnicalDesc: string
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -39,13 +53,13 @@ function asString(value: unknown) {
 }
 
 function renderStatus(detail: AIRecommendationDetailRow, dict: RecommendationDetailDict) {
-  if (detail.completed) return dict.aiAnalyticsStatusCompleted
-  if (detail.adopted) return dict.aiAnalyticsStatusAdopted
-  if (detail.status === 'dismissed' || detail.feedback_label === 'dismiss' || detail.feedback_label === 'close_result') {
-    return dict.aiAnalyticsStatusDismissed
-  }
-  if (detail.fallback_used) return dict.aiAnalyticsStatusFallback
-  return dict.aiAnalyticsStatusGenerated
+  return formatAIStatusLabel({
+    completed: detail.completed,
+    adopted: detail.adopted,
+    status: detail.status,
+    feedbackLabel: detail.feedback_label,
+    fallbackUsed: detail.fallback_used,
+  }, dict.aiAnalyticsStatusGenerated === '已生成' ? 'zh' : 'en')
 }
 
 function variantRows(output: unknown) {
@@ -72,7 +86,7 @@ function variantRows(output: unknown) {
     }>
 }
 
-function outputSummary(detail: AIRecommendationDetailRow, dict: RecommendationDetailDict) {
+function outputSummary(detail: AIRecommendationDetailRow, dict: RecommendationDetailDict, locale: 'zh' | 'en') {
   const output = asRecord(detail.output_payload)
   if (!output) return []
 
@@ -97,7 +111,7 @@ function outputSummary(detail: AIRecommendationDetailRow, dict: RecommendationDe
     const minimal = asRecord(output.minimal_variant)
     const ifThen = asRecord(output.if_then)
     return [
-      { label: dict.aiAnalyticsDetailReason, value: asString(output.reason_tag) },
+      { label: dict.aiAnalyticsDetailReason, value: formatAIFrictionLabel(asString(output.reason_tag), locale) },
       { label: '-', value: asString(minimal?.title) },
       { label: dict.aiAnalyticsDetailFirstStep, value: asString(minimal?.first_step) },
       { label: dict.aiAnalyticsDetailDone, value: asString(minimal?.definition_of_done) },
@@ -120,39 +134,39 @@ function outputSummary(detail: AIRecommendationDetailRow, dict: RecommendationDe
     return [
       { label: '-', value: asString(output.summary) },
       { label: dict.aiAnalyticsDetailReason, value: asString(output.recommendation) },
-      { label: dict.aiAnalyticsDetailRisk, value: asString(output.topFriction) },
+      { label: dict.aiAnalyticsDetailRisk, value: formatAIFrictionLabel(asString(output.topFriction), locale) },
     ].filter(row => row.value)
   }
 
   return []
 }
 
-function strategyRows(detail: AIRecommendationDetailRow) {
+function strategyRows(detail: AIRecommendationDetailRow, locale: 'zh' | 'en') {
   const summary = asRecord(detail.strategy_summary)
   if (!summary) return []
   const hints = Array.isArray(summary.groundingHints)
     ? summary.groundingHints.filter(item => typeof item === 'string')
     : []
   return [
-    { label: 'difficulty', value: asString(summary.difficultyMode) },
-    { label: 'risk', value: asString(summary.riskLevel) },
-    { label: 'goal', value: asString(summary.selectedGoalId) },
-    { label: 'hints', value: hints.length ? hints.join(' / ') : null },
+    { label: locale === 'zh' ? '难度模式' : 'Difficulty mode', value: asString(summary.difficultyMode) },
+    { label: locale === 'zh' ? '风险级别' : 'Risk level', value: asString(summary.riskLevel) },
+    { label: locale === 'zh' ? '关联目标' : 'Linked goal', value: asString(summary.selectedGoalId) },
+    { label: locale === 'zh' ? '生成线索' : 'Grounding hints', value: hints.length ? hints.join(' / ') : null },
   ].filter(row => row.value)
 }
 
-function qualityRows(detail: AIRecommendationDetailRow) {
+function qualityRows(detail: AIRecommendationDetailRow, locale: 'zh' | 'en') {
   const quality = asRecord(detail.quality_labels)
   if (!quality) return []
   const reasons = Array.isArray(quality.reasons)
     ? quality.reasons.filter(item => typeof item === 'string')
     : []
   return [
-    { label: 'schema', value: typeof quality.schema_valid === 'boolean' ? String(quality.schema_valid) : null },
+    { label: locale === 'zh' ? '结构有效' : 'Schema valid', value: typeof quality.schema_valid === 'boolean' ? formatAIBooleanLabel(quality.schema_valid, locale) : null },
     { label: 'score', value: typeof quality.actionability_score === 'number' ? String(quality.actionability_score) : null },
-    { label: 'ready', value: typeof quality.adoption_ready === 'boolean' ? String(quality.adoption_ready) : null },
-    { label: 'fallback', value: typeof quality.requires_fallback === 'boolean' ? String(quality.requires_fallback) : null },
-    { label: 'reasons', value: reasons.length ? reasons.join(' / ') : null },
+    { label: locale === 'zh' ? '可直接采纳' : 'Adoption ready', value: typeof quality.adoption_ready === 'boolean' ? formatAIBooleanLabel(quality.adoption_ready, locale) : null },
+    { label: locale === 'zh' ? '需要规则兜底' : 'Needs fallback', value: typeof quality.requires_fallback === 'boolean' ? formatAIBooleanLabel(quality.requires_fallback, locale) : null },
+    { label: locale === 'zh' ? '原因' : 'Reasons', value: reasons.length ? reasons.join(' / ') : null },
   ].filter(row => row.value)
 }
 
@@ -175,9 +189,10 @@ export function AIRecommendationDetail(props: {
   }
 
   const detail = props.detail
-  const outputRows = outputSummary(detail, props.dict)
-  const strategyInfo = strategyRows(detail)
-  const qualityInfo = qualityRows(detail)
+  const uiLocale = props.locale === 'zh-CN' ? 'zh' : 'en'
+  const outputRows = outputSummary(detail, props.dict, uiLocale)
+  const strategyInfo = strategyRows(detail, uiLocale)
+  const qualityInfo = qualityRows(detail, uiLocale)
 
   return (
     <Card>
@@ -204,7 +219,7 @@ export function AIRecommendationDetail(props: {
             <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
               {props.dict.aiAnalyticsDetailFallback}
             </div>
-            <div className="mt-1 text-sm font-medium">{detail.fallback_used ? 'Yes' : 'No'}</div>
+            <div className="mt-1 text-sm font-medium">{formatAIFallbackLabel(detail.fallback_used, uiLocale)}</div>
           </div>
         </div>
 
@@ -230,23 +245,32 @@ export function AIRecommendationDetail(props: {
             <div className="space-y-3 text-sm">
               <div className="flex items-start justify-between gap-3">
                 <span className="text-muted-foreground">{props.dict.aiAnalyticsDetailStrategy}</span>
-                <span className="text-right font-medium">{detail.strategy_version || '-'}</span>
+                <span className="text-right">
+                  <span className="block font-medium">{formatAIStrategyLabel(detail.scene, detail.strategy_version, uiLocale)}</span>
+                  <span className="block text-xs text-muted-foreground">{detail.strategy_version || '-'}</span>
+                </span>
               </div>
               <div className="flex items-start justify-between gap-3">
                 <span className="text-muted-foreground">{props.dict.aiAnalyticsDetailPrompt}</span>
-                <span className="text-right font-medium">{detail.prompt_version || '-'}</span>
+                <span className="text-right">
+                  <span className="block font-medium">{formatAIPromptLabel(detail.scene, detail.prompt_version, uiLocale)}</span>
+                  <span className="block text-xs text-muted-foreground">{detail.prompt_version || '-'}</span>
+                </span>
               </div>
               <div className="flex items-start justify-between gap-3">
                 <span className="text-muted-foreground">{props.dict.aiAnalyticsDetailModel}</span>
-                <span className="text-right font-medium">{detail.model || '-'}</span>
+                <span className="text-right">
+                  <span className="block font-medium">{formatAIModelLabel(detail.model, uiLocale)}</span>
+                  <span className="block text-xs text-muted-foreground">{detail.model || '-'}</span>
+                </span>
               </div>
               <div className="flex items-start justify-between gap-3">
                 <span className="text-muted-foreground">{props.dict.aiAnalyticsDetailConfidence}</span>
-                <span className="text-right font-medium">{detail.confidence || '-'}</span>
+                <span className="text-right font-medium">{formatAIConfidenceLabel(detail.confidence, uiLocale)}</span>
               </div>
               <div className="flex items-start justify-between gap-3">
                 <span className="text-muted-foreground">{props.dict.aiAnalyticsDetailSelectedOption}</span>
-                <span className="text-right font-medium">{detail.option_selected || detail.feedback_label || '-'}</span>
+                <span className="text-right font-medium">{formatAIOptionLabel(detail.option_selected || detail.feedback_label, uiLocale)}</span>
               </div>
               <div className="flex items-start justify-between gap-3">
                 <span className="text-muted-foreground">{props.dict.aiAnalyticsDetailCompletionMinutes}</span>
@@ -259,30 +283,38 @@ export function AIRecommendationDetail(props: {
         </div>
 
         {(strategyInfo.length > 0 || qualityInfo.length > 0) ? (
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="space-y-3 rounded-2xl border p-4">
-              <div className="text-sm font-semibold">{props.dict.aiAnalyticsDetailStrategySummary}</div>
-              <div className="space-y-3 text-sm">
-                {strategyInfo.map((row, index) => (
-                  <div key={`${row.label}-${index}`} className="flex items-start justify-between gap-3">
-                    <span className="text-muted-foreground">{row.label}</span>
-                    <span className="text-right font-medium">{row.value}</span>
-                  </div>
-                ))}
+          <details className="rounded-2xl border bg-muted/10 p-4">
+            <summary className="cursor-pointer list-none">
+              <div className="space-y-1">
+                <div className="text-sm font-semibold">{props.dict.aiAnalyticsTechnicalTitle}</div>
+                <div className="text-sm text-muted-foreground">{props.dict.aiAnalyticsTechnicalDesc || getAIFieldHelpText('technical', uiLocale)}</div>
+              </div>
+            </summary>
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+              <div className="space-y-3 rounded-2xl border bg-background p-4">
+                <div className="text-sm font-semibold">{props.dict.aiAnalyticsDetailStrategySummary}</div>
+                <div className="space-y-3 text-sm">
+                  {strategyInfo.map((row, index) => (
+                    <div key={`${row.label}-${index}`} className="flex items-start justify-between gap-3">
+                      <span className="text-muted-foreground">{row.label}</span>
+                      <span className="text-right font-medium">{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-3 rounded-2xl border bg-background p-4">
+                <div className="text-sm font-semibold">{props.dict.aiAnalyticsDetailQualityLabels}</div>
+                <div className="space-y-3 text-sm">
+                  {qualityInfo.map((row, index) => (
+                    <div key={`${row.label}-${index}`} className="flex items-start justify-between gap-3">
+                      <span className="text-muted-foreground">{row.label}</span>
+                      <span className="text-right font-medium">{row.value}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-            <div className="space-y-3 rounded-2xl border p-4">
-              <div className="text-sm font-semibold">{props.dict.aiAnalyticsDetailQualityLabels}</div>
-              <div className="space-y-3 text-sm">
-                {qualityInfo.map((row, index) => (
-                  <div key={`${row.label}-${index}`} className="flex items-start justify-between gap-3">
-                    <span className="text-muted-foreground">{row.label}</span>
-                    <span className="text-right font-medium">{row.value}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          </details>
         ) : null}
       </CardContent>
     </Card>

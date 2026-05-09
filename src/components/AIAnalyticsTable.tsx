@@ -4,15 +4,19 @@ import type { AIMetricRow, AIRecentRecommendationRow } from '@/lib/ai/analyticsS
 
 interface AnalyticsTableProps {
   title: string
+  description?: string
   columns: string[]
   rows: Array<Array<ReactNode>>
 }
 
-export function AIAnalyticsTable({ title, columns, rows }: AnalyticsTableProps) {
+export function AIAnalyticsTable({ title, description, columns, rows }: AnalyticsTableProps) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-base">{title}</CardTitle>
+        {description ? (
+          <div className="text-sm text-muted-foreground">{description}</div>
+        ) : null}
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">

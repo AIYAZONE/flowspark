@@ -14,6 +14,16 @@ import {
   getAIStrategyMetrics,
   getRecentRecommendations,
 } from '@/lib/ai/analyticsStore'
+import {
+  formatAIConfidenceLabel,
+  formatAIModelLabel,
+  formatAIOptionLabel,
+  formatAISceneDescription,
+  formatAISceneLabel,
+  formatAIStrategyLabel,
+  formatAIPromptLabel,
+  getAIFieldHelpText,
+} from '@/lib/ai/analyticsPresentation'
 import { cn } from '@/lib/utils'
 
 type AIAnalyticsDict = {
@@ -56,6 +66,10 @@ type AIAnalyticsDict = {
   aiAnalyticsStatusFallback: string
   aiAnalyticsOpenDetail: string
   aiAnalyticsBackToOverview: string
+  aiAnalyticsSceneDesc: string
+  aiAnalyticsRecentDesc: string
+  aiAnalyticsTechnicalTitle: string
+  aiAnalyticsTechnicalDesc: string
 }
 
 function formatPercent(value: number) {
@@ -124,6 +138,7 @@ export default async function AIInsightsPage(props: {
 
   const profileDict = dict.profile as unknown as AIAnalyticsDict
   const locale = currentLocale === 'zh' ? 'zh-CN' : 'en-US'
+  const presentationLocale = currentLocale === 'zh' ? 'zh' : 'en'
   const sortedSceneMetrics = sortMetricRows(sceneMetrics, sort)
   const sortedStrategyMetrics = sortMetricRows(strategyMetrics, sort)
   const sortedModelMetrics = sortMetricRows(modelMetrics, sort)
@@ -139,6 +154,17 @@ export default async function AIInsightsPage(props: {
     { key: 'completion', label: profileDict.aiAnalyticsSortCompletion },
     { key: 'fallback', label: profileDict.aiAnalyticsSortFallback },
   ]
+
+  function primaryWithRaw(key: string, primary: string, raw?: string | null, muted = true) {
+    return (
+      <div key={key} className="space-y-1">
+        <div className="font-medium">{primary}</div>
+        {raw && raw !== primary ? (
+          <div className={muted ? 'text-xs text-muted-foreground' : 'text-xs'}>{raw}</div>
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -202,6 +228,7 @@ export default async function AIInsightsPage(props: {
 
           <AIAnalyticsTable
             title={profileDict.aiAnalyticsScene}
+            description={profileDict.aiAnalyticsSceneDesc || getAIFieldHelpText('metrics', presentationLocale)}
             columns={[
               profileDict.aiAnalyticsColumnScene,
               profileDict.aiAnalyticsColumnRecommendations,
@@ -211,74 +238,34 @@ export default async function AIInsightsPage(props: {
             ]}
             rows={formatMetricRows(sortedSceneMetrics, row => [
               row.scene ? (
-                <Link className="font-medium text-primary hover:underline" href={`/profile/ai-insights/${row.scene}${days ? `?range=${days}` : ''}`}>
-                  {row.scene}
+                <Link key="scene" className="font-medium text-primary hover:underline" href={`/profile/ai-insights/${row.scene}${days ? `?range=${days}` : ''}`}>
+                  {formatAISceneLabel(row.scene, presentationLocale)}
                 </Link>
               ) : '-',
               String(row.recommendation_count),
-              <span className="font-medium">{formatPercent(row.adoption_rate)}</span>,
-              <span className="font-medium">{formatPercent(row.completion_rate)}</span>,
-              <span className="font-medium">{formatPercent(row.fallback_rate)}</span>,
-            ])}
-          />
-
-          <AIAnalyticsTable
-            title={profileDict.aiAnalyticsStrategy}
-            columns={[
-              profileDict.aiAnalyticsColumnScene,
-              profileDict.aiAnalyticsColumnStrategy,
-              profileDict.aiAnalyticsColumnPrompt,
-              profileDict.aiAnalyticsColumnRecommendations,
-              profileDict.aiAnalyticsColumnAdoptionRate,
-              profileDict.aiAnalyticsColumnCompletionRate,
-            ]}
-            rows={formatMetricRows(sortedStrategyMetrics, row => [
-              <div className="font-medium">{row.scene || '-'}</div>,
-              row.strategy_version || '-',
-              <span className="text-muted-foreground">{row.prompt_version || '-'}</span>,
-              String(row.recommendation_count),
-              <span className="font-medium">{formatPercent(row.adoption_rate)}</span>,
-              <span className="font-medium">{formatPercent(row.completion_rate)}</span>,
-            ])}
-          />
-
-          <AIAnalyticsTable
-            title={profileDict.aiAnalyticsModel}
-            columns={[
-              profileDict.aiAnalyticsColumnScene,
-              profileDict.aiAnalyticsColumnModel,
-              profileDict.aiAnalyticsColumnRecommendations,
-              profileDict.aiAnalyticsColumnAdoptionRate,
-              profileDict.aiAnalyticsColumnCompletionRate,
-              profileDict.aiAnalyticsColumnConfidence,
-            ]}
-            rows={formatMetricRows(sortedModelMetrics, row => [
-              <div className="font-medium">{row.scene || '-'}</div>,
-              row.model || '-',
-              String(row.recommendation_count),
-              <span className="font-medium">{formatPercent(row.adoption_rate)}</span>,
-              <span className="font-medium">{formatPercent(row.completion_rate)}</span>,
-              row.avg_confidence_score == null ? '-' : String(row.avg_confidence_score),
+              <span key="adoption" className="font-medium">{formatPercent(row.adoption_rate)}</span>,
+              <span key="completion" className="font-medium">{formatPercent(row.completion_rate)}</span>,
+              <span key="fallback" className="font-medium">{formatPercent(row.fallback_rate)}</span>,
             ])}
           />
 
           <AIAnalyticsTable
             title={profileDict.aiAnalyticsRecent}
+            description={profileDict.aiAnalyticsRecentDesc || getAIFieldHelpText('metrics', presentationLocale)}
             columns={[
               profileDict.aiAnalyticsColumnScene,
-              profileDict.aiAnalyticsColumnStrategy,
-              profileDict.aiAnalyticsColumnPrompt,
-              profileDict.aiAnalyticsColumnModel,
               profileDict.aiAnalyticsColumnStatus,
               profileDict.aiAnalyticsColumnOption,
               profileDict.aiAnalyticsColumnCreatedAt,
               profileDict.aiAnalyticsOpenDetail,
             ]}
             rows={formatRecentRows(recentRecommendations, row => [
-              <div className="font-medium">{row.scene || '-'}</div>,
-              row.strategy_version || '-',
-              <span className="text-muted-foreground">{row.prompt_version || '-'}</span>,
-              row.model || '-',
+              <div key="scene" className="space-y-1">
+                <div className="font-medium">{formatAISceneLabel(row.scene, presentationLocale)}</div>
+                <div className="text-xs text-muted-foreground">
+                  {formatAISceneDescription(row.scene, presentationLocale) || row.scene}
+                </div>
+              </div>,
               row.completed
                 ? statusBadge(profileDict.aiAnalyticsStatusCompleted, 'green')
                 : row.adopted
@@ -288,15 +275,70 @@ export default async function AIInsightsPage(props: {
                     : row.fallback_used
                       ? statusBadge(profileDict.aiAnalyticsStatusFallback, 'amber')
                       : statusBadge(profileDict.aiAnalyticsStatusGenerated, 'default'),
-              row.option_selected || row.feedback_label || '-',
+              formatAIOptionLabel(row.option_selected || row.feedback_label, presentationLocale),
               row.created_at
                 ? new Date(row.created_at).toLocaleString(locale)
                 : '-',
-              <Button asChild size="sm" variant="outline" className="rounded-full">
+              <Button key="detail" asChild size="sm" variant="outline" className="rounded-full">
                 <Link href={`/profile/ai-insights/${row.scene}${days ? `?range=${days}&rid=${row.recommendation_id}` : `?rid=${row.recommendation_id}`}`}>
                   {profileDict.aiAnalyticsOpenDetail}
                 </Link>
               </Button>,
+            ])}
+          />
+
+          <AIAnalyticsTable
+            title={profileDict.aiAnalyticsTechnicalTitle || profileDict.aiAnalyticsStrategy}
+            description={profileDict.aiAnalyticsTechnicalDesc || getAIFieldHelpText('strategy', presentationLocale)}
+            columns={[
+              profileDict.aiAnalyticsColumnScene,
+              profileDict.aiAnalyticsColumnStrategy,
+              profileDict.aiAnalyticsColumnPrompt,
+              profileDict.aiAnalyticsColumnRecommendations,
+              profileDict.aiAnalyticsColumnAdoptionRate,
+              profileDict.aiAnalyticsColumnCompletionRate,
+            ]}
+            rows={formatMetricRows(sortedStrategyMetrics, row => [
+              primaryWithRaw('scene', formatAISceneLabel(row.scene, presentationLocale), row.scene),
+              primaryWithRaw(
+                'strategy',
+                formatAIStrategyLabel(row.scene, row.strategy_version, presentationLocale),
+                row.strategy_version
+              ),
+              primaryWithRaw(
+                'prompt',
+                formatAIPromptLabel(row.scene, row.prompt_version, presentationLocale),
+                row.prompt_version
+              ),
+              String(row.recommendation_count),
+              <span key="adoption" className="font-medium">{formatPercent(row.adoption_rate)}</span>,
+              <span key="completion" className="font-medium">{formatPercent(row.completion_rate)}</span>,
+            ])}
+          />
+
+          <AIAnalyticsTable
+            title={profileDict.aiAnalyticsModel}
+            description={getAIFieldHelpText('model', presentationLocale)}
+            columns={[
+              profileDict.aiAnalyticsColumnScene,
+              profileDict.aiAnalyticsColumnModel,
+              profileDict.aiAnalyticsColumnRecommendations,
+              profileDict.aiAnalyticsColumnAdoptionRate,
+              profileDict.aiAnalyticsColumnCompletionRate,
+              profileDict.aiAnalyticsColumnConfidence,
+            ]}
+            rows={formatMetricRows(sortedModelMetrics, row => [
+              primaryWithRaw('scene', formatAISceneLabel(row.scene, presentationLocale), row.scene),
+              primaryWithRaw('model', formatAIModelLabel(row.model, presentationLocale), row.model),
+              String(row.recommendation_count),
+              <span key="adoption" className="font-medium">{formatPercent(row.adoption_rate)}</span>,
+              <span key="completion" className="font-medium">{formatPercent(row.completion_rate)}</span>,
+              row.avg_confidence_score == null
+                ? '-'
+                : formatAIConfidenceLabel(
+                    row.avg_confidence_score >= 2.5 ? 'high' : row.avg_confidence_score >= 1.5 ? 'medium' : 'low',
+                    presentationLocale
+                  ),
             ])}
           />
         </>
