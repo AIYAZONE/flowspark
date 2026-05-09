@@ -20,7 +20,7 @@ import { Target, Star } from 'lucide-react'
 import { assignVariant, isEnvEnabled } from '@/lib/experiments'
 import { ExperimentExposureTracker } from '@/components/ExperimentExposureTracker'
 import { calcCompletionPercent } from '@/lib/progress'
-import { getLatestWeeklyInsight } from '@/lib/ai/insightStore'
+import { getOrCreateWeeklyInsight } from '@/lib/ai/insightStore'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -51,9 +51,10 @@ export default async function DashboardPage() {
 
   const inboxOpenCount = inboxOpenCountRaw ?? 0
   const locale = String(dict.common.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'
-  const weeklyInsight = await getLatestWeeklyInsight({
+  const weeklyInsight = await getOrCreateWeeklyInsight({
     supabase,
     userId: user.id,
+    locale,
   })
 
   const { data: inboxRecent } = await supabase
