@@ -30,6 +30,8 @@ export type RecommendationStrategySummary = {
   difficultyMode?: CoachDifficultyMode
   riskLevel?: CoachRiskLevel
   selectedGoalId?: string | null
+  selectedActionId?: string | null
+  selectedActionTitle?: string | null
   groundingHints: string[]
   fallbackPolicy: string[]
 }
@@ -48,6 +50,28 @@ export type CoachApiResponse<T> = {
 }
 
 export type CoachMomentumBucket = 'high' | 'medium' | 'low' | 'unknown'
+export type CoachActionSourceType = 'existing_action' | 'new_action'
+
+export type CoachActionBrief = {
+  id: string
+  title: string
+  description?: string | null
+  goalId?: string | null
+  goalTitle?: string | null
+  type?: string | null
+  priority?: string | null
+  completed?: boolean
+  startDate?: string | null
+  endDate?: string | null
+  updatedAt?: string | null
+}
+
+export type CoachActionContext = {
+  todayOpen: CoachActionBrief[]
+  overdueOpen: CoachActionBrief[]
+  recentCompleted: CoachActionBrief[]
+  candidateActions: CoachActionBrief[]
+}
 
 export type CoachContext = {
   identity: {
@@ -91,6 +115,7 @@ export type CoachContext = {
     adopted: boolean | null
     completed: boolean | null
   }>
+  actionContext: CoachActionContext
 }
 
 export type WeeklyInsightOutput = {

@@ -84,7 +84,7 @@ const SheetFormContent = React.forwardRef<
       "p-0",
       mobileMode === "sheet"
         ? "max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:max-h-[85vh] sm:pb-6"
-        : "h-[100dvh] max-h-[100dvh] rounded-none overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:h-auto sm:max-h-[85vh] sm:rounded-lg sm:pb-6",
+        : "inset-0 h-dvh w-screen max-h-none rounded-none border-0 overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:inset-0 sm:h-dvh sm:w-screen sm:max-h-none sm:rounded-none sm:border-0 sm:pb-[calc(env(safe-area-inset-bottom)+1rem)]",
       className
     )}
     {...props}

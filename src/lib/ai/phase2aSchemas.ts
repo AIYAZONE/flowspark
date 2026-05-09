@@ -77,6 +77,9 @@ export interface TodayPlanOutput {
   recommendations: Array<{
     kind: 'core' | 'alt'
     goal_id: string | null
+    source_action_id?: string | null
+    source_action_title?: string | null
+    source_type?: 'existing_action' | 'new_action'
     reason: string
     variants: Array<{
       minutes: 5 | 10 | 20
@@ -482,6 +485,11 @@ export function parseTodayPlan(payload: unknown): ParseResult<TodayPlanOutput> {
       const kindRaw = asTrimmedString(item.kind)
       const kind = kindRaw === 'core' || kindRaw === 'alt' ? kindRaw : null
       const goal_id = asTrimmedString(item.goal_id) ?? null
+      const source_action_id = asTrimmedString(item.source_action_id) ?? null
+      const source_action_title = asTrimmedString(item.source_action_title) ?? null
+      const sourceTypeRaw = asTrimmedString(item.source_type)
+      const source_type =
+        sourceTypeRaw === 'existing_action' || sourceTypeRaw === 'new_action' ? sourceTypeRaw : undefined
       const reason = asTrimmedString(item.reason)
       if (!kind || !reason) continue
       if (!isConcreteReason(reason)) continue
@@ -516,7 +524,7 @@ export function parseTodayPlan(payload: unknown): ParseResult<TodayPlanOutput> {
         altCount += 1
       }
 
-      recommendations.push({ kind, goal_id, reason, variants })
+      recommendations.push({ kind, goal_id, source_action_id, source_action_title, source_type, reason, variants })
       if (recommendations.length >= 2) break
     }
   }

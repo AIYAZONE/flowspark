@@ -1,7 +1,8 @@
 import type { createClient } from '@/lib/supabase/server'
 import { getGrowthProfile } from '@/lib/userState'
 import { getBehaviorSnapshotSummary } from '@/lib/snapshots'
-import type { CoachContext, CoachScene } from '@/lib/ai/types'
+import { getTodayInTZ } from '@/lib/time'
+import type { CoachActionBrief, CoachContext, CoachScene } from '@/lib/ai/types'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 
@@ -22,6 +23,111 @@ function normalizeLocale(locale: string | null | undefined): 'zh' | 'en' {
 function isMissingRelationError(message: string | undefined) {
   const text = (message || '').toLowerCase()
   return text.includes('does not exist') || text.includes('relation') || text.includes('schema cache')
+}
+
+function normalizeActionRow(row: Record<string, unknown>): CoachActionBrief | null {
+  const id = asString(row.id) || ''
+  const title = asString(row.title) || ''
+  if (!id || !title) return null
+  const goal = row.goals && typeof row.goals === 'object' && !Array.isArray(row.goals)
+    ? row.goals as Record<string, unknown>
+    : null
+  if ((asString(goal?.status) || '') === 'archived') return null
+  return {
+    id,
+    title,
+    description: asString(row.description),
+    goalId: asString(row.goal_id),
+    goalTitle: asString(goal?.title),
+    type: asString(row.type),
+    priority: asString(row.priority),
+    completed: typeof row.completed === 'boolean' ? row.completed : false,
+    startDate: asString(row.start_date),
+    endDate: asString(row.end_date),
+    updatedAt: asString(row.updated_at),
+  }
+}
+
+function dedupeActions(actions: CoachActionBrief[], max: number) {
+  const seen = new Set<string>()
+  const out: CoachActionBrief[] = []
+  for (const action of actions) {
+    if (!action.id || seen.has(action.id)) continue
+    seen.add(action.id)
+    out.push(action)
+    if (out.length >= max) break
+  }
+  return out
+}
+
+async function getRecentActions(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  timezone: string
+}) {
+  const { supabase, userId, timezone } = params
+  const today = getTodayInTZ(timezone)
+  const selectFields = 'id,title,description,goal_id,type,priority,completed,start_date,end_date,updated_at,goals(id,title,status)'
+
+  let { data, error } = await supabase
+    .from('actions')
+    .select(selectFields)
+    .eq('user_id', userId)
+    .order('completed', { ascending: true })
+    .order('updated_at', { ascending: false })
+    .limit(30)
+
+  if ((error || !data || data.length === 0) && (error?.code === '42703' || !data || data.length === 0)) {
+    const fallback = await supabase
+      .from('actions')
+      .select(selectFields)
+      .eq('owner_id', userId)
+      .order('completed', { ascending: true })
+      .order('updated_at', { ascending: false })
+      .limit(30)
+    data = fallback.data
+    error = fallback.error
+  }
+
+  if (error) {
+    if (!isMissingRelationError(error.message)) {
+      console.error('getRecentActions failed', error)
+    }
+    return {
+      todayOpen: [] as CoachActionBrief[],
+      overdueOpen: [] as CoachActionBrief[],
+      recentCompleted: [] as CoachActionBrief[],
+    }
+  }
+
+  const normalized = ((data || []) as Array<Record<string, unknown>>)
+    .map(normalizeActionRow)
+    .filter((row): row is CoachActionBrief => !!row)
+
+  const todayOpen = normalized.filter(action => {
+    if (action.completed) return false
+    const start = action.startDate || ''
+    const end = action.endDate || action.startDate || ''
+    return !!start && start <= today && !!end && end >= today
+  })
+
+  const overdueOpen = normalized.filter(action => {
+    if (action.completed) return false
+    const base = action.endDate || action.startDate || ''
+    return !!base && base < today
+  })
+
+  const recentCompleted = normalized.filter(action => {
+    if (!action.completed) return false
+    const updated = action.updatedAt || ''
+    return !!updated
+  })
+
+  return {
+    todayOpen: dedupeActions(todayOpen, 5),
+    overdueOpen: dedupeActions(overdueOpen, 5),
+    recentCompleted: dedupeActions(recentCompleted, 5),
+  }
 }
 
 async function getRecentAI(params: {
@@ -162,10 +268,11 @@ export async function buildCoachContext(params: {
   scene: CoachScene
   locale: 'zh' | 'en'
   timezone?: string
+  requestedActionContext?: CoachActionBrief[]
 }) : Promise<CoachContext> {
-  const { supabase, userId, locale, timezone = 'UTC' } = params
+  const { supabase, userId, locale, timezone = 'UTC', requestedActionContext = [] } = params
 
-  const [{ data: profile }, { data: goals }, growthProfile, behavior, recentAI, frictions] = await Promise.all([
+  const [{ data: profile }, { data: goals }, growthProfile, behavior, recentAI, frictions, recentActions] = await Promise.all([
     supabase
       .from('user_profiles')
       .select('locale')
@@ -181,9 +288,20 @@ export async function buildCoachContext(params: {
     getBehaviorSnapshotSummary({ supabase, userId }),
     getRecentAI({ supabase, userId }),
     getStructuredFrictions({ supabase, userId }),
+    getRecentActions({ supabase, userId, timezone }),
   ])
 
   const fallbackFrictions = frictions ?? await getFallbackFrictionsFromRecentEvents({ supabase, userId })
+  const requestedOpen = requestedActionContext.filter(action => !action.completed)
+  const actionContext = {
+    todayOpen: dedupeActions([...requestedOpen, ...recentActions.todayOpen], 5),
+    overdueOpen: dedupeActions(recentActions.overdueOpen, 5),
+    recentCompleted: dedupeActions(recentActions.recentCompleted, 5),
+    candidateActions: dedupeActions(
+      [...requestedOpen, ...recentActions.todayOpen, ...recentActions.overdueOpen],
+      5
+    ),
+  }
 
   return {
     identity: {
@@ -220,5 +338,6 @@ export async function buildCoachContext(params: {
     },
     frictions: fallbackFrictions,
     recentAI,
+    actionContext,
   }
 }

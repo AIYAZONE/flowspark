@@ -30,9 +30,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { motion, useAnimationControls } from 'framer-motion'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { Check, CheckCircle2, ChevronDown, ChevronRight, Circle, Copy, Pencil, Save, Trash2, X, Calendar } from 'lucide-react'
+import { Calendar, Check, CheckCircle2, ChevronDown, ChevronRight, Circle, Copy, Maximize2, Minimize2, Pencil, Save, Sparkles, Trash2, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { SubmitButton } from '@/components/SubmitButton'
@@ -72,34 +70,8 @@ import { logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
 import { createClient } from '@/lib/supabase/client'
 import { ActionDescriptionEditor, type ActionAttachmentDraft } from '@/components/ActionDescriptionEditor'
-
-function DescriptionMarkdown(props: { markdown: string; compact?: boolean }) {
-    const looksLikeHtml = /<\/?[a-z][\s\S]*>/i.test(props.markdown.trim())
-    const safeHtml = props.markdown
-        .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '')
-        .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, '')
-        .replace(/<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi, '')
-        .replace(/\son\w+="[^"]*"/gi, '')
-        .replace(/\son\w+='[^']*'/gi, '')
-        .replace(/\son\w+=\S+/gi, '')
-        .replace(/javascript:/gi, '')
-    return (
-        <div className={cn(
-            "prose prose-sm dark:prose-invert max-w-none break-words",
-            "prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0",
-            "prose-img:my-2 prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-border/40",
-            props.compact && "max-h-24 overflow-hidden"
-        )}>
-            {looksLikeHtml ? (
-                <div dangerouslySetInnerHTML={{ __html: safeHtml }} />
-            ) : (
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                    {props.markdown}
-                </ReactMarkdown>
-            )}
-        </div>
-    )
-}
+import { RichTextContentView } from '@/components/RichTextContentView'
+import { RichTextImagePreviewDialog } from '@/components/RichTextImagePreviewDialog'
 
 function decodeHtmlEntities(input: string): string {
     return input
@@ -131,6 +103,85 @@ function richTextToPlainText(input: string, locale: 'zh' | 'en'): string {
         .replace(/\r/g, '')
         .replace(/\n{3,}/g, '\n\n')
         .trim()
+}
+
+type ParsedAITodayPlan = {
+    variantLabel: string
+    basedOn?: string | null
+    firstStep: string
+    definitionOfDone: string
+    reason?: string | null
+    remainingDescription: string
+}
+
+function parseAITodayPlanFromDescription(input: string | null | undefined): ParsedAITodayPlan | null {
+    if (typeof input !== 'string') return null
+    const text = input.trim()
+    if (!text) return null
+
+    const lines = text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+
+    if (lines.length < 4) return null
+
+    const header = lines[0]
+    const zhHeader = /^AI 今日推进建议（(.+?)）$/.exec(header)
+    const enHeader = /^AI today focus \((.+?)\)$/.exec(header)
+    const variantLabel = zhHeader?.[1] || enHeader?.[1]
+    if (!variantLabel) return null
+
+    let index = 1
+    let basedOn: string | null = null
+
+    if (lines[index]?.startsWith('基于任务：')) {
+        basedOn = lines[index].slice('基于任务：'.length).trim()
+        index += 1
+    } else if (lines[index]?.startsWith('Based on:')) {
+        basedOn = lines[index].slice('Based on:'.length).trim()
+        index += 1
+    }
+
+    const firstStepLine = lines[index]
+    const definitionLine = lines[index + 1]
+    if (!firstStepLine || !definitionLine) return null
+
+    const firstStep = firstStepLine.startsWith('第一步：')
+        ? firstStepLine.slice('第一步：'.length).trim()
+        : firstStepLine.startsWith('First step:')
+            ? firstStepLine.slice('First step:'.length).trim()
+            : ''
+    const definitionOfDone = definitionLine.startsWith('完成标准：')
+        ? definitionLine.slice('完成标准：'.length).trim()
+        : definitionLine.startsWith('DoD:')
+            ? definitionLine.slice('DoD:'.length).trim()
+            : ''
+
+    if (!firstStep || !definitionOfDone) return null
+
+    index += 2
+    let reason: string | null = null
+
+    const reasonLine = lines[index]
+    if (reasonLine?.startsWith('建议原因：')) {
+        reason = reasonLine.slice('建议原因：'.length).trim()
+        index += 1
+    } else if (reasonLine?.startsWith('Reason:')) {
+        reason = reasonLine.slice('Reason:'.length).trim()
+        index += 1
+    }
+
+    const remainingDescription = lines.slice(index).join('\n').trim()
+
+    return {
+        variantLabel,
+        basedOn,
+        firstStep,
+        definitionOfDone,
+        reason,
+        remainingDescription
+    }
 }
 
 interface Action {
@@ -212,6 +263,8 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
     const [discardIntent, setDiscardIntent] = useState<'switch_to_view' | 'close_panel'>('switch_to_view')
     const [copiedMode, setCopiedMode] = useState<'title' | 'full' | null>(null)
+    const [isPanelFullscreen, setIsPanelFullscreen] = useState(false)
+    const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
     const unsavedConfirmText = (dict.goals.new as Record<string, string>).confirmDiscardChanges || '你有未保存的修改，确认放弃吗？'
 
     function resetEditDraftFromAction() {
@@ -234,6 +287,9 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         setEditAiLoading(false)
         setEditAiError(null)
         setEditAiDrafts([])
+        if (!detailsOpen) {
+            setIsPanelFullscreen(false)
+        }
     }
 
     const isEditDirty = (() => {
@@ -384,6 +440,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     function openDetails() {
         if (draggedRecently) return
         closeSwipe()
+        setIsPanelFullscreen(false)
         setPanelMode('view')
         setDetailsOpen(true)
     }
@@ -391,12 +448,18 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     function openEditPanel() {
         closeSwipe()
         resetEditDraftFromAction()
+        if (!detailsOpen) {
+            setIsPanelFullscreen(false)
+        }
         setPanelMode('edit')
         setDetailsOpen(true)
     }
 
     function openRescuePanel() {
         closeSwipe()
+        if (!detailsOpen) {
+            setIsPanelFullscreen(false)
+        }
         setPanelMode('rescue')
         setRescueError(null)
         setRescueResult(null)
@@ -422,7 +485,10 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             })
         }
         setDetailsOpen(open)
-        if (!open) setPanelMode('view')
+        if (!open) {
+            setPanelMode('view')
+            setIsPanelFullscreen(false)
+        }
     }
 
     const locale = String(dict.common.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'
@@ -432,10 +498,57 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const copyTitleText = locale === 'zh' ? '复制标题' : 'Copy title'
     const copyFullText = locale === 'zh' ? '复制标题和详情' : 'Copy title + details'
     const copiedText = locale === 'zh' ? '已复制' : 'Copied'
+    const aiPlanCardTitle = locale === 'zh' ? 'AI 今日推进建议' : 'AI Today Focus'
+    const aiPlanBasedOnLabel = locale === 'zh' ? '基于任务' : 'Based on'
+    const aiPlanVariantLabel = locale === 'zh' ? '推进版本' : 'Focus mode'
+    const aiPlanReasonLabel = locale === 'zh' ? '建议原因' : 'Why this'
+    const parsedAITodayPlan = parseAITodayPlanFromDescription(action.description || '')
+    const displayDescription = parsedAITodayPlan?.remainingDescription || action.description || ''
+    const hasDescription = Boolean(displayDescription)
+    const aiPlanInsightCard = parsedAITodayPlan ? (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/80 px-3 py-1 text-xs font-medium text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+                {aiPlanCardTitle}
+            </div>
+            <div className="space-y-3">
+                <div className="flex flex-wrap gap-2 text-xs">
+                    <span className="rounded-full bg-background/90 px-3 py-1 font-medium text-foreground border border-border/50">
+                        {aiPlanVariantLabel}：{parsedAITodayPlan.variantLabel}
+                    </span>
+                    {parsedAITodayPlan.basedOn ? (
+                        <span className="rounded-full bg-background/90 px-3 py-1 font-medium text-muted-foreground border border-border/50">
+                            {aiPlanBasedOnLabel}：{parsedAITodayPlan.basedOn}
+                        </span>
+                    ) : null}
+                </div>
+                <div className="grid gap-3 md:grid-cols-[1.4fr_1fr]">
+                    <div className="rounded-xl border border-border/50 bg-background/85 p-3">
+                        <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                            {locale === 'zh' ? '第一步' : 'First step'}
+                        </div>
+                        <div className="text-sm leading-6 text-foreground">{parsedAITodayPlan.firstStep}</div>
+                    </div>
+                    <div className="rounded-xl border border-border/50 bg-background/85 p-3">
+                        <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                            {locale === 'zh' ? '完成标准' : 'Definition of done'}
+                        </div>
+                        <div className="text-sm leading-6 text-foreground">{parsedAITodayPlan.definitionOfDone}</div>
+                    </div>
+                </div>
+                {parsedAITodayPlan.reason ? (
+                    <div className="rounded-xl bg-background/70 px-3 py-2 text-sm text-muted-foreground leading-6">
+                        <span className="mr-2 font-medium text-foreground">{aiPlanReasonLabel}</span>
+                        {parsedAITodayPlan.reason}
+                    </div>
+                ) : null}
+            </div>
+        </div>
+    ) : null
 
     async function handleCopy(mode: 'title' | 'full') {
         const title = action.title.trim()
-        const description = richTextToPlainText(action.description || '', locale).trim()
+        const description = richTextToPlainText(displayDescription, locale).trim()
         const text =
             mode === 'title'
                 ? title
@@ -705,9 +818,9 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         </div>
     )
 
-    const viewDescription = action.description ? (
+    const viewDescription = hasDescription ? (
         <div className="rounded-lg border border-border/50 bg-secondary/20 p-4 text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">
-            <DescriptionMarkdown markdown={action.description} />
+            <RichTextContentView html={displayDescription} onImageClick={setPreviewImageUrl} />
         </div>
     ) : (
         <div className="rounded-lg border border-border/50 bg-secondary/10 p-4 text-sm text-muted-foreground/70">
@@ -1004,7 +1117,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     return (
         <div className={cn(
             "group relative overflow-hidden rounded-xl border border-border/40 bg-card transition-all duration-300 md:hover:shadow-sm md:hover:border-primary/20 md:hover:bg-muted/10",
-            isNew && "border-primary/40 bg-primary/[0.04]"
+            isNew && "border-primary/40 bg-primary/4"
         )}>
             <div className="absolute inset-y-0 right-0 z-0 w-32 md:hidden">
                 <div className="flex h-full w-full items-stretch">
@@ -1057,7 +1170,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                             aria-disabled={!hasDetails}
                         >
                             <div className="flex items-start justify-between gap-3">
-                                <p className={`font-medium text-sm break-words ${action.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                                <p className={`font-medium text-sm wrap-break-word ${action.completed ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
                                     {action.title}
                                 </p>
                                 {hasDetails ? (
@@ -1096,10 +1209,10 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                     </span>
                                 )}
                             </div>
-                            {action.description ? (
+                            {displayDescription ? (
                                 <div className="mt-3 rounded-md bg-muted/30 p-2 text-xs text-muted-foreground">
                                     <div className="mb-1 font-medium opacity-70">{dict.today.descriptionLabel}</div>
-                                    <DescriptionMarkdown markdown={action.description} compact />
+                                    <RichTextContentView html={displayDescription} compact />
                                 </div>
                             ) : null}
                         </button>
@@ -1172,15 +1285,35 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
 
             {isDesktop ? (
                 <Dialog open={detailsOpen} onOpenChange={handlePanelOpenChange}>
-                    <DialogFormContent className="max-w-lg">
-                        <DialogHeader>
-                            <DialogTitle className="pr-8">{panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}</DialogTitle>
-                        </DialogHeader>
-                        <div className="mt-2 space-y-4">
-                            {panelMode === 'edit' ? (
-                                editForm
+                    <DialogFormContent
+                        mobileMode={isPanelFullscreen ? 'fullscreen' : 'sheet'}
+                        className={cn(
+                            isPanelFullscreen
+                                ? 'overflow-hidden p-0 sm:p-0'
+                                : 'max-w-lg overflow-hidden p-0 sm:p-0'
+                        )}
+                    >
+                        <div className={cn('flex min-h-0 flex-col', isPanelFullscreen ? 'h-full' : 'max-h-[85vh]')}>
+                            <DialogHeader className="relative px-4 pt-4 pr-24 text-left sm:px-6 sm:pt-6 sm:pr-24">
+                                <DialogTitle className="leading-snug text-left">{panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}</DialogTitle>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute right-12 top-4 h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:top-6"
+                                    onClick={() => setIsPanelFullscreen((value) => !value)}
+                                >
+                                    {isPanelFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                                    <span className="sr-only">{isPanelFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen}</span>
+                                </Button>
+                            </DialogHeader>
+                            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4 sm:px-6 sm:pb-6">
+                                {panelMode === 'edit' ? (
+                                    <div className={cn(isPanelFullscreen && 'pr-1')}>
+                                    {editForm}
+                                </div>
                             ) : panelMode === 'rescue' ? (
-                                <div className="space-y-4">
+                                    <div className={cn('space-y-4', isPanelFullscreen && 'pr-1')}>
                                     {!goalTitle ? (
                                         <div className="text-sm text-muted-foreground">{dict.common.errors.operation_failed}</div>
                                     ) : (
@@ -1232,11 +1365,22 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                     )}
                                 </div>
                             ) : (
-                                <>
+                                    <div className={cn('space-y-4', isPanelFullscreen && 'pr-1')}>
                                     {metaBadges}
                                     {copyActions}
+                                    {aiPlanInsightCard}
                                     {viewDescription}
                                     <div className="flex justify-end gap-2">
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="border-destructive/30 text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/30"
+                                            onClick={() => setDeleteDialogOpen(true)}
+                                            disabled={isDeleting}
+                                        >
+                                            {dict.common.delete}
+                                        </Button>
                                         {action.type === 'core' && !action.completed && goalTitle ? (
                                             <Button
                                                 type="button"
@@ -1257,38 +1401,52 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                         >
                                             {dict.common.edit}
                                         </Button>
-                                        <Button
-                                            type="button"
-                                            variant="destructive"
-                                            size="sm"
-                                            onClick={() => setDeleteDialogOpen(true)}
-                                            disabled={isDeleting}
-                                        >
-                                            {dict.common.delete}
-                                        </Button>
                                     </div>
-                                </>
+                                </div>
                             )}
+                        </div>
                         </div>
                     </DialogFormContent>
                 </Dialog>
             ) : (
                 <Sheet open={detailsOpen} onOpenChange={handlePanelOpenChange}>
-                    <SheetFormContent side="bottom" className="max-h-[85vh] overflow-y-auto rounded-t-2xl">
-                        <SheetHeader className="flex flex-row items-start justify-between space-y-0 gap-3">
-                            <SheetTitle className="text-base leading-snug">{panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}</SheetTitle>
-                            <SheetClose asChild>
-                                <Button variant="ghost" size="icon" className="rounded-full shrink-0">
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            </SheetClose>
-                        </SheetHeader>
+                    <SheetFormContent
+                        side="bottom"
+                        mobileMode={isPanelFullscreen ? 'fullscreen' : 'sheet'}
+                        className={cn(
+                            isPanelFullscreen
+                                ? 'overflow-hidden p-0'
+                                : panelMode === 'edit'
+                                    ? 'overflow-hidden p-0'
+                                    : 'max-h-[85vh] overflow-hidden rounded-t-2xl p-0'
+                        )}
+                    >
+                        <div className={cn('flex min-h-0 flex-col', isPanelFullscreen ? 'h-full' : 'max-h-[85vh]')}>
+                            <SheetHeader className="relative px-4 pt-4 text-left">
+                                <SheetTitle className="block pr-24 text-left text-base leading-snug">{panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}</SheetTitle>
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        className="absolute right-12 top-4 h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                                        onClick={() => setIsPanelFullscreen((value) => !value)}
+                                    >
+                                        {isPanelFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                                    </Button>
+                                    <SheetClose asChild>
+                                        <Button variant="ghost" size="icon" className="absolute right-2 top-4 h-8 w-8 rounded-full shrink-0">
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </SheetClose>
+                                </div>
+                            </SheetHeader>
 
-                        <div className="mt-4 space-y-4">
-                            {panelMode === 'edit' ? (
-                                editForm
-                            ) : panelMode === 'rescue' ? (
-                                <div className="space-y-4">
+                            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4">
+                                {panelMode === 'edit' ? (
+                                    editForm
+                                ) : panelMode === 'rescue' ? (
+                                    <div className="space-y-4">
                                     {!goalTitle ? (
                                         <div className="text-sm text-muted-foreground">{dict.common.errors.operation_failed}</div>
                                     ) : (
@@ -1340,52 +1498,62 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                     )}
                                 </div>
                             ) : (
-                                <>
+                                    <div className="space-y-4">
                                     {metaBadges}
                                     {copyActions}
+                                    {aiPlanInsightCard}
                                     {viewDescription}
-                                    <div className="space-y-2">
+                                    <div className="flex items-center gap-2">
                                         <Button
                                             type="button"
-                                            variant="destructive"
+                                            variant="outline"
                                             size="sm"
-                                            className="w-full"
+                                            className="flex-1 border-destructive/30 text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/30"
                                             onClick={() => setDeleteDialogOpen(true)}
                                             disabled={isDeleting}
                                         >
                                             {dict.common.delete}
                                         </Button>
-                                        <div className="flex items-center justify-between gap-2">
-                                            {action.type === 'core' && !action.completed && goalTitle ? (
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="flex-1"
-                                                    onClick={openRescuePanel}
-                                                    disabled={isLoading}
-                                                >
-                                                    {rescueTitleText}
-                                                </Button>
-                                            ) : null}
+                                        {action.type === 'core' && !action.completed && goalTitle ? (
                                             <Button
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
                                                 className="flex-1"
-                                                onClick={openEditPanel}
+                                                onClick={openRescuePanel}
                                                 disabled={isLoading}
                                             >
-                                                {dict.common.edit}
+                                                {rescueTitleText}
                                             </Button>
-                                        </div>
+                                        ) : null}
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex-1"
+                                            onClick={openEditPanel}
+                                            disabled={isLoading}
+                                        >
+                                            {dict.common.edit}
+                                        </Button>
                                     </div>
-                                </>
+                                </div>
                             )}
+                        </div>
                         </div>
                     </SheetFormContent>
                 </Sheet>
             )}
+
+            <RichTextImagePreviewDialog
+                open={Boolean(previewImageUrl)}
+                imageUrl={previewImageUrl}
+                title={dict.common.imagePreviewTitle}
+                openOriginalLabel={dict.common.openOriginal}
+                onOpenChange={(open) => {
+                    if (!open) setPreviewImageUrl(null)
+                }}
+            />
 
             <AlertDialog
                 open={discardDialogOpen}

@@ -221,6 +221,42 @@ async function insertActionWithFallback(params: {
 	return { data };
 }
 
+function buildAITodayPlanNote(params: {
+	locale: 'zh' | 'en';
+	variantLabel: string;
+	sourceActionTitle?: string | null;
+	firstStep: string;
+	definitionOfDone: string;
+	reason: string;
+}) {
+	const {
+		locale,
+		variantLabel,
+		sourceActionTitle,
+		firstStep,
+		definitionOfDone,
+		reason
+	} = params;
+	const zh = locale === 'zh';
+	return [
+		zh
+			? `AI 今日推进建议（${variantLabel}）`
+			: `AI today focus (${variantLabel})`,
+		sourceActionTitle
+			? zh
+				? `基于任务：${sourceActionTitle}`
+				: `Based on: ${sourceActionTitle}`
+			: null,
+		zh ? `第一步：${firstStep}` : `First step: ${firstStep}`,
+		zh
+			? `完成标准：${definitionOfDone}`
+			: `DoD: ${definitionOfDone}`,
+		zh ? `建议原因：${reason}` : `Reason: ${reason}`
+	]
+		.filter(Boolean)
+		.join('\n');
+}
+
 async function insertActionSubItemsWithFallback(params: {
 	supabase: Awaited<ReturnType<typeof createClient>>;
 	userId: string;
@@ -638,6 +674,117 @@ export async function createActionAndReturnId(formData: FormData) {
 
 export async function createAction(formData: FormData): Promise<void> {
 	await createActionAndReturnId(formData);
+}
+
+export async function applyAITodayPlanToExistingAction(formData: FormData) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+
+	if (!user) throw new Error('User not authenticated');
+
+	const actionId = formData.get('action_id') as string;
+	const ai_recommendation_id =
+		(formData.get('ai_recommendation_id') as string | null) || null;
+	const firstStep = (formData.get('first_step') as string) || '';
+	const definitionOfDone =
+		(formData.get('definition_of_done') as string) || '';
+	const reason = (formData.get('reason') as string) || '';
+	const variantLabel = (formData.get('variant_label') as string) || '';
+	const sourceActionTitle =
+		(formData.get('source_action_title') as string | null) || null;
+	const locale =
+		String(formData.get('locale') || '').toLowerCase().startsWith('zh')
+			? 'zh'
+			: 'en';
+
+	if (
+		!actionId ||
+		!ai_recommendation_id ||
+		!firstStep ||
+		!definitionOfDone ||
+		!reason ||
+		!variantLabel
+	) {
+		throw new Error('Missing required fields');
+	}
+
+	let { data: action, error } = await supabase
+		.from('actions')
+		.select('id, goal_id, title, description, type, priority, start_date, end_date')
+		.eq('id', actionId)
+		.eq('user_id', user.id)
+		.maybeSingle();
+
+	if (!action && !error) {
+		const fallback = await supabase
+			.from('actions')
+			.select(
+				'id, goal_id, title, description, type, priority, start_date, end_date'
+			)
+			.eq('id', actionId)
+			.eq('owner_id', user.id)
+			.maybeSingle();
+		action = fallback.data;
+		error = fallback.error;
+	}
+
+	if (error) throw new Error('operation_failed');
+	if (!action) throw new Error('operation_failed');
+
+	const note = buildAITodayPlanNote({
+		locale,
+		variantLabel,
+		sourceActionTitle: sourceActionTitle || action.title || null,
+		firstStep,
+		definitionOfDone,
+		reason
+	});
+
+	const existingDescription =
+		typeof action.description === 'string' ? action.description.trim() : '';
+	const description = existingDescription
+		? `${note}\n\n${existingDescription}`
+		: note;
+	const payload = {
+		description,
+		type: 'core',
+		ai_recommendation_id
+	};
+
+	const updateByUser = await supabase
+		.from('actions')
+		.update(payload)
+		.eq('id', actionId)
+		.eq('user_id', user.id);
+
+	if (updateByUser.error) {
+		if (
+			updateByUser.error.code === '42703' ||
+			updateByUser.error.message?.includes('column')
+		) {
+			const fallback = await supabase
+				.from('actions')
+				.update(payload)
+				.eq('id', actionId)
+				.eq('owner_id', user.id);
+			if (fallback.error) throw new Error('operation_failed');
+		} else {
+			throw new Error('operation_failed');
+		}
+	}
+
+	revalidatePath('/dashboard');
+	revalidatePath('/today');
+	revalidatePath('/goals');
+	if (action.goal_id) revalidatePath(`/goals/${action.goal_id}`);
+	await upsertBehaviorSnapshot({
+		supabase,
+		userId: user.id,
+		snapshotDate: action.start_date as string
+	});
+	return { actionId };
 }
 
 export async function createActionWithSubItems(formData: FormData) {

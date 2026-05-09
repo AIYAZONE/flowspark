@@ -1,4 +1,5 @@
 import type {
+  CoachActionBrief,
   CoachContext,
   CoachDifficultyMode,
   CoachRiskLevel,
@@ -60,6 +61,21 @@ function distinctNonEmpty(values: Array<string | null | undefined>) {
   return [...new Set(values.filter((value): value is string => !!value && !!value.trim()))]
 }
 
+function scoreAction(action: CoachActionBrief, selectedGoalId: string | null) {
+  let score = 0
+  if (action.type === 'core') score += 30
+  if (!action.completed) score += 20
+  if (selectedGoalId && action.goalId === selectedGoalId) score += 20
+  if (action.priority === 'high') score += 15
+  else if (action.priority === 'medium') score += 8
+  if (action.description) score += 3
+  if (action.endDate) {
+    const days = Math.floor((new Date(action.endDate).getTime() - Date.now()) / 86400000)
+    score += Math.max(0, 8 - Math.min(8, Math.abs(days)))
+  }
+  return score
+}
+
 export function buildTodayStrategy(params: {
   context: CoachContext
   goals: GoalCandidate[]
@@ -67,10 +83,20 @@ export function buildTodayStrategy(params: {
   const { context, goals } = params
   const riskLevel = computeRiskLevel(context)
   const difficultyMode = computeDifficultyMode(context, riskLevel)
-  const selectedGoal = [...goals].sort((a, b) => scoreGoal(b) - scoreGoal(a))[0] || null
+  const scoredGoal = [...goals].sort((a, b) => scoreGoal(b) - scoreGoal(a))[0] || null
+  const prioritizedActions = [
+    ...context.actionContext.todayOpen,
+    ...context.actionContext.overdueOpen,
+    ...context.actionContext.candidateActions,
+  ]
+  const selectedAction = [...prioritizedActions]
+    .sort((a, b) => scoreAction(b, scoredGoal?.id || null) - scoreAction(a, scoredGoal?.id || null))[0] || null
+  const selectedGoal =
+    (selectedAction?.goalId ? goals.find(goal => goal.id === selectedAction.goalId) ?? null : null) || scoredGoal
   const recentToday = recentAISummary(context, 'today_plan')
   const groundingHints = distinctNonEmpty([
     selectedGoal ? `selected_goal:${selectedGoal.title}` : null,
+    selectedAction ? `selected_action:${selectedAction.title}` : null,
     context.profile.summary ? `profile_summary:${context.profile.summary}` : null,
     context.profile.preferredTimeBucket ? `preferred_time_bucket:${context.profile.preferredTimeBucket}` : null,
     context.frictions[0]?.reasonTag ? `top_friction:${context.frictions[0].reasonTag}` : null,
@@ -85,6 +111,8 @@ export function buildTodayStrategy(params: {
     difficultyMode,
     riskLevel,
     selectedGoalId: selectedGoal?.id || null,
+    selectedActionId: selectedAction?.id || null,
+    selectedActionTitle: selectedAction?.title || null,
     groundingHints,
     fallbackPolicy: riskLevel === 'high'
       ? ['prefer_starter_variant', 'fallback_on_low_actionability']

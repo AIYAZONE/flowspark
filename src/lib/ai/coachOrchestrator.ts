@@ -18,6 +18,7 @@ import type {
 import { createRecommendation } from '@/lib/ai/recommendationStore'
 import { upsertGrowthProfileSummary } from '@/lib/userState'
 import type {
+  CoachActionBrief,
   CoachApiResponse,
   CoachContext,
   RecommendationQuality,
@@ -40,6 +41,19 @@ type GoalCandidate = {
   end_date?: string | null
   success_criteria?: string | null
   stop_criteria?: string | null
+}
+
+type ActionCandidate = {
+  id: string
+  title: string
+  description?: string | null
+  goal_id?: string | null
+  goal_title?: string | null
+  type?: string | null
+  priority?: string | null
+  completed?: boolean
+  start_date?: string | null
+  end_date?: string | null
 }
 
 function isMissingRelationError(message: string | undefined) {
@@ -72,12 +86,28 @@ function mapContextGoals(context: CoachContext): GoalCandidate[] {
   }))
 }
 
+function mapActionCandidate(action: CoachActionBrief): ActionCandidate {
+  return {
+    id: action.id,
+    title: action.title,
+    description: action.description ?? null,
+    goal_id: action.goalId ?? null,
+    goal_title: action.goalTitle ?? null,
+    type: action.type ?? null,
+    priority: action.priority ?? null,
+    completed: action.completed ?? false,
+    start_date: action.startDate ?? null,
+    end_date: action.endDate ?? null,
+  }
+}
+
 function buildFallbackTodayPlan(params: {
   locale: 'en' | 'zh'
   goals: GoalCandidate[]
   context: CoachContext
 }): TodayPlanOutput {
   const primaryGoal = pickPrimaryGoal(params.goals)
+  const primaryAction = params.context.actionContext.candidateActions[0] || null
   const lowMomentum =
     params.context.behavior.momentumBucket === 'low' ||
     params.context.behavior.momentumBucket === 'unknown' ||
@@ -90,25 +120,30 @@ function buildFallbackTodayPlan(params: {
       recommendations: [
         {
           kind: 'core',
-          goal_id: primaryGoal?.id || null,
-          reason: lowMomentum ? '先用一个最容易开始的小动作把今天启动起来。' : '先推进当前最重要、最接近结果的一步。',
+          goal_id: primaryAction?.goalId || primaryGoal?.id || null,
+          source_action_id: primaryAction?.id || null,
+          source_action_title: primaryAction?.title || null,
+          source_type: primaryAction ? 'existing_action' : 'new_action',
+          reason: primaryAction
+            ? '先把你当前这条任务继续推进一小步，最容易立刻进入状态。'
+            : lowMomentum ? '先用一个最容易开始的小动作把今天启动起来。' : '先推进当前最重要、最接近结果的一步。',
           variants: [
             {
               minutes: 5,
-              title: `写下${primaryGoal?.title || '当前目标'}的下一步`,
-              first_step: '打开文档并写下一步',
-              definition_of_done: '明确今天先做哪一步。',
+              title: primaryAction ? `推进：${primaryAction.title}` : `写下${primaryGoal?.title || '当前目标'}的下一步`,
+              first_step: primaryAction ? '打开任务并写下下一小步' : '打开文档并写下一步',
+              definition_of_done: primaryAction ? '明确并开始一个最小推进动作。' : '明确今天先做哪一步。',
             },
             {
               minutes: 10,
-              title: `完成${primaryGoal?.title || '当前目标'}的一小段`,
-              first_step: '先做最小可交付片段',
+              title: primaryAction ? `完成${primaryAction.title}的一小段` : `完成${primaryGoal?.title || '当前目标'}的一小段`,
+              first_step: primaryAction ? '先完成一个最小可见片段' : '先做最小可交付片段',
               definition_of_done: '产出一个可见小结果。',
             },
             {
               minutes: 20,
-              title: `推进${primaryGoal?.title || '当前目标'}的关键片段`,
-              first_step: '连续完成一个关键片段',
+              title: primaryAction ? `连续推进${primaryAction.title}` : `推进${primaryGoal?.title || '当前目标'}的关键片段`,
+              first_step: primaryAction ? '连续推进一个关键片段' : '连续完成一个关键片段',
               definition_of_done: '完成一段可直接复用结果。',
             },
           ],
@@ -123,26 +158,31 @@ function buildFallbackTodayPlan(params: {
     recommendations: [
       {
         kind: 'core',
-        goal_id: primaryGoal?.id || null,
-        reason: lowMomentum
-          ? 'Start with the easiest small move that gets you moving today.'
-          : 'Start with the most important next step that can create visible progress today.',
+        goal_id: primaryAction?.goalId || primaryGoal?.id || null,
+        source_action_id: primaryAction?.id || null,
+        source_action_title: primaryAction?.title || null,
+        source_type: primaryAction ? 'existing_action' : 'new_action',
+        reason: primaryAction
+          ? 'Start by pushing one concrete step of your current task so today feels grounded and doable.'
+          : lowMomentum
+            ? 'Start with the easiest small move that gets you moving today.'
+            : 'Start with the most important next step that can create visible progress today.',
         variants: [
           {
             minutes: 5,
-            title: `Define the next step for ${primaryGoal?.title || 'your goal'}`,
-            first_step: 'Open the doc and write the next step',
-            definition_of_done: 'You know exactly what to do first today.',
+            title: primaryAction ? `Advance: ${primaryAction.title}` : `Define the next step for ${primaryGoal?.title || 'your goal'}`,
+            first_step: primaryAction ? 'Open the task and define the next tiny step' : 'Open the doc and write the next step',
+            definition_of_done: primaryAction ? 'You have started one tiny push on the task.' : 'You know exactly what to do first today.',
           },
           {
             minutes: 10,
-            title: `Finish one small part of ${primaryGoal?.title || 'your goal'}`,
+            title: primaryAction ? `Finish a small slice of ${primaryAction.title}` : `Finish one small part of ${primaryGoal?.title || 'your goal'}`,
             first_step: 'Complete the smallest deliverable first',
             definition_of_done: 'You produce one visible small result.',
           },
           {
             minutes: 20,
-            title: `Push a key section of ${primaryGoal?.title || 'your goal'}`,
+            title: primaryAction ? `Push a focused slice of ${primaryAction.title}` : `Push a key section of ${primaryGoal?.title || 'your goal'}`,
             first_step: 'Stay on one focused work block',
             definition_of_done: 'You finish one reusable output.',
           },
@@ -304,16 +344,29 @@ export async function planToday(params: {
   locale: 'en' | 'zh'
   today: string
   goals: GoalCandidate[]
+  actions?: ActionCandidate[]
   requestedRecentContext?: Record<string, unknown>
   timezone?: string
 }): Promise<TodayPlanApiResponse> {
-  const { supabase, userId, locale, today, goals, requestedRecentContext, timezone } = params
+  const { supabase, userId, locale, today, goals, actions = [], requestedRecentContext, timezone } = params
   const context = await buildCoachContext({
     supabase,
     userId,
     scene: 'today_plan',
     locale,
     timezone,
+    requestedActionContext: actions.map(action => ({
+      id: action.id,
+      title: action.title,
+      description: action.description ?? null,
+      goalId: action.goal_id ?? null,
+      goalTitle: action.goal_title ?? null,
+      type: action.type ?? null,
+      priority: action.priority ?? null,
+      completed: action.completed ?? false,
+      startDate: action.start_date ?? null,
+      endDate: action.end_date ?? null,
+    })),
   })
 
   const effectiveGoals = goals.length > 0 ? goals : mapContextGoals(context)
@@ -330,6 +383,7 @@ export async function planToday(params: {
       locale,
       today,
       goals: effectiveGoals,
+      candidate_actions: context.actionContext.candidateActions.map(mapActionCandidate),
       recent_context: {
         ...(requestedRecentContext ?? {}),
         completion_rate_7d: context.behavior.completionRate7d ?? null,
@@ -343,6 +397,8 @@ export async function planToday(params: {
         difficulty_mode: strategy.difficultyMode,
         risk_level: strategy.riskLevel,
         selected_goal_id: strategy.selectedGoalId ?? null,
+        selected_action_id: strategy.selectedActionId ?? null,
+        selected_action_title: strategy.selectedActionTitle ?? null,
         grounding_hints: strategy.groundingHints,
         user_profile_summary: context.profile.summary ?? null,
         preferred_time_bucket: context.profile.preferredTimeBucket ?? context.behavior.activeTimeBucket ?? null,
@@ -388,6 +444,11 @@ export async function planToday(params: {
       context: {
         behavior: context.behavior,
         frictions: context.frictions,
+        actions: context.actionContext.candidateActions.map(action => ({
+          id: action.id,
+          title: action.title,
+          goalId: action.goalId ?? null,
+        })),
       },
     },
     output,

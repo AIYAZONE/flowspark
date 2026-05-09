@@ -1,12 +1,14 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { Label } from '@/components/ui/label'
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
+const IMAGE_MIN_WIDTH = 96
 
 export type ActionAttachmentDraft = {
   id: string
@@ -78,27 +80,37 @@ export function ActionDescriptionEditor(props: {
   onUploadingChange: (uploading: boolean) => void
   dict: DictLite
 }) {
+  const { userId, value, onChange, attachments, onAttachmentsChange, onUploadingChange, dict } = props
   const supabase = createClient()
   const editorRef = useRef<HTMLDivElement | null>(null)
   const isComposingRef = useRef(false)
   const isInternalSyncRef = useRef(false)
+  const selectedImageRef = useRef<HTMLImageElement | null>(null)
+  const resizeStateRef = useRef<{ startX: number; startWidth: number } | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
-  const [hiddenValue, setHiddenValue] = useState(() => toEditableHtml(props.value))
+  const [hiddenValue, setHiddenValue] = useState(() => toEditableHtml(value))
+  const [selectedImageRect, setSelectedImageRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null)
 
   const helperText = useMemo(() => {
     return (
-      props.dict.goals.new.richtextPasteHint || '直接粘贴截图或拖入图片（PNG/JPG/WebP，最大 5MB）'
+      dict.goals.new.richtextPasteHint || '直接粘贴截图或拖入图片（PNG/JPG/WebP，最大 5MB）'
     )
-  }, [props.dict.goals.new.richtextPasteHint])
+  }, [dict.goals.new.richtextPasteHint])
+
+  const syncEditorValue = useCallback((html: string) => {
+    isInternalSyncRef.current = true
+    setHiddenValue(html)
+    onChange(html)
+  }, [onChange])
 
   useEffect(() => {
     if (isInternalSyncRef.current) {
       isInternalSyncRef.current = false
-      setHiddenValue(props.value)
+      setHiddenValue(value)
       return
     }
-    const next = toEditableHtml(props.value)
+    const next = toEditableHtml(value)
     const editor = editorRef.current
     if (!editor) {
       setHiddenValue(next)
@@ -109,17 +121,79 @@ export function ActionDescriptionEditor(props: {
       editor.innerHTML = next
     }
     setHiddenValue(next)
-  }, [props.value])
+  }, [value])
+
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      const state = resizeStateRef.current
+      const editor = editorRef.current
+      const image = selectedImageRef.current
+      if (!state || !editor || !image) return
+
+      event.preventDefault()
+      const editorWidth = editor.clientWidth - 24
+      const nextWidth = Math.min(
+        Math.max(IMAGE_MIN_WIDTH, state.startWidth + (event.clientX - state.startX)),
+        Math.max(IMAGE_MIN_WIDTH, editorWidth)
+      )
+
+      image.style.width = `${nextWidth}px`
+      image.style.maxWidth = '100%'
+      image.style.height = 'auto'
+      updateSelectedImageRect(image)
+    }
+
+    const handlePointerUp = () => {
+      if (!resizeStateRef.current || !editorRef.current) return
+      resizeStateRef.current = null
+      syncEditorValue(editorRef.current.innerHTML)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp)
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+    }
+  }, [syncEditorValue])
 
   const setUploading = (next: boolean) => {
     setIsUploading(next)
-    props.onUploadingChange(next)
+    onUploadingChange(next)
   }
 
-  const syncEditorValue = (html: string) => {
-    isInternalSyncRef.current = true
-    setHiddenValue(html)
-    props.onChange(html)
+  const clearImageSelection = () => {
+    if (selectedImageRef.current) {
+      selectedImageRef.current.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-background')
+    }
+    selectedImageRef.current = null
+    setSelectedImageRect(null)
+  }
+
+  const updateSelectedImageRect = (image: HTMLImageElement) => {
+    const editorRect = editorRef.current?.getBoundingClientRect()
+    const imageRect = image.getBoundingClientRect()
+    if (!editorRect) return
+    setSelectedImageRect({
+      left: imageRect.left - editorRect.left,
+      top: imageRect.top - editorRect.top,
+      width: imageRect.width,
+      height: imageRect.height,
+    })
+  }
+
+  const selectImage = (image: HTMLImageElement) => {
+    if (selectedImageRef.current === image) {
+      updateSelectedImageRect(image)
+      return
+    }
+
+    clearImageSelection()
+    image.classList.add('ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-background')
+    image.style.maxWidth = '100%'
+    image.style.height = 'auto'
+    selectedImageRef.current = image
+    updateSelectedImageRect(image)
   }
 
   const insertImageIntoEditor = (url: string, altText: string) => {
@@ -142,6 +216,7 @@ export function ActionDescriptionEditor(props: {
     } else {
       editor.appendChild(img)
     }
+    selectImage(img)
     syncEditorValue(editor.innerHTML)
   }
 
@@ -154,7 +229,7 @@ export function ActionDescriptionEditor(props: {
     }
 
     const ext = file.name.split('.').pop()?.toLowerCase() || 'png'
-    const path = `${props.userId}/${new Date().toISOString().slice(0, 10)}/${makeId()}.${ext}`
+    const path = `${userId}/${new Date().toISOString().slice(0, 10)}/${makeId()}.${ext}`
 
     const { error } = await supabase.storage.from('action-images').upload(path, file, {
       upsert: false,
@@ -172,13 +247,13 @@ export function ActionDescriptionEditor(props: {
       mime_type: file.type,
       size_bytes: file.size,
     }
-    props.onAttachmentsChange([...props.attachments, attachment])
+    onAttachmentsChange([...attachments, attachment])
     insertImageIntoEditor(attachment.public_url, file.name)
   }
 
   const resolveErrorText = (err: unknown) => {
     const key = err instanceof Error ? err.message : 'image_upload_failed'
-    return props.dict.common.errors[key] || props.dict.goals.new[key] || props.dict.common.errors.operation_failed || '上传失败'
+    return dict.common.errors[key] || dict.goals.new[key] || dict.common.errors.operation_failed || '上传失败'
   }
 
   const handleUpload = async (file: File) => {
@@ -195,55 +270,91 @@ export function ActionDescriptionEditor(props: {
 
   return (
     <div className="grid gap-2">
-      <Label htmlFor="description">{props.dict.today.descriptionLabel}</Label>
+      <Label htmlFor="description">{dict.today.descriptionLabel}</Label>
       <input type="hidden" name="description" value={hiddenValue} />
-      <div
-        ref={editorRef}
-        id="description"
-        contentEditable
-        suppressContentEditableWarning
-        className="min-h-[140px] rounded-md border border-input bg-background px-3 py-2 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground"
-        data-placeholder={props.dict.today.descriptionPlaceholder}
-        onInput={(e) => {
-          if (isComposingRef.current) return
-          const html = (e.currentTarget as HTMLDivElement).innerHTML
-          syncEditorValue(html)
-        }}
-        onCompositionStart={() => {
-          isComposingRef.current = true
-        }}
-        onCompositionEnd={(e) => {
-          isComposingRef.current = false
-          const html = (e.currentTarget as HTMLDivElement).innerHTML
-          syncEditorValue(html)
-        }}
-        onPaste={(e) => {
-          const file = Array.from(e.clipboardData.files || []).find((f) => f.type.startsWith('image/'))
-          if (!file) return
-          e.preventDefault()
-          void handleUpload(file)
-        }}
-        onDrop={(e) => {
-          const file = Array.from(e.dataTransfer.files || []).find((f) => f.type.startsWith('image/'))
-          if (!file) return
-          e.preventDefault()
-          void handleUpload(file)
-        }}
-        onDragOver={(e) => {
-          const hasImage = Array.from(e.dataTransfer.items || []).some((item) => item.type.startsWith('image/'))
-          if (hasImage) {
+      <div className="relative">
+        <div
+          ref={editorRef}
+          id="description"
+          contentEditable
+          suppressContentEditableWarning
+          className="min-h-[140px] rounded-md border border-input bg-background px-3 py-2 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground"
+          data-placeholder={dict.today.descriptionPlaceholder}
+          onInput={(e) => {
+            if (isComposingRef.current) return
+            const html = (e.currentTarget as HTMLDivElement).innerHTML
+            syncEditorValue(html)
+          }}
+          onCompositionStart={() => {
+            isComposingRef.current = true
+          }}
+          onCompositionEnd={(e) => {
+            isComposingRef.current = false
+            const html = (e.currentTarget as HTMLDivElement).innerHTML
+            syncEditorValue(html)
+          }}
+          onClick={(e) => {
+            const target = e.target
+            if (target instanceof HTMLImageElement) {
+              e.preventDefault()
+              selectImage(target)
+              return
+            }
+            clearImageSelection()
+          }}
+          onPaste={(e) => {
+            const file = Array.from(e.clipboardData.files || []).find((f) => f.type.startsWith('image/'))
+            if (!file) return
             e.preventDefault()
-          }
-        }}
-        onBlur={(e) => {
-          const editor = e.currentTarget
-          const hasImage = editor.querySelector('img') !== null
-          if (!hasImage && editor.textContent?.trim() === '') {
-            editor.innerHTML = ''
-            syncEditorValue('')
-          }
-        }}
-      />
+            void handleUpload(file)
+          }}
+          onDrop={(e) => {
+            const file = Array.from(e.dataTransfer.files || []).find((f) => f.type.startsWith('image/'))
+            if (!file) return
+            e.preventDefault()
+            void handleUpload(file)
+          }}
+          onDragOver={(e) => {
+            const hasImage = Array.from(e.dataTransfer.items || []).some((item) => item.type.startsWith('image/'))
+            if (hasImage) {
+              e.preventDefault()
+            }
+          }}
+          onBlur={(e) => {
+            const editor = e.currentTarget
+            const hasImage = editor.querySelector('img') !== null
+            if (!hasImage && editor.textContent?.trim() === '') {
+              editor.innerHTML = ''
+              syncEditorValue('')
+            }
+          }}
+        />
+
+        {selectedImageRect ? (
+          <button
+            type="button"
+            aria-label="Resize image"
+            className={cn(
+              'absolute h-4 w-4 rounded-full border border-primary bg-background shadow-sm',
+              'touch-none cursor-se-resize'
+            )}
+            style={{
+              left: selectedImageRect.left + selectedImageRect.width - 8,
+              top: selectedImageRect.top + selectedImageRect.height - 8,
+            }}
+            onPointerDown={(event) => {
+              const image = selectedImageRef.current
+              if (!image) return
+              event.preventDefault()
+              event.stopPropagation()
+              resizeStateRef.current = {
+                startX: event.clientX,
+                startWidth: image.getBoundingClientRect().width,
+              }
+            }}
+          />
+        ) : null}
+      </div>
       <input type="hidden" name="attachment_manifest" value={JSON.stringify(props.attachments)} />
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}

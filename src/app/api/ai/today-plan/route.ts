@@ -24,6 +24,7 @@ export async function POST(req: Request) {
   const locale = input.locale === 'zh' ? 'zh' : 'en'
   const today = typeof input.today === 'string' ? input.today : ''
   const goals = Array.isArray(input.goals) ? input.goals : []
+  const actions = Array.isArray(input.actions) ? input.actions : []
   const requestedRecentContext = (input.recent_context && typeof input.recent_context === 'object') ? (input.recent_context as Record<string, unknown>) : undefined
 
   if (!today || goals.length === 0) {
@@ -48,6 +49,25 @@ export async function POST(req: Request) {
 
   if (coercedGoals.length === 0) return NextResponse.json({ error: 'missing_fields' }, { status: 400 })
 
+  const coercedActions = actions
+    .filter(action => action && typeof action === 'object')
+    .map(action => {
+      const obj = action as Record<string, unknown>
+      return {
+        id: typeof obj.id === 'string' ? obj.id : '',
+        title: typeof obj.title === 'string' ? obj.title : '',
+        description: typeof obj.description === 'string' ? obj.description : null,
+        goal_id: typeof obj.goal_id === 'string' ? obj.goal_id : null,
+        goal_title: typeof obj.goal_title === 'string' ? obj.goal_title : null,
+        type: typeof obj.type === 'string' ? obj.type : null,
+        priority: typeof obj.priority === 'string' ? obj.priority : null,
+        completed: typeof obj.completed === 'boolean' ? obj.completed : false,
+        start_date: typeof obj.start_date === 'string' ? obj.start_date : null,
+        end_date: typeof obj.end_date === 'string' ? obj.end_date : null,
+      }
+    })
+    .filter(action => action.id && action.title)
+
   try {
     const result = await planToday({
       supabase,
@@ -55,6 +75,7 @@ export async function POST(req: Request) {
       locale,
       today,
       goals: coercedGoals,
+      actions: coercedActions,
       requestedRecentContext
     })
     return NextResponse.json(result, { status: 200 })

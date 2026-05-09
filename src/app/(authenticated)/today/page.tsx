@@ -23,7 +23,7 @@ export default async function TodayPage() {
   // Get active goals for the dropdown
   let { data: activeGoals } = await supabase
     .from('goals')
-    .select('id, title')
+    .select('id, title, priority, start_date, end_date, success_criteria, stop_criteria')
     .eq('user_id', ownerId)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
@@ -32,7 +32,7 @@ export default async function TodayPage() {
   if (!activeGoals || activeGoals.length === 0) {
     const fallbackGoals = await supabase
       .from('goals')
-      .select('id, title')
+      .select('id, title, priority, start_date, end_date, success_criteria, stop_criteria')
       .eq('owner_id', ownerId)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
@@ -124,6 +124,19 @@ export default async function TodayPage() {
     return false;
   });
 
+  const aiActionContext = (actions || []).map(action => ({
+    id: action.id as string,
+    title: action.title as string,
+    description: (action.description as string | null | undefined) ?? null,
+    goal_id: (action.goal_id as string | null | undefined) ?? null,
+    goal_title: (action.goals?.title as string | null | undefined) ?? null,
+    type: (action.type as string | null | undefined) ?? null,
+    priority: (action.priority as string | null | undefined) ?? null,
+    completed: Boolean(action.completed),
+    start_date: (action.start_date as string | null | undefined) ?? null,
+    end_date: (action.end_date as string | null | undefined) ?? null,
+  }))
+
   const { count: inboxOpenCountRaw } = await supabase
     .from('inbox_items')
     .select('id', { count: 'exact', head: true })
@@ -169,6 +182,7 @@ export default async function TodayPage() {
               <AITodayPlanButton
                 dict={dict}
                 goals={activeGoals || []}
+                actions={aiActionContext}
                 defaultDate={today}
                 ab1TodayPlanVariant={ab1TodayPlanVariant}
                 triggerClassName="w-full sm:w-auto"

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { Plus, Target } from 'lucide-react'
+import { Maximize2, Minimize2, Plus, Target } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Input } from '@/components/ui/input'
@@ -55,6 +55,7 @@ function makeDraftId() {
 
 export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai', trigger }: AddActionDialogProps) {
     const [open, setOpen] = useState(false)
+    const [isFullscreen, setIsFullscreen] = useState(false)
     const [isPending, startTransition] = useTransition()
     const [valid, setValid] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -81,6 +82,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
     function handleOpenChange(next: boolean) {
         setOpen(next)
         if (next) {
+            setIsFullscreen(false)
             setSubmitted(false)
             setError(null)
             setShowGoalCreatedBanner(false)
@@ -102,6 +104,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                 setStep('action')
             }
         } else {
+            setIsFullscreen(false)
             if (!submitted) {
                 logEvent('dialog_close_without_submit', { step })
             }
@@ -234,9 +237,12 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                     </Button>
                 )}
             </DialogTrigger>
-            <DialogFormContent className="sm:max-w-[600px] sm:max-h-[85vh] p-0 block">
+            <DialogFormContent
+                mobileMode={isFullscreen ? 'fullscreen' : 'sheet'}
+                className={isFullscreen ? 'p-0' : 'p-0 block sm:max-w-[600px] sm:max-h-[85vh]'}
+            >
                 {step === 'intro' ? (
-                    <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-primary/10 via-background to-background px-6 pb-8 pt-10">
+                    <div className="relative h-full w-full overflow-hidden bg-linear-to-br from-primary/10 via-background to-background px-6 pb-8 pt-10">
                         <div className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-primary/15 blur-3xl" />
                         <div className="pointer-events-none absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl" />
                         <AnimatePresence mode="wait">
@@ -264,7 +270,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                         </AnimatePresence>
                     </div>
                 ) : (
-                    <div className="p-6">
+                    <div className={isFullscreen ? 'flex h-full flex-col p-6' : 'p-6'}>
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={step}
@@ -295,10 +301,21 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                     </>
                                 ) : (
                                     <>
-                                        <DialogHeader>
+                                        <DialogHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
                                             <DialogTitle>{dict.goals.detail.addAction}</DialogTitle>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="sm"
+                                                className="shrink-0 gap-2"
+                                                onClick={() => setIsFullscreen((value) => !value)}
+                                            >
+                                                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                                                {isFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen}
+                                            </Button>
                                         </DialogHeader>
-                                        <form action={handleSubmit} className="space-y-4 mt-4">
+                                        <form action={handleSubmit} className={isFullscreen ? 'mt-4 flex min-h-0 flex-1 flex-col' : 'space-y-4 mt-4'}>
+                                            <div className={isFullscreen ? 'space-y-4 overflow-y-auto pr-1' : 'space-y-4'}>
                                             {showGoalCreatedBanner && (
                                                 <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm" role="status">
                                                     {dict.today.goalCreatedAutoselected}
@@ -491,20 +508,23 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                                     {(dict.goals.new as Record<string, string>).wait_upload_complete || '图片上传中，请稍后提交。'}
                                                 </div>
                                             ) : null}
+                                            </div>
 
-                                            <Button type="submit" className="w-full" disabled={isPending || !valid || (!goalId && !selectedGoalId) || descriptionUploading}>
-                                                {isPending ? (
-                                                    <>
-                                                        <LoadingSpinner size={16} className="mr-2 text-current" />
-                                                        {dict.common.saving}
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <Plus className="mr-2 h-4 w-4" />
-                                                        {dict.goals.detail.addAction}
-                                                    </>
-                                                )}
-                                            </Button>
+                                            <div className={isFullscreen ? 'border-t border-border/50 bg-background pt-4' : ''}>
+                                                <Button type="submit" className="w-full" disabled={isPending || !valid || (!goalId && !selectedGoalId) || descriptionUploading}>
+                                                    {isPending ? (
+                                                        <>
+                                                            <LoadingSpinner size={16} className="mr-2 text-current" />
+                                                            {dict.common.saving}
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Plus className="mr-2 h-4 w-4" />
+                                                            {dict.goals.detail.addAction}
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
                                         </form>
                                     </>
                                 )}

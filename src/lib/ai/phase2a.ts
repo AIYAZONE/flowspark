@@ -141,6 +141,18 @@ export async function aiTodayPlan(opts: {
 		success_criteria?: string | null;
 		stop_criteria?: string | null;
 	}>;
+	candidate_actions?: Array<{
+		id: string;
+		title: string;
+		description?: string | null;
+		goal_id?: string | null;
+		goal_title?: string | null;
+		type?: string | null;
+		priority?: string | null;
+		completed?: boolean;
+		start_date?: string | null;
+		end_date?: string | null;
+	}>;
 	recent_context?: {
 		completion_rate_7d?: number | null;
 		core_created_7d?: number | null;
@@ -153,6 +165,8 @@ export async function aiTodayPlan(opts: {
 		difficulty_mode?: 'starter' | 'balanced' | 'push';
 		risk_level?: 'low' | 'medium' | 'high';
 		selected_goal_id?: string | null;
+		selected_action_id?: string | null;
+		selected_action_title?: string | null;
 		grounding_hints?: string[];
 		user_profile_summary?: string | null;
 		preferred_time_bucket?: string | null;
@@ -167,6 +181,9 @@ export async function aiTodayPlan(opts: {
 		'  "recommendations":[{',
 		'    "kind":"core|alt",',
 		'    "goal_id":"string|null",',
+		'    "source_action_id":"string|null",',
+		'    "source_action_title":"string|null",',
+		'    "source_type":"existing_action|new_action",',
 		'    "reason":"string",',
 		'    "variants":[',
 		'      {"minutes":5,"title":"string","first_step":"string","definition_of_done":"string"},',
@@ -187,8 +204,12 @@ export async function aiTodayPlan(opts: {
 		'- stay grounded in the provided goal title and criteria.',
 		'- avoid vague phrases such as “推进MVP搭建”, “挑战新关卡”, “打怪”, “副本”, “升级”, “关键模块”, “系统优化” unless the goal title itself clearly uses those words.',
 		'- do not invent a different domain from the goal title.',
+		'- if candidate_actions are provided, the core recommendation should be grounded in one existing action whenever possible.',
+		'- when grounding to an existing action, set source_type=existing_action and reuse its domain, nouns, and concrete object.',
+		'- only use source_type=new_action when there is no suitable existing action candidate.',
 		'- if you provide an alt recommendation, it must still be concrete and realistic today.',
 		'- if strategy.selected_goal_id is provided, the core recommendation must use that goal_id.',
+		'- if strategy.selected_action_id is provided and a suitable candidate action exists, core recommendation should use that source_action_id.',
 		'- if strategy.difficulty_mode is starter, make the 5-minute variant extremely easy to start.',
 		'- if strategy.difficulty_mode is push, keep the 20-minute variant ambitious but still finishable today.'
 	].join('\n');
@@ -197,6 +218,8 @@ export async function aiTodayPlan(opts: {
 		`Today: ${opts.today}`,
 		'Candidate goals (JSON):',
 		formatContext(opts.goals),
+		'Candidate actions (JSON):',
+		formatContext(opts.candidate_actions ?? []),
 		'Recent context (optional JSON):',
 		formatContext(opts.recent_context ?? {}),
 		'Strategy context (optional JSON):',
@@ -204,6 +227,8 @@ export async function aiTodayPlan(opts: {
 		'Task:',
 		'- Pick ONE best core action for today and provide 5/10/20 estimated-time variants.',
 		'- Provide at most one alternative option (kind=alt) only if there is a clearly valid second choice.',
+		'- If candidate_actions exist, first try to choose one current action and turn it into a better 5/10/20 minute push plan.',
+		'- Prefer continuing, shrinking, or clarifying an existing action over inventing a brand-new unrelated task.',
 		'- Every title should read like a task in a to-do list, not a strategy statement.',
 		'- Prefer specific outputs, files, pages, conversations, drafts, or review actions over generic progress wording.',
 		'- Use strategy.grounding_hints and user_profile_summary when explaining reason.',

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type ReactNode } from 'react'
 import { CheckCircle2, Clock3, Sparkles } from 'lucide-react'
-import { createActionAndReturnId } from '@/app/(authenticated)/goals/actions'
+import { applyAITodayPlanToExistingAction, createActionAndReturnId } from '@/app/(authenticated)/goals/actions'
 import {
   Dialog,
   DialogFormContent,
@@ -26,11 +26,46 @@ type GoalCandidate = {
   stop_criteria?: string | null
 }
 
+type ActionCandidate = {
+  id: string
+  title: string
+  description?: string | null
+  goal_id?: string | null
+  goal_title?: string | null
+  type?: string | null
+  priority?: string | null
+  completed?: boolean
+  start_date?: string | null
+  end_date?: string | null
+}
+
+function buildPlanDescription(params: {
+  locale: 'zh' | 'en'
+  sourceActionTitle?: string | null
+  firstStep: string
+  definitionOfDone: string
+  reason: string
+}) {
+  const { locale, sourceActionTitle, firstStep, definitionOfDone, reason } = params
+  const isZh = locale === 'zh'
+  return [
+    sourceActionTitle
+      ? (isZh ? `基于任务：${sourceActionTitle}` : `Based on: ${sourceActionTitle}`)
+      : null,
+    isZh ? `第一步：${firstStep}` : `First step: ${firstStep}`,
+    isZh ? `完成标准：${definitionOfDone}` : `DoD: ${definitionOfDone}`,
+    isZh ? `建议原因：${reason}` : `Reason: ${reason}`,
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
 interface Props {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   dict: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   goals: any[]
+  actions?: ActionCandidate[]
   defaultDate: string
   ab1TodayPlanVariant?: 'A' | 'B' | null
   source?: 'dashboard' | 'today'
@@ -44,6 +79,7 @@ interface Props {
 export function AITodayPlanButton({
   dict,
   goals,
+  actions = [],
   defaultDate,
   ab1TodayPlanVariant = null,
   source = 'today',
@@ -89,6 +125,29 @@ export function AITodayPlanButton({
       .filter(goal => goal.id && goal.title) as GoalCandidate[]
   }, [goals])
 
+  const candidateActions = useMemo(() => {
+    const list = Array.isArray(actions) ? actions : []
+    return list
+      .map(action => ({
+        id: typeof action.id === 'string' ? action.id : '',
+        title: typeof action.title === 'string' ? action.title : '',
+        description: typeof action.description === 'string' ? action.description : null,
+        goal_id: typeof action.goal_id === 'string' ? action.goal_id : null,
+        goal_title: typeof action.goal_title === 'string' ? action.goal_title : null,
+        type: typeof action.type === 'string' ? action.type : null,
+        priority: typeof action.priority === 'string' ? action.priority : null,
+        completed: typeof action.completed === 'boolean' ? action.completed : false,
+        start_date: typeof action.start_date === 'string' ? action.start_date : null,
+        end_date: typeof action.end_date === 'string' ? action.end_date : null,
+      }))
+      .filter(action => action.id && action.title)
+  }, [actions])
+
+  const actionMap = useMemo(
+    () => new Map(candidateActions.map(action => [action.id, action])),
+    [candidateActions]
+  )
+
   function pickFallbackGoalId() {
     const pMap: Record<string, number> = { high: 3, medium: 2, low: 1 }
     return (
@@ -112,6 +171,16 @@ export function AITodayPlanButton({
     return planning.aiPlanVariant20 || '20 分钟完成一段'
   }
 
+  function getApplyButtonLabel() {
+    const planning = (dict?.dashboard?.planning as Record<string, string> | undefined) || {}
+    if (!aiResult || !selected) return planning.aiPlanApplyBtn || 'Apply & Create'
+    const recommendation = aiResult.recommendations[selected.recIndex]
+    if (recommendation?.source_type === 'existing_action' && recommendation?.source_action_id) {
+      return planning.aiPlanApplyExistingBtn || (locale === 'zh' ? '采用并推进现有任务' : 'Apply to Existing Task')
+    }
+    return planning.aiPlanApplyBtn || 'Apply & Create'
+  }
+
   async function openAIPlan() {
     setAiOpen(true)
     setAiError(null)
@@ -130,7 +199,7 @@ export function AITodayPlanButton({
       const res = await fetch('/api/ai/today-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ today: defaultDate, goals: candidateGoals, locale }),
+        body: JSON.stringify({ today: defaultDate, goals: candidateGoals, actions: candidateActions, locale }),
       })
       const json = (await res.json()) as TodayPlanApiResponse & { error?: string }
       if (!res.ok) {
@@ -221,33 +290,60 @@ export function AITodayPlanButton({
     const variant = recommendation?.variants.find(item => item.minutes === selected.minutes)
     if (!recommendation || !variant) return
 
-    const goalId = recommendation.goal_id || pickFallbackGoalId()
+    const sourceAction = recommendation.source_action_id ? actionMap.get(recommendation.source_action_id) : null
+    const goalId = recommendation.goal_id || sourceAction?.goal_id || pickFallbackGoalId()
     if (!goalId) return
-
-    const formData = new FormData()
-    formData.set('goal_id', goalId)
-    formData.set('title', variant.title)
-    formData.set('type', 'core')
-    formData.set('priority', 'medium')
-    formData.set(
-      'description',
-      [`First step: ${variant.first_step}`, `DoD: ${variant.definition_of_done}`, `Reason: ${recommendation.reason}`].join('\n')
-    )
-    formData.set('start_date', defaultDate)
-    formData.set('end_date', defaultDate)
-    formData.set('ai_recommendation_id', aiRecommendationId)
+    const optionSelected = `${selected.minutes}m` as '5m' | '10m' | '20m'
+    const adoptionMode = recommendation.source_type === 'existing_action' && sourceAction?.id
+      ? 'existing_action'
+      : 'new_action'
 
     setAiLoading(true)
     try {
-      const created = await createActionAndReturnId(formData) as { actionId?: string | null }
-      const optionSelected = `${selected.minutes}m` as '5m' | '10m' | '20m'
+      let actionId: string | null = null
+
+      if (adoptionMode === 'existing_action' && sourceAction?.id) {
+        const formData = new FormData()
+        formData.set('action_id', sourceAction.id)
+        formData.set('ai_recommendation_id', aiRecommendationId)
+        formData.set('first_step', variant.first_step)
+        formData.set('definition_of_done', variant.definition_of_done)
+        formData.set('reason', recommendation.reason)
+        formData.set('variant_label', getVariantLabel(selected.minutes))
+        formData.set('source_action_title', recommendation.source_action_title || sourceAction.title)
+        formData.set('locale', locale)
+        const applied = await applyAITodayPlanToExistingAction(formData) as { actionId?: string | null }
+        actionId = applied?.actionId || sourceAction.id
+      } else {
+        const formData = new FormData()
+        formData.set('goal_id', goalId)
+        formData.set('title', variant.title)
+        formData.set('type', 'core')
+        formData.set('priority', 'medium')
+        formData.set(
+          'description',
+          buildPlanDescription({
+            locale,
+            sourceActionTitle: recommendation.source_action_title,
+            firstStep: variant.first_step,
+            definitionOfDone: variant.definition_of_done,
+            reason: recommendation.reason,
+          })
+        )
+        formData.set('start_date', defaultDate)
+        formData.set('end_date', defaultDate)
+        formData.set('ai_recommendation_id', aiRecommendationId)
+        const created = await createActionAndReturnId(formData) as { actionId?: string | null }
+        actionId = created?.actionId || null
+      }
+
       setAiOutcomeState('adopted')
       void fetch(`/api/ai/recommendations/${aiRecommendationId}/adopt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           optionSelected,
-          actionId: created?.actionId || null,
+          actionId,
         }),
       }).catch(() => {
       })
@@ -255,6 +351,7 @@ export function AITodayPlanButton({
         option: optionSelected,
         goal_id: goalId,
         variant: ab1TodayPlanVariant,
+        adoption_mode: adoptionMode,
       }, {
         recommendation_id: aiRecommendationId,
         scene: 'today_plan',
@@ -262,17 +359,20 @@ export function AITodayPlanButton({
         prompt_version: aiMeta?.promptVersion || null,
         model: aiMeta?.model || null,
         variant_minutes: selected.minutes,
+        source_action_id: sourceAction?.id || null,
       })
       sendAIFeedback('ai_today_plan_apply', {
         option: optionSelected,
         goal_id: goalId,
         variant: ab1TodayPlanVariant,
+        adoption_mode: adoptionMode,
         recommendation_id: aiRecommendationId,
         scene: 'today_plan',
         strategy_version: aiMeta?.strategyVersion || null,
         prompt_version: aiMeta?.promptVersion || null,
         model: aiMeta?.model || null,
         variant_minutes: selected.minutes,
+        source_action_id: sourceAction?.id || null,
       })
       setAiOpen(false)
     } catch {
@@ -313,23 +413,23 @@ export function AITodayPlanButton({
           setAiOpen(open)
         }}
       >
-        <DialogFormContent className="max-w-2xl overflow-hidden border-border/60 bg-background p-0">
-          <DialogHeader className="border-b border-border/50 px-6 pb-4 pt-6">
-            <div className="inline-flex items-center gap-2 text-sm font-medium text-primary">
-              <Sparkles className="h-4 w-4" />
+        <DialogFormContent className="flex max-h-[92dvh] max-w-none flex-col overflow-hidden border-border/60 bg-background p-0 shadow-2xl sm:max-w-[min(92vw,72rem)]! sm:max-h-[88dvh]">
+          <DialogHeader className="shrink-0 border-b border-border/40 bg-linear-to-b from-primary/5 to-transparent px-4 pb-4 pt-4 sm:px-6 sm:pb-4 sm:pt-5">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/6 px-3 py-1 text-sm font-medium text-primary">
+              <Sparkles className="h-3.5 w-3.5" />
               AI Coach
             </div>
-            <DialogTitle className="text-2xl leading-tight sm:text-[30px]">
+            <DialogTitle className="max-w-none text-[1.8rem] leading-tight tracking-[-0.02em] sm:text-[2rem]">
               {(dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanTitle || 'AI Core Action (Draft)'}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="px-6 py-5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
             {aiError && <div className="mb-4 text-sm text-destructive">{aiError}</div>}
 
             {aiResult ? (
-              <div className="space-y-5">
-                <div className="rounded-2xl border border-dashed border-border/70 bg-muted/10 px-4 py-3 text-sm text-muted-foreground">
+              <div className="space-y-3 sm:space-y-4">
+                <div className="rounded-2xl border border-dashed border-border/60 bg-muted/8 px-4 py-3 text-sm text-muted-foreground">
                   <div className="inline-flex items-start gap-2 font-medium text-foreground">
                     <Clock3 className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>
@@ -341,18 +441,25 @@ export function AITodayPlanButton({
                 {aiResult.recommendations.map((recommendation, idx) => {
                   const currentVariant = recommendation.variants.find(item => item.minutes === selected?.minutes)
                   const isSelectedRecommendation = selected?.recIndex === idx
+                  const sourceAction = recommendation.source_action_id ? actionMap.get(recommendation.source_action_id) : null
+                  const sourceGoalTitle = sourceAction?.goal_title
+                    || candidateGoals.find(goal => goal.id === recommendation.goal_id)?.title
+                    || null
+                  const planning = (dict?.dashboard?.planning as Record<string, string> | undefined) || {}
+                  const whyTodayLabel = locale === 'zh' ? '为什么是今天' : 'Why today'
+                  const selectedVersionLabel = locale === 'zh' ? '当前选择' : 'Current choice'
                   return (
                     <div
                       key={`${recommendation.kind}-${idx}`}
-                      className={`rounded-2xl border p-5 transition-colors ${
+                      className={`rounded-[24px] border p-4 transition-all sm:p-5 ${
                         isSelectedRecommendation
-                          ? 'border-primary/30 bg-primary/4'
-                          : 'border-border/60 bg-card'
+                          ? 'border-primary/25 bg-primary/[0.035] shadow-sm'
+                          : 'border-border/60 bg-card/90'
                       }`}
                     >
-                      <div className="space-y-4">
+                      <div className="space-y-4 sm:space-y-5">
                         <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-2">
+                          <div className="space-y-3">
                             <div className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">
                               {recommendation.kind === 'core'
                                 ? ((dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanRecommendedLabel
@@ -362,11 +469,48 @@ export function AITodayPlanButton({
                                   || (dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanAltLabel
                                   || '备选')}
                             </div>
-                            <div className="max-w-2xl text-sm leading-6 text-muted-foreground">{recommendation.reason}</div>
+                            <div className="rounded-2xl border border-border/50 bg-background/70 px-4 py-3">
+                              <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
+                                {whyTodayLabel}
+                              </div>
+                              <div className="max-w-none text-[15px] leading-8 text-muted-foreground sm:text-base">
+                                {recommendation.reason}
+                              </div>
+                            </div>
+                            {recommendation.source_action_title ? (
+                              <div className="grid gap-2 rounded-2xl border border-border/60 bg-background/80 p-2 text-xs text-muted-foreground lg:grid-cols-3 lg:p-3">
+                                <div className="rounded-xl bg-muted/35 px-3 py-2.5">
+                                  <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
+                                    {planning.aiPlanBasedOn || '基于当前任务'}
+                                  </div>
+                                  <div className="line-clamp-2 text-sm font-medium leading-6 text-foreground">
+                                    {recommendation.source_action_title}
+                                  </div>
+                                </div>
+                                <div className="rounded-xl bg-muted/35 px-3 py-2.5">
+                                  <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
+                                    {planning.aiPlanGoalLabel || '所属目标'}
+                                  </div>
+                                  <div className="line-clamp-2 text-sm font-medium leading-6 text-foreground">
+                                    {sourceGoalTitle || '—'}
+                                  </div>
+                                </div>
+                                <div className="rounded-xl bg-muted/35 px-3 py-2.5">
+                                  <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
+                                    {planning.aiPlanSourceMode || '建议方式'}
+                                  </div>
+                                  <div className="text-sm font-medium leading-6 text-foreground">
+                                    {recommendation.source_type === 'existing_action'
+                                      ? (planning.aiPlanSourceExisting || '继续推进现有任务')
+                                      : (planning.aiPlanSourceNew || '创建新的今日动作')}
+                                  </div>
+                                </div>
+                              </div>
+                            ) : null}
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+                        <div className="grid grid-cols-1 gap-2.5 md:grid-cols-3 lg:gap-3">
                           {recommendation.variants.map(variant => {
                             const active = selected?.recIndex === idx && selected.minutes === variant.minutes
                             return (
@@ -376,29 +520,43 @@ export function AITodayPlanButton({
                                 variant={active ? 'default' : 'outline'}
                                 onClick={() => setSelected({ recIndex: idx, minutes: variant.minutes })}
                                 disabled={aiLoading}
-                                className="h-auto min-h-14 whitespace-normal rounded-2xl px-4 py-3 text-sm leading-5"
+                                className={`h-auto min-h-15 whitespace-normal rounded-2xl px-4 py-3 text-sm leading-5 transition-all ${
+                                  active
+                                    ? 'shadow-sm ring-1 ring-primary/20'
+                                    : 'border-border/70 bg-background hover:border-primary/30 hover:bg-primary/3'
+                                }`}
                               >
-                                {getVariantLabel(variant.minutes)}
+                                <span className="flex flex-col items-center gap-1 text-center">
+                                  <span>{getVariantLabel(variant.minutes)}</span>
+                                  {active ? (
+                                    <span className="text-[11px] font-medium opacity-80">
+                                      {selectedVersionLabel}
+                                    </span>
+                                  ) : null}
+                                </span>
                               </Button>
                             )
                           })}
                         </div>
 
                         {isSelectedRecommendation && currentVariant ? (
-                          <div className="rounded-2xl border border-border/60 bg-background p-5 text-sm">
-                            <div className="grid gap-5 md:grid-cols-[1.5fr_1fr]">
+                          <div className="rounded-[22px] border border-border/60 bg-background/90 p-4 text-sm shadow-sm sm:p-5">
+                            <div className="grid gap-4 xl:grid-cols-[1.85fr_1fr] xl:gap-5">
                               <div className="space-y-4">
-                                <div>
-                                  <div className="text-lg font-semibold leading-8">{currentVariant.title}</div>
+                                <div className="space-y-3">
+                                  <div className="inline-flex rounded-full border border-primary/15 bg-primary/6 px-3 py-1 text-xs font-medium text-primary">
+                                    {selectedVersionLabel}: {getVariantLabel(currentVariant.minutes)}
+                                  </div>
+                                  <div className="text-lg font-semibold leading-8 tracking-[-0.01em] lg:text-xl">{currentVariant.title}</div>
                                 </div>
                                 <div className="space-y-1.5">
                                   <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                                     {((dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanFirstStep) || '第一步'}
                                   </div>
-                                  <div className="leading-7">{currentVariant.first_step}</div>
+                                  <div className="rounded-2xl bg-muted/25 px-4 py-3 leading-7">{currentVariant.first_step}</div>
                                 </div>
                               </div>
-                              <div className="rounded-xl bg-muted/40 p-4">
+                              <div className="rounded-2xl border border-border/50 bg-muted/35 p-4">
                                 <div className="space-y-2">
                                   <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground inline-flex items-center gap-2">
                                     <CheckCircle2 className="h-3.5 w-3.5" />
@@ -415,14 +573,19 @@ export function AITodayPlanButton({
                   )
                 })}
 
-                <div className="flex justify-end gap-2 border-t border-border/50 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setAiOpen(false)} disabled={aiLoading} className="rounded-full px-5">
-                    {dict?.common?.cancel || 'Cancel'}
-                  </Button>
-                  <Button type="button" onClick={applySelected} disabled={aiLoading || !selected} className="rounded-full px-5">
-                    {aiLoading && <LoadingSpinner size={16} className="mr-2 text-primary-foreground/80" />}
-                    {(dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanApplyBtn || 'Apply & Create'}
-                  </Button>
+                <div className="flex flex-col-reverse gap-3 border-t border-border/50 pt-5 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:pb-0">
+                  <div className="hidden text-xs text-muted-foreground sm:block">
+                    {selected ? getVariantLabel(selected.minutes) : ''}
+                  </div>
+                  <div className="flex flex-col-reverse gap-3 sm:flex-row sm:gap-2">
+                    <Button type="button" variant="outline" onClick={() => setAiOpen(false)} disabled={aiLoading} className="w-full rounded-full px-5 sm:w-auto">
+                      {dict?.common?.cancel || 'Cancel'}
+                    </Button>
+                    <Button type="button" onClick={applySelected} disabled={aiLoading || !selected} className="w-full rounded-full px-5 sm:w-auto">
+                      {aiLoading && <LoadingSpinner size={16} className="mr-2 text-primary-foreground/80" />}
+                      {getApplyButtonLabel()}
+                    </Button>
+                  </div>
                 </div>
               </div>
             ) : (

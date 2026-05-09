@@ -7,6 +7,7 @@ type AIEventMeta = {
   prompt_version?: string | null
   model?: string | null
   variant_minutes?: number | null
+  source_action_id?: string | null
 }
 
 function clampString(value: string, maxLen: number) {
