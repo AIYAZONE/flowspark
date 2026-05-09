@@ -59,14 +59,22 @@ function localized(locale: Locale, zh: string, en: string) {
   return locale === 'zh' ? zh : en
 }
 
+function lookup<T extends Record<string, unknown>>(record: T, key: string): T[keyof T] | undefined {
+  return Object.prototype.hasOwnProperty.call(record, key)
+    ? record[key as keyof T]
+    : undefined
+}
+
 export function formatAISceneLabel(scene: string | null | undefined, locale: Locale) {
   if (!scene) return '-'
-  return SCENE_META[scene]?.[locale].label || scene
+  const meta = lookup(SCENE_META, scene) as (typeof SCENE_META)[keyof typeof SCENE_META] | undefined
+  return meta?.[locale].label || scene
 }
 
 export function formatAISceneDescription(scene: string | null | undefined, locale: Locale) {
   if (!scene) return null
-  return SCENE_META[scene]?.[locale].description || null
+  const meta = lookup(SCENE_META, scene) as (typeof SCENE_META)[keyof typeof SCENE_META] | undefined
+  return meta?.[locale].description || null
 }
 
 export function formatAIStatusLabel(input: RecommendationStatusInput, locale: Locale) {
@@ -81,7 +89,8 @@ export function formatAIStatusLabel(input: RecommendationStatusInput, locale: Lo
 
 export function formatAIConfidenceLabel(value: string | null | undefined, locale: Locale) {
   if (!value) return '-'
-  return CONFIDENCE_META[value]?.[locale] || value
+  const meta = lookup(CONFIDENCE_META, value) as (typeof CONFIDENCE_META)[keyof typeof CONFIDENCE_META] | undefined
+  return meta?.[locale] || value
 }
 
 export function formatAIFallbackLabel(value: boolean, locale: Locale) {
@@ -151,7 +160,8 @@ export function formatAIPromptLabel(scene: string | null | undefined, prompt: st
 
 export function formatAIFrictionLabel(value: string | null | undefined, locale: Locale) {
   if (!value) return '-'
-  return FRICTION_META[value]?.[locale] || value
+  const meta = lookup(FRICTION_META, value) as (typeof FRICTION_META)[keyof typeof FRICTION_META] | undefined
+  return meta?.[locale] || value
 }
 
 export function formatAIOptionLabel(value: string | null | undefined, locale: Locale) {
