@@ -3,6 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { setRecommendationCompletion } from '@/lib/ai/recommendationStore';
+import {
+	buildAITodayPlanNote,
+	mergeAITodayPlanIntoDescription
+} from '@/lib/aiTodayPlan';
 import { createClient } from '@/lib/supabase/server';
 import { normalizeCategoryInput } from '@/lib/goalCategories';
 import { upsertBehaviorSnapshot } from '@/lib/snapshots';
@@ -219,42 +223,6 @@ async function insertActionWithFallback(params: {
 
 	data = (attempt3 as { data?: Record<string, unknown> | null }).data ?? null;
 	return { data };
-}
-
-function buildAITodayPlanNote(params: {
-	locale: 'zh' | 'en';
-	variantLabel: string;
-	sourceActionTitle?: string | null;
-	firstStep: string;
-	definitionOfDone: string;
-	reason: string;
-}) {
-	const {
-		locale,
-		variantLabel,
-		sourceActionTitle,
-		firstStep,
-		definitionOfDone,
-		reason
-	} = params;
-	const zh = locale === 'zh';
-	return [
-		zh
-			? `AI 今日推进建议（${variantLabel}）`
-			: `AI today focus (${variantLabel})`,
-		sourceActionTitle
-			? zh
-				? `基于任务：${sourceActionTitle}`
-				: `Based on: ${sourceActionTitle}`
-			: null,
-		zh ? `第一步：${firstStep}` : `First step: ${firstStep}`,
-		zh
-			? `完成标准：${definitionOfDone}`
-			: `DoD: ${definitionOfDone}`,
-		zh ? `建议原因：${reason}` : `Reason: ${reason}`
-	]
-		.filter(Boolean)
-		.join('\n');
 }
 
 async function insertActionSubItemsWithFallback(params: {
@@ -742,11 +710,11 @@ export async function applyAITodayPlanToExistingAction(formData: FormData) {
 		reason
 	});
 
-	const existingDescription =
-		typeof action.description === 'string' ? action.description.trim() : '';
-	const description = existingDescription
-		? `${note}\n\n${existingDescription}`
-		: note;
+	const description = mergeAITodayPlanIntoDescription({
+		existingDescription:
+			typeof action.description === 'string' ? action.description : '',
+		note
+	});
 	const payload = {
 		description,
 		type: 'core',
