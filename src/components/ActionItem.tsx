@@ -32,7 +32,7 @@ import { format } from 'date-fns'
 import { motion, useAnimationControls } from 'framer-motion'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { CheckCircle2, ChevronDown, ChevronRight, Circle, Pencil, Save, Trash2, X, Calendar } from 'lucide-react'
+import { Check, CheckCircle2, ChevronDown, ChevronRight, Circle, Copy, Pencil, Save, Trash2, X, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { SubmitButton } from '@/components/SubmitButton'
@@ -99,6 +99,38 @@ function DescriptionMarkdown(props: { markdown: string; compact?: boolean }) {
             )}
         </div>
     )
+}
+
+function decodeHtmlEntities(input: string): string {
+    return input
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/&amp;/g, '&')
+}
+
+function richTextToPlainText(input: string, locale: 'zh' | 'en'): string {
+    const imageLabel = locale === 'zh' ? '图片' : 'Image'
+    const normalized = decodeHtmlEntities(input)
+
+    const withMarkdownImages = normalized.replace(/!\[[^\]]*]\(([^)\s]+)(?:\s+"[^"]*")?\)/g, (_, src: string) => {
+        return `\n${imageLabel}：${src}\n`
+    })
+
+    const withHtmlImages = withMarkdownImages.replace(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi, (_, src: string) => {
+        return `\n${imageLabel}：${src}\n`
+    })
+
+    return withHtmlImages
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>|<\/div>|<\/li>|<\/h[1-6]>/gi, '\n')
+        .replace(/<li[^>]*>/gi, '- ')
+        .replace(/<[^>]+>/g, '')
+        .replace(/\r/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
 }
 
 interface Action {
@@ -179,6 +211,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const [editAiDrafts, setEditAiDrafts] = useState<AIBreakdownActionDraft[]>([])
     const [discardDialogOpen, setDiscardDialogOpen] = useState(false)
     const [discardIntent, setDiscardIntent] = useState<'switch_to_view' | 'close_panel'>('switch_to_view')
+    const [copiedMode, setCopiedMode] = useState<'title' | 'full' | null>(null)
     const unsavedConfirmText = (dict.goals.new as Record<string, string>).confirmDiscardChanges || '你有未保存的修改，确认放弃吗？'
 
     function resetEditDraftFromAction() {
@@ -396,6 +429,30 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const newBadgeText = locale === 'zh' ? '刚创建' : 'NEW'
     const goalTitle = action.goals?.title || ''
     const rescueTitleText = locale === 'zh' ? '卡住救援' : 'Rescue'
+    const copyTitleText = locale === 'zh' ? '复制标题' : 'Copy title'
+    const copyFullText = locale === 'zh' ? '复制标题和详情' : 'Copy title + details'
+    const copiedText = locale === 'zh' ? '已复制' : 'Copied'
+
+    async function handleCopy(mode: 'title' | 'full') {
+        const title = action.title.trim()
+        const description = richTextToPlainText(action.description || '', locale).trim()
+        const text =
+            mode === 'title'
+                ? title
+                : [title, description].filter(Boolean).join('\n\n')
+
+        if (!text) return
+
+        try {
+            await navigator.clipboard.writeText(text)
+            setCopiedMode(mode)
+            setTimeout(() => {
+                setCopiedMode((current) => (current === mode ? null : current))
+            }, 1200)
+        } catch (error) {
+            console.error(error)
+        }
+    }
 
     async function generateRescue() {
         if (!goalTitle) return
@@ -655,6 +712,31 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     ) : (
         <div className="rounded-lg border border-border/50 bg-secondary/10 p-4 text-sm text-muted-foreground/70">
             {dict.common.noDescription}
+        </div>
+    )
+
+    const copyActions = (
+        <div className="flex flex-wrap items-center gap-2">
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleCopy('title')}
+                className="gap-1.5"
+            >
+                {copiedMode === 'title' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copiedMode === 'title' ? copiedText : copyTitleText}
+            </Button>
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleCopy('full')}
+                className="gap-1.5"
+            >
+                {copiedMode === 'full' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copiedMode === 'full' ? copiedText : copyFullText}
+            </Button>
         </div>
     )
 
@@ -1152,6 +1234,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                             ) : (
                                 <>
                                     {metaBadges}
+                                    {copyActions}
                                     {viewDescription}
                                     <div className="flex justify-end gap-2">
                                         {action.type === 'core' && !action.completed && goalTitle ? (
@@ -1259,6 +1342,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                             ) : (
                                 <>
                                     {metaBadges}
+                                    {copyActions}
                                     {viewDescription}
                                     <div className="space-y-2">
                                         <Button

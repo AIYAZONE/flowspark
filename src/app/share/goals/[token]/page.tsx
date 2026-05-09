@@ -99,7 +99,12 @@ export default async function PublicGoalSharePage({ params, searchParams }: Page
   }
   const statusLabelMap = dict.goals.status as unknown as Record<string, string>
   const typeLabelMap = dict.today.types as unknown as Record<string, string>
-  const priorityLabelMap = dict.goals.priority as unknown as Record<string, string>
+  const rawPriorityLabelMap = dict.goals.priority as unknown as Record<string, string>
+  const priorityLabelMap = Object.fromEntries(
+    Object.entries(rawPriorityLabelMap).filter(([key]) =>
+      key === 'high' || key === 'medium' || key === 'low'
+    )
+  ) as Record<string, string>
   const categoryLabelMap = dict.goals.category as unknown as Record<string, string>
   const goalStatusLabel = statusLabelMap[goal.status] || goal.status
 

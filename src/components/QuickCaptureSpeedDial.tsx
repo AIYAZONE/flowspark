@@ -10,18 +10,28 @@ import { QuickCaptureDialog } from '@/components/QuickCaptureDialog'
 
 type Dict = typeof en
 const FAB_POSITION_KEY = 'quick-capture-fab-position-v2'
-const LONG_PRESS_MS = 460
 const DRAG_MARGIN = 8
-const CANCEL_LONG_PRESS_MOVE = 10
+const DRAG_START_THRESHOLD = 8
 const DEFAULT_RIGHT_INSET = 10
 const DEFAULT_BOTTOM_INSET = 114
 const BOTTOM_RESERVED_AREA = 120
+const MENU_GAP = 12
+const MENU_EDGE_MARGIN = 12
 
 type FabPosition = { left: number; top: number }
+type MenuPlacement = { vertical: 'up' | 'down'; horizontal: 'start' | 'end' }
+
+function getViewportSize() {
+	return {
+		width: window.visualViewport?.width ?? window.innerWidth,
+		height: window.visualViewport?.height ?? window.innerHeight
+	}
+}
 
 function clampPosition(position: FabPosition, width: number, height: number): FabPosition {
-	const maxLeft = Math.max(DRAG_MARGIN, window.innerWidth - width - DRAG_MARGIN)
-	const maxTop = Math.max(DRAG_MARGIN, window.innerHeight - height - BOTTOM_RESERVED_AREA)
+	const { width: viewportWidth, height: viewportHeight } = getViewportSize()
+	const maxLeft = Math.max(DRAG_MARGIN, viewportWidth - width - DRAG_MARGIN)
+	const maxTop = Math.max(DRAG_MARGIN, viewportHeight - height - BOTTOM_RESERVED_AREA)
 	return {
 		left: Math.min(Math.max(position.left, DRAG_MARGIN), maxLeft),
 		top: Math.min(Math.max(position.top, DRAG_MARGIN), maxTop)
@@ -33,8 +43,8 @@ function getDefaultPosition(width: number, height: number): FabPosition {
 	const bottom = DEFAULT_BOTTOM_INSET
 	return clampPosition(
 		{
-			left: window.innerWidth - width - right,
-			top: window.innerHeight - height - bottom
+			left: getViewportSize().width - width - right,
+			top: getViewportSize().height - height - bottom
 		},
 		width,
 		height
@@ -54,12 +64,14 @@ export function QuickCaptureSpeedDial({
 	const [canDragFab, setCanDragFab] = useState(false)
 	const [dragging, setDragging] = useState(false)
 	const [fabPosition, setFabPosition] = useState<FabPosition | null>(null)
+	const [menuPlacement, setMenuPlacement] = useState<MenuPlacement>({ vertical: 'up', horizontal: 'end' })
 	const wrapperRef = useRef<HTMLDivElement | null>(null)
 	const fabButtonRef = useRef<HTMLButtonElement | null>(null)
+	const menuRef = useRef<HTMLDivElement | null>(null)
 	const pointerStartRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 })
 	const dragStartRef = useRef<{ left: number; top: number; x: number; y: number }>({ left: 0, top: 0, x: 0, y: 0 })
-	const longPressTimerRef = useRef<number | null>(null)
-	const movedRef = useRef(false)
+	const pointerActiveRef = useRef(false)
+	const draggedRef = useRef(false)
 
 	useEffect(() => {
 		if (!open) return
@@ -115,45 +127,72 @@ export function QuickCaptureSpeedDial({
 		return () => window.removeEventListener('resize', onResize)
 	}, [canDragFab, fabPosition])
 
-	function clearLongPressTimer() {
-		if (longPressTimerRef.current) {
-			window.clearTimeout(longPressTimerRef.current)
-			longPressTimerRef.current = null
+	useEffect(() => {
+		if (!open) return
+
+		const updateMenuPlacement = () => {
+			const buttonRect = fabButtonRef.current?.getBoundingClientRect()
+			const menuRect = menuRef.current?.getBoundingClientRect()
+			if (!buttonRect || !menuRect) return
+
+			const { width: viewportWidth, height: viewportHeight } = getViewportSize()
+			const requiredHeight = menuRect.height + MENU_GAP + MENU_EDGE_MARGIN
+			const canOpenUp = buttonRect.top >= requiredHeight
+			const canOpenDown = viewportHeight - buttonRect.bottom >= requiredHeight
+			const vertical: MenuPlacement['vertical'] = !canOpenUp && canOpenDown ? 'down' : 'up'
+
+			const canAlignEnd = buttonRect.right >= menuRect.width + MENU_EDGE_MARGIN
+			const canAlignStart = viewportWidth - buttonRect.left >= menuRect.width + MENU_EDGE_MARGIN
+			const horizontal: MenuPlacement['horizontal'] = !canAlignEnd && canAlignStart ? 'start' : 'end'
+
+			setMenuPlacement({ vertical, horizontal })
 		}
+
+		const frameId = window.requestAnimationFrame(updateMenuPlacement)
+		window.addEventListener('resize', updateMenuPlacement)
+		window.visualViewport?.addEventListener('resize', updateMenuPlacement)
+		return () => {
+			window.cancelAnimationFrame(frameId)
+			window.removeEventListener('resize', updateMenuPlacement)
+			window.visualViewport?.removeEventListener('resize', updateMenuPlacement)
+		}
+	}, [open, fabPosition])
+
+	function persistFabPosition(position: FabPosition | null) {
+		if (!position || typeof window === 'undefined') return
+		window.localStorage.setItem(FAB_POSITION_KEY, JSON.stringify(position))
 	}
 
 	function handlePointerDown(e: React.PointerEvent<HTMLButtonElement>) {
 		if (!canDragFab) return
-		movedRef.current = false
+		pointerActiveRef.current = true
+		draggedRef.current = false
 		pointerStartRef.current = { x: e.clientX, y: e.clientY }
-		if (open) return
 		const currentRect = wrapperRef.current?.getBoundingClientRect()
 		dragStartRef.current = {
-			left: currentRect?.left ?? 0,
-			top: currentRect?.top ?? 0,
+			left: currentRect?.left ?? fabPosition?.left ?? 0,
+			top: currentRect?.top ?? fabPosition?.top ?? 0,
 			x: e.clientX,
 			y: e.clientY
 		}
 		e.currentTarget.setPointerCapture(e.pointerId)
-		clearLongPressTimer()
-		longPressTimerRef.current = window.setTimeout(() => {
-			if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
-				navigator.vibrate(12)
-			}
-			setDragging(true)
-			setOpen(false)
-		}, LONG_PRESS_MS)
 	}
 
 	function handlePointerMove(e: React.PointerEvent<HTMLButtonElement>) {
-		if (!canDragFab) return
+		if (!canDragFab || !pointerActiveRef.current) return
 		const movedDistance = Math.hypot(e.clientX - pointerStartRef.current.x, e.clientY - pointerStartRef.current.y)
-		if (!dragging && movedDistance > CANCEL_LONG_PRESS_MOVE) {
-			movedRef.current = true
-			clearLongPressTimer()
+		if (!dragging && movedDistance < DRAG_START_THRESHOLD) {
+			return
 		}
-		if (!dragging) return
-
+		if (!dragging) {
+			draggedRef.current = true
+			if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+				navigator.vibrate(8)
+			}
+			setDragging(true)
+			setOpen(false)
+		}
+		e.preventDefault()
 		const fabWidth = fabButtonRef.current?.offsetWidth ?? 56
 		const fabHeight = fabButtonRef.current?.offsetHeight ?? 56
 		const nextLeft = dragStartRef.current.left + (e.clientX - dragStartRef.current.x)
@@ -161,30 +200,49 @@ export function QuickCaptureSpeedDial({
 		setFabPosition(clampPosition({ left: nextLeft, top: nextTop }, fabWidth, fabHeight))
 	}
 
-	function handlePointerEnd() {
-		clearLongPressTimer()
-		if (dragging) {
+	function handlePointerUp(e: React.PointerEvent<HTMLButtonElement>) {
+		if (canDragFab && e.currentTarget.hasPointerCapture(e.pointerId)) {
+			e.currentTarget.releasePointerCapture(e.pointerId)
+		}
+		pointerActiveRef.current = false
+		if (dragging || draggedRef.current) {
+			draggedRef.current = false
 			setDragging(false)
-			if (fabPosition && typeof window !== 'undefined') {
-				window.localStorage.setItem(FAB_POSITION_KEY, JSON.stringify(fabPosition))
-			}
+			persistFabPosition(fabPosition)
 			return
 		}
-		if (!movedRef.current) {
-			setOpen((v) => !v)
+		setOpen((v) => !v)
+	}
+
+	function handlePointerCancel(e: React.PointerEvent<HTMLButtonElement>) {
+		if (canDragFab && e.currentTarget.hasPointerCapture(e.pointerId)) {
+			e.currentTarget.releasePointerCapture(e.pointerId)
 		}
+		pointerActiveRef.current = false
+		draggedRef.current = false
+		setDragging(false)
 	}
 
 	const wrapperClassName = cn(
 		'fixed z-50 md:hidden',
 		canDragFab && fabPosition ? '' : 'right-[10px] bottom-[calc(7.25rem+env(safe-area-inset-bottom))]'
 	)
+	const menuClassName = cn(
+		'absolute z-10 flex flex-col gap-3 transition-all duration-200',
+		menuPlacement.vertical === 'up'
+			? 'bottom-[calc(100%+12px)]'
+			: 'top-[calc(100%+12px)]',
+		menuPlacement.horizontal === 'end' ? 'right-0 items-end' : 'left-0 items-start',
+		open ? 'pointer-events-auto opacity-100 translate-y-0 scale-100' : 'pointer-events-none opacity-0 scale-95',
+		!open && menuPlacement.vertical === 'up' && 'translate-y-2',
+		!open && menuPlacement.vertical === 'down' && '-translate-y-2'
+	)
 
 	return (
 		<>
 			{open ? <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} /> : null}
 			<div ref={wrapperRef} className={wrapperClassName} style={canDragFab && fabPosition ? { left: fabPosition.left, top: fabPosition.top } : undefined}>
-				<div className={cn('flex flex-col items-end gap-3 transition-all', open ? 'mb-3 opacity-100 max-h-40' : 'opacity-0 max-h-0 overflow-hidden pointer-events-none')}>
+				<div ref={menuRef} className={menuClassName}>
 					<AddActionDialog
 						activeGoals={activeGoals}
 						dict={dict}
@@ -194,8 +252,8 @@ export function QuickCaptureSpeedDial({
 								type="button"
 								variant="secondary"
 								className={cn(
-									'shadow-lg gap-2 transition-all',
-									open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
+									'shadow-lg gap-2 transition-all whitespace-nowrap',
+									open ? 'opacity-100 translate-y-0' : 'opacity-0'
 								)}
 							>
 								<Plus className="h-4 w-4" />
@@ -210,8 +268,8 @@ export function QuickCaptureSpeedDial({
 								type="button"
 								variant="secondary"
 								className={cn(
-									'shadow-lg gap-2 transition-all',
-									open ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none'
+									'shadow-lg gap-2 transition-all whitespace-nowrap',
+									open ? 'opacity-100 translate-y-0' : 'opacity-0'
 								)}
 							>
 								<Sparkles className="h-4 w-4" />
@@ -225,11 +283,15 @@ export function QuickCaptureSpeedDial({
 					ref={fabButtonRef}
 					type="button"
 					size="icon"
-					className="h-14 w-14 rounded-full shadow-lg"
+					className={cn(
+						'h-14 w-14 rounded-full shadow-lg will-change-transform',
+						canDragFab && 'touch-none select-none',
+						dragging && 'transition-none scale-105 shadow-xl'
+					)}
 					onPointerDown={handlePointerDown}
 					onPointerMove={handlePointerMove}
-					onPointerUp={handlePointerEnd}
-					onPointerCancel={handlePointerEnd}
+					onPointerUp={handlePointerUp}
+					onPointerCancel={handlePointerCancel}
 					aria-label={dict.quickCapture.fabLabel}
 				>
 					<Plus className={cn('h-6 w-6 transition-transform', open ? 'rotate-45' : 'rotate-0', dragging && 'scale-110')} />

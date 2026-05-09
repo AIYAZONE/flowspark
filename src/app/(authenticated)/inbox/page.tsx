@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import Link from 'next/link'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { getTodayInTZ, getUserTimezone } from '@/lib/time'
 import { InboxCard } from '@/components/InboxCard'
@@ -22,7 +21,7 @@ type InboxTab = 'open' | 'archived'
 export default async function InboxPage({
 	searchParams
 }: {
-	searchParams?: { tab?: string | string[] }
+	searchParams?: Promise<{ tab?: string | string[] }>
 }) {
 	const supabase = await createClient()
 	const dict = await getDictionary()
@@ -34,7 +33,10 @@ export default async function InboxPage({
 	const tz = await getUserTimezone(supabase, user.id)
 	const startDefault = getTodayInTZ(tz)
 	const endDefault = addDaysFromDateString(startDefault, 7)
-	const tabParam = Array.isArray(searchParams?.tab) ? searchParams?.tab[0] : searchParams?.tab
+	const resolvedSearchParams = await searchParams
+	const tabParam = Array.isArray(resolvedSearchParams?.tab)
+		? resolvedSearchParams?.tab[0]
+		: resolvedSearchParams?.tab
 	const activeTab: InboxTab = tabParam === 'archived' ? 'archived' : 'open'
 
 	const { data: activeGoals } = await supabase
@@ -75,7 +77,7 @@ export default async function InboxPage({
 				</div>
 			</div>
 			<div className="inline-flex items-center rounded-full border border-border bg-muted/30 p-1">
-				<Link
+				<a
 					href="/inbox?tab=open"
 					className={cn(
 						'rounded-full px-3 py-1.5 text-sm transition-colors',
@@ -83,8 +85,8 @@ export default async function InboxPage({
 					)}
 				>
 					{dict.inbox.tabOpen} ({inboxOpenCount})
-				</Link>
-				<Link
+				</a>
+				<a
 					href="/inbox?tab=archived"
 					className={cn(
 						'rounded-full px-3 py-1.5 text-sm transition-colors',
@@ -92,7 +94,7 @@ export default async function InboxPage({
 					)}
 				>
 					{dict.inbox.tabArchived} ({inboxArchivedCount})
-				</Link>
+				</a>
 			</div>
 
 			<div className="grid min-w-0 gap-6">
