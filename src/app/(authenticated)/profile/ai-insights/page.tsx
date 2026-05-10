@@ -3,6 +3,7 @@ import { getCurrentLocale, getDictionary } from '@/i18n/get-dictionary'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { AIAnalyticsOverview } from '@/components/AIAnalyticsOverview'
+import { AIAnalyticsFrictionTop } from '@/components/AIAnalyticsFrictionTop'
 import {
   AIAnalyticsTable,
   formatMetricRows,
@@ -29,6 +30,10 @@ import { cn } from '@/lib/utils'
 type AIAnalyticsDict = {
   aiAnalyticsTitle: string
   aiAnalyticsDesc: string
+  aiAnalyticsPurposeTitle: string
+  aiAnalyticsPurposePoint1: string
+  aiAnalyticsPurposePoint2: string
+  aiAnalyticsPurposePoint3: string
   aiAnalyticsOverview: string
   aiAnalyticsScene: string
   aiAnalyticsStrategy: string
@@ -70,10 +75,62 @@ type AIAnalyticsDict = {
   aiAnalyticsRecentDesc: string
   aiAnalyticsTechnicalTitle: string
   aiAnalyticsTechnicalDesc: string
+  aiAnalyticsFrictionTitle: string
+  aiAnalyticsFrictionTitleScene: string
+  aiAnalyticsFrictionDesc: string
+  aiAnalyticsFrictionEmpty: string
+  aiAnalyticsFrictionSuggestionNoTime: string
+  aiAnalyticsFrictionSuggestionTooHard: string
+  aiAnalyticsFrictionSuggestionNotFit: string
+  aiAnalyticsFrictionSuggestionAlreadyPlanned: string
+  aiAnalyticsFrictionSuggestionOther: string
 }
 
 function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`
+}
+
+function buildAdjustmentNote(
+  recent: Array<{ option_selected: string | null; feedback_label: string | null }>,
+  locale: 'zh' | 'en'
+) {
+  const slice = recent.slice(0, 12)
+  const short = slice.filter(item => item.option_selected === '5m' || item.option_selected === '10m').length
+  const long = slice.filter(item => item.option_selected === '20m').length
+  const reasons = new Map<string, number>()
+  for (const item of slice) {
+    let label = item.feedback_label || ''
+    if (!label) continue
+    if (label === 'dismiss' || label === 'close_result') continue
+    if (label === 'useful') continue
+    if (label.startsWith('not_fit')) label = 'not_fit'
+    reasons.set(label, (reasons.get(label) || 0) + 1)
+  }
+  let topReason: string | null = null
+  for (const [key, count] of reasons.entries()) {
+    if (!topReason || count > (reasons.get(topReason) || 0)) topReason = key
+  }
+  const hasSignal = short + long >= 3 || topReason != null
+  if (!hasSignal) return null
+
+  if (topReason === 'no_time') {
+    return locale === 'zh'
+      ? '系统已观察到你最近“没时间”的情况较多，后续会更偏向提供更低摩擦的起步版本。'
+      : 'The system noticed “no time” is a common reason lately, so it will lean toward lower-friction starter options.'
+  }
+  if (topReason === 'not_fit') {
+    return locale === 'zh'
+      ? '系统已观察到“建议不贴合”的反馈较多，后续会更强依赖你的目标与现有行动来生成建议。'
+      : 'The system noticed “not a fit” feedback is common, so it will rely more on your goals and existing actions.'
+  }
+  if (short >= long * 2) {
+    return locale === 'zh'
+      ? '系统已观察到你更常选择 5/10 分钟版本，后续会优先给更容易开始的建议。'
+      : 'The system noticed you often choose 5/10-minute options, so it will prefer easier-to-start suggestions.'
+  }
+  return locale === 'zh'
+    ? '系统会根据你的采纳与反馈逐步调整后续建议，让它越来越贴合你。'
+    : 'The system will gradually adapt based on your adoption and feedback so suggestions fit you better.'
 }
 
 function sortMetricRows(
@@ -133,7 +190,7 @@ export default async function AIInsightsPage(props: {
     getAISceneMetrics({ supabase, userId: user.id, options: { days } }),
     getAIStrategyMetrics({ supabase, userId: user.id, options: { days } }),
     getAIModelMetrics({ supabase, userId: user.id, options: { days } }),
-    getRecentRecommendations({ supabase, userId: user.id, limit: 20, days }),
+    getRecentRecommendations({ supabase, userId: user.id, limit: 80, days }),
   ])
 
   const profileDict = dict.profile as unknown as AIAnalyticsDict
@@ -142,6 +199,8 @@ export default async function AIInsightsPage(props: {
   const sortedSceneMetrics = sortMetricRows(sceneMetrics, sort)
   const sortedStrategyMetrics = sortMetricRows(strategyMetrics, sort)
   const sortedModelMetrics = sortMetricRows(modelMetrics, sort)
+  const adjustmentNote = buildAdjustmentNote(recentRecommendations, presentationLocale)
+  const recentRowsForTable = recentRecommendations.slice(0, 20)
   const filterOptions = [
     { key: 'all', label: profileDict.aiAnalyticsRangeAll, href: '/profile/ai-insights' },
     { key: '7', label: profileDict.aiAnalyticsRange7, href: `/profile/ai-insights?range=7&sort=${sort}` },
@@ -218,12 +277,31 @@ export default async function AIInsightsPage(props: {
         </div>
       </div>
 
+      <div className="rounded-2xl border bg-card p-5">
+        <div className="text-sm font-semibold">{profileDict.aiAnalyticsPurposeTitle}</div>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
+          <li>{profileDict.aiAnalyticsPurposePoint1}</li>
+          <li>{profileDict.aiAnalyticsPurposePoint2}</li>
+          <li>{profileDict.aiAnalyticsPurposePoint3}</li>
+        </ul>
+        {adjustmentNote ? (
+          <div className="mt-3 text-sm leading-6 text-muted-foreground">{adjustmentNote}</div>
+        ) : null}
+      </div>
+
       {sceneMetrics.length === 0 && recentRecommendations.length === 0 ? (
         <div className="rounded-xl border border-dashed bg-card/50 p-6 text-sm text-muted-foreground">
           {profileDict.aiAnalyticsEmpty}
         </div>
       ) : (
         <>
+          <AIAnalyticsFrictionTop
+            dict={profileDict}
+            locale={presentationLocale}
+            recent={recentRecommendations}
+            scope="global"
+          />
+
           <AIAnalyticsOverview dict={profileDict} metrics={sortedSceneMetrics} />
 
           <AIAnalyticsTable
@@ -259,7 +337,7 @@ export default async function AIInsightsPage(props: {
               profileDict.aiAnalyticsColumnCreatedAt,
               profileDict.aiAnalyticsOpenDetail,
             ]}
-            rows={formatRecentRows(recentRecommendations, row => [
+            rows={formatRecentRows(recentRowsForTable, row => [
               <div key="scene" className="space-y-1">
                 <div className="font-medium">{formatAISceneLabel(row.scene, presentationLocale)}</div>
                 <div className="text-xs text-muted-foreground">
@@ -280,67 +358,81 @@ export default async function AIInsightsPage(props: {
                 ? new Date(row.created_at).toLocaleString(locale)
                 : '-',
               <Button key="detail" asChild size="sm" variant="outline" className="rounded-full">
-                <Link href={`/profile/ai-insights/${row.scene}${days ? `?range=${days}&rid=${row.recommendation_id}` : `?rid=${row.recommendation_id}`}`}>
+                <Link href={`/profile/ai-insights/${row.scene}${days ? `?range=${days}&rid=${row.recommendation_id}` : `?rid=${row.recommendation_id}`}#detail`}>
                   {profileDict.aiAnalyticsOpenDetail}
                 </Link>
               </Button>,
             ])}
           />
 
-          <AIAnalyticsTable
-            title={profileDict.aiAnalyticsTechnicalTitle || profileDict.aiAnalyticsStrategy}
-            description={profileDict.aiAnalyticsTechnicalDesc || getAIFieldHelpText('strategy', presentationLocale)}
-            columns={[
-              profileDict.aiAnalyticsColumnScene,
-              profileDict.aiAnalyticsColumnStrategy,
-              profileDict.aiAnalyticsColumnPrompt,
-              profileDict.aiAnalyticsColumnRecommendations,
-              profileDict.aiAnalyticsColumnAdoptionRate,
-              profileDict.aiAnalyticsColumnCompletionRate,
-            ]}
-            rows={formatMetricRows(sortedStrategyMetrics, row => [
-              primaryWithRaw('scene', formatAISceneLabel(row.scene, presentationLocale), row.scene),
-              primaryWithRaw(
-                'strategy',
-                formatAIStrategyLabel(row.scene, row.strategy_version, presentationLocale),
-                row.strategy_version
-              ),
-              primaryWithRaw(
-                'prompt',
-                formatAIPromptLabel(row.scene, row.prompt_version, presentationLocale),
-                row.prompt_version
-              ),
-              String(row.recommendation_count),
-              <span key="adoption" className="font-medium">{formatPercent(row.adoption_rate)}</span>,
-              <span key="completion" className="font-medium">{formatPercent(row.completion_rate)}</span>,
-            ])}
-          />
-
-          <AIAnalyticsTable
-            title={profileDict.aiAnalyticsModel}
-            description={getAIFieldHelpText('model', presentationLocale)}
-            columns={[
-              profileDict.aiAnalyticsColumnScene,
-              profileDict.aiAnalyticsColumnModel,
-              profileDict.aiAnalyticsColumnRecommendations,
-              profileDict.aiAnalyticsColumnAdoptionRate,
-              profileDict.aiAnalyticsColumnCompletionRate,
-              profileDict.aiAnalyticsColumnConfidence,
-            ]}
-            rows={formatMetricRows(sortedModelMetrics, row => [
-              primaryWithRaw('scene', formatAISceneLabel(row.scene, presentationLocale), row.scene),
-              primaryWithRaw('model', formatAIModelLabel(row.model, presentationLocale), row.model),
-              String(row.recommendation_count),
-              <span key="adoption" className="font-medium">{formatPercent(row.adoption_rate)}</span>,
-              <span key="completion" className="font-medium">{formatPercent(row.completion_rate)}</span>,
-              row.avg_confidence_score == null
-                ? '-'
-                : formatAIConfidenceLabel(
-                    row.avg_confidence_score >= 2.5 ? 'high' : row.avg_confidence_score >= 1.5 ? 'medium' : 'low',
-                    presentationLocale
+          <details className="rounded-2xl border bg-card p-5">
+            <summary className="cursor-pointer list-none">
+              <div className="space-y-1">
+                <div className="text-sm font-semibold">
+                  {profileDict.aiAnalyticsTechnicalTitle || (presentationLocale === 'zh' ? '技术参考（可折叠）' : 'Technical reference (collapsible)')}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {profileDict.aiAnalyticsTechnicalDesc || getAIFieldHelpText('technical', presentationLocale)}
+                </div>
+              </div>
+            </summary>
+            <div className="mt-5 space-y-6">
+              <AIAnalyticsTable
+                title={profileDict.aiAnalyticsStrategy}
+                description={getAIFieldHelpText('strategy', presentationLocale)}
+                columns={[
+                  profileDict.aiAnalyticsColumnScene,
+                  profileDict.aiAnalyticsColumnStrategy,
+                  profileDict.aiAnalyticsColumnPrompt,
+                  profileDict.aiAnalyticsColumnRecommendations,
+                  profileDict.aiAnalyticsColumnAdoptionRate,
+                  profileDict.aiAnalyticsColumnCompletionRate,
+                ]}
+                rows={formatMetricRows(sortedStrategyMetrics, row => [
+                  primaryWithRaw('scene', formatAISceneLabel(row.scene, presentationLocale), row.scene),
+                  primaryWithRaw(
+                    'strategy',
+                    formatAIStrategyLabel(row.scene, row.strategy_version, presentationLocale),
+                    row.strategy_version
                   ),
-            ])}
-          />
+                  primaryWithRaw(
+                    'prompt',
+                    formatAIPromptLabel(row.scene, row.prompt_version, presentationLocale),
+                    row.prompt_version
+                  ),
+                  String(row.recommendation_count),
+                  <span key="adoption" className="font-medium">{formatPercent(row.adoption_rate)}</span>,
+                  <span key="completion" className="font-medium">{formatPercent(row.completion_rate)}</span>,
+                ])}
+              />
+
+              <AIAnalyticsTable
+                title={profileDict.aiAnalyticsModel}
+                description={getAIFieldHelpText('model', presentationLocale)}
+                columns={[
+                  profileDict.aiAnalyticsColumnScene,
+                  profileDict.aiAnalyticsColumnModel,
+                  profileDict.aiAnalyticsColumnRecommendations,
+                  profileDict.aiAnalyticsColumnAdoptionRate,
+                  profileDict.aiAnalyticsColumnCompletionRate,
+                  profileDict.aiAnalyticsColumnConfidence,
+                ]}
+                rows={formatMetricRows(sortedModelMetrics, row => [
+                  primaryWithRaw('scene', formatAISceneLabel(row.scene, presentationLocale), row.scene),
+                  primaryWithRaw('model', formatAIModelLabel(row.model, presentationLocale), row.model),
+                  String(row.recommendation_count),
+                  <span key="adoption" className="font-medium">{formatPercent(row.adoption_rate)}</span>,
+                  <span key="completion" className="font-medium">{formatPercent(row.completion_rate)}</span>,
+                  row.avg_confidence_score == null
+                    ? '-'
+                    : formatAIConfidenceLabel(
+                        row.avg_confidence_score >= 2.5 ? 'high' : row.avg_confidence_score >= 1.5 ? 'medium' : 'low',
+                        presentationLocale
+                      ),
+                ])}
+              />
+            </div>
+          </details>
         </>
       )}
     </div>

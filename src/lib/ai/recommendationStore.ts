@@ -197,6 +197,28 @@ export async function markRecommendationDismissed(params: {
   })
 }
 
+export async function setRecommendationFeedbackLabel(params: {
+  supabase: SupabaseServerClient
+  recommendationId: string
+  userId: string
+  feedbackLabel: string
+}) {
+  const { supabase, recommendationId, userId, feedbackLabel } = params
+
+  const { error } = await supabase
+    .from('ai_recommendation_outcomes')
+    .upsert(
+      {
+        recommendation_id: recommendationId,
+        user_id: userId,
+        feedback_label: feedbackLabel,
+      },
+      { onConflict: 'recommendation_id' }
+    )
+
+  if (error) throw error
+}
+
 export async function setRecommendationCompletion(params: {
   supabase: SupabaseServerClient
   recommendationId: string

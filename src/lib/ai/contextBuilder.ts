@@ -137,7 +137,7 @@ async function getRecentAI(params: {
   const { supabase, userId } = params
   const { data, error } = await supabase
     .from('ai_recommendations')
-    .select('scene, ai_recommendation_outcomes(adopted, completed)')
+    .select('scene, ai_recommendation_outcomes(adopted, completed, option_selected, feedback_label)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(12)
@@ -149,11 +149,18 @@ async function getRecentAI(params: {
 
   return ((data || []) as Array<{
     scene?: string | null
-    ai_recommendation_outcomes?: Array<{ adopted?: boolean | null; completed?: boolean | null }> | null
+    ai_recommendation_outcomes?: Array<{
+      adopted?: boolean | null
+      completed?: boolean | null
+      option_selected?: string | null
+      feedback_label?: string | null
+    }> | null
   }>).map(row => ({
     scene: row.scene || 'unknown',
     adopted: row.ai_recommendation_outcomes?.[0]?.adopted ?? null,
     completed: row.ai_recommendation_outcomes?.[0]?.completed ?? null,
+    optionSelected: row.ai_recommendation_outcomes?.[0]?.option_selected ?? null,
+    feedbackLabel: row.ai_recommendation_outcomes?.[0]?.feedback_label ?? null,
   }))
 }
 

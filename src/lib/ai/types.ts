@@ -114,6 +114,8 @@ export type CoachContext = {
     scene: string
     adopted: boolean | null
     completed: boolean | null
+    optionSelected?: string | null
+    feedbackLabel?: string | null
   }>
   actionContext: CoachActionContext
 }

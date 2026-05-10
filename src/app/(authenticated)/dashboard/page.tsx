@@ -19,7 +19,7 @@ import { WeeklyInsightCard } from '@/components/WeeklyInsightCard'
 import { Target, Star } from 'lucide-react'
 import { assignVariant, isEnvEnabled } from '@/lib/experiments'
 import { ExperimentExposureTracker } from '@/components/ExperimentExposureTracker'
-import { calcCompletionPercent } from '@/lib/progress'
+import { calcCompletionPercent, calcTimeProgressPercent, getPaceStatus } from '@/lib/progress'
 import { getOrCreateWeeklyInsight } from '@/lib/ai/insightStore'
 
 export default async function DashboardPage() {
@@ -233,13 +233,18 @@ export default async function DashboardPage() {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const completed = (g.actions as any[])?.filter((a: any) => a.completed).length || 0
     const progress = calcCompletionPercent(completed, total)
+    const remainingActions = Math.max(total - completed, 0)
+    const timeProgress = calcTimeProgressPercent(g.start_date, g.end_date)
+    const paceStatus = total <= 0 || timeProgress == null ? null : getPaceStatus(progress, timeProgress)
 
     return {
       id: g.id,
       title: g.title,
       totalActions: total,
       completedActions: completed,
+      remainingActions,
       progress,
+      paceStatus,
       priority: g.priority || 'medium',
       end_date: g.end_date,
       start_date: g.start_date || ''

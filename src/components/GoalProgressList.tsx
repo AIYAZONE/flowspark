@@ -1,14 +1,16 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowRight, Target } from 'lucide-react'
 import Link from 'next/link'
-import { calcDaysLeft, getUrgencyProgressColor } from '@/lib/progress'
+import { calcDaysLeft, getUrgencyProgressColor, type PaceStatus } from '@/lib/progress'
 
 interface GoalProgress {
   id: string
   title: string
   completedActions: number
   totalActions: number
+  remainingActions: number
   progress: number
+  paceStatus?: PaceStatus | null
   end_date?: string
 }
 
@@ -23,6 +25,23 @@ export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
     if (daysLeft == null) return null
     if (daysLeft < 0) return dict.dashboard.goals.overdue || 'Overdue'
     return (dict.dashboard.goals.daysLeft || '{days} days left').replace('{days}', daysLeft.toString())
+  }
+
+  const getRemainingLabel = (remainingActions: number, totalActions: number) => {
+    if (totalActions <= 0) return dict.dashboard.goals.needsBreakdown || 'Needs breakdown'
+    return (dict.dashboard.goals.remaining || 'Remaining {count}').replace('{count}', remainingActions.toString())
+  }
+
+  const getPaceLabel = (paceStatus: PaceStatus) => {
+    if (paceStatus === 'ahead') return dict.dashboard.goals.paceAhead || 'Ahead'
+    if (paceStatus === 'behind') return dict.dashboard.goals.paceBehind || 'Behind'
+    return dict.dashboard.goals.paceOnTrack || 'On track'
+  }
+
+  const getPaceBadgeClassName = (paceStatus: PaceStatus) => {
+    if (paceStatus === 'ahead') return 'border-emerald-200 bg-emerald-50 text-emerald-700'
+    if (paceStatus === 'behind') return 'border-rose-200 bg-rose-50 text-rose-700'
+    return 'border-border/60 bg-background/60 text-muted-foreground'
   }
 
   return (
@@ -55,6 +74,8 @@ export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
             (() => {
               const daysLeftValue = calcDaysLeft(goal.end_date)
               const daysLeftLabel = getDaysLeftLabel(daysLeftValue)
+              const remainingLabel = getRemainingLabel(goal.remainingActions, goal.totalActions)
+              const paceLabel = goal.paceStatus ? getPaceLabel(goal.paceStatus) : null
               return (
             <Link
               key={goal.id}
@@ -67,7 +88,15 @@ export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="font-semibold truncate text-foreground group-hover:text-foreground">{goal.title}</div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{goal.completedActions} / {goal.totalActions} {dict.dashboard.goals.actions}</span>
+                      <span className={goal.totalActions > 0 ? 'font-medium text-foreground/90' : ''}>
+                        {remainingLabel}
+                      </span>
+                      {goal.totalActions > 0 && (
+                        <>
+                          <span className="w-0.5 h-0.5 bg-muted-foreground/50 rounded-full" />
+                          <span>{goal.completedActions} / {goal.totalActions} {dict.dashboard.goals.actions}</span>
+                        </>
+                      )}
                       {goal.end_date && (
                         <>
                           <span className="w-0.5 h-0.5 bg-muted-foreground/50 rounded-full" />
@@ -78,10 +107,17 @@ export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
                       )}
                     </div>
                   </div>
-                  <div className="text-right shrink-0 w-[45px]">
+                  <div className="text-right shrink-0 w-[72px] flex flex-col items-end gap-0.5">
                     <span className="text-sm font-bold font-mono text-foreground">
-                      {Math.round(goal.progress)}%
+                      {goal.totalActions > 0 ? `${Math.round(goal.progress)}%` : '—'}
                     </span>
+                    {paceLabel && goal.paceStatus ? (
+                      <span
+                        className={`inline-flex items-center justify-end rounded-full border px-2 py-0.5 text-[10px] leading-none ${getPaceBadgeClassName(goal.paceStatus)}`}
+                      >
+                        {paceLabel}
+                      </span>
+                    ) : null}
                   </div>
                 </div>
                 <div className="h-2.5 w-full bg-muted/50 rounded-full overflow-hidden">

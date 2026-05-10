@@ -50,6 +50,18 @@ const FRICTION_META = {
   other: { zh: '其他', en: 'Other' },
 } satisfies Record<string, Record<Locale, string>>
 
+const FEEDBACK_META = {
+  useful: { zh: '有用', en: 'Useful' },
+  no_time: { zh: '没时间', en: 'No time' },
+  not_fit: { zh: '不贴合', en: 'Not a fit' },
+  not_fit_goal: { zh: '目标不贴合', en: 'Goal not a fit' },
+  not_fit_action: { zh: '当前行动不贴合', en: 'Action not a fit' },
+  not_fit_tone: { zh: '表达方式不舒服', en: 'Tone not a fit' },
+  too_hard: { zh: '太难了', en: 'Too hard' },
+  already_planned: { zh: '我已经有计划', en: 'Already planned' },
+  other: { zh: '其他', en: 'Other' },
+} satisfies Record<string, Record<Locale, string>>
+
 function extractVersion(value: string | null | undefined) {
   const match = (value || '').match(/v\d+$/i)
   return match?.[0]?.toUpperCase() || null
@@ -167,6 +179,8 @@ export function formatAIFrictionLabel(value: string | null | undefined, locale: 
 export function formatAIOptionLabel(value: string | null | undefined, locale: Locale) {
   if (!value) return '-'
   if (value === 'dismiss' || value === 'close_result') return localized(locale, '关闭这条建议', 'Dismissed this suggestion')
+  const feedback = lookup(FEEDBACK_META, value) as (typeof FEEDBACK_META)[keyof typeof FEEDBACK_META] | undefined
+  if (feedback) return feedback[locale]
   return value
 }
 

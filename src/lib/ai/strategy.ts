@@ -57,6 +57,66 @@ function recentAISummary(context: CoachContext, scene?: string) {
   }
 }
 
+function deriveUserPreferenceSignals(context: CoachContext) {
+  const optionCounts = { short: 0, long: 0 }
+  const rejectCounts = new Map<string, number>()
+  const adoptionByScene = new Map<string, { total: number; adopted: number }>()
+
+  function normalizeFeedback(label: string) {
+    const trimmed = (label || '').trim()
+    if (!trimmed) return ''
+    if (trimmed.startsWith('not_fit')) return 'not_fit'
+    return trimmed
+  }
+
+  for (const item of context.recentAI) {
+    const option = item.optionSelected || ''
+    if (option === '5m' || option === '10m') optionCounts.short += 1
+    else if (option === '20m') optionCounts.long += 1
+
+    const label = normalizeFeedback(item.feedbackLabel || '')
+    if (label && label !== 'dismiss' && label !== 'close_result' && label !== 'useful') {
+      rejectCounts.set(label, (rejectCounts.get(label) || 0) + 1)
+    }
+
+    const scene = item.scene || 'unknown'
+    if (!scene || scene === 'unknown') continue
+    if (item.adopted == null) continue
+    const current = adoptionByScene.get(scene) || { total: 0, adopted: 0 }
+    current.total += 1
+    if (item.adopted) current.adopted += 1
+    adoptionByScene.set(scene, current)
+  }
+
+  let prefersShort: boolean | null = null
+  const totalOptions = optionCounts.short + optionCounts.long
+  if (totalOptions >= 3) {
+    if (optionCounts.short >= optionCounts.long * 2) prefersShort = true
+    else if (optionCounts.long >= optionCounts.short * 2) prefersShort = false
+  }
+
+  let topRejectReason: string | null = null
+  for (const [key, count] of rejectCounts.entries()) {
+    if (!topRejectReason || count > (rejectCounts.get(topRejectReason) || 0)) {
+      topRejectReason = key
+    }
+  }
+
+  let lowTrustScene: string | null = null
+  let lowestRate = 1
+  for (const [scene, value] of adoptionByScene.entries()) {
+    if (value.total < 3) continue
+    const rate = value.total ? value.adopted / value.total : 1
+    if (rate < lowestRate) {
+      lowestRate = rate
+      lowTrustScene = scene
+    }
+  }
+  if (lowestRate >= 0.25) lowTrustScene = null
+
+  return { prefersShort, topRejectReason, lowTrustScene }
+}
+
 function distinctNonEmpty(values: Array<string | null | undefined>) {
   return [...new Set(values.filter((value): value is string => !!value && !!value.trim()))]
 }
@@ -82,7 +142,13 @@ export function buildTodayStrategy(params: {
 }): RecommendationStrategySummary {
   const { context, goals } = params
   const riskLevel = computeRiskLevel(context)
-  const difficultyMode = computeDifficultyMode(context, riskLevel)
+  const signals = deriveUserPreferenceSignals(context)
+  let difficultyMode = computeDifficultyMode(context, riskLevel)
+  if (signals.prefersShort === true && difficultyMode === 'push') difficultyMode = 'balanced'
+  if (signals.lowTrustScene === 'today_plan' && difficultyMode === 'push') difficultyMode = 'balanced'
+  if (signals.topRejectReason === 'no_time' || signals.topRejectReason === 'too_hard') {
+    difficultyMode = 'starter'
+  }
   const scoredGoal = [...goals].sort((a, b) => scoreGoal(b) - scoreGoal(a))[0] || null
   const prioritizedActions = [
     ...context.actionContext.todayOpen,
@@ -102,6 +168,9 @@ export function buildTodayStrategy(params: {
     context.frictions[0]?.reasonTag ? `top_friction:${context.frictions[0].reasonTag}` : null,
     context.behavior.momentumBucket ? `momentum:${context.behavior.momentumBucket}` : null,
     `recent_today_adoption:${Math.round(recentToday.adoptedRate * 100)}%`,
+    signals.prefersShort == null ? null : `prefers_short:${signals.prefersShort ? 'yes' : 'no'}`,
+    signals.topRejectReason ? `top_reject_reason:${signals.topRejectReason}` : null,
+    signals.lowTrustScene ? `low_trust_scene:${signals.lowTrustScene}` : null,
   ])
 
   return {
@@ -126,12 +195,15 @@ export function buildRescueStrategy(params: {
   actionTitle: string
 }): RecommendationStrategySummary {
   const riskLevel = computeRiskLevel(params.context)
-  const difficultyMode =
+  const signals = deriveUserPreferenceSignals(params.context)
+  let difficultyMode: CoachDifficultyMode =
     params.reasonTag === 'no_time' || params.reasonTag === 'low_energy'
       ? 'starter'
       : riskLevel === 'high'
         ? 'starter'
         : 'balanced'
+  if (signals.lowTrustScene === 'rescue') difficultyMode = 'starter'
+  if (signals.topRejectReason === 'no_time' || signals.topRejectReason === 'too_hard') difficultyMode = 'starter'
 
   return {
     scene: 'rescue',
@@ -144,6 +216,8 @@ export function buildRescueStrategy(params: {
       `reason:${params.reasonTag}`,
       `action:${params.actionTitle}`,
       params.context.frictions[0]?.reasonTag ? `top_friction:${params.context.frictions[0].reasonTag}` : null,
+      signals.prefersShort == null ? null : `prefers_short:${signals.prefersShort ? 'yes' : 'no'}`,
+      signals.topRejectReason ? `top_reject_reason:${signals.topRejectReason}` : null,
     ]),
     fallbackPolicy: ['minimal_variant_under_5_to_10_minutes', 'fallback_on_non_minimal_output'],
   }
@@ -155,7 +229,11 @@ export function buildReviewStrategy(params: {
   answers: Record<string, string>
 }): RecommendationStrategySummary {
   const riskLevel = computeRiskLevel(params.context)
-  const difficultyMode = riskLevel === 'high' || (params.score != null && params.score <= 2) ? 'starter' : 'balanced'
+  const signals = deriveUserPreferenceSignals(params.context)
+  let difficultyMode: CoachDifficultyMode =
+    riskLevel === 'high' || (params.score != null && params.score <= 2) ? 'starter' : 'balanced'
+  if (signals.lowTrustScene === 'review') difficultyMode = 'starter'
+  if (signals.topRejectReason === 'too_hard') difficultyMode = 'starter'
 
   return {
     scene: 'review',
@@ -168,6 +246,8 @@ export function buildReviewStrategy(params: {
       params.answers.friction ? `reported_friction:${params.answers.friction}` : null,
       params.context.frictions[0]?.reasonTag ? `top_friction:${params.context.frictions[0].reasonTag}` : null,
       params.context.profile.riskOfDropout ? `dropout_risk:${params.context.profile.riskOfDropout}` : null,
+      signals.prefersShort == null ? null : `prefers_short:${signals.prefersShort ? 'yes' : 'no'}`,
+      signals.topRejectReason ? `top_reject_reason:${signals.topRejectReason}` : null,
     ]),
     fallbackPolicy: ['fallback_on_empty_tomorrow_card', 'prefer_minimal_if_then'],
   }
