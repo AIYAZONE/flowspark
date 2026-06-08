@@ -583,6 +583,7 @@ export async function createActionAndReturnId(formData: FormData) {
 	const type = rawType || 'core';
 	const priority = formData.get('priority') as string;
 	const description = formData.get('description') as string;
+	const repeat_rule = (formData.get('repeat_rule') as string | null) || 'none';
 	const start_date = formData.get('start_date') as string;
 	const end_date = formData.get('end_date') as string;
 	const ai_recommendation_id =
@@ -1073,6 +1074,7 @@ export async function updateAction(formData: FormData) {
 	const type = formData.get('type') as string;
 	const priority = formData.get('priority') as string;
 	const description = formData.get('description') as string;
+	const repeat_rule = (formData.get('repeat_rule') as string | null) || 'none';
 	const start_date = formData.get('start_date') as string;
 	const end_date = formData.get('end_date') as string;
 	const ai_recommendation_id =

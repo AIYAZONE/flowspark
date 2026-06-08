@@ -501,6 +501,7 @@
 			"subItemsAdd": "新增子行动",
 			"subItemsEmptyHint": "可手动添加，或使用 AI 拆解后导入为子行动",
 			"subItemsPlaceholder": "子行动",
+			"confirmDiscardChanges": "你有未保存的修改，确认放弃吗？",
 			"startDate": "开始日期",
 			"endDate": "结束日期",
 			"successCriteriaLabel": "成功标准",

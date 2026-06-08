@@ -163,7 +163,7 @@ export default async function PublicGoalSharePage({ params, searchParams }: Page
   const currentLang = locale || 'en'
   const { supabase, share, invalid } = await getPublicSharePayload(token)
 
-  if (invalid) {
+  if (invalid || !share) {
     return (
       <div className="mx-auto max-w-3xl p-6">
         <Card>
@@ -196,15 +196,36 @@ export default async function PublicGoalSharePage({ params, searchParams }: Page
   }
   const inspirationCount = entries.filter((entry) => entry.kind === 'inspiration').length
   const journeyCount = entries.filter((entry) => entry.kind === 'journey').length
-  const statusLabelMap = dict.goals.status as unknown as Record<string, string>
-  const typeLabelMap = dict.today.types as unknown as Record<string, string>
-  const rawPriorityLabelMap = dict.goals.priority as unknown as Record<string, string>
-  const priorityLabelMap = Object.fromEntries(
-    Object.entries(rawPriorityLabelMap).filter(([key]) =>
-      key === 'high' || key === 'medium' || key === 'low'
-    )
-  ) as Record<string, string>
-  const categoryLabelMap = dict.goals.category as unknown as Record<string, string>
+  const statusLabelMap: Record<string, string> = {
+    active: dict.goals.status.active,
+    completed: dict.goals.status.completed,
+    abandoned: dict.goals.status.abandoned,
+    archived: dict.goals.status.archived
+  }
+  const typeLabelMap: Record<string, string> = {
+    core: dict.today.types.core,
+    maintenance: dict.today.types.maintenance,
+    learning: dict.today.types.learning,
+    review: dict.today.types.review,
+    rest: dict.today.types.rest
+  }
+  const priorityLabelMap: Record<string, string> = {
+    high: dict.goals.priority.high,
+    medium: dict.goals.priority.medium,
+    low: dict.goals.priority.low
+  }
+  const categoryLabelMap: Record<string, string> = {
+    personal_brand: dict.goals.category.personal_brand,
+    company_project: dict.goals.category.company_project,
+    health: dict.goals.category.health,
+    career: dict.goals.category.career,
+    learning: dict.goals.category.learning,
+    finance: dict.goals.category.finance,
+    lifestyle: dict.goals.category.lifestyle,
+    social: dict.goals.category.social,
+    other: dict.goals.category.other,
+    custom: dict.goals.category.custom
+  }
   const goalStatusLabel = statusLabelMap[goal.status] || goal.status
 
   return (

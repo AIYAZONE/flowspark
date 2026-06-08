@@ -501,6 +501,7 @@
 			"subItemsAdd": "Add sub-item",
 			"subItemsEmptyHint": "Add manually, or import AI breakdown as sub-items",
 			"subItemsPlaceholder": "Sub-item",
+			"confirmDiscardChanges": "You have unsaved changes. Discard them?",
 			"startDate": "Start Date",
 			"endDate": "End Date",
 			"successCriteriaLabel": "Success Criteria",

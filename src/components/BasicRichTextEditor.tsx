@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react'
+import { forwardRef, useCallback, useEffect, useMemo, useRef } from 'react'
 import { Bold, Eraser, Italic, List } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -42,8 +42,19 @@ export const BasicRichTextEditor = forwardRef<HTMLDivElement, BasicRichTextEdito
   const editorRef = useRef<HTMLDivElement | null>(null)
   const isComposingRef = useRef(false)
   const normalizedValue = useMemo(() => toEditableHtml(value), [value])
-
-  useImperativeHandle(forwardedRef, () => editorRef.current as HTMLDivElement | null, [])
+  const handleEditorRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      editorRef.current = node
+      if (typeof forwardedRef === 'function') {
+        forwardedRef(node)
+        return
+      }
+      if (forwardedRef) {
+        forwardedRef.current = node
+      }
+    },
+    [forwardedRef]
+  )
 
   const syncValue = useCallback(
     (next: string) => {
@@ -106,7 +117,7 @@ export const BasicRichTextEditor = forwardRef<HTMLDivElement, BasicRichTextEdito
       </div>
 
       <div
-        ref={editorRef}
+        ref={handleEditorRef}
         id={id}
         contentEditable
         suppressContentEditableWarning

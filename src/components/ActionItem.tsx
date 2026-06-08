@@ -63,7 +63,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog'
 import { createActionAndReturnId, deleteAction, toggleActionSubItem, updateAction } from '@/app/(authenticated)/goals/actions'
-import type en from '@/i18n/en.json'
+import type { Dictionary, GoalNewDictionary, TodayDictionary, CommonErrorDictionary } from '@/i18n/types'
 import type { RescueOutput } from '@/lib/ai/phase2aSchemas'
 import type { RescueApiResponse } from '@/lib/ai/types'
 import type { AIBreakdownActionDraft } from '@/lib/ai/breakdown'
@@ -142,7 +142,7 @@ interface Action {
 
 interface ActionItemProps {
     action: Action
-    dict: typeof en
+    dict: Dictionary
     showGoalTitle?: boolean
     tz?: string
     goals?: { id: string, title: string }[]
@@ -158,6 +158,9 @@ type EditSubItemDraft = {
 export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Shanghai', goals = [], isNew = false }: ActionItemProps) {
     const router = useRouter()
     const recurrenceMeta = parseActionRecurrenceDescription(action.description || '')
+    const todayText: TodayDictionary = dict.today
+    const goalNewText: GoalNewDictionary = dict.goals.new
+    const commonErrors: CommonErrorDictionary = dict.common.errors
     const [isLoading, setIsLoading] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -202,7 +205,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const [copiedMode, setCopiedMode] = useState<'title' | 'full' | null>(null)
     const [isPanelFullscreen, setIsPanelFullscreen] = useState(false)
     const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
-    const unsavedConfirmText = (dict.goals.new as Record<string, string>).confirmDiscardChanges || '你有未保存的修改，确认放弃吗？'
+    const unsavedConfirmText = goalNewText.confirmDiscardChanges || '你有未保存的修改，确认放弃吗？'
 
     function resetEditDraftFromAction() {
         setEditTitle(action.title)
@@ -442,10 +445,10 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const aiPlanVariantLabel = locale === 'zh' ? '推进版本' : 'Focus mode'
     const aiPlanReasonLabel = locale === 'zh' ? '建议原因' : 'Why this'
     const recurrenceLabelMap: Record<ActionRecurrenceRule, string> = {
-        none: (dict.today as Record<string, string>).repeatNone || (locale === 'zh' ? '不重复' : 'No repeat'),
-        daily: (dict.today as Record<string, string>).repeatDaily || (locale === 'zh' ? '每天' : 'Daily'),
-        weekly: (dict.today as Record<string, string>).repeatWeekly || (locale === 'zh' ? '每周' : 'Weekly'),
-        monthly: (dict.today as Record<string, string>).repeatMonthly || (locale === 'zh' ? '每月' : 'Monthly'),
+        none: todayText.repeatNone || (locale === 'zh' ? '不重复' : 'No repeat'),
+        daily: todayText.repeatDaily || (locale === 'zh' ? '每天' : 'Daily'),
+        weekly: todayText.repeatWeekly || (locale === 'zh' ? '每周' : 'Weekly'),
+        monthly: todayText.repeatMonthly || (locale === 'zh' ? '每月' : 'Monthly'),
     }
     const parsedAITodayPlan = parseAITodayPlanFromDescription(recurrenceMeta.cleanDescription || '')
     const displayDescription = parsedAITodayPlan?.remainingDescription || recurrenceMeta.cleanDescription || ''
@@ -532,7 +535,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             const json = (await res.json()) as RescueApiResponse & { error?: string }
             if (!res.ok) {
                 const key = json.error || 'operation_failed'
-                setRescueError((dict.common.errors as Record<string, string>)[key] || dict.common.errors.operation_failed)
+                setRescueError(commonErrors[key as keyof CommonErrorDictionary] || commonErrors.operation_failed)
                 return
             }
             if (!json.data || !json.recommendationId) {
@@ -684,8 +687,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             const json = (await res.json()) as { actions?: AIBreakdownActionDraft[]; error?: string }
             if (!res.ok) {
                 const key = json.error || 'operation_failed'
-                const errors = dict.common.errors as unknown as Record<string, string>
-                setEditAiError(errors[key] || dict.common.errors.operation_failed)
+                setEditAiError(commonErrors[key as keyof CommonErrorDictionary] || commonErrors.operation_failed)
                 return
             }
             const drafts = Array.isArray(json.actions) ? json.actions : []
@@ -741,8 +743,8 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const todayVal = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
     const isOverdue = endDateVal < todayVal
     const hasAIAdopted = Boolean(action.ai_recommendation_id || rescueOutcomeState === 'adopted')
-    const aiAdoptedLabel = (dict.today as unknown as Record<string, string>).aiAdoptedLabel || 'AI 已采纳'
-    const aiAdoptedHint = (dict.today as unknown as Record<string, string>).aiAdoptedHint || '该行动来自 AI 建议并已被采纳'
+    const aiAdoptedLabel = todayText.aiAdoptedLabel || 'AI 已采纳'
+    const aiAdoptedHint = todayText.aiAdoptedHint || '该行动来自 AI 建议并已被采纳'
     const rescueReasonOptions: Array<{ value: RescueOutput['reason_tag']; label: string }> = [
         { value: 'no_time', label: locale === 'zh' ? '没时间' : 'No time' },
         { value: 'too_hard', label: locale === 'zh' ? '太难' : 'Too hard' },
@@ -925,16 +927,16 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor={`repeat-rule-${action.id}`}>{(dict.today as Record<string, string>).repeatLabel || '重复规则'}</Label>
+                <Label htmlFor={`repeat-rule-${action.id}`}>{todayText.repeatLabel || '重复规则'}</Label>
                 <Select value={editRepeatRule} onValueChange={(value) => setEditRepeatRule(value as ActionRecurrenceRule)}>
                     <SelectTrigger id={`repeat-rule-${action.id}`} className="w-full">
-                        <SelectValue placeholder={(dict.today as Record<string, string>).repeatLabel || '重复规则'} />
+                        <SelectValue placeholder={todayText.repeatLabel || '重复规则'} />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="none">{(dict.today as Record<string, string>).repeatNone || '不重复'}</SelectItem>
-                        <SelectItem value="daily">{(dict.today as Record<string, string>).repeatDaily || '每天'}</SelectItem>
-                        <SelectItem value="weekly">{(dict.today as Record<string, string>).repeatWeekly || '每周'}</SelectItem>
-                        <SelectItem value="monthly">{(dict.today as Record<string, string>).repeatMonthly || '每月'}</SelectItem>
+                        <SelectItem value="none">{todayText.repeatNone || '不重复'}</SelectItem>
+                        <SelectItem value="daily">{todayText.repeatDaily || '每天'}</SelectItem>
+                        <SelectItem value="weekly">{todayText.repeatWeekly || '每周'}</SelectItem>
+                        <SelectItem value="monthly">{todayText.repeatMonthly || '每月'}</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
@@ -958,7 +960,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             <div className="space-y-2">
                 <div className="flex items-center justify-between">
                     <Label className="text-xs text-muted-foreground">
-                        {(dict.today as unknown as Record<string, string>).subItemsLabel || '子行动'}
+                        {todayText.subItemsLabel || '子行动'}
                     </Label>
                     <div className="flex items-center gap-2">
                         <Button
@@ -981,14 +983,14 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                 ])
                             }
                         >
-                            {(dict.goals.new as Record<string, string>).subItemsAdd || '新增子行动'}
+                            {goalNewText.subItemsAdd || '新增子行动'}
                         </Button>
                     </div>
                 </div>
                 {editAiError ? <div className="text-xs text-destructive">{editAiError}</div> : null}
                 {editSubItems.length === 0 ? (
                     <div className="text-xs text-muted-foreground">
-                        {(dict.goals.new as Record<string, string>).subItemsEmptyHint || '可手动添加子行动'}
+                        {goalNewText.subItemsEmptyHint || '可手动添加子行动'}
                     </div>
                 ) : (
                     <div className="space-y-2">
@@ -1024,7 +1026,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                             )
                                         )
                                     }
-                                    placeholder={`${(dict.goals.new as Record<string, string>).subItemsPlaceholder || '子行动'} ${idx + 1}`}
+                                    placeholder={`${goalNewText.subItemsPlaceholder || '子行动'} ${idx + 1}`}
                                 />
                                 <Button
                                     type="button"
@@ -1047,7 +1049,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                         <div className="flex items-center justify-between gap-2">
                             <div className="text-sm font-medium">{dict.goals.new.aiSuggestionsTitle}</div>
                             <Button type="button" variant="outline" size="sm" onClick={importAllEditAIDrafts}>
-                                {(dict.goals.new as Record<string, string>).aiImportSubItems || '全部导入为子行动'}
+                                {goalNewText.aiImportSubItems || '全部导入为子行动'}
                             </Button>
                         </div>
                         <div className="space-y-2">
@@ -1063,7 +1065,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                         <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{draft.description}</div>
                                     ) : null}
                                     <div className="mt-1 text-[11px] text-primary">
-                                        {(dict.goals.new as Record<string, string>).aiImportOneSubItem || '点击导入为子行动'}
+                                        {goalNewText.aiImportOneSubItem || '点击导入为子行动'}
                                     </div>
                                 </button>
                             ))}
@@ -1074,7 +1076,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
 
             {editDescriptionUploading ? (
                 <div className="text-xs text-muted-foreground">
-                    {(dict.goals.new as Record<string, string>).wait_upload_complete || '图片上传中，请稍后提交。'}
+                    {goalNewText.wait_upload_complete || '图片上传中，请稍后提交。'}
                 </div>
             ) : null}
 
@@ -1253,7 +1255,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                             onClick={() => setSubItemsOpen((prev) => !prev)}
                         >
                             <span className="font-medium">
-                                {(dict.today as unknown as Record<string, string>).subItemsLabel || '子行动'} {subItemsCompletedCount}/{subItems.length}
+                                {todayText.subItemsLabel || '子行动'} {subItemsCompletedCount}/{subItems.length}
                             </span>
                             <span className="inline-flex items-center gap-1">
                                 {subItemsOpen ? dict.common.showLess : dict.common.showMore}

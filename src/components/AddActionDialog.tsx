@@ -25,7 +25,7 @@ import {
 import { createActionWithSubItems } from '@/app/(authenticated)/goals/actions'
 import { NewGoalForm } from './NewGoalForm'
 import { createGoalModal } from '@/app/(authenticated)/goals/actions'
-import type en from '@/i18n/en.json'
+import type { Dictionary, GoalNewDictionary, TodayDictionary, CommonErrorDictionary } from '@/i18n/types'
 import { logEvent } from '@/lib/analytics'
 import { GoalRequiredIntroCard } from './GoalRequiredIntroCard'
 import type { AIBreakdownActionDraft } from '@/lib/ai/breakdown'
@@ -34,7 +34,7 @@ import { createClient } from '@/lib/supabase/client'
 import { ActionDescriptionEditor, type ActionAttachmentDraft } from '@/components/ActionDescriptionEditor'
 import type { ActionRecurrenceRule } from '@/lib/actionRecurrence'
 
-type Dict = typeof en
+type Dict = Dictionary
 
 interface AddActionDialogProps {
     goalId?: string
@@ -80,6 +80,9 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
     const [descriptionUploading, setDescriptionUploading] = useState(false)
     const [uploadUserId, setUploadUserId] = useState<string>('')
     const titleRef = useRef<HTMLInputElement | null>(null)
+    const todayText: TodayDictionary = dict.today
+    const goalNewText: GoalNewDictionary = dict.goals.new
+    const commonErrors: CommonErrorDictionary = dict.common.errors
 
     function handleOpenChange(next: boolean) {
         setOpen(next)
@@ -170,8 +173,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
             const json = (await res.json()) as { actions?: AIBreakdownActionDraft[]; error?: string }
             if (!res.ok) {
                 const key = json.error || 'operation_failed'
-                const errors = dict.common.errors as unknown as Record<string, string>
-                setAiError(errors[key] || dict.common.errors.operation_failed)
+                setAiError(commonErrors[key as keyof CommonErrorDictionary] || commonErrors.operation_failed)
                 return
             }
 
@@ -396,19 +398,19 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
 
                                             <div className="grid gap-2">
                                                 <div className="flex items-center justify-between">
-                                                    <Label>{(dict.goals.new as Record<string, string>).subItemsLabel || '子行动'}</Label>
+                                                    <Label>{goalNewText.subItemsLabel || '子行动'}</Label>
                                                     <Button
                                                         type="button"
                                                         variant="outline"
                                                         size="sm"
                                                         onClick={() => setSubItemsDraft((prev) => [...prev, { id: makeDraftId(), title: '' }])}
                                                     >
-                                                        {(dict.goals.new as Record<string, string>).subItemsAdd || '新增子行动'}
+                                                        {goalNewText.subItemsAdd || '新增子行动'}
                                                     </Button>
                                                 </div>
                                                 {subItemsDraft.length === 0 ? (
                                                     <div className="text-xs text-muted-foreground">
-                                                        {(dict.goals.new as Record<string, string>).subItemsEmptyHint || '可手动添加，或使用 AI 拆解后导入为子行动'}
+                                                        {goalNewText.subItemsEmptyHint || '可手动添加，或使用 AI 拆解后导入为子行动'}
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-2">
@@ -416,7 +418,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                                             <div key={item.id} className="flex items-center gap-2">
                                                                 <Input
                                                                     value={item.title}
-                                                                    placeholder={`${(dict.goals.new as Record<string, string>).subItemsPlaceholder || '子行动'} ${idx + 1}`}
+                                                                    placeholder={`${goalNewText.subItemsPlaceholder || '子行动'} ${idx + 1}`}
                                                                     onChange={(e) => {
                                                                         const nextTitle = e.target.value
                                                                         setSubItemsDraft((prev) => prev.map((x) => x.id === item.id ? { ...x, title: nextTitle } : x))
@@ -468,17 +470,17 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                             </div>
 
                                             <div className="grid gap-2">
-                                                <Label htmlFor="repeat_rule">{(dict.today as Record<string, string>).repeatLabel || '重复规则'}</Label>
+                                                <Label htmlFor="repeat_rule">{todayText.repeatLabel || '重复规则'}</Label>
                                                 <input type="hidden" name="repeat_rule" value={actionRepeatRule} />
                                                 <Select value={actionRepeatRule} onValueChange={(value) => setActionRepeatRule(value as ActionRecurrenceRule)}>
                                                     <SelectTrigger id="repeat_rule" className="w-full">
-                                                        <SelectValue placeholder={(dict.today as Record<string, string>).repeatLabel || '重复规则'} />
+                                                        <SelectValue placeholder={todayText.repeatLabel || '重复规则'} />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="none">{(dict.today as Record<string, string>).repeatNone || '不重复'}</SelectItem>
-                                                        <SelectItem value="daily">{(dict.today as Record<string, string>).repeatDaily || '每天'}</SelectItem>
-                                                        <SelectItem value="weekly">{(dict.today as Record<string, string>).repeatWeekly || '每周'}</SelectItem>
-                                                        <SelectItem value="monthly">{(dict.today as Record<string, string>).repeatMonthly || '每月'}</SelectItem>
+                                                        <SelectItem value="none">{todayText.repeatNone || '不重复'}</SelectItem>
+                                                        <SelectItem value="daily">{todayText.repeatDaily || '每天'}</SelectItem>
+                                                        <SelectItem value="weekly">{todayText.repeatWeekly || '每周'}</SelectItem>
+                                                        <SelectItem value="monthly">{todayText.repeatMonthly || '每月'}</SelectItem>
                                                     </SelectContent>
                                                 </Select>
                                             </div>
@@ -500,7 +502,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                                     <div className="flex items-center justify-between gap-2">
                                                         <div className="text-sm font-medium">{dict.goals.new.aiSuggestionsTitle}</div>
                                                         <Button type="button" variant="outline" size="sm" onClick={importAllAIDraftsAsSubItems}>
-                                                            {(dict.goals.new as Record<string, string>).aiImportSubItems || '全部导入为子行动'}
+                                                            {goalNewText.aiImportSubItems || '全部导入为子行动'}
                                                         </Button>
                                                     </div>
                                                     <div className="space-y-2">
@@ -516,7 +518,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                                                     <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{draft.description}</div>
                                                                 ) : null}
                                                                 <div className="mt-1 text-[11px] text-primary">
-                                                                    {(dict.goals.new as Record<string, string>).aiImportOneSubItem || '点击导入为子行动'}
+                                                                    {goalNewText.aiImportOneSubItem || '点击导入为子行动'}
                                                                 </div>
                                                             </button>
                                                         ))}
@@ -528,7 +530,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
 
                                             {descriptionUploading ? (
                                                 <div className="text-xs text-muted-foreground">
-                                                    {(dict.goals.new as Record<string, string>).wait_upload_complete || '图片上传中，请稍后提交。'}
+                                                    {goalNewText.wait_upload_complete || '图片上传中，请稍后提交。'}
                                                 </div>
                                             ) : null}
                                             </div>
