@@ -57,6 +57,7 @@ import {
 } from '@/components/ui/sheet'
 import {
     Dialog,
+    DialogClose,
     DialogFormContent,
     DialogHeader,
     DialogTitle,
@@ -73,6 +74,17 @@ import { createClient } from '@/lib/supabase/client'
 import { ActionDescriptionEditor, type ActionAttachmentDraft } from '@/components/ActionDescriptionEditor'
 import { RichTextContentView } from '@/components/RichTextContentView'
 import { RichTextImagePreviewDialog } from '@/components/RichTextImagePreviewDialog'
+import {
+    parseActionRecurrenceDescription,
+    type ActionRecurrenceRule,
+} from '@/lib/actionRecurrence'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
 
 function decodeHtmlEntities(input: string): string {
     return input
@@ -115,6 +127,7 @@ interface Action {
     description?: string
     start_date: string
     end_date?: string | null
+    ai_recommendation_id?: string | null
     goal_id: string
     goals?: {
         title: string
@@ -144,6 +157,7 @@ type EditSubItemDraft = {
 
 export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Shanghai', goals = [], isNew = false }: ActionItemProps) {
     const router = useRouter()
+    const recurrenceMeta = parseActionRecurrenceDescription(action.description || '')
     const [isLoading, setIsLoading] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -168,6 +182,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const [editGoalId, setEditGoalId] = useState(action.goal_id)
     const [editType, setEditType] = useState(action.type || 'core')
     const [editPriority, setEditPriority] = useState(action.priority || 'medium')
+    const [editRepeatRule, setEditRepeatRule] = useState<ActionRecurrenceRule>(recurrenceMeta.recurrence)
     const [editStartDate, setEditStartDate] = useState(action.start_date)
     const [editEndDate, setEditEndDate] = useState(action.end_date || action.start_date)
     const [editSubItems, setEditSubItems] = useState<EditSubItemDraft[]>(
@@ -195,6 +210,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         setEditGoalId(action.goal_id)
         setEditType(action.type || 'core')
         setEditPriority(action.priority || 'medium')
+        setEditRepeatRule(parseActionRecurrenceDescription(action.description || '').recurrence)
         setEditStartDate(action.start_date)
         setEditEndDate(action.end_date || action.start_date)
         setEditSubItems(
@@ -223,6 +239,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             editGoalId !== action.goal_id ||
             editType !== (action.type || 'core') ||
             editPriority !== (action.priority || 'medium') ||
+            editRepeatRule !== parseActionRecurrenceDescription(action.description || '').recurrence ||
             editStartDate !== baseStart ||
             editEndDate !== baseEnd ||
             JSON.stringify(editSubItems) !==
@@ -424,8 +441,14 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const aiPlanBasedOnLabel = locale === 'zh' ? '基于任务' : 'Based on'
     const aiPlanVariantLabel = locale === 'zh' ? '推进版本' : 'Focus mode'
     const aiPlanReasonLabel = locale === 'zh' ? '建议原因' : 'Why this'
-    const parsedAITodayPlan = parseAITodayPlanFromDescription(action.description || '')
-    const displayDescription = parsedAITodayPlan?.remainingDescription || action.description || ''
+    const recurrenceLabelMap: Record<ActionRecurrenceRule, string> = {
+        none: (dict.today as Record<string, string>).repeatNone || (locale === 'zh' ? '不重复' : 'No repeat'),
+        daily: (dict.today as Record<string, string>).repeatDaily || (locale === 'zh' ? '每天' : 'Daily'),
+        weekly: (dict.today as Record<string, string>).repeatWeekly || (locale === 'zh' ? '每周' : 'Weekly'),
+        monthly: (dict.today as Record<string, string>).repeatMonthly || (locale === 'zh' ? '每月' : 'Monthly'),
+    }
+    const parsedAITodayPlan = parseAITodayPlanFromDescription(recurrenceMeta.cleanDescription || '')
+    const displayDescription = parsedAITodayPlan?.remainingDescription || recurrenceMeta.cleanDescription || ''
     const hasDescription = Boolean(displayDescription)
     const aiPlanInsightCard = parsedAITodayPlan ? (
         <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
@@ -717,15 +740,40 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const endDateVal = endDateStr.split('T')[0]
     const todayVal = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
     const isOverdue = endDateVal < todayVal
+    const hasAIAdopted = Boolean(action.ai_recommendation_id || rescueOutcomeState === 'adopted')
+    const aiAdoptedLabel = (dict.today as unknown as Record<string, string>).aiAdoptedLabel || 'AI 已采纳'
+    const aiAdoptedHint = (dict.today as unknown as Record<string, string>).aiAdoptedHint || '该行动来自 AI 建议并已被采纳'
+    const rescueReasonOptions: Array<{ value: RescueOutput['reason_tag']; label: string }> = [
+        { value: 'no_time', label: locale === 'zh' ? '没时间' : 'No time' },
+        { value: 'too_hard', label: locale === 'zh' ? '太难' : 'Too hard' },
+        { value: 'anxiety', label: locale === 'zh' ? '焦虑' : 'Anxiety' },
+        { value: 'unclear_next', label: locale === 'zh' ? '不知道下一步' : 'Unclear next' },
+        { value: 'low_energy', label: locale === 'zh' ? '没精力' : 'Low energy' },
+        { value: 'other', label: locale === 'zh' ? '其他' : 'Other' },
+    ]
 
     const metaBadges = (
         <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            {hasAIAdopted ? (
+                <span
+                    title={aiAdoptedHint}
+                    className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/8 px-2 py-0.5 font-medium text-primary"
+                >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {aiAdoptedLabel}
+                </span>
+            ) : null}
             <span className="capitalize px-2 py-0.5 rounded-full bg-secondary/50 font-medium text-secondary-foreground border border-border/50">
                 {dict.today.types[action.type as keyof typeof dict.today.types] || action.type}
             </span>
             <span className={cn("capitalize px-2 py-0.5 rounded-full font-medium border", getPriorityColor(action.priority))}>
                 {getPriorityLabel(action.priority)}
             </span>
+            {recurrenceMeta.recurrence !== 'none' ? (
+                <span className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-primary/6 px-2 py-0.5 font-medium text-primary">
+                    {recurrenceLabelMap[recurrenceMeta.recurrence]}
+                </span>
+            ) : null}
             <span className="font-mono text-[11px] opacity-80 flex items-center gap-1">
                 <Calendar className="h-3.5 w-3.5" />
                 {format(new Date(action.start_date), 'yyyy-MM-dd')}
@@ -782,6 +830,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         >
             <input type="hidden" name="id" value={action.id} />
             <input type="hidden" name="from_goal_id" value={action.goal_id} />
+            <input type="hidden" name="repeat_rule" value={editRepeatRule} />
             <input
                 type="hidden"
                 name="sub_items"
@@ -829,16 +878,16 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                     <Label htmlFor="goal_id" className="text-xs text-muted-foreground mb-1 block">
                         {dict.today.goalLabel}
                     </Label>
-                    <select
-                        name="goal_id"
-                        value={editGoalId}
-                        onChange={(e) => setEditGoalId(e.target.value)}
-                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        {goals.map(goal => (
-                            <option key={goal.id} value={goal.id}>{goal.title}</option>
-                        ))}
-                    </select>
+                    <Select name="goal_id" value={editGoalId} onValueChange={setEditGoalId}>
+                        <SelectTrigger className="bg-background/50">
+                            <SelectValue placeholder={dict.today.goalLabel} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {goals.map(goal => (
+                                <SelectItem key={goal.id} value={goal.id}>{goal.title}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
                 </div>
             ) : (
                 <input type="hidden" name="goal_id" value={action.goal_id} />
@@ -847,32 +896,47 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                     <Label htmlFor="type" className="text-xs text-muted-foreground mb-1 block">{dict.today.typeLabel}</Label>
-                    <select
-                        name="type"
-                        value={editType}
-                        onChange={(e) => setEditType(e.target.value)}
-                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        <option value="core">{dict.today.types.core}</option>
-                        <option value="maintenance">{dict.today.types.maintenance}</option>
-                        <option value="learning">{dict.today.types.learning}</option>
-                        <option value="review">{dict.today.types.review}</option>
-                        <option value="rest">{dict.today.types.rest}</option>
-                    </select>
+                    <Select name="type" value={editType} onValueChange={setEditType}>
+                        <SelectTrigger className="bg-background/50">
+                            <SelectValue placeholder={dict.today.typeLabel} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="core">{dict.today.types.core}</SelectItem>
+                            <SelectItem value="maintenance">{dict.today.types.maintenance}</SelectItem>
+                            <SelectItem value="learning">{dict.today.types.learning}</SelectItem>
+                            <SelectItem value="review">{dict.today.types.review}</SelectItem>
+                            <SelectItem value="rest">{dict.today.types.rest}</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
                 <div className="space-y-1">
                     <Label htmlFor="priority" className="text-xs text-muted-foreground mb-1 block">{dict.today.priorityLabel}</Label>
-                    <select
-                        name="priority"
-                        value={editPriority}
-                        onChange={(e) => setEditPriority(e.target.value)}
-                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        <option value="high">{dict.goals.priority.high}</option>
-                        <option value="medium">{dict.goals.priority.medium}</option>
-                        <option value="low">{dict.goals.priority.low}</option>
-                    </select>
+                    <Select name="priority" value={editPriority} onValueChange={setEditPriority}>
+                        <SelectTrigger className="bg-background/50">
+                            <SelectValue placeholder={dict.today.priorityLabel} />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="high">{dict.goals.priority.high}</SelectItem>
+                            <SelectItem value="medium">{dict.goals.priority.medium}</SelectItem>
+                            <SelectItem value="low">{dict.goals.priority.low}</SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor={`repeat-rule-${action.id}`}>{(dict.today as Record<string, string>).repeatLabel || '重复规则'}</Label>
+                <Select value={editRepeatRule} onValueChange={(value) => setEditRepeatRule(value as ActionRecurrenceRule)}>
+                    <SelectTrigger id={`repeat-rule-${action.id}`} className="w-full">
+                        <SelectValue placeholder={(dict.today as Record<string, string>).repeatLabel || '重复规则'} />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="none">{(dict.today as Record<string, string>).repeatNone || '不重复'}</SelectItem>
+                        <SelectItem value="daily">{(dict.today as Record<string, string>).repeatDaily || '每天'}</SelectItem>
+                        <SelectItem value="weekly">{(dict.today as Record<string, string>).repeatWeekly || '每周'}</SelectItem>
+                        <SelectItem value="monthly">{(dict.today as Record<string, string>).repeatMonthly || '每月'}</SelectItem>
+                    </SelectContent>
+                </Select>
             </div>
 
             <div className="space-y-1">
@@ -1105,6 +1169,15 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                         {newBadgeText}
                                     </span>
                                 )}
+                                {hasAIAdopted && (
+                                    <span
+                                        title={aiAdoptedHint}
+                                        className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/8 px-2 py-0.5 font-medium text-primary"
+                                    >
+                                        <Sparkles className="h-3 w-3" />
+                                        {aiAdoptedLabel}
+                                    </span>
+                                )}
                                 {isOverdue && (
                                     <span className="px-2 py-0.5 rounded-full bg-red-500/10 text-red-600 dark:text-red-400 font-medium border border-red-500/20">
                                         {dict.today.delayed}
@@ -1119,6 +1192,11 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                 )}>
                                     {getPriorityLabel(action.priority)}
                                 </span>
+                                {recurrenceMeta.recurrence !== 'none' ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full border border-primary/15 bg-primary/6 px-2 py-0.5 font-medium text-primary">
+                                        {recurrenceLabelMap[recurrenceMeta.recurrence]}
+                                    </span>
+                                ) : null}
                                 <span className="font-mono text-[10px] opacity-70 flex items-center gap-1">
                                     <Calendar className="h-3 w-3" />
                                     {format(new Date(action.start_date), 'MM-dd')}
@@ -1171,13 +1249,16 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                     <div className="mt-2 ml-11 rounded-md border border-border/40 bg-secondary/15 p-2">
                         <button
                             type="button"
-                            className="flex w-full items-center justify-between text-xs text-muted-foreground"
+                            className="flex w-full items-center justify-between rounded-md px-1 py-1 text-xs text-muted-foreground transition-colors hover:bg-background/60"
                             onClick={() => setSubItemsOpen((prev) => !prev)}
                         >
-                            <span>
+                            <span className="font-medium">
                                 {(dict.today as unknown as Record<string, string>).subItemsLabel || '子行动'} {subItemsCompletedCount}/{subItems.length}
                             </span>
-                            {subItemsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                            <span className="inline-flex items-center gap-1">
+                                {subItemsOpen ? dict.common.showLess : dict.common.showMore}
+                                {subItemsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                            </span>
                         </button>
                         {subItemsOpen ? (
                             <div className="mt-2 space-y-1">
@@ -1209,6 +1290,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                 <Dialog open={detailsOpen} onOpenChange={handlePanelOpenChange}>
                     <DialogFormContent
                         mobileMode={isPanelFullscreen ? 'fullscreen' : 'sheet'}
+                        hideCloseButton
                         className={cn(
                             isPanelFullscreen
                                 ? 'overflow-hidden p-0 sm:p-0'
@@ -1216,18 +1298,35 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                         )}
                     >
                         <div className={cn('flex min-h-0 flex-col', isPanelFullscreen ? 'h-full' : 'max-h-[85vh]')}>
-                            <DialogHeader className="relative px-4 pt-4 pr-24 text-left sm:px-6 sm:pt-6 sm:pr-24">
-                                <DialogTitle className="leading-snug text-left">{panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}</DialogTitle>
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-12 top-4 h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:top-6"
-                                    onClick={() => setIsPanelFullscreen((value) => !value)}
-                                >
-                                    {isPanelFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                                    <span className="sr-only">{isPanelFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen}</span>
-                                </Button>
+                            <DialogHeader className="px-4 pt-4 text-left sm:px-6 sm:pt-6">
+                                <div className="flex items-start justify-between gap-3">
+                                    <DialogTitle className="min-w-0 flex-1 text-left leading-snug">
+                                        {panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}
+                                    </DialogTitle>
+                                    <div className="flex shrink-0 items-center gap-1">
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                                            onClick={() => setIsPanelFullscreen((value) => !value)}
+                                        >
+                                            {isPanelFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                                            <span className="sr-only">{isPanelFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen}</span>
+                                        </Button>
+                                        <DialogClose asChild>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                                            >
+                                                <X className="h-4 w-4" />
+                                                <span className="sr-only">Close</span>
+                                            </Button>
+                                        </DialogClose>
+                                    </div>
+                                </div>
                             </DialogHeader>
                             <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4 sm:px-6 sm:pb-6">
                                 {panelMode === 'edit' ? (
@@ -1242,19 +1341,16 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                         <>
                                             <div className="space-y-2">
                                                 <div className="text-sm font-medium">{locale === 'zh' ? '原因' : 'Reason'}</div>
-                                                <select
-                                                    value={rescueReason}
-                                                    onChange={(e) => setRescueReason(e.target.value as RescueOutput['reason_tag'])}
-                                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                                    disabled={rescueLoading}
-                                                >
-                                                    <option value="no_time">{locale === 'zh' ? '没时间' : 'No time'}</option>
-                                                    <option value="too_hard">{locale === 'zh' ? '太难' : 'Too hard'}</option>
-                                                    <option value="anxiety">{locale === 'zh' ? '焦虑' : 'Anxiety'}</option>
-                                                    <option value="unclear_next">{locale === 'zh' ? '不知道下一步' : 'Unclear next'}</option>
-                                                    <option value="low_energy">{locale === 'zh' ? '没精力' : 'Low energy'}</option>
-                                                    <option value="other">{locale === 'zh' ? '其他' : 'Other'}</option>
-                                                </select>
+                                                <Select value={rescueReason} onValueChange={(value) => setRescueReason(value as RescueOutput['reason_tag'])} disabled={rescueLoading}>
+                                                    <SelectTrigger className="bg-background/50">
+                                                        <SelectValue placeholder={locale === 'zh' ? '选择原因' : 'Select reason'} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {rescueReasonOptions.map((option) => (
+                                                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                                 <Button type="button" onClick={generateRescue} disabled={rescueLoading}>
                                                     {rescueLoading && <LoadingSpinner size={16} className="mr-2 text-primary-foreground/80" />}
                                                     {locale === 'zh' ? '生成 5 分钟版本' : 'Generate 5-min version'}
@@ -1344,23 +1440,29 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                         )}
                     >
                         <div className={cn('flex min-h-0 flex-col', isPanelFullscreen ? 'h-full' : 'max-h-[85vh]')}>
-                            <SheetHeader className="relative px-4 pt-4 text-left">
-                                <SheetTitle className="block pr-24 text-left text-base leading-snug">{panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}</SheetTitle>
-                                <div className="flex items-center gap-2">
+                            <SheetHeader className="px-4 pt-4 text-left">
+                                <div className="flex items-start justify-between gap-3">
+                                    <SheetTitle className="block min-w-0 flex-1 text-left text-base leading-snug">
+                                        {panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}
+                                    </SheetTitle>
+                                    <div className="flex shrink-0 items-center gap-1">
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         size="icon"
-                                        className="absolute right-12 top-4 h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+                                        className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
                                         onClick={() => setIsPanelFullscreen((value) => !value)}
                                     >
                                         {isPanelFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                                        <span className="sr-only">{isPanelFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen}</span>
                                     </Button>
                                     <SheetClose asChild>
-                                        <Button variant="ghost" size="icon" className="absolute right-2 top-4 h-8 w-8 rounded-full shrink-0">
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full shrink-0">
                                             <X className="h-4 w-4" />
+                                            <span className="sr-only">Close</span>
                                         </Button>
                                     </SheetClose>
+                                </div>
                                 </div>
                             </SheetHeader>
 
@@ -1375,19 +1477,16 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                         <>
                                             <div className="space-y-2">
                                                 <div className="text-sm font-medium">{locale === 'zh' ? '原因' : 'Reason'}</div>
-                                                <select
-                                                    value={rescueReason}
-                                                    onChange={(e) => setRescueReason(e.target.value as RescueOutput['reason_tag'])}
-                                                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                                    disabled={rescueLoading}
-                                                >
-                                                    <option value="no_time">{locale === 'zh' ? '没时间' : 'No time'}</option>
-                                                    <option value="too_hard">{locale === 'zh' ? '太难' : 'Too hard'}</option>
-                                                    <option value="anxiety">{locale === 'zh' ? '焦虑' : 'Anxiety'}</option>
-                                                    <option value="unclear_next">{locale === 'zh' ? '不知道下一步' : 'Unclear next'}</option>
-                                                    <option value="low_energy">{locale === 'zh' ? '没精力' : 'Low energy'}</option>
-                                                    <option value="other">{locale === 'zh' ? '其他' : 'Other'}</option>
-                                                </select>
+                                                <Select value={rescueReason} onValueChange={(value) => setRescueReason(value as RescueOutput['reason_tag'])} disabled={rescueLoading}>
+                                                    <SelectTrigger className="bg-background/50">
+                                                        <SelectValue placeholder={locale === 'zh' ? '选择原因' : 'Select reason'} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {rescueReasonOptions.map((option) => (
+                                                            <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
                                                 <Button type="button" onClick={generateRescue} disabled={rescueLoading}>
                                                     {rescueLoading && <LoadingSpinner size={16} className="mr-2 text-primary-foreground/80" />}
                                                     {locale === 'zh' ? '生成 5 分钟版本' : 'Generate 5-min version'}

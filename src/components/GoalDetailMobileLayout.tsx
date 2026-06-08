@@ -7,6 +7,7 @@ import { Info, ListChecks } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import { GoalDetailsCard } from '@/components/GoalDetailsCard'
+import { GoalQuickSwitch } from '@/components/GoalQuickSwitch'
 import { GoalSubItemsTabs, type GoalEntry } from '@/components/GoalSubItemsTabs'
 import type en from '@/i18n/en.json'
 
@@ -47,11 +48,12 @@ interface GoalDetailMobileLayoutProps {
     dict: Dict
     initialTab?: TabKey
     goalsForEdit?: { id: string, title: string }[]
+    goalsForSwitch?: { id: string, title: string }[]
 	shareInfo?: { token: string | null; expiresAt: string | null }
 	tzDefaults: { startDefault: string; endDefault: string }
 }
 
-export function GoalDetailMobileLayout({ goal, actions, entries, dict, initialTab = 'actions', goalsForEdit, shareInfo, tzDefaults }: GoalDetailMobileLayoutProps) {
+export function GoalDetailMobileLayout({ goal, actions, entries, dict, initialTab = 'actions', goalsForEdit, goalsForSwitch, shareInfo, tzDefaults }: GoalDetailMobileLayoutProps) {
     const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
 
     const { totalActions, completedActions } = useMemo(() => {
@@ -77,6 +79,7 @@ export function GoalDetailMobileLayout({ goal, actions, entries, dict, initialTa
             <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-primary/5 via-background/70 to-background/90 backdrop-blur-xl p-4 space-y-3 shadow-sm">
                 <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
+                        <div className="truncate text-base font-semibold text-foreground">{goal.title}</div>
                         <div className="flex items-center gap-2">
                             <div className="scale-90 origin-left">
                                 <GoalStatusBadge status={goal.status} label={statusLabel} />
@@ -92,6 +95,13 @@ export function GoalDetailMobileLayout({ goal, actions, entries, dict, initialTa
                         ) : null}
                     </div>
                 </div>
+
+                <GoalQuickSwitch
+                    currentGoalId={goal.id}
+                    goals={goalsForSwitch || goalsForEdit || []}
+                    dict={dict}
+                    className="h-9 rounded-full bg-background/70"
+                />
 
                 <div className="grid grid-cols-2 gap-2 rounded-full border border-border/40 bg-background/40 p-1">
                     <Button

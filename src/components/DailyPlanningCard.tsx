@@ -3,7 +3,7 @@
 import { Calendar, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { SetCoreActionSheet } from '@/components/SetCoreActionSheet'
+import { AddActionDialog } from '@/components/AddActionDialog'
 import { AITodayPlanButton } from '@/components/AITodayPlanButton'
 
 interface PlanningDict {
@@ -17,7 +17,7 @@ interface DailyPlanningCardProps {
   dict: PlanningDict
   activeGoalsCount: number
   yesterdayScore: number | null
-  // Props for SetCoreActionSheet
+  // Shared action creation context
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   goals: any[] 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -57,10 +57,9 @@ export function DailyPlanningCard({
 
           <div className="flex flex-col items-center gap-4 w-full max-w-xs">
             <div className="w-full">
-              <SetCoreActionSheet 
-                goals={goals} 
-                dict={dictFull} 
-                defaultDate={defaultDate}
+              <AddActionDialog
+                activeGoals={goals}
+                dict={dictFull}
                 trigger={
                   <Button size="lg" className="w-full rounded-full shadow-md">
                     {dict.planBtn} <ArrowRight className="ml-2 w-4 h-4" />

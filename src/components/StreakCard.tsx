@@ -38,6 +38,9 @@ export function StreakCard({
         <div className="h-2 w-full bg-muted rounded">
           <div className="h-2 bg-orange-400 rounded" style={{ width: `${progress * 100}%` }} />
         </div>
+        <div className="mt-3 rounded-md border border-orange-200/60 bg-orange-50/70 px-3 py-2 text-[11px] leading-5 text-muted-foreground dark:border-orange-500/20 dark:bg-orange-950/20">
+          {dict.dashboard.streakRule}
+        </div>
 
         {/* Trend removed to avoid duplication with ScoreCard */}
         <div className="mt-3 flex flex-wrap gap-1">

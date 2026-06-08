@@ -244,6 +244,7 @@
 		"activeGoals": "Active Goals",
 		"currentStreak": "Action Streak",
 		"days": "days",
+		"streakRule": "Calculated in your timezone: completing any action on a day counts for the streak. If you have not completed one yet today, the streak remains at yesterday's value.",
 		"recentTrend": "30-Day Check-in Trend",
 		"recentTrendDesc": "Spot patterns and keep improving with intention.",
 		"noCoreAction": "No core action set for today.",
@@ -387,6 +388,11 @@
 			"rest": "Rest/Health"
 		},
 		"priorityLabel": "Priority",
+		"repeatLabel": "Repeat",
+		"repeatNone": "No repeat",
+		"repeatDaily": "Daily",
+		"repeatWeekly": "Weekly",
+		"repeatMonthly": "Monthly",
 		"descriptionLabel": "Description",
 		"descriptionPlaceholder": "Add more details...",
 		"addActionBtn": "Add Action",
@@ -405,7 +411,9 @@
 			"Attach actions to a goal for clearer progress",
 			"Auto-summarized in Today and Dashboard"
 		],
-		"subItemsLabel": "Sub-items"
+		"subItemsLabel": "Sub-items",
+		"aiAdoptedLabel": "AI Adopted",
+		"aiAdoptedHint": "This action comes from an AI recommendation that has been adopted"
 	},
 	"goals": {
 		"title": "Goals",
@@ -521,7 +529,7 @@
 			"tabJourney": "Journey",
 			"addInspiration": "Add Inspiration",
 			"addJourney": "Add Journey",
-			"entryContentLabel": "One-liner",
+			"entryContentLabel": "Content",
 			"inspirationContentPlaceholder": "Write down your idea...",
 			"journeyContentPlaceholder": "Capture what's on your mind...",
 			"inspirationNotePlaceholder": "Source / why it matters / next step (optional)",
@@ -535,7 +543,8 @@
 			"actions": "Actions",
 			"noActions": "No actions yet.",
 			"addAction": "Add Action",
-			"date": "Date"
+			"date": "Date",
+			"switchGoal": "Switch Goal"
 		}
 	},
 	"profile": {
@@ -712,6 +721,7 @@
 		"revokeLink": "Revoke Link",
 		"copyLink": "Copy Link",
 		"copied": "Copied",
+		"exportCalendar": "Export to Calendar",
 		"expiresLabel": "Expires",
 		"readonlyHint": "This link is view-only.",
 		"openTitle": "Public Goal",

@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Plus, Sparkles } from 'lucide-react'
+import { Plus, Sparkles, Target } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 import type en from '@/i18n/en.json'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { AddGoalDialog } from '@/components/AddGoalDialog'
 import { AddActionDialog } from '@/components/AddActionDialog'
 import { QuickCaptureDialog } from '@/components/QuickCaptureDialog'
 
@@ -65,6 +67,7 @@ export function QuickCaptureSpeedDial({
 	const [dragging, setDragging] = useState(false)
 	const [fabPosition, setFabPosition] = useState<FabPosition | null>(null)
 	const [menuPlacement, setMenuPlacement] = useState<MenuPlacement>({ vertical: 'up', horizontal: 'end' })
+	const pathname = usePathname()
 	const wrapperRef = useRef<HTMLDivElement | null>(null)
 	const fabButtonRef = useRef<HTMLButtonElement | null>(null)
 	const menuRef = useRef<HTMLDivElement | null>(null)
@@ -237,12 +240,31 @@ export function QuickCaptureSpeedDial({
 		!open && menuPlacement.vertical === 'up' && 'translate-y-2',
 		!open && menuPlacement.vertical === 'down' && '-translate-y-2'
 	)
+	const showAddGoalEntry = pathname === '/goals' || pathname.startsWith('/goals/')
 
 	return (
 		<>
 			{open ? <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} /> : null}
 			<div ref={wrapperRef} className={wrapperClassName} style={canDragFab && fabPosition ? { left: fabPosition.left, top: fabPosition.top } : undefined}>
 				<div ref={menuRef} className={menuClassName}>
+					{showAddGoalEntry ? (
+						<AddGoalDialog
+							dict={dict}
+							trigger={
+								<Button
+									type="button"
+									variant="secondary"
+									className={cn(
+										'shadow-lg gap-2 transition-all whitespace-nowrap',
+										open ? 'opacity-100 translate-y-0' : 'opacity-0'
+									)}
+								>
+									<Target className="h-4 w-4" />
+									{dict.goals.newGoal}
+								</Button>
+							}
+						/>
+					) : null}
 					<AddActionDialog
 						activeGoals={activeGoals}
 						dict={dict}

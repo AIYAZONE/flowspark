@@ -493,6 +493,12 @@ export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialS
                         </div>
                     </DialogContent>
                 </Dialog>
+                <Button asChild variant="outline" size="sm" className="w-full justify-center gap-1 sm:w-auto">
+                    <a href={`/api/calendar/goals/${goal.id}`} download>
+                        <Calendar className="h-4 w-4" />
+                        {dict.share.exportCalendar}
+                    </a>
+                </Button>
                 <div className="w-full sm:w-auto">
                     <ArchiveGoalButton id={goal.id} isArchived={goal.status === 'archived'} dict={dict} />
                 </div>

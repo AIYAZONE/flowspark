@@ -473,19 +473,21 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
                   <div key={q.id} className="space-y-2">
                     <div className="text-sm">{q.question}</div>
                     {q.type === 'single_choice' ? (
-                      <select
-                        value={aiAnswers[q.id] || ''}
-                        onChange={(e) => {
-                          const value = e.target.value
+                      <Select
+                        value={aiAnswers[q.id] || undefined}
+                        onValueChange={(value) => {
                           setAiAnswers(prev => ({ ...prev, [q.id]: value }))
                         }}
-                        className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        <option value="">{newDict.aiSelectPlaceholder || '请选择'}</option>
-                        {(q.options || []).map(opt => (
-                          <option key={opt} value={opt}>{opt}</option>
-                        ))}
-                      </select>
+                        <SelectTrigger className="bg-background/50">
+                          <SelectValue placeholder={newDict.aiSelectPlaceholder || '请选择'} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(q.options || []).map(opt => (
+                            <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     ) : (
                       <Input
                         value={aiAnswers[q.id] || ''}
@@ -574,32 +576,40 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
                     }}
                   />
                   <div className="grid grid-cols-2 gap-2">
-                    <select
+                    <Select
                       value={a.type}
-                      onChange={(e) => {
-                        const type = e.target.value as ActionType
+                      onValueChange={(value) => {
+                        const type = value as ActionType
                         setDraftActions(prev => prev.map(x => x.id === a.id ? { ...x, type } : x))
                       }}
-                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <option value="core">{dict.today.types.core}</option>
-                      <option value="maintenance">{dict.today.types.maintenance}</option>
-                      <option value="learning">{dict.today.types.learning}</option>
-                      <option value="review">{dict.today.types.review}</option>
-                      <option value="rest">{dict.today.types.rest}</option>
-                    </select>
-                    <select
+                      <SelectTrigger className="bg-background/50">
+                        <SelectValue placeholder={dict.today.typeLabel} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="core">{dict.today.types.core}</SelectItem>
+                        <SelectItem value="maintenance">{dict.today.types.maintenance}</SelectItem>
+                        <SelectItem value="learning">{dict.today.types.learning}</SelectItem>
+                        <SelectItem value="review">{dict.today.types.review}</SelectItem>
+                        <SelectItem value="rest">{dict.today.types.rest}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select
                       value={a.priority}
-                      onChange={(e) => {
-                        const priority = e.target.value as ActionPriority
+                      onValueChange={(value) => {
+                        const priority = value as ActionPriority
                         setDraftActions(prev => prev.map(x => x.id === a.id ? { ...x, priority } : x))
                       }}
-                      className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      <option value="high">{dict.goals.priority.high}</option>
-                      <option value="medium">{dict.goals.priority.medium}</option>
-                      <option value="low">{dict.goals.priority.low}</option>
-                    </select>
+                      <SelectTrigger className="bg-background/50">
+                        <SelectValue placeholder={dict.goals.priority.label} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="high">{dict.goals.priority.high}</SelectItem>
+                        <SelectItem value="medium">{dict.goals.priority.medium}</SelectItem>
+                        <SelectItem value="low">{dict.goals.priority.low}</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <Input

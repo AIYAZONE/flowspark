@@ -8,6 +8,7 @@ import { getTodayInTZ, getUserTimezone } from '@/lib/time'
 
 import { GoalDetailsCard } from '@/components/GoalDetailsCard'
 import { GoalDetailMobileLayout } from '@/components/GoalDetailMobileLayout'
+import { GoalQuickSwitch } from '@/components/GoalQuickSwitch'
 import { GoalSubItemsTabs } from '@/components/GoalSubItemsTabs'
 
 function addDaysFromDateString(date: string, days: number): string {
@@ -112,7 +113,8 @@ export default async function GoalDetailPage({ params }: PageProps) {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div className="flex items-center gap-4">
                 <Link href="/goals">
                     <Button
                         variant="ghost"
@@ -125,7 +127,15 @@ export default async function GoalDetailPage({ params }: PageProps) {
                         <span className="text-sm font-medium">{dict.common.back}</span>
                     </Button>
                 </Link>
-                <h1 className="text-lg md:text-2xl font-bold tracking-tight">{goal.title}</h1>
+                    <h1 className="text-lg md:text-2xl font-bold tracking-tight">{goal.title}</h1>
+                </div>
+                <div className="hidden md:block md:w-[280px]">
+                    <GoalQuickSwitch
+                        currentGoalId={goal.id as string}
+                        goals={activeGoals || []}
+                        dict={dict}
+                    />
+                </div>
             </div>
 
             <GoalDetailMobileLayout
@@ -141,6 +151,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
 				}))}
 				dict={dict}
 				goalsForEdit={activeGoals || []}
+				goalsForSwitch={activeGoals || []}
 				shareInfo={{
 					token: (shareData?.revoked_at ? null : (shareData?.token as string | null)) || null,
 					expiresAt: (shareData?.expires_at as string | null) || null

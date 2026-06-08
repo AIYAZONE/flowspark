@@ -29,9 +29,10 @@ import type en from '@/i18n/en.json'
 import { logEvent } from '@/lib/analytics'
 import { GoalRequiredIntroCard } from './GoalRequiredIntroCard'
 import type { AIBreakdownActionDraft } from '@/lib/ai/breakdown'
-import { useMobileInputVisible } from '@/components/ui/use-mobile-input-visible'
+import { useMobileInputVisible, useMobileKeyboardInset } from '@/components/ui/use-mobile-input-visible'
 import { createClient } from '@/lib/supabase/client'
 import { ActionDescriptionEditor, type ActionAttachmentDraft } from '@/components/ActionDescriptionEditor'
+import type { ActionRecurrenceRule } from '@/lib/actionRecurrence'
 
 type Dict = typeof en
 
@@ -68,6 +69,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
     const [actionDescription, setActionDescription] = useState('')
     const [actionType, setActionType] = useState('core')
     const [actionPriority, setActionPriority] = useState('medium')
+    const [actionRepeatRule, setActionRepeatRule] = useState<ActionRecurrenceRule>('none')
     const [actionStartDate, setActionStartDate] = useState('')
     const [actionEndDate, setActionEndDate] = useState('')
     const [aiLoading, setAiLoading] = useState(false)
@@ -90,6 +92,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
             setActionDescription('')
             setActionType('core')
             setActionPriority('medium')
+            setActionRepeatRule('none')
             setAiLoading(false)
             setAiError(null)
             setAiDrafts([])
@@ -226,6 +229,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
     }, [open])
 
     useMobileInputVisible(open && step === 'action', titleRef)
+    const keyboardInset = useMobileKeyboardInset(open && step === 'action')
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -270,7 +274,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                         </AnimatePresence>
                     </div>
                 ) : (
-                    <div className={isFullscreen ? 'flex h-full flex-col p-6' : 'p-6'}>
+                    <div className={isFullscreen ? 'flex h-full flex-col p-6' : 'flex max-h-[85dvh] flex-col p-6 sm:max-h-none'}>
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={step}
@@ -314,8 +318,11 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                                 {isFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen}
                                             </Button>
                                         </DialogHeader>
-                                        <form action={handleSubmit} className={isFullscreen ? 'mt-4 flex min-h-0 flex-1 flex-col' : 'space-y-4 mt-4'}>
-                                            <div className={isFullscreen ? 'space-y-4 overflow-y-auto pr-1' : 'space-y-4'}>
+                                        <form action={handleSubmit} className="mt-4 flex min-h-0 flex-1 flex-col">
+                                            <div
+                                                className={isFullscreen ? 'min-h-0 flex-1 space-y-4 overflow-y-auto pr-1' : 'min-h-0 flex-1 space-y-4 overflow-y-auto'}
+                                                style={{ paddingBottom: keyboardInset > 0 ? Math.max(16, keyboardInset * 0.35) : undefined }}
+                                            >
                                             {showGoalCreatedBanner && (
                                                 <div className="rounded-md border bg-muted/30 px-3 py-2 text-sm" role="status">
                                                     {dict.today.goalCreatedAutoselected}
@@ -460,6 +467,22 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                                 </div>
                                             </div>
 
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="repeat_rule">{(dict.today as Record<string, string>).repeatLabel || '重复规则'}</Label>
+                                                <input type="hidden" name="repeat_rule" value={actionRepeatRule} />
+                                                <Select value={actionRepeatRule} onValueChange={(value) => setActionRepeatRule(value as ActionRecurrenceRule)}>
+                                                    <SelectTrigger id="repeat_rule" className="w-full">
+                                                        <SelectValue placeholder={(dict.today as Record<string, string>).repeatLabel || '重复规则'} />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="none">{(dict.today as Record<string, string>).repeatNone || '不重复'}</SelectItem>
+                                                        <SelectItem value="daily">{(dict.today as Record<string, string>).repeatDaily || '每天'}</SelectItem>
+                                                        <SelectItem value="weekly">{(dict.today as Record<string, string>).repeatWeekly || '每周'}</SelectItem>
+                                                        <SelectItem value="monthly">{(dict.today as Record<string, string>).repeatMonthly || '每月'}</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
                                             <DateRangeFields
                                                 key={`${actionStartDate}-${actionEndDate}`}
                                                 defaultStart={actionStartDate || today}
@@ -510,7 +533,10 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                             ) : null}
                                             </div>
 
-                                            <div className={isFullscreen ? 'border-t border-border/50 bg-background pt-4' : ''}>
+                                            <div
+                                                className={isFullscreen ? 'border-t border-border/50 bg-background pt-4' : 'border-t border-border/50 bg-background pt-4'}
+                                                style={{ paddingBottom: open && keyboardInset > 0 ? `calc(env(safe-area-inset-bottom) + ${keyboardInset}px)` : undefined }}
+                                            >
                                                 <Button type="submit" className="w-full" disabled={isPending || !valid || (!goalId && !selectedGoalId) || descriptionUploading}>
                                                     {isPending ? (
                                                         <>

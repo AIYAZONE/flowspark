@@ -9,6 +9,26 @@ export default function manifest(): MetadataRoute.Manifest {
     display: 'standalone',
     background_color: '#ffffff',
     theme_color: '#10b981', // emerald-500
+    shortcuts: [
+      {
+        name: 'Today',
+        short_name: 'Today',
+        description: 'Open today view',
+        url: '/today',
+      },
+      {
+        name: 'Goals',
+        short_name: 'Goals',
+        description: 'Open goals list',
+        url: '/goals',
+      },
+      {
+        name: 'AI Coach',
+        short_name: 'AI Coach',
+        description: 'Jump into AI planning',
+        url: '/today',
+      },
+    ],
     icons: [
       {
         src: '/logo.svg',

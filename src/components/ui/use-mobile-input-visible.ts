@@ -1,6 +1,6 @@
 'use client'
 
-import { RefObject, useEffect } from 'react'
+import { RefObject, useEffect, useState } from 'react'
 
 export function useMobileInputVisible(
   open: boolean,
@@ -20,4 +20,35 @@ export function useMobileInputVisible(
 
     return () => window.clearTimeout(timer)
   }, [open, inputRef])
+}
+
+export function useMobileKeyboardInset(open: boolean) {
+  const [keyboardInset, setKeyboardInset] = useState(0)
+
+  useEffect(() => {
+    if (!open || typeof window === 'undefined' || !window.visualViewport) {
+      return
+    }
+
+    const vv = window.visualViewport
+    const updateInset = () => {
+      const inset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop))
+      setKeyboardInset(inset)
+    }
+
+    updateInset()
+    vv.addEventListener('resize', updateInset)
+    vv.addEventListener('scroll', updateInset)
+
+    return () => {
+      vv.removeEventListener('resize', updateInset)
+      vv.removeEventListener('scroll', updateInset)
+    }
+  }, [open])
+
+  if (!open || typeof window === 'undefined' || !window.visualViewport) {
+    return 0
+  }
+
+  return keyboardInset
 }

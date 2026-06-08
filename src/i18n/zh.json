@@ -244,6 +244,7 @@
 		"activeGoals": "进行中的目标",
 		"currentStreak": "行动连续天数",
 		"days": "天",
+		"streakRule": "按你的时区计算：当天只要完成任意一个行动，就会记为 1 天连续；如果今天还没完成，则会保留到昨天为止的连续天数。",
 		"recentTrend": "近 30 天自评趋势",
 		"recentTrendDesc": "看见波动与改善，让行动更有方向。",
 		"noCoreAction": "今日未设置核心行动。",
@@ -387,6 +388,11 @@
 			"rest": "休息恢复"
 		},
 		"priorityLabel": "优先级",
+		"repeatLabel": "重复规则",
+		"repeatNone": "不重复",
+		"repeatDaily": "每天",
+		"repeatWeekly": "每周",
+		"repeatMonthly": "每月",
 		"descriptionLabel": "描述",
 		"descriptionPlaceholder": "添加更多细节...",
 		"addActionBtn": "添加行动",
@@ -405,7 +411,9 @@
 			"把行动归档到目标，进度更清晰",
 			"自动汇总到今日与仪表盘统计"
 		],
-		"subItemsLabel": "子行动"
+		"subItemsLabel": "子行动",
+		"aiAdoptedLabel": "AI 已采纳",
+		"aiAdoptedHint": "该行动来自 AI 建议并已被采纳"
 	},
 	"goals": {
 		"title": "目标列表",
@@ -521,7 +529,7 @@
 			"tabJourney": "心路旅程",
 			"addInspiration": "添加灵感",
 			"addJourney": "添加心路",
-			"entryContentLabel": "一句话",
+			"entryContentLabel": "正文",
 			"inspirationContentPlaceholder": "随手记下你的灵感…",
 			"journeyContentPlaceholder": "记录此刻的想法与感受…",
 			"inspirationNotePlaceholder": "灵感来源 / 为什么有用 / 下一步（可选）",
@@ -535,7 +543,8 @@
 			"actions": "行动记录",
 			"noActions": "暂无行动记录。",
 			"addAction": "添加行动",
-			"date": "日期"
+			"date": "日期",
+			"switchGoal": "切换目标"
 		}
 	},
 	"profile": {
@@ -712,6 +721,7 @@
 		"revokeLink": "撤销链接",
 		"copyLink": "复制链接",
 		"copied": "已复制",
+		"exportCalendar": "导出到日历",
 		"expiresLabel": "过期时间",
 		"readonlyHint": "该链接仅可查看，不可编辑。",
 		"openTitle": "公开目标",

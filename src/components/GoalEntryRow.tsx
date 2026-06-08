@@ -1,12 +1,15 @@
 'use client'
 
+import { useState } from 'react'
 import type en from '@/i18n/en.json'
-import { Lightbulb, Pencil, Sparkles, Trash2 } from 'lucide-react'
+import { CalendarDays, Lightbulb, Pencil, Sparkles, Trash2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { archiveGoalEntry, deleteGoalEntry } from '@/app/(authenticated)/goals/entries/actions'
 import { ConvertGoalEntryToActionDialog } from '@/components/ConvertGoalEntryToActionDialog'
 import { EditGoalEntryDialog } from '@/components/EditGoalEntryDialog'
+import { RichTextContentView } from '@/components/RichTextContentView'
+import { RichTextImagePreviewDialog } from '@/components/RichTextImagePreviewDialog'
 import { cn } from '@/lib/utils'
 import type { GoalEntry } from '@/components/GoalSubItemsTabs'
 
@@ -25,6 +28,7 @@ export function GoalEntryRow({
 	startDefault: string
 	endDefault: string
 }) {
+	const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
 	const isJourney = entry.kind === 'journey'
 	const isArchived = entry.status === 'archived'
 	const kindLabel = isJourney ? dict.goals.detail.tabJourney : dict.goals.detail.tabInspiration
@@ -32,75 +36,88 @@ export function GoalEntryRow({
 		new Date(entry.created_at)
 	)
 	const timeText = new Intl.DateTimeFormat(dict.common.locale, { hour: '2-digit', minute: '2-digit' }).format(new Date(entry.created_at))
+	const locale = String(dict.common.locale || '').toLowerCase()
+	const noteLabel = dict.quickCapture.noteLabel || (locale.startsWith('zh') ? '补充说明' : 'Notes')
 
 	return (
-		<Card
-			className={cn(
-				'overflow-hidden',
-				isJourney ? 'border-border/60 bg-secondary/10' : 'border-border/60',
-				isArchived ? 'opacity-80' : null
-			)}
-		>
-			<CardContent className="p-4">
-				<div className="grid grid-cols-[auto_1fr] items-start gap-4">
-					<div className="flex w-14 flex-col items-center gap-2">
+		<>
+			<Card
+				className={cn(
+					'overflow-hidden rounded-2xl border shadow-sm transition-colors',
+					isJourney
+						? 'border-primary/15 bg-linear-to-br from-primary/8 via-background to-background'
+						: 'border-amber-500/15 bg-linear-to-br from-amber-500/[0.07] via-background to-background',
+					isArchived ? 'opacity-80' : null
+				)}
+			>
+				<CardContent className="p-0">
+					<div className="grid gap-0 md:grid-cols-[1fr_auto]">
+						<div className="p-5">
+							<div className="flex flex-wrap items-start justify-between gap-3">
+								<div className="min-w-0 flex-1">
+									<div className="flex flex-wrap items-center gap-2">
+										<div
+											className={cn(
+												'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium',
+												isJourney ? 'border-primary/20 bg-primary/10 text-primary' : 'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+											)}
+										>
+											{isJourney ? <Sparkles className="h-3.5 w-3.5" /> : <Lightbulb className="h-3.5 w-3.5" />}
+											{kindLabel}
+										</div>
+										<div className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2.5 py-1 text-[11px] text-muted-foreground">
+											<CalendarDays className="h-3.5 w-3.5" />
+											{dateText} {timeText}
+										</div>
+										{isArchived ? (
+											<div className="rounded-full border border-border/60 bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+												{dict.goals.status.archived}
+											</div>
+										) : null}
+									</div>
+
+									<div className="mt-4 rounded-2xl border border-border/60 bg-background/85 px-4 py-3">
+										<RichTextContentView html={entry.content} onImageClick={setPreviewImageUrl} />
+									</div>
+
+									{entry.note ? (
+										<div
+											className={cn(
+												'mt-4 rounded-2xl border px-4 py-3',
+												isJourney ? 'border-primary/12 bg-primary/4' : 'border-amber-500/12 bg-amber-500/4'
+											)}
+										>
+											<div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{noteLabel}</div>
+											<div className="whitespace-pre-wrap wrap-break-word text-sm leading-7 text-muted-foreground">
+												{entry.note}
+											</div>
+										</div>
+									) : null}
+								</div>
+
+								{isArchived ? null : (
+									<ConvertGoalEntryToActionDialog
+										entry={{ id: entry.id, content: entry.content, note: entry.note }}
+										goalId={goalId}
+										dict={dict}
+										startDefault={startDefault}
+										endDefault={endDefault}
+										trigger={
+											<Button size="sm" className="rounded-full shadow-sm">
+												{dict.goals.detail.convertToAction}
+											</Button>
+										}
+									/>
+								)}
+							</div>
+						</div>
+
 						<div
 							className={cn(
-								'grid h-10 w-10 place-items-center rounded-2xl border',
-								isJourney ? 'border-primary/15 bg-primary/10 text-primary' : 'border-amber-500/20 bg-amber-500/10 text-amber-600'
+								'flex flex-row gap-2 border-t px-5 py-4 md:w-[210px] md:flex-col md:border-l md:border-t-0',
+								isJourney ? 'border-primary/10 bg-primary/3' : 'border-amber-500/10 bg-amber-500/2'
 							)}
 						>
-							{isJourney ? <Sparkles className="h-5 w-5" /> : <Lightbulb className="h-5 w-5" />}
-						</div>
-						<div className="rounded-full border border-border/60 bg-background/70 px-2 py-0.5 text-[11px] font-mono text-muted-foreground">
-							{dateText}
-						</div>
-					</div>
-
-					<div className="min-w-0">
-						<div className="flex flex-wrap items-center justify-between gap-3">
-							<div className="flex min-w-0 items-center gap-2">
-								<div
-									className={cn(
-										'shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium',
-										isJourney ? 'border-primary/20 bg-primary/10 text-primary' : 'border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-									)}
-								>
-									{kindLabel}
-								</div>
-								<div className="text-xs text-muted-foreground">{timeText}</div>
-							</div>
-
-							{isArchived ? (
-								<div className="rounded-full border border-border/60 bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-									{dict.goals.status.archived}
-								</div>
-							) : (
-								<ConvertGoalEntryToActionDialog
-									entry={{ id: entry.id, content: entry.content, note: entry.note }}
-									goalId={goalId}
-									dict={dict}
-									startDefault={startDefault}
-									endDefault={endDefault}
-									trigger={<Button size="sm">{dict.goals.detail.convertToAction}</Button>}
-								/>
-							)}
-						</div>
-
-						<div className="mt-2 text-sm font-medium whitespace-pre-wrap break-words">{entry.content}</div>
-
-						{entry.note ? (
-							<div
-								className={cn(
-									'mt-3 rounded-xl border border-border/60 bg-background/40 px-3 py-2 text-xs text-muted-foreground whitespace-pre-wrap break-words',
-									isJourney ? 'border-primary/10 bg-primary/[0.03]' : 'border-amber-500/10 bg-amber-500/[0.03]'
-								)}
-							>
-								{entry.note}
-							</div>
-						) : null}
-
-						<div className="mt-3 flex flex-wrap items-center justify-end gap-2">
 							{isArchived ? null : (
 								<>
 									<EditGoalEntryDialog
@@ -108,34 +125,44 @@ export function GoalEntryRow({
 										goalId={goalId}
 										dict={dict}
 										trigger={
-											<Button size="sm" variant="outline" className="gap-1">
+											<Button size="sm" variant="outline" className="flex-1 gap-1 md:w-full md:flex-none">
 												<Pencil className="h-4 w-4" />
 												{dict.common.edit}
 											</Button>
 										}
 									/>
 
-									<form action={archiveGoalEntry}>
+									<form action={archiveGoalEntry} className="flex-1 md:w-full md:flex-none">
 										<input type="hidden" name="id" value={entry.id} />
 										<input type="hidden" name="goal_id" value={goalId} />
-										<Button type="submit" size="sm" variant="outline">
+										<Button type="submit" size="sm" variant="outline" className="w-full">
 											{dict.goals.detail.archiveEntry}
 										</Button>
 									</form>
 								</>
 							)}
-							<form action={deleteGoalEntry}>
+							<form action={deleteGoalEntry} className="flex-1 md:w-full md:flex-none">
 								<input type="hidden" name="id" value={entry.id} />
 								<input type="hidden" name="goal_id" value={goalId} />
-								<Button type="submit" size="sm" variant="ghost" className="gap-1">
+								<Button type="submit" size="sm" variant="ghost" className="w-full gap-1 text-muted-foreground hover:text-destructive">
 									<Trash2 className="h-4 w-4" />
 									{dict.common.delete}
 								</Button>
 							</form>
 						</div>
 					</div>
-				</div>
-			</CardContent>
-		</Card>
+				</CardContent>
+			</Card>
+
+			<RichTextImagePreviewDialog
+				open={Boolean(previewImageUrl)}
+				imageUrl={previewImageUrl}
+				title={dict.common.imagePreviewTitle}
+				openOriginalLabel={dict.common.openOriginal}
+				onOpenChange={(open) => {
+					if (!open) setPreviewImageUrl(null)
+				}}
+			/>
+		</>
 	)
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
 import type en from '@/i18n/en.json'
 import { Dialog, DialogFormContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { createInboxItem } from '@/app/(authenticated)/inbox/actions'
-import { useMobileInputVisible } from '@/components/ui/use-mobile-input-visible'
+import { useMobileInputVisible, useMobileKeyboardInset } from '@/components/ui/use-mobile-input-visible'
 
 type Dict = typeof en
 
@@ -24,7 +24,6 @@ export function QuickCaptureDialog({
 	const [expanded, setExpanded] = useState(false)
 	const [isPending, startTransition] = useTransition()
 	const [error, setError] = useState<string | null>(null)
-	const [keyboardInset, setKeyboardInset] = useState(0)
 	const contentRef = useRef<HTMLInputElement | null>(null)
 
 	function handleOpenChange(nextOpen: boolean) {
@@ -36,23 +35,7 @@ export function QuickCaptureDialog({
 	}
 
 	useMobileInputVisible(open, contentRef)
-
-	useEffect(() => {
-		if (!open) return
-		if (typeof window === 'undefined' || !window.visualViewport) return
-		const vv = window.visualViewport
-		const updateInset = () => {
-			const inset = Math.max(0, window.innerHeight - (vv.height + vv.offsetTop))
-			setKeyboardInset(inset)
-		}
-		updateInset()
-		vv.addEventListener('resize', updateInset)
-		vv.addEventListener('scroll', updateInset)
-		return () => {
-			vv.removeEventListener('resize', updateInset)
-			vv.removeEventListener('scroll', updateInset)
-		}
-	}, [open])
+	const keyboardInset = useMobileKeyboardInset(open)
 
 	async function handleSubmit(formData: FormData) {
 		setError(null)

@@ -10,6 +10,10 @@ import {
 import { createClient } from '@/lib/supabase/server';
 import { normalizeCategoryInput } from '@/lib/goalCategories';
 import { upsertBehaviorSnapshot } from '@/lib/snapshots';
+import {
+	isActionRecurrenceRule,
+	serializeActionRecurrenceDescription
+} from '@/lib/actionRecurrence';
 
 const ACTIVE_GOAL_LIMIT = 5;
 
@@ -596,7 +600,10 @@ export async function createActionAndReturnId(formData: FormData) {
 		title,
 		type,
 		priority: priority || 'medium',
-		description: description || '',
+		description: serializeActionRecurrenceDescription(
+			description || '',
+			isActionRecurrenceRule(repeat_rule) ? repeat_rule : 'none'
+		),
 		start_date,
 		end_date,
 		completed: false,
@@ -768,6 +775,7 @@ export async function createActionWithSubItems(formData: FormData) {
 	const type = rawType || 'core';
 	const priority = (formData.get('priority') as string) || 'medium';
 	const description = (formData.get('description') as string) || '';
+	const repeat_rule = (formData.get('repeat_rule') as string | null) || 'none';
 	const start_date = formData.get('start_date') as string;
 	const end_date = formData.get('end_date') as string;
 	if (!goal_id || !title || !start_date || !end_date) {
@@ -789,7 +797,10 @@ export async function createActionWithSubItems(formData: FormData) {
 				title,
 				type,
 				priority,
-				description,
+				description: serializeActionRecurrenceDescription(
+					description,
+					isActionRecurrenceRule(repeat_rule) ? repeat_rule : 'none'
+				),
 				start_date,
 				end_date,
 				completed: false
@@ -1101,7 +1112,10 @@ export async function updateAction(formData: FormData) {
 		title,
 		type,
 		priority,
-		description,
+		description: serializeActionRecurrenceDescription(
+			description,
+			isActionRecurrenceRule(repeat_rule) ? repeat_rule : 'none'
+		),
 		start_date,
 		end_date,
 		goal_id,
@@ -1515,9 +1529,22 @@ export async function refreshGoalShareSnapshot(goalId: string) {
 	if (findError) throw new Error('operation_failed');
 	if (!existing?.token || existing.revoked_at) throw new Error('operation_failed');
 
+	const expired =
+		Boolean(existing.expires_at) &&
+		new Date(existing.expires_at as string).getTime() <= Date.now();
+	const nextToken = expired ? crypto.randomUUID() : (existing.token as string);
+	const nextExpiresAt = expired
+		? new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString()
+		: ((existing.expires_at as string | null) || null);
+
 	const { error } = await supabase
 		.from('goal_shares')
-		.update({ snapshot })
+		.update({
+			snapshot,
+			token: nextToken,
+			expires_at: nextExpiresAt,
+			revoked_at: null
+		})
 		.eq('goal_id', goalId)
 		.eq('owner_id', user.id)
 		.eq('token', existing.token);
@@ -1525,8 +1552,8 @@ export async function refreshGoalShareSnapshot(goalId: string) {
 
 	revalidatePath(`/goals/${goalId}`);
 	return {
-		token: existing.token as string,
-		expiresAt: (existing.expires_at as string | null) || null
+		token: nextToken,
+		expiresAt: nextExpiresAt
 	};
 }
 
