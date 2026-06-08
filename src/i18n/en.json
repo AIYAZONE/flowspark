@@ -474,6 +474,8 @@
 		"new": {
 			"title": "Create New Goal",
 			"details": "Goal Details",
+			"manualCreate": "Manual Create",
+			"aiSplitCreate": "AI-guided Create",
 			"titleLabel": "Goal Title",
 			"titlePlaceholder": "e.g., Read 12 books this year",
 			"descriptionLabel": "Description",

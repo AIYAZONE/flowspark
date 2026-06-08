@@ -474,6 +474,8 @@
 		"new": {
 			"title": "创建新目标",
 			"details": "目标详情",
+			"manualCreate": "手动创建",
+			"aiSplitCreate": "AI 拆解创建",
 			"titleLabel": "目标标题",
 			"titlePlaceholder": "例如：今年读12本书",
 			"descriptionLabel": "描述",
