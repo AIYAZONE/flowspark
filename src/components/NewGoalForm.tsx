@@ -22,10 +22,10 @@ import { normalizeCategoryInput } from '@/lib/goalCategories'
 import { logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
 import { scheduleRangesWithinGoal } from '@/lib/actionScheduling'
-import type en from '@/i18n/en.json'
+import type { Dictionary, GoalNewDictionary, CommonErrorDictionary } from '@/i18n/types'
 import type { GoalBriefInput, GoalSetupStepAOutput, GoalSetupStepBOutput } from '@/lib/ai/phase2aSchemas'
 
-type Dict = typeof en
+type Dict = Dictionary
 
 interface NewGoalFormProps {
   dict: Dict
@@ -56,7 +56,8 @@ function makeId() {
 export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
   const submitAction = action || createGoal
   const formRef = useRef<HTMLFormElement | null>(null)
-  const newDict = dict.goals.new as unknown as Record<string, string>
+  const newDict: GoalNewDictionary = dict.goals.new
+  const commonErrors: CommonErrorDictionary = dict.common.errors
   const [createMode, setCreateMode] = useState<'manual' | 'ai'>('manual')
   const [goalStart, setGoalStart] = useState(() => new Date().toISOString().slice(0, 10))
   const [goalEnd, setGoalEnd] = useState(() => new Date().toISOString().slice(0, 10))
@@ -98,8 +99,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
         throw error
       }
       const code = error instanceof Error ? error.message : 'operation_failed'
-      const errors = dict.common.errors as unknown as Record<string, string>
-      setSubmitError(errors[code] || errors.operation_failed)
+      setSubmitError(commonErrors[code as keyof CommonErrorDictionary] || commonErrors.operation_failed)
       return
     }
 
@@ -107,8 +107,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
       const code = typeof (result as { error?: unknown }).error === 'string'
         ? (result as { error: string }).error
         : 'operation_failed'
-      const errors = dict.common.errors as unknown as Record<string, string>
-      setSubmitError(errors[code] || errors.operation_failed)
+      setSubmitError(commonErrors[code as keyof CommonErrorDictionary] || commonErrors.operation_failed)
       return
     }
 
@@ -260,7 +259,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
       const json = (await res.json()) as { result?: GoalSetupStepAOutput; error?: string }
       if (!res.ok) {
         const key = json.error || 'operation_failed'
-        setAiError((dict.common.errors as Record<string, string>)[key] || dict.common.errors.operation_failed)
+        setAiError(commonErrors[key as keyof CommonErrorDictionary] || commonErrors.operation_failed)
         return
       }
 
@@ -324,7 +323,7 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
       const json = (await res.json()) as { result?: GoalSetupStepBOutput; error?: string }
       if (!res.ok) {
         const key = json.error || 'operation_failed'
-        setAiError((dict.common.errors as Record<string, string>)[key] || dict.common.errors.operation_failed)
+        setAiError(commonErrors[key as keyof CommonErrorDictionary] || commonErrors.operation_failed)
         return
       }
 

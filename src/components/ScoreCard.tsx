@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useFormStatus } from 'react-dom'
-import type en from '@/i18n/en.json'
+import type { Dictionary, CommonErrorDictionary, DashboardDictionary } from '@/i18n/types'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { submitScore } from '@/app/(authenticated)/dashboard/actions'
@@ -17,7 +17,7 @@ import type { ReviewApiResponse } from '@/lib/ai/types'
 import { logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
 
-type Dict = typeof en
+type Dict = Dictionary
 
 function SubmitScoreButton({
   disabled,
@@ -56,6 +56,8 @@ export function ScoreCard({
   className
 }: ScoreCardProps) {
   void _recent7
+  const dashboardText: DashboardDictionary = dict.dashboard
+  const commonErrors: CommonErrorDictionary = dict.common.errors
   const [score, setScore] = useState<number | null>(currentScore)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [reviewLoading, setReviewLoading] = useState(false)
@@ -103,7 +105,7 @@ export function ScoreCard({
       const json = (await res.json()) as ReviewApiResponse & { error?: string }
       if (!res.ok) {
         const key = json.error || 'operation_failed'
-        setReviewError((dict.common.errors as Record<string, string>)[key] || dict.common.errors.operation_failed)
+        setReviewError(commonErrors[key as keyof CommonErrorDictionary] || commonErrors.operation_failed)
         return
       }
       if (!json.data || !json.recommendationId) {
@@ -179,7 +181,7 @@ export function ScoreCard({
 
       <div className="mt-3">
         <Button type="button" variant="outline" className="w-full" onClick={openReview}>
-          {(dict.dashboard as unknown as Record<string, string>).aiReviewBtn || (locale === 'zh' ? 'AI 帮我总结今天 & 给明天策略（草案）' : 'AI Review & Tomorrow Plan (draft)')}
+          {dashboardText.aiReviewBtn || (locale === 'zh' ? 'AI 帮我总结今天 & 给明天策略（草案）' : 'AI Review & Tomorrow Plan (draft)')}
         </Button>
       </div>
 
@@ -203,7 +205,7 @@ export function ScoreCard({
         <DialogFormContent mobileMode="fullscreen" className="sm:max-w-lg p-4 sm:p-6">
           <DialogHeader className="pr-10 text-left sm:text-left">
             <DialogTitle>
-              {(dict.dashboard as unknown as Record<string, string>).aiReviewTitle || (locale === 'zh' ? 'AI 夜间复盘（草案）' : 'AI Review (draft)')}
+              {dashboardText.aiReviewTitle || (locale === 'zh' ? 'AI 夜间复盘（草案）' : 'AI Review (draft)')}
             </DialogTitle>
             <div className="text-xs text-muted-foreground">
               {locale === 'zh' ? '回答 0-2 个问题后生成简洁建议' : 'Answer 0-2 questions and generate concise suggestions'}

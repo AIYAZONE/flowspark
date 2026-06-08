@@ -15,6 +15,7 @@ import type { TodayPlanOutput } from '@/lib/ai/phase2aSchemas'
 import type { TodayPlanApiResponse } from '@/lib/ai/types'
 import { logAIEvent, logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
+import type { CommonErrorDictionary, DashboardPlanningDictionary } from '@/i18n/types'
 
 type GoalCandidate = {
   id: string
@@ -61,8 +62,16 @@ function buildPlanDescription(params: {
 }
 
 interface Props {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  dict: any
+  dict?: {
+    common?: {
+      locale?: string
+      cancel?: string
+      errors?: CommonErrorDictionary
+    }
+    dashboard?: {
+      planning?: DashboardPlanningDictionary
+    }
+  }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   goals: any[]
   actions?: ActionCandidate[]
@@ -89,6 +98,8 @@ export function AITodayPlanButton({
   triggerSize = 'lg',
   trigger,
 }: Props) {
+  const planning: Partial<DashboardPlanningDictionary> = dict?.dashboard?.planning ?? {}
+  const commonErrors = dict?.common?.errors
   const [aiOpen, setAiOpen] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
@@ -165,14 +176,12 @@ export function AITodayPlanButton({
   }
 
   function getVariantLabel(minutes: 5 | 10 | 20) {
-    const planning = (dict?.dashboard?.planning as Record<string, string> | undefined) || {}
     if (minutes === 5) return planning.aiPlanVariant5 || '5 分钟起步'
     if (minutes === 10) return planning.aiPlanVariant10 || '10 分钟推进'
     return planning.aiPlanVariant20 || '20 分钟完成一段'
   }
 
   function getApplyButtonLabel() {
-    const planning = (dict?.dashboard?.planning as Record<string, string> | undefined) || {}
     if (!aiResult || !selected) return planning.aiPlanApplyBtn || 'Apply & Create'
     const recommendation = aiResult.recommendations[selected.recIndex]
     if (recommendation?.source_type === 'existing_action' && recommendation?.source_action_id) {
@@ -204,13 +213,13 @@ export function AITodayPlanButton({
       const json = (await res.json()) as TodayPlanApiResponse & { error?: string }
       if (!res.ok) {
         const key = json.error || 'operation_failed'
-        const msg = (dict?.common?.errors as Record<string, string> | undefined)?.[key]
-        setAiError(msg || dict?.common?.errors?.operation_failed || 'Operation failed')
+        const msg = commonErrors?.[key as keyof CommonErrorDictionary]
+        setAiError(msg || commonErrors?.operation_failed || 'Operation failed')
         return
       }
 
       if (!json.ok || !json.data || !json.recommendationId) {
-        setAiError(dict?.common?.errors?.operation_failed || 'Operation failed')
+        setAiError(commonErrors?.operation_failed || 'Operation failed')
         return
       }
 
@@ -246,7 +255,7 @@ export function AITodayPlanButton({
         model: json.model || null,
       })
     } catch {
-      setAiError(dict?.common?.errors?.operation_failed || 'Operation failed')
+      setAiError(commonErrors?.operation_failed || 'Operation failed')
     } finally {
       setAiLoading(false)
     }
@@ -399,7 +408,7 @@ export function AITodayPlanButton({
         >
           {aiLoading && <LoadingSpinner size={16} className="mr-2 text-current" />}
           {triggerLabel
-            || (dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanBtn
+            || planning?.aiPlanBtn
             || 'AI Suggest a Core Action (Draft)'}
         </Button>
       )}
@@ -420,7 +429,7 @@ export function AITodayPlanButton({
               AI Coach
             </div>
             <DialogTitle className="max-w-none text-[1.8rem] leading-tight tracking-[-0.02em] sm:text-[2rem]">
-              {(dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanTitle || 'AI Core Action (Draft)'}
+              {planning?.aiPlanTitle || 'AI Core Action (Draft)'}
             </DialogTitle>
           </DialogHeader>
 
@@ -433,7 +442,7 @@ export function AITodayPlanButton({
                   <div className="inline-flex items-start gap-2 font-medium text-foreground">
                     <Clock3 className="mt-0.5 h-4 w-4 shrink-0" />
                     <span>
-                      {((dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanDurationHint) || '下面的选项表示预计投入时间。'}
+                      {planning?.aiPlanDurationHint || '下面的选项表示预计投入时间。'}
                     </span>
                   </div>
                 </div>
@@ -445,7 +454,6 @@ export function AITodayPlanButton({
                   const sourceGoalTitle = sourceAction?.goal_title
                     || candidateGoals.find(goal => goal.id === recommendation.goal_id)?.title
                     || null
-                  const planning = (dict?.dashboard?.planning as Record<string, string> | undefined) || {}
                   const whyTodayLabel = locale === 'zh' ? '为什么是今天' : 'Why today'
                   const selectedVersionLabel = locale === 'zh' ? '当前选择' : 'Current choice'
                   return (
@@ -462,11 +470,11 @@ export function AITodayPlanButton({
                           <div className="space-y-3">
                             <div className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">
                               {recommendation.kind === 'core'
-                                ? ((dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanRecommendedLabel
-                                  || (dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanCoreLabel
+                                ? (planning?.aiPlanRecommendedLabel
+                                  || planning?.aiPlanCoreLabel
                                   || '推荐')
-                                : ((dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanAlternativeLabel
-                                  || (dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanAltLabel
+                                : (planning?.aiPlanAlternativeLabel
+                                  || planning?.aiPlanAltLabel
                                   || '备选')}
                             </div>
                             <div className="rounded-2xl border border-border/50 bg-background/70 px-4 py-3">
@@ -551,7 +559,7 @@ export function AITodayPlanButton({
                                 </div>
                                 <div className="space-y-1.5">
                                   <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                                    {((dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanFirstStep) || '第一步'}
+                                    {planning?.aiPlanFirstStep || '第一步'}
                                   </div>
                                   <div className="rounded-2xl bg-muted/25 px-4 py-3 leading-7">{currentVariant.first_step}</div>
                                 </div>
@@ -560,7 +568,7 @@ export function AITodayPlanButton({
                                 <div className="space-y-2">
                                   <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground inline-flex items-center gap-2">
                                     <CheckCircle2 className="h-3.5 w-3.5" />
-                                    {((dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanDefinitionOfDone) || '完成标准'}
+                                    {planning?.aiPlanDefinitionOfDone || '完成标准'}
                                   </div>
                                   <div className="leading-7">{currentVariant.definition_of_done}</div>
                                 </div>
@@ -591,8 +599,8 @@ export function AITodayPlanButton({
             ) : (
               <div className="py-8 text-sm text-muted-foreground">
                 {aiLoading
-                  ? ((dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanLoading || 'Generating...')
-                  : ((dict?.dashboard?.planning as Record<string, string> | undefined)?.aiPlanHint || 'Click to generate suggestions')}
+                  ? (planning?.aiPlanLoading || 'Generating...')
+                  : (planning?.aiPlanHint || 'Click to generate suggestions')}
               </div>
             )}
           </div>
