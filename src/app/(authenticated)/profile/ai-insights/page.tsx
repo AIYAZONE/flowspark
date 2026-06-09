@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentLocale, getDictionary } from '@/i18n/get-dictionary'
 import Link from 'next/link'
+import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AIAnalyticsOverview } from '@/components/AIAnalyticsOverview'
 import { AIAnalyticsFrictionTop } from '@/components/AIAnalyticsFrictionTop'
@@ -367,13 +368,16 @@ export default async function AIInsightsPage(props: {
 
           <details className="rounded-2xl border bg-card p-5">
             <summary className="cursor-pointer list-none">
-              <div className="space-y-1">
-                <div className="text-sm font-semibold">
-                  {profileDict.aiAnalyticsTechnicalTitle || (presentationLocale === 'zh' ? '技术参考（可折叠）' : 'Technical reference (collapsible)')}
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="text-sm font-semibold">
+                    {profileDict.aiAnalyticsTechnicalTitle || (presentationLocale === 'zh' ? '技术参考（可折叠）' : 'Technical reference (collapsible)')}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {profileDict.aiAnalyticsTechnicalDesc || getAIFieldHelpText('technical', presentationLocale)}
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  {profileDict.aiAnalyticsTechnicalDesc || getAIFieldHelpText('technical', presentationLocale)}
-                </div>
+                <ChevronDown className="ai-details-chevron mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
               </div>
             </summary>
             <div className="mt-5 space-y-6">

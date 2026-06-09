@@ -4,7 +4,6 @@ import { AddActionDialog } from '@/components/AddActionDialog'
 import { AITodayPlanButton } from '@/components/AITodayPlanButton'
 import { getUserTimezone, getTodayInTZ, toLocaleDateStringTZ } from '@/lib/time'
 import { TodayActionList } from '@/components/TodayActionList'
-import { InboxCard } from '@/components/InboxCard'
 import { assignVariant, isEnvEnabled } from '@/lib/experiments'
 
 export default async function TodayPage() {
@@ -137,22 +136,6 @@ export default async function TodayPage() {
     end_date: (action.end_date as string | null | undefined) ?? null,
   }))
 
-  const { count: inboxOpenCountRaw } = await supabase
-    .from('inbox_items')
-    .select('id', { count: 'exact', head: true })
-    .eq('owner_id', user.id)
-    .eq('status', 'open')
-
-  const inboxOpenCount = inboxOpenCountRaw ?? 0
-
-  const { data: inboxRecent } = await supabase
-    .from('inbox_items')
-    .select('id, content, tags')
-    .eq('owner_id', user.id)
-    .eq('status', 'open')
-    .order('created_at', { ascending: false })
-    .limit(3)
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -190,15 +173,6 @@ export default async function TodayPage() {
             </div>
           </div>
         ) : null}
-        <InboxCard
-          dict={dict}
-          openCount={inboxOpenCount}
-          recentItems={(inboxRecent || []).map((it) => ({
-            id: it.id as string,
-            content: it.content as string,
-            tags: (it.tags as string[]) || [],
-          }))}
-        />
         {/* Actions List with Filter */}
         <TodayActionList
           actions={actions || []}

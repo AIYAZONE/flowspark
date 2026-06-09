@@ -167,4 +167,8 @@
     overscroll-behavior: contain;
     padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
   }
+
+  details[open] .ai-details-chevron {
+    transform: rotate(180deg);
+  }
 }

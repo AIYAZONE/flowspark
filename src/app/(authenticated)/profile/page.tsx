@@ -71,6 +71,18 @@ export default async function ProfilePage() {
             </Button>
           </CardContent>
         </Card>
+
+        <Card className="shadow-none">
+          <CardHeader>
+            <CardTitle className="text-base">{dict.potential.title}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-muted-foreground">{dict.potential.subtitle}</div>
+            <Button asChild variant="outline" className="rounded-full">
+              <Link href="/potential">{dict.sidebar.potential}</Link>
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

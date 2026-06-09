@@ -1,18 +1,27 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { Lightbulb, ListChecks, Sparkles } from 'lucide-react'
+import { useMemo, useState, type ReactNode } from 'react'
+import { Info, ListChecks, Sparkles } from 'lucide-react'
+import dynamic from 'next/dynamic'
 import type en from '@/i18n/en.json'
 import { Button } from '@/components/ui/button'
-import { AddActionDialog } from '@/components/AddActionDialog'
 import { ActionListFilter } from '@/components/ActionListFilter'
-import { AddGoalEntryDialog } from '@/components/AddGoalEntryDialog'
 import { GoalEntryRow } from '@/components/GoalEntryRow'
 import { cn } from '@/lib/utils'
 
 type Dict = typeof en
 
-type TabKey = 'actions' | 'inspiration' | 'journey'
+type TabKey = 'actions' | 'journey' | 'details'
+
+const AddActionDialog = dynamic(
+	() => import('@/components/AddActionDialog').then((m) => m.AddActionDialog),
+	{ ssr: false }
+)
+
+const AddGoalEntryDialog = dynamic(
+	() => import('@/components/AddGoalEntryDialog').then((m) => m.AddGoalEntryDialog),
+	{ ssr: false }
+)
 
 export interface GoalEntry {
 	id: string
@@ -51,7 +60,10 @@ export function GoalSubItemsTabs({
 	entries,
 	dict,
 	goalsForEdit,
-	tzDefaults
+	tzDefaults,
+	includeDetails = false,
+	detailsContent,
+	actionsLabel
 }: {
 	goalId: string
 	actions: Action[]
@@ -59,46 +71,43 @@ export function GoalSubItemsTabs({
 	dict: Dict
 	goalsForEdit?: { id: string; title: string }[]
 	tzDefaults: { startDefault: string; endDefault: string }
+	includeDetails?: boolean
+	detailsContent?: ReactNode
+	actionsLabel?: string
 }) {
 	const [activeTab, setActiveTab] = useState<TabKey>('actions')
 
-	const { inspirationEntries, journeyEntries } = useMemo(() => {
-		const inspiration: GoalEntry[] = []
-		const journey: GoalEntry[] = []
-		for (const e of entries) {
-			if (e.kind === 'inspiration') inspiration.push(e)
-			else if (e.kind === 'journey') journey.push(e)
-		}
-		return { inspirationEntries: inspiration, journeyEntries: journey }
-	}, [entries])
+	const journeyEntries = useMemo(() => entries.filter((e) => e.kind === 'journey'), [entries])
 
 	const addTrigger = useMemo(() => {
-		if (activeTab === 'actions') return null
+		if (activeTab === 'actions' || activeTab === 'details') return null
 		return (
 			<Button size="sm" className="gap-1">
 				<Sparkles className="h-4 w-4" />
-				{activeTab === 'inspiration' ? dict.goals.detail.addInspiration : dict.goals.detail.addJourney}
+				{dict.goals.detail.addJourney}
 			</Button>
 		)
-	}, [activeTab, dict.goals.detail.addInspiration, dict.goals.detail.addJourney])
-	const currentEntries = activeTab === 'inspiration' ? inspirationEntries : journeyEntries
+	}, [activeTab, dict.goals.detail.addJourney])
+
+	const actionsTabTitle = actionsLabel ?? dict.goals.detail.tabActions
+	const currentEntries = journeyEntries
 	const openEntriesCount = currentEntries.filter((entry) => entry.status !== 'archived').length
 	const archivedEntriesCount = currentEntries.length - openEntriesCount
-	const isInspirationTab = activeTab === 'inspiration'
-	const sectionTitle = isInspirationTab ? dict.goals.detail.tabInspiration : dict.goals.detail.tabJourney
-	const sectionDescription = isInspirationTab
-		? (dict.common.locale.startsWith('zh')
-			? '把一闪而过的想法整理成可沉淀、可转行动的素材。'
-			: 'Capture sparks of thought and turn them into actionable material.')
-		: (dict.common.locale.startsWith('zh')
-			? '记录关键过程、情绪变化和阶段性体会，让成长轨迹更完整。'
-			: 'Record milestones, emotions, and reflections to make progress more visible.')
-	const SectionIcon = isInspirationTab ? Lightbulb : Sparkles
+	const sectionTitle = dict.goals.detail.tabJourney
+	const sectionDescription = dict.common.locale.startsWith('zh')
+		? '记录关键过程、情绪变化和阶段性体会，让成长轨迹更完整。'
+		: 'Record milestones, emotions, and reflections to make progress more visible.'
+	const SectionIcon = Sparkles
 
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center justify-between gap-3">
-				<div className="grid grid-cols-3 gap-1 rounded-full border border-border/40 bg-background/40 p-1 w-full max-w-md">
+				<div
+					className={cn(
+						'grid gap-1 rounded-full border border-border/40 bg-background/40 p-1 w-full',
+						includeDetails ? 'grid-cols-3 max-w-lg' : 'grid-cols-2 max-w-sm'
+					)}
+				>
 					<Button
 						type="button"
 						variant="ghost"
@@ -107,17 +116,7 @@ export function GoalSubItemsTabs({
 						onClick={() => setActiveTab('actions')}
 					>
 						<ListChecks className="h-4 w-4 mr-1" />
-						{dict.goals.detail.tabActions} ({actions.length})
-					</Button>
-					<Button
-						type="button"
-						variant="ghost"
-						size="sm"
-						className={`rounded-full h-9 ${activeTab === 'inspiration' ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}
-						onClick={() => setActiveTab('inspiration')}
-					>
-						<Lightbulb className="h-4 w-4 mr-1" />
-						{dict.goals.detail.tabInspiration} ({inspirationEntries.length})
+						{actionsTabTitle} ({actions.length})
 					</Button>
 					<Button
 						type="button"
@@ -129,13 +128,24 @@ export function GoalSubItemsTabs({
 						<Sparkles className="h-4 w-4 mr-1" />
 						{dict.goals.detail.tabJourney} ({journeyEntries.length})
 					</Button>
+					{includeDetails ? (
+						<Button
+							type="button"
+							variant="ghost"
+							size="sm"
+							className={`rounded-full h-9 ${activeTab === 'details' ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}
+							onClick={() => setActiveTab('details')}
+						>
+							<Info className="h-4 w-4 mr-1" />
+							{dict.goals.detail.details}
+						</Button>
+					) : null}
 				</div>
 
-				{activeTab === 'actions' ? (
-					<AddActionDialog goalId={goalId} dict={dict} />
-				) : (
-					<AddGoalEntryDialog goalId={goalId} kind={activeTab} dict={dict} trigger={addTrigger} />
-				)}
+				{activeTab === 'actions' ? <AddActionDialog goalId={goalId} dict={dict} /> : null}
+				{activeTab === 'journey' ? (
+					<AddGoalEntryDialog goalId={goalId} kind="journey" dict={dict} trigger={addTrigger} />
+				) : null}
 			</div>
 
 			{activeTab === 'actions' ? (
@@ -146,17 +156,19 @@ export function GoalSubItemsTabs({
 					hideGoalFilter={true}
 					goalsForEdit={goalsForEdit}
 				/>
-			) : (
+			) : null}
+
+			{activeTab === 'details' ? detailsContent : null}
+
+			{activeTab === 'journey' ? (
 				<div className="space-y-4">
 					<div
 						className={cn(
 							'overflow-hidden rounded-2xl border px-5 py-5 shadow-sm',
-							isInspirationTab
-								? 'border-amber-500/15 bg-linear-to-br from-amber-500/[0.08] via-background to-background'
-								: 'border-primary/15 bg-linear-to-br from-primary/[0.08] via-background to-background'
+							'border-primary/15 bg-linear-to-br from-primary/[0.08] via-background to-background'
 						)}
 					>
-						<div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+						<div className="flex flex-col gap-4 lg:flex-row lg:items-start">
 							<div className="min-w-0">
 								<div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground">
 									<SectionIcon className="h-3.5 w-3.5" />
@@ -176,7 +188,6 @@ export function GoalSubItemsTabs({
 									</div>
 								</div>
 							</div>
-							<AddGoalEntryDialog goalId={goalId} kind={activeTab} dict={dict} trigger={addTrigger} />
 						</div>
 					</div>
 
@@ -186,19 +197,12 @@ export function GoalSubItemsTabs({
 								<SectionIcon className="h-5 w-5" />
 							</div>
 							<div className="mt-4 text-base font-medium text-foreground">
-								{isInspirationTab ? dict.goals.detail.emptyInspiration : dict.goals.detail.emptyJourney}
+								{dict.goals.detail.emptyJourney}
 							</div>
 							<div className="mt-2 text-sm leading-6 text-muted-foreground">
-								{isInspirationTab
-									? (dict.common.locale.startsWith('zh')
-										? '灵感先记录下来，再决定是否转换为行动。'
-										: 'Capture the idea first, then decide whether to convert it into an action.')
-									: (dict.common.locale.startsWith('zh')
-										? '心路旅程适合记录过程、波动和阶段感受。'
-										: 'Journey entries work well for process notes, shifts, and reflections.')}
-							</div>
-							<div className="mt-5 flex justify-center">
-								<AddGoalEntryDialog goalId={goalId} kind={activeTab} dict={dict} trigger={addTrigger} />
+								{dict.common.locale.startsWith('zh')
+									? '心路旅程适合记录过程、波动和阶段感受。'
+									: 'Journey entries work well for process notes, shifts, and reflections.'}
 							</div>
 						</div>
 					) : (
@@ -222,7 +226,7 @@ export function GoalSubItemsTabs({
 						</div>
 					)}
 				</div>
-			)}
+			) : null}
 		</div>
 	)
 }

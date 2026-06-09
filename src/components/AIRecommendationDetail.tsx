@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { AIRecommendationDetailRow } from '@/lib/ai/analyticsStore'
 import { Button } from '@/components/ui/button'
@@ -129,11 +130,14 @@ function renderOutput(detail: AIRecommendationDetailRow, dict: RecommendationDet
             <summary className="cursor-pointer list-none">
               <div className="flex items-start justify-between gap-3">
                 <div className="text-sm font-medium leading-6">{item.title || '-'}</div>
-                {item.minutes ? (
-                  <div className="shrink-0 rounded-full bg-primary/8 px-2 py-0.5 text-xs font-medium text-primary">
-                    {item.minutes}
-                  </div>
-                ) : null}
+                <div className="flex items-center gap-2">
+                  {item.minutes ? (
+                    <div className="shrink-0 rounded-full bg-primary/8 px-2 py-0.5 text-xs font-medium text-primary">
+                      {item.minutes}
+                    </div>
+                  ) : null}
+                  <ChevronDown className="ai-details-chevron mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
+                </div>
               </div>
             </summary>
             <div className="mt-3 space-y-3 text-sm leading-6">
@@ -190,7 +194,10 @@ function renderOutput(detail: AIRecommendationDetailRow, dict: RecommendationDet
         {(ifText || thenText) ? (
           <details className="rounded-xl border bg-muted/10 p-3">
             <summary className="cursor-pointer list-none">
-              <div className="text-sm font-semibold">{dict.aiAnalyticsDetailIfThen}</div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="text-sm font-semibold">{dict.aiAnalyticsDetailIfThen}</div>
+                <ChevronDown className="ai-details-chevron mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
+              </div>
             </summary>
             <div className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
               {ifText ? <div>{locale === 'zh' ? '如果：' : 'IF: '}{ifText}</div> : null}
@@ -233,7 +240,10 @@ function renderOutput(detail: AIRecommendationDetailRow, dict: RecommendationDet
         {(ifText || thenText) ? (
           <details className="rounded-xl border bg-muted/10 p-3">
             <summary className="cursor-pointer list-none">
-              <div className="text-sm font-semibold">{dict.aiAnalyticsDetailIfThen}</div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="text-sm font-semibold">{dict.aiAnalyticsDetailIfThen}</div>
+                <ChevronDown className="ai-details-chevron mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
+              </div>
             </summary>
             <div className="mt-3 space-y-2 text-sm leading-6 text-muted-foreground">
               {ifText ? <div>{locale === 'zh' ? '如果：' : 'IF: '}{ifText}</div> : null}
@@ -433,9 +443,12 @@ export function AIRecommendationDetail(props: {
 
           <details className="rounded-2xl border bg-muted/10 p-4">
             <summary className="cursor-pointer list-none">
-              <div className="space-y-1">
-                <div className="text-sm font-semibold">{props.dict.aiAnalyticsDetailGenerationTitle}</div>
-                <div className="text-sm text-muted-foreground">{getAIFieldHelpText('technical', uiLocale)}</div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="text-sm font-semibold">{props.dict.aiAnalyticsDetailGenerationTitle}</div>
+                  <div className="text-sm text-muted-foreground">{getAIFieldHelpText('technical', uiLocale)}</div>
+                </div>
+                <ChevronDown className="ai-details-chevron mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
               </div>
             </summary>
             <div className="mt-4 space-y-3 text-sm">
@@ -466,9 +479,12 @@ export function AIRecommendationDetail(props: {
         {(strategyInfo.length > 0 || qualityInfo.length > 0) ? (
           <details className="rounded-2xl border bg-muted/10 p-4">
             <summary className="cursor-pointer list-none">
-              <div className="space-y-1">
-                <div className="text-sm font-semibold">{props.dict.aiAnalyticsTechnicalTitle}</div>
-                <div className="text-sm text-muted-foreground">{props.dict.aiAnalyticsTechnicalDesc || getAIFieldHelpText('technical', uiLocale)}</div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="text-sm font-semibold">{props.dict.aiAnalyticsTechnicalTitle}</div>
+                  <div className="text-sm text-muted-foreground">{props.dict.aiAnalyticsTechnicalDesc || getAIFieldHelpText('technical', uiLocale)}</div>
+                </div>
+                <ChevronDown className="ai-details-chevron mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
               </div>
             </summary>
             <div className="mt-4 grid gap-4 lg:grid-cols-2">

@@ -54,6 +54,7 @@
 		"dashboard": "Dashboard",
 		"today": "Today",
 		"goals": "Goals",
+		"inbox": "My Ideas",
 		"potential": "Potential",
 		"profile": "Profile",
 		"signOut": "Sign Out"
@@ -541,6 +542,8 @@
 			"editJourney": "Edit Journey",
 			"convertToAction": "Convert to Action",
 			"archiveEntry": "Archive",
+			"deleteEntryConfirmTitle": "Delete this entry?",
+			"deleteEntryConfirmDesc": "This cannot be undone. Are you sure you want to continue?",
 			"emptyInspiration": "No inspiration yet.",
 			"emptyJourney": "No journey entries yet.",
 			"actions": "Actions",

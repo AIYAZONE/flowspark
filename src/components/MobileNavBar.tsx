@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Target, CalendarCheck, User, Sparkles } from 'lucide-react'
+import { LayoutDashboard, Target, CalendarCheck, User, Lightbulb } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface MobileNavBarProps {
@@ -12,7 +12,7 @@ interface MobileNavBarProps {
       dashboard: string
       today: string
       goals: string
-      potential: string
+      inbox: string
       profile: string
     }
   }
@@ -53,9 +53,9 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
       icon: Target,
     },
     {
-      title: dict.sidebar.potential,
-      href: '/potential',
-      icon: Sparkles,
+      title: dict.sidebar.inbox,
+      href: '/inbox',
+      icon: Lightbulb,
     },
     {
       title: dict.sidebar.profile,

@@ -37,8 +37,11 @@ type RawGoalEntry = {
 
 export default async function GoalDetailPage({ params }: PageProps) {
     const { id } = await params
+
     const supabase = await createClient()
+
     const dict = await getDictionary()
+
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) return null
@@ -95,6 +98,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
 			.from('goal_entries')
 			.select('id, kind, status, content, note, created_at')
 			.eq('goal_id', id)
+			.eq('kind', 'journey')
 			.eq('owner_id', user.id)
 			.order('created_at', { ascending: false })
 
@@ -103,6 +107,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
 				.from('goal_entries')
 				.select('id, kind, status, content, note, created_at')
 				.eq('goal_id', id)
+				.eq('kind', 'journey')
 				.eq('user_id', user.id)
 				.order('created_at', { ascending: false })
 			goalEntries = legacyData || []
@@ -115,18 +120,19 @@ export default async function GoalDetailPage({ params }: PageProps) {
         <div className="space-y-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center gap-4">
-                <Link href="/goals">
                     <Button
+                        asChild
                         variant="ghost"
                         size="sm"
                         className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-primary/10 hover:text-primary active:bg-primary/10 active:text-primary transition-all duration-300"
                     >
-                        <div className="rounded-full bg-background/80 p-1 group-hover:bg-background transition-colors">
-                            <ArrowLeft className="h-4 w-4" />
-                        </div>
-                        <span className="text-sm font-medium">{dict.common.back}</span>
+                        <Link href="/goals">
+                            <div className="rounded-full bg-background/80 p-1 group-hover:bg-background transition-colors">
+                                <ArrowLeft className="h-4 w-4" />
+                            </div>
+                            <span className="text-sm font-medium">{dict.common.back}</span>
+                        </Link>
                     </Button>
-                </Link>
                     <h1 className="text-lg md:text-2xl font-bold tracking-tight">{goal.title}</h1>
                 </div>
                 <div className="hidden md:block md:w-[280px]">
@@ -159,35 +165,32 @@ export default async function GoalDetailPage({ params }: PageProps) {
 				tzDefaults={{ startDefault, endDefault }}
 			/>
 
-            <div className="hidden lg:grid gap-6 lg:grid-cols-3">
-                <div className="lg:col-span-1">
-                    <div className="sticky top-6">
-                        <GoalDetailsCard
-                            goal={goal}
-                            dict={dict}
-                            initialShareToken={(shareData?.revoked_at ? null : (shareData?.token as string | null)) || null}
-                            initialShareExpiresAt={(shareData?.expires_at as string | null) || null}
-                        />
-                    </div>
-                </div>
-
-                <div className="lg:col-span-2 space-y-6">
-					<GoalSubItemsTabs
-						goalId={goal.id as string}
-						actions={actions || []}
-						entries={(goalEntries || []).map((e) => ({
-							id: e.id as string,
-							kind: e.kind as 'inspiration' | 'journey',
-							status: (e.status as 'open' | 'archived' | null) || 'open',
-							content: e.content as string,
-							note: (e.note as string) || '',
-							created_at: e.created_at as string
-						}))}
-						dict={dict}
-						goalsForEdit={activeGoals || []}
-						tzDefaults={{ startDefault, endDefault }}
-					/>
-                </div>
+            <div className="hidden lg:block">
+				<GoalSubItemsTabs
+					goalId={goal.id as string}
+					actions={actions || []}
+					entries={(goalEntries || []).map((e) => ({
+						id: e.id as string,
+						kind: e.kind as 'inspiration' | 'journey',
+						status: (e.status as 'open' | 'archived' | null) || 'open',
+						content: e.content as string,
+						note: (e.note as string) || '',
+						created_at: e.created_at as string
+					}))}
+					dict={dict}
+					goalsForEdit={activeGoals || []}
+					tzDefaults={{ startDefault, endDefault }}
+					includeDetails={true}
+					actionsLabel={dict.goals.detail.actions}
+					detailsContent={
+						<GoalDetailsCard
+							goal={goal}
+							dict={dict}
+							initialShareToken={(shareData?.revoked_at ? null : (shareData?.token as string | null)) || null}
+							initialShareExpiresAt={(shareData?.expires_at as string | null) || null}
+						/>
+					}
+				/>
             </div>
         </div>
     )

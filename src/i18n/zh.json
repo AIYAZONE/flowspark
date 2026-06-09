@@ -54,6 +54,7 @@
 		"dashboard": "仪表盘",
 		"today": "今日行动",
 		"goals": "目标管理",
+		"inbox": "我的灵感",
 		"potential": "潜力发掘",
 		"profile": "个人中心",
 		"signOut": "退出登录"
@@ -541,6 +542,8 @@
 			"editJourney": "编辑心路",
 			"convertToAction": "转为行动",
 			"archiveEntry": "归档",
+			"deleteEntryConfirmTitle": "删除这条记录？",
+			"deleteEntryConfirmDesc": "删除后不可恢复，请确认是否继续。",
 			"emptyInspiration": "还没有灵感记录",
 			"emptyJourney": "还没有心路旅程记录",
 			"actions": "行动记录",

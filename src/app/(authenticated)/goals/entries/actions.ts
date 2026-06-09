@@ -3,8 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 
-function isKind(v: string): v is 'inspiration' | 'journey' {
-	return v === 'inspiration' || v === 'journey'
+function isKind(v: string): v is 'journey' {
+	return v === 'journey'
 }
 
 async function assertGoalOwnership(params: {

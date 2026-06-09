@@ -11,12 +11,9 @@ import { LevelCard } from '@/components/LevelCard'
 import { FocusDistributionChart } from '@/components/FocusDistributionChart'
 import { ActivityHeatmap } from '@/components/ActivityHeatmap'
 import { ScoreCard } from '@/components/ScoreCard'
-import { StatCard } from '@/components/StatCard'
 import { StreakCard } from '@/components/StreakCard'
 import { GoalProgressList } from '@/components/GoalProgressList'
-import { InboxCard } from '@/components/InboxCard'
 import { WeeklyInsightCard } from '@/components/WeeklyInsightCard'
-import { Target, Star } from 'lucide-react'
 import { assignVariant, isEnvEnabled } from '@/lib/experiments'
 import { ExperimentExposureTracker } from '@/components/ExperimentExposureTracker'
 import { calcCompletionPercent, calcTimeProgressPercent, getPaceStatus } from '@/lib/progress'
@@ -43,27 +40,12 @@ export default async function DashboardPage() {
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);
   const yesterday = yesterdayDate.toISOString().split('T')[0];
 
-  const { count: inboxOpenCountRaw } = await supabase
-    .from('inbox_items')
-    .select('id', { count: 'exact', head: true })
-    .eq('owner_id', user.id)
-    .eq('status', 'open')
-
-  const inboxOpenCount = inboxOpenCountRaw ?? 0
   const locale = String(dict.common.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'
   const weeklyInsight = await getOrCreateWeeklyInsight({
     supabase,
     userId: user.id,
     locale,
   })
-
-  const { data: inboxRecent } = await supabase
-    .from('inbox_items')
-    .select('id, content, tags')
-    .eq('owner_id', user.id)
-    .eq('status', 'open')
-    .order('created_at', { ascending: false })
-    .limit(3)
 
   // Fetch user profile for name and XP
   const { data: profile } = await supabase
@@ -328,7 +310,6 @@ export default async function DashboardPage() {
   // Stage 2: Flow (Has Actions)
   const isStage0 = activeGoalsCount === 0
   const isStage1 = !isStage0 && actions.length === 0
-  const isStage2 = !isStage0 && actions.length > 0
 
   return (
     <div className="space-y-8 pb-12">
@@ -456,15 +437,6 @@ export default async function DashboardPage() {
 
           {/* Right Column (Analysis) */}
           <div className="lg:col-span-1 space-y-6">
-            <InboxCard
-              dict={dict}
-              openCount={inboxOpenCount}
-              recentItems={(inboxRecent || []).map((it) => ({
-                id: it.id as string,
-                content: it.content as string,
-                tags: (it.tags as string[]) || [],
-              }))}
-            />
             <FocusDistributionChart dict={dict} data={distributionData} />
           </div>
         </div>

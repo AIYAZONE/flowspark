@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { CalendarCheck, LayoutDashboard, Loader2, LogOut, Sparkles, Target, User, X } from 'lucide-react'
+import { CalendarCheck, LayoutDashboard, Lightbulb, Loader2, LogOut, Sparkles, Target, User, X } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,7 @@ interface SidebarProps {
       dashboard: string
       today: string
       goals: string
+      inbox: string
       potential: string
       profile: string
       brand: string
@@ -52,6 +53,11 @@ export function Sidebar({ dict }: SidebarProps) {
       title: dict.sidebar.goals,
       href: '/goals',
       icon: Target,
+    },
+    {
+      title: dict.sidebar.inbox,
+      href: '/inbox',
+      icon: Lightbulb,
     },
     {
       title: dict.sidebar.potential,
