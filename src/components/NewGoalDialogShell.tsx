@@ -1,6 +1,8 @@
 'use client'
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogClose, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 
 export function NewGoalDialogShell({
   open,
@@ -25,7 +27,14 @@ export function NewGoalDialogShell({
         <div className="flex h-[100dvh] flex-col sm:h-[85vh]">
           <div className="sticky top-0 z-10 border-b border-border/60 bg-background/85 backdrop-blur px-4 py-3 sm:px-6">
             <DialogHeader className="space-y-0 text-left">
-              <DialogTitle>{title}</DialogTitle>
+              <div className="flex items-center justify-between gap-4">
+                <DialogTitle>{title}</DialogTitle>
+                <DialogClose asChild>
+                  <Button type="button" size="icon" variant="ghost" className="h-9 w-9 rounded-full">
+                    <X className="h-4 w-4" />
+                  </Button>
+                </DialogClose>
+              </div>
             </DialogHeader>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
