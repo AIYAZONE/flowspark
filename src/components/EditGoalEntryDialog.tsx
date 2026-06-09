@@ -1,8 +1,9 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
+import { Maximize2, Minimize2, X } from 'lucide-react'
 import type en from '@/i18n/en.json'
-import { Dialog, DialogFormContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogClose, DialogFormContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
@@ -26,6 +27,7 @@ export function EditGoalEntryDialog({
 	trigger: React.ReactNode
 }) {
 	const [open, setOpen] = useState(false)
+	const [isDesktopFullscreen, setIsDesktopFullscreen] = useState(false)
 	const [isPending, startTransition] = useTransition()
 	const [error, setError] = useState<string | null>(null)
 	const contentRef = useRef<HTMLDivElement | null>(null)
@@ -35,7 +37,10 @@ export function EditGoalEntryDialog({
 
 	function handleOpenChange(next: boolean) {
 		setOpen(next)
-		if (!next) return
+		if (!next) {
+			setIsDesktopFullscreen(false)
+			return
+		}
 		setError(null)
 		setContent(entry.content)
 		setNote(entry.note || '')
@@ -75,11 +80,66 @@ export function EditGoalEntryDialog({
 			<DialogTrigger asChild>{trigger}</DialogTrigger>
 			<DialogFormContent
 				mobileMode={isJourney ? 'fullscreen' : 'sheet'}
-				className={cn('p-0', isJourney ? 'sm:max-w-3xl' : 'sm:max-w-lg')}
+				hideCloseButton={isJourney}
+				className={cn(
+					'p-0',
+					isJourney
+						? isDesktopFullscreen
+							? 'sm:inset-0! sm:h-dvh! sm:w-screen! sm:max-w-none! sm:translate-x-0! sm:translate-y-0! sm:rounded-none! sm:border-0!'
+							: 'sm:left-[50%]! sm:right-auto! sm:top-[50%]! sm:bottom-auto! sm:h-auto! sm:w-full! sm:max-w-3xl! sm:translate-x-[-50%]! sm:translate-y-[-50%]! sm:rounded-lg! sm:border! sm:pb-6!'
+						: 'sm:max-w-lg'
+				)}
 			>
-				<div className={cn('flex flex-col', isJourney ? 'h-full sm:max-h-[90dvh]' : 'max-h-[85dvh] sm:max-h-none')}>
-					<DialogHeader className="border-b border-border/60 px-4 pb-3 pt-5 text-left sm:border-b-0 sm:px-6 sm:pb-0 sm:pt-6">
-						<DialogTitle>{title}</DialogTitle>
+				<div
+					className={cn(
+						'flex flex-col',
+						isJourney
+							? isDesktopFullscreen
+								? 'h-full'
+								: 'h-full sm:max-h-[90dvh]'
+							: 'max-h-[85dvh] sm:max-h-none'
+					)}
+				>
+					<DialogHeader
+						className={cn(
+							'px-4 text-left sm:px-6',
+							isJourney
+								? 'border-b border-border/60 pb-3 pt-4 sm:pb-4 sm:pt-6'
+								: 'border-b border-border/60 pb-3 pt-5 sm:border-b-0 sm:pb-0 sm:pt-6'
+						)}
+					>
+						{isJourney ? (
+							<div className="flex items-start justify-between gap-3">
+								<DialogTitle className="min-w-0 flex-1 text-left leading-snug">{title}</DialogTitle>
+								<div className="flex shrink-0 items-center gap-1">
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon"
+										className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+										onClick={() => setIsDesktopFullscreen((value) => !value)}
+									>
+										{isDesktopFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+										<span className="sr-only">
+											{isDesktopFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen}
+										</span>
+									</Button>
+									<DialogClose asChild>
+										<Button
+											type="button"
+											variant="ghost"
+											size="icon"
+											className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+										>
+											<X className="h-4 w-4" />
+											<span className="sr-only">Close</span>
+										</Button>
+									</DialogClose>
+								</div>
+							</div>
+						) : (
+							<DialogTitle>{title}</DialogTitle>
+						)}
 					</DialogHeader>
 					<form action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
 						<input type="hidden" name="id" value={entry.id} />
@@ -119,7 +179,10 @@ export function EditGoalEntryDialog({
 						</div>
 
 						<div
-							className="border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur sm:border-t-0 sm:bg-transparent sm:px-6 sm:pt-0"
+							className={cn(
+								'border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur sm:px-6',
+								isJourney ? 'sm:bg-background/95 sm:py-4' : 'sm:border-t-0 sm:bg-transparent sm:pt-0'
+							)}
 							style={{ paddingBottom: open && keyboardInset > 0 ? `calc(env(safe-area-inset-bottom) + ${keyboardInset}px)` : undefined }}
 						>
 							<div className="flex items-center justify-end gap-2">

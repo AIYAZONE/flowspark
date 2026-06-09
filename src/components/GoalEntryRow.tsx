@@ -2,10 +2,10 @@
 
 import { forwardRef, useState, type HTMLAttributes, type ReactNode } from 'react'
 import type en from '@/i18n/en.json'
-import { Archive, CalendarDays, Lightbulb, ListChecks, Pencil, Sparkles, Trash2 } from 'lucide-react'
+import { Archive, CalendarDays, Lightbulb, ListChecks, Pencil, Sparkles, Trash2, Undo2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { archiveGoalEntry } from '@/app/(authenticated)/goals/entries/actions'
+import { archiveGoalEntry, unarchiveGoalEntry } from '@/app/(authenticated)/goals/entries/actions'
 import { ConvertGoalEntryToActionDialog } from '@/components/ConvertGoalEntryToActionDialog'
 import { EditGoalEntryDialog } from '@/components/EditGoalEntryDialog'
 import { ConfirmDeleteGoalEntryDialog } from '@/components/ConfirmDeleteGoalEntryDialog'
@@ -95,7 +95,23 @@ export function GoalEntryRow({
 								</div>
 
 								<div className="hidden md:flex absolute right-4 top-4 z-50 pointer-events-auto items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100">
-									{isArchived ? null : (
+									{isArchived ? (
+										<form action={unarchiveGoalEntry}>
+											<input type="hidden" name="id" value={entry.id} />
+											<input type="hidden" name="goal_id" value={goalId} />
+											<HoverLabel label={dict.goals.detail.unarchiveAction}>
+												<Button
+													type="submit"
+													variant="ghost"
+													size="icon"
+													title={dict.goals.detail.unarchiveAction}
+													aria-label={dict.goals.detail.unarchiveAction}
+												>
+													<Undo2 className="h-4 w-4" />
+												</Button>
+											</HoverLabel>
+										</form>
+									) : (
 										<>
 											<EditGoalEntryDialog
 												entry={{ id: entry.id, kind: entry.kind, content: entry.content, note: entry.note }}
@@ -189,22 +205,32 @@ export function GoalEntryRow({
 
 						<div className="md:hidden border-t border-border/50 pt-4">
 							{isArchived ? (
-								<ConfirmDeleteGoalEntryDialog
-									id={entry.id}
-									goalId={goalId}
-									dict={dict}
-									trigger={
-										<Button
-											type="button"
-											size="sm"
-											variant="ghost"
-											className="w-full gap-1 text-muted-foreground hover:text-destructive"
-										>
-											<Trash2 className="h-4 w-4" />
-											{dict.common.delete}
+								<div className="grid grid-cols-2 gap-2">
+									<form action={unarchiveGoalEntry}>
+										<input type="hidden" name="id" value={entry.id} />
+										<input type="hidden" name="goal_id" value={goalId} />
+										<Button type="submit" size="sm" className="w-full gap-2" title={dict.goals.detail.unarchiveAction}>
+											<Undo2 className="h-4 w-4" />
+											{dict.goals.detail.unarchive}
 										</Button>
-									}
-								/>
+									</form>
+									<ConfirmDeleteGoalEntryDialog
+										id={entry.id}
+										goalId={goalId}
+										dict={dict}
+										trigger={
+											<Button
+												type="button"
+												size="sm"
+												variant="ghost"
+												className="w-full gap-1 text-muted-foreground hover:text-destructive"
+											>
+												<Trash2 className="h-4 w-4" />
+												{dict.common.delete}
+											</Button>
+										}
+									/>
+								</div>
 							) : (
 								<div className="grid grid-cols-2 gap-2">
 									<ConvertGoalEntryToActionDialog

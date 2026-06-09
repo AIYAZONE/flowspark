@@ -152,6 +152,43 @@ export async function archiveGoalEntry(formData: FormData) {
 	revalidatePath(`/goals/${goal_id}`)
 }
 
+export async function unarchiveGoalEntry(formData: FormData) {
+	const supabase = await createClient()
+	const {
+		data: { user }
+	} = await supabase.auth.getUser()
+	if (!user) throw new Error('unauthenticated')
+
+	const id = (formData.get('id') as string | null) || ''
+	const goal_id = (formData.get('goal_id') as string | null) || ''
+	if (!id || !goal_id) throw new Error('missing_fields')
+
+	const { error } = await supabase
+		.from('goal_entries')
+		.update({ status: 'open' })
+		.eq('id', id)
+		.eq('owner_id', user.id)
+		.eq('goal_id', goal_id)
+		.eq('status', 'archived')
+
+	if (error) {
+		if (error.code === '42703' || error.message?.includes('column')) {
+			const { error: legacyError } = await supabase
+				.from('goal_entries')
+				.update({ status: 'open' })
+				.eq('id', id)
+				.eq('user_id', user.id)
+				.eq('goal_id', goal_id)
+				.eq('status', 'archived')
+			if (legacyError) throw new Error('operation_failed')
+		} else {
+			throw new Error('operation_failed')
+		}
+	}
+
+	revalidatePath(`/goals/${goal_id}`)
+}
+
 export async function deleteGoalEntry(formData: FormData) {
 	const supabase = await createClient()
 	const {
