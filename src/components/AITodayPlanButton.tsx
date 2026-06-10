@@ -16,6 +16,7 @@ import type { TodayPlanApiResponse } from '@/lib/ai/types'
 import { logAIEvent, logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
 import type { CommonErrorDictionary, DashboardPlanningDictionary } from '@/i18n/types'
+import { DESKTOP_MODAL_SHELL_CLASS } from '@/components/responsive-classes'
 
 type GoalCandidate = {
   id: string
@@ -422,7 +423,7 @@ export function AITodayPlanButton({
           setAiOpen(open)
         }}
       >
-        <DialogFormContent className="flex max-h-[92dvh] max-w-none flex-col overflow-hidden border-border/60 bg-background p-0 shadow-2xl md:max-w-[min(92vw,72rem)]! md:max-h-[88dvh]">
+        <DialogFormContent className={`flex max-h-[92dvh] max-w-none flex-col overflow-hidden border-border/60 bg-background p-0 shadow-2xl ${DESKTOP_MODAL_SHELL_CLASS} md:max-w-[min(92vw,72rem)]! md:max-h-[88dvh]`}>
           <DialogHeader className="shrink-0 border-b border-border/40 bg-linear-to-b from-primary/5 to-transparent px-4 pb-4 pt-4 md:px-6 md:pb-4 md:pt-5">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/6 px-3 py-1 text-sm font-medium text-primary">
               <Sparkles className="h-3.5 w-3.5" />

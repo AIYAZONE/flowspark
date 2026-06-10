@@ -30,7 +30,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { motion, useAnimationControls } from 'framer-motion'
-import { Calendar, Check, CheckCircle2, ChevronDown, ChevronRight, Circle, Copy, Maximize2, Minimize2, Pencil, Save, Sparkles, Trash2, X } from 'lucide-react'
+import { Calendar, Check, CheckCircle2, ChevronRight, Circle, Copy, Pencil, Save, Sparkles, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { SubmitButton } from '@/components/SubmitButton'
@@ -74,6 +74,10 @@ import { createClient } from '@/lib/supabase/client'
 import { ActionDescriptionEditor, type ActionAttachmentDraft } from '@/components/ActionDescriptionEditor'
 import { RichTextContentView } from '@/components/RichTextContentView'
 import { RichTextImagePreviewDialog } from '@/components/RichTextImagePreviewDialog'
+import { ActionSubItemsSection } from '@/components/ActionSubItemsSection'
+import { ModalActionFooter } from '@/components/ModalActionFooter'
+import { ModalHeaderActions } from '@/components/ModalHeaderActions'
+import { DESKTOP_MODAL_SHELL_CLASS } from '@/components/responsive-classes'
 import {
     parseActionRecurrenceDescription,
     type ActionRecurrenceRule,
@@ -450,6 +454,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         weekly: todayText.repeatWeekly || (locale === 'zh' ? '每周' : 'Weekly'),
         monthly: todayText.repeatMonthly || (locale === 'zh' ? '每月' : 'Monthly'),
     }
+    const closeLabel = locale === 'zh' ? '关闭' : 'Close'
     const parsedAITodayPlan = parseAITodayPlanFromDescription(recurrenceMeta.cleanDescription || '')
     const displayDescription = parsedAITodayPlan?.remainingDescription || recurrenceMeta.cleanDescription || ''
     const hasDescription = Boolean(displayDescription)
@@ -825,11 +830,8 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         </div>
     )
 
-    const editForm = (
-        <form
-            action={handleUpdate}
-            className="space-y-4"
-        >
+    const editFormFields = (
+        <>
             <input type="hidden" name="id" value={action.id} />
             <input type="hidden" name="from_goal_id" value={action.goal_id} />
             <input type="hidden" name="repeat_rule" value={editRepeatRule} />
@@ -1080,26 +1082,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                 </div>
             ) : null}
 
-            <div className="flex justify-end gap-2 pt-2">
-                <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => requestExitEdit('switch_to_view')}
-                    disabled={isLoading}
-                >
-                    <X className="h-4 w-4 mr-1" />
-                    {dict.common.cancel}
-                </Button>
-                <SubmitButton
-                    size="sm"
-                    disabled={!dateRangeValid || editDescriptionUploading}
-                >
-                    <Save className="h-4 w-4 mr-1" />
-                    {dict.common.save}
-                </SubmitButton>
-            </div>
-        </form>
+        </>
     )
 
     return (
@@ -1248,43 +1231,19 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                 </div>
 
                 {subItems.length > 0 ? (
-                    <div className="mt-2 ml-11 rounded-md border border-border/40 bg-secondary/15 p-2">
-                        <button
-                            type="button"
-                            className="flex w-full items-center justify-between rounded-md px-1 py-1 text-xs text-muted-foreground transition-colors hover:bg-background/60"
-                            onClick={() => setSubItemsOpen((prev) => !prev)}
-                        >
-                            <span className="font-medium">
-                                {todayText.subItemsLabel || '子行动'} {subItemsCompletedCount}/{subItems.length}
-                            </span>
-                            <span className="inline-flex items-center gap-1">
-                                {subItemsOpen ? dict.common.showLess : dict.common.showMore}
-                                {subItemsOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                            </span>
-                        </button>
-                        {subItemsOpen ? (
-                            <div className="mt-2 space-y-1">
-                                {subItems.map((item) => (
-                                    <button
-                                        key={item.id}
-                                        type="button"
-                                        className="flex w-full items-center gap-2 rounded px-1 py-1 text-left text-xs hover:bg-background/50"
-                                        onClick={() => onToggleSubItem(item.id, item.completed)}
-                                        disabled={subItemBusyId === item.id}
-                                    >
-                                        {item.completed ? (
-                                            <CheckCircle2 className="h-3.5 w-3.5 text-primary" />
-                                        ) : (
-                                            <Circle className="h-3.5 w-3.5 text-muted-foreground" />
-                                        )}
-                                        <span className={item.completed ? 'line-through text-muted-foreground' : 'text-foreground'}>
-                                            {item.title}
-                                        </span>
-                                    </button>
-                                ))}
-                            </div>
-                        ) : null}
-                    </div>
+                    <ActionSubItemsSection
+                        items={subItems}
+                        label={todayText.subItemsLabel || '子行动'}
+                        completedCount={subItemsCompletedCount}
+                        onToggleItem={onToggleSubItem}
+                        busyId={subItemBusyId}
+                        collapsible
+                        expanded={subItemsOpen}
+                        onExpandedChange={setSubItemsOpen}
+                        showMoreLabel={dict.common.showMore}
+                        showLessLabel={dict.common.showLess}
+                        className="mt-2 ml-11"
+                    />
                 ) : null}
             </motion.div>
 
@@ -1294,6 +1253,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                         mobileMode={isPanelFullscreen ? 'fullscreen' : 'sheet'}
                         hideCloseButton
                         className={cn(
+                            DESKTOP_MODAL_SHELL_CLASS,
                             isPanelFullscreen
                                 ? 'overflow-hidden p-0 sm:p-0'
                                 : 'max-w-lg overflow-hidden p-0 sm:p-0'
@@ -1305,37 +1265,24 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                     <DialogTitle className="min-w-0 flex-1 text-left leading-snug">
                                         {panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}
                                     </DialogTitle>
-                                    <div className="flex shrink-0 items-center gap-1">
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                                            onClick={() => setIsPanelFullscreen((value) => !value)}
-                                        >
-                                            {isPanelFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                                            <span className="sr-only">{isPanelFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen}</span>
-                                        </Button>
-                                        <DialogClose asChild>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                                            >
-                                                <X className="h-4 w-4" />
-                                                <span className="sr-only">Close</span>
-                                            </Button>
-                                        </DialogClose>
-                                    </div>
+                                    <ModalHeaderActions
+                                        isFullscreen={isPanelFullscreen}
+                                        onToggleFullscreen={() => setIsPanelFullscreen((value) => !value)}
+                                        fullscreenLabel={dict.common.fullscreen}
+                                        exitFullscreenLabel={dict.common.exitFullscreen}
+                                        closeLabel={closeLabel}
+                                        renderCloseButton={(button) => <DialogClose asChild>{button}</DialogClose>}
+                                    />
                                 </div>
                             </DialogHeader>
-                            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4 sm:px-6 sm:pb-6">
+                            <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 sm:px-6">
                                 {panelMode === 'edit' ? (
-                                    <div className={cn(isPanelFullscreen && 'pr-1')}>
-                                    {editForm}
-                                </div>
-                            ) : panelMode === 'rescue' ? (
+                                    <form action={handleUpdate} className="flex min-h-0 flex-1 flex-col">
+                                        <div className={cn('space-y-4 pb-4 sm:pb-6', isPanelFullscreen && 'pr-1')}>
+                                            {editFormFields}
+                                        </div>
+                                    </form>
+                                ) : panelMode === 'rescue' ? (
                                     <div className={cn('space-y-4', isPanelFullscreen && 'pr-1')}>
                                     {!goalTitle ? (
                                         <div className="text-sm text-muted-foreground">{dict.common.errors.operation_failed}</div>
@@ -1390,41 +1337,89 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                     {copyActions}
                                     {aiPlanInsightCard}
                                     {viewDescription}
-                                    <div className="flex justify-end gap-2">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="border-destructive/30 text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/30"
-                                            onClick={() => setDeleteDialogOpen(true)}
-                                            disabled={isDeleting}
-                                        >
-                                            {dict.common.delete}
-                                        </Button>
-                                        {action.type === 'core' && !action.completed && goalTitle ? (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={openRescuePanel}
-                                                disabled={isLoading}
-                                            >
-                                                {rescueTitleText}
-                                            </Button>
-                                        ) : null}
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={openEditPanel}
-                                            disabled={isLoading}
-                                        >
-                                            {dict.common.edit}
-                                        </Button>
-                                    </div>
+                                    <ActionSubItemsSection
+                                        items={subItems}
+                                        label={todayText.subItemsLabel || '子行动'}
+                                        completedCount={subItemsCompletedCount}
+                                        onToggleItem={onToggleSubItem}
+                                        busyId={subItemBusyId}
+                                    />
                                 </div>
                             )}
                         </div>
+                        {panelMode === 'edit' ? (
+                            <ModalActionFooter>
+                                <div className="flex justify-end gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => requestExitEdit('switch_to_view')}
+                                        disabled={isLoading}
+                                    >
+                                        {dict.common.cancel}
+                                    </Button>
+                                    <SubmitButton
+                                        size="sm"
+                                        disabled={!dateRangeValid || editDescriptionUploading}
+                                    >
+                                        <Save className="mr-1 h-4 w-4" />
+                                        {dict.common.save}
+                                    </SubmitButton>
+                                </div>
+                            </ModalActionFooter>
+                        ) : panelMode === 'rescue' ? (
+                            rescueResult ? (
+                                <ModalActionFooter>
+                                    <div className="flex justify-end gap-2">
+                                        <Button type="button" variant="outline" size="sm" onClick={() => setPanelMode('view')} disabled={rescueLoading}>
+                                            {dict.common.back || 'Back'}
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" onClick={applyRescueAdd} disabled={rescueLoading}>
+                                            {locale === 'zh' ? '新增最小行动' : 'Add minimal'}
+                                        </Button>
+                                        <Button type="button" size="sm" onClick={applyRescueReplace} disabled={rescueLoading}>
+                                            {locale === 'zh' ? '替换当前行动' : 'Replace'}
+                                        </Button>
+                                    </div>
+                                </ModalActionFooter>
+                            ) : null
+                        ) : (
+                            <ModalActionFooter>
+                                <div className="flex justify-end gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="border-destructive/30 text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/30"
+                                        onClick={() => setDeleteDialogOpen(true)}
+                                        disabled={isDeleting}
+                                    >
+                                        {dict.common.delete}
+                                    </Button>
+                                    {action.type === 'core' && !action.completed && goalTitle ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={openRescuePanel}
+                                            disabled={isLoading}
+                                        >
+                                            {rescueTitleText}
+                                        </Button>
+                                    ) : null}
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={openEditPanel}
+                                        disabled={isLoading}
+                                    >
+                                        {dict.common.edit}
+                                    </Button>
+                                </div>
+                            </ModalActionFooter>
+                        )}
                         </div>
                     </DialogFormContent>
                 </Dialog>
@@ -1447,30 +1442,24 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                     <SheetTitle className="block min-w-0 flex-1 text-left text-base leading-snug">
                                         {panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)}
                                     </SheetTitle>
-                                    <div className="flex shrink-0 items-center gap-1">
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-                                        onClick={() => setIsPanelFullscreen((value) => !value)}
-                                    >
-                                        {isPanelFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                                        <span className="sr-only">{isPanelFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen}</span>
-                                    </Button>
-                                    <SheetClose asChild>
-                                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full shrink-0">
-                                            <X className="h-4 w-4" />
-                                            <span className="sr-only">Close</span>
-                                        </Button>
-                                    </SheetClose>
-                                </div>
+                                    <ModalHeaderActions
+                                        isFullscreen={isPanelFullscreen}
+                                        onToggleFullscreen={() => setIsPanelFullscreen((value) => !value)}
+                                        fullscreenLabel={dict.common.fullscreen}
+                                        exitFullscreenLabel={dict.common.exitFullscreen}
+                                        closeLabel={closeLabel}
+                                        renderCloseButton={(button) => <SheetClose asChild>{button}</SheetClose>}
+                                    />
                                 </div>
                             </SheetHeader>
 
-                            <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4">
+                            <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4">
                                 {panelMode === 'edit' ? (
-                                    editForm
+                                    <form action={handleUpdate} className="flex min-h-0 flex-1 flex-col">
+                                        <div className="space-y-4 pb-4">
+                                            {editFormFields}
+                                        </div>
+                                    </form>
                                 ) : panelMode === 'rescue' ? (
                                     <div className="space-y-4">
                                     {!goalTitle ? (
@@ -1504,17 +1493,6 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                                         <div>{locale === 'zh' ? '完成定义：' : 'DoD: '}{rescueResult.minimal_variant.definition_of_done}</div>
                                                         <div>{locale === 'zh' ? 'If-Then：如果' : 'If-Then: if '}{rescueResult.if_then.if}{locale === 'zh' ? '那么' : ' then '}{rescueResult.if_then.then}</div>
                                                     </div>
-                                                    <div className="flex items-center justify-between gap-2">
-                                                        <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setPanelMode('view')} disabled={rescueLoading}>
-                                                            {dict.common.back || 'Back'}
-                                                        </Button>
-                                                        <Button type="button" variant="outline" size="sm" className="flex-1" onClick={applyRescueAdd} disabled={rescueLoading}>
-                                                            {locale === 'zh' ? '新增' : 'Add'}
-                                                        </Button>
-                                                        <Button type="button" size="sm" className="flex-1" onClick={applyRescueReplace} disabled={rescueLoading}>
-                                                            {locale === 'zh' ? '替换' : 'Replace'}
-                                                        </Button>
-                                                    </div>
                                                 </div>
                                             ) : null}
                                         </>
@@ -1526,43 +1504,93 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                     {copyActions}
                                     {aiPlanInsightCard}
                                     {viewDescription}
-                                    <div className="flex items-center gap-2">
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex-1 border-destructive/30 text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/30"
-                                            onClick={() => setDeleteDialogOpen(true)}
-                                            disabled={isDeleting}
-                                        >
-                                            {dict.common.delete}
+                                    <ActionSubItemsSection
+                                        items={subItems}
+                                        label={todayText.subItemsLabel || '子行动'}
+                                        completedCount={subItemsCompletedCount}
+                                        onToggleItem={onToggleSubItem}
+                                        busyId={subItemBusyId}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        {panelMode === 'edit' ? (
+                            <ModalActionFooter insetBottom="calc(env(safe-area-inset-bottom) + 1rem)" className="px-4 md:px-4">
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1"
+                                        onClick={() => requestExitEdit('switch_to_view')}
+                                        disabled={isLoading}
+                                    >
+                                        {dict.common.cancel}
+                                    </Button>
+                                    <SubmitButton
+                                        size="sm"
+                                        className="flex-1"
+                                        disabled={!dateRangeValid || editDescriptionUploading}
+                                    >
+                                        <Save className="mr-1 h-4 w-4" />
+                                        {dict.common.save}
+                                    </SubmitButton>
+                                </div>
+                            </ModalActionFooter>
+                        ) : panelMode === 'rescue' ? (
+                            rescueResult ? (
+                                <ModalActionFooter insetBottom="calc(env(safe-area-inset-bottom) + 1rem)" className="px-4 md:px-4">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <Button type="button" variant="outline" size="sm" className="flex-1" onClick={() => setPanelMode('view')} disabled={rescueLoading}>
+                                            {dict.common.back || 'Back'}
                                         </Button>
-                                        {action.type === 'core' && !action.completed && goalTitle ? (
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                                size="sm"
-                                                className="flex-1"
-                                                onClick={openRescuePanel}
-                                                disabled={isLoading}
-                                            >
-                                                {rescueTitleText}
-                                            </Button>
-                                        ) : null}
+                                        <Button type="button" variant="outline" size="sm" className="flex-1" onClick={applyRescueAdd} disabled={rescueLoading}>
+                                            {locale === 'zh' ? '新增' : 'Add'}
+                                        </Button>
+                                        <Button type="button" size="sm" className="flex-1" onClick={applyRescueReplace} disabled={rescueLoading}>
+                                            {locale === 'zh' ? '替换' : 'Replace'}
+                                        </Button>
+                                    </div>
+                                </ModalActionFooter>
+                            ) : null
+                        ) : (
+                            <ModalActionFooter insetBottom="calc(env(safe-area-inset-bottom) + 1rem)" className="px-4 md:px-4">
+                                <div className="flex items-center gap-2">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 border-destructive/30 text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/30"
+                                        onClick={() => setDeleteDialogOpen(true)}
+                                        disabled={isDeleting}
+                                    >
+                                        {dict.common.delete}
+                                    </Button>
+                                    {action.type === 'core' && !action.completed && goalTitle ? (
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="sm"
                                             className="flex-1"
-                                            onClick={openEditPanel}
+                                            onClick={openRescuePanel}
                                             disabled={isLoading}
                                         >
-                                            {dict.common.edit}
+                                            {rescueTitleText}
                                         </Button>
-                                    </div>
+                                    ) : null}
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1"
+                                        onClick={openEditPanel}
+                                        disabled={isLoading}
+                                    >
+                                        {dict.common.edit}
+                                    </Button>
                                 </div>
-                            )}
-                        </div>
+                            </ModalActionFooter>
+                        )}
                         </div>
                     </SheetFormContent>
                 </Sheet>

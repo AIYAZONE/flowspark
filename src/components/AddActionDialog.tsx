@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useTransition } from 'react'
-import { Maximize2, Minimize2, Plus, Target } from 'lucide-react'
+import { Plus, Target } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { Input } from '@/components/ui/input'
@@ -10,6 +10,7 @@ import { DateRangeFields } from '@/components/DateRangeFields'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
     Dialog,
+    DialogClose,
     DialogFormContent,
     DialogHeader,
     DialogTitle,
@@ -33,6 +34,10 @@ import { useMobileInputVisible, useMobileKeyboardInset } from '@/components/ui/u
 import { createClient } from '@/lib/supabase/client'
 import { ActionDescriptionEditor, type ActionAttachmentDraft } from '@/components/ActionDescriptionEditor'
 import type { ActionRecurrenceRule } from '@/lib/actionRecurrence'
+import { ModalActionFooter } from '@/components/ModalActionFooter'
+import { ModalHeaderActions } from '@/components/ModalHeaderActions'
+import { DESKTOP_MODAL_SHELL_CLASS } from '@/components/responsive-classes'
+import { cn } from '@/lib/utils'
 
 type Dict = Dictionary
 
@@ -245,7 +250,12 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
             </DialogTrigger>
             <DialogFormContent
                 mobileMode={isFullscreen ? 'fullscreen' : 'sheet'}
-                className={isFullscreen ? 'p-0' : 'p-0 block md:max-w-[600px] md:max-h-[85vh]'}
+                hideCloseButton
+                className={cn(
+                    'p-0',
+                    DESKTOP_MODAL_SHELL_CLASS,
+                    !isFullscreen && 'md:max-w-[600px] md:max-h-[85vh]'
+                )}
             >
                 {step === 'intro' ? (
                     <div className="relative h-full w-full overflow-hidden bg-linear-to-br from-primary/10 via-background to-background px-6 pb-8 pt-10">
@@ -276,10 +286,11 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                         </AnimatePresence>
                     </div>
                 ) : (
-                    <div className={isFullscreen ? 'flex h-full flex-col p-6' : 'flex max-h-[85dvh] flex-col p-6 md:max-h-none'}>
+                    <div className={cn('flex min-h-0 flex-1 flex-col', isFullscreen ? 'h-full' : 'md:max-h-[85dvh]')}>
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={step}
+                                className="flex min-h-0 flex-1 flex-col"
                                 initial={{ opacity: 0, y: 8 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -8 }}
@@ -287,11 +298,22 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                             >
                                 {step === 'goal' ? (
                                     <>
-                                        <DialogHeader>
-                                            <DialogTitle>{dict.goals.new.title}</DialogTitle>
+                                        <DialogHeader className="border-b border-border/60 px-4 pb-3 pt-4 text-left md:px-6 md:pb-4 md:pt-6">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <DialogTitle className="min-w-0 flex-1 text-left leading-snug">{dict.goals.new.title}</DialogTitle>
+                                                <ModalHeaderActions
+                                                    isFullscreen={isFullscreen}
+                                                    onToggleFullscreen={() => setIsFullscreen((value) => !value)}
+                                                    fullscreenLabel={dict.common.fullscreen}
+                                                    exitFullscreenLabel={dict.common.exitFullscreen}
+                                                    hideFullscreenOnMobile
+                                                    renderCloseButton={(button) => <DialogClose asChild>{button}</DialogClose>}
+                                                />
+                                            </div>
                                         </DialogHeader>
                                         <NewGoalForm
                                             dict={dict}
+                                            fixedFooter
                                             action={createGoalModal}
                                             onSuccess={(created) => {
                                                 if (created?.id && created.title) {
@@ -307,22 +329,25 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                     </>
                                 ) : (
                                     <>
-                                        <DialogHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
-                                            <DialogTitle>{dict.goals.detail.addAction}</DialogTitle>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                className="shrink-0 gap-2"
-                                                onClick={() => setIsFullscreen((value) => !value)}
-                                            >
-                                                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                                                {isFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen}
-                                            </Button>
+                                        <DialogHeader className="border-b border-border/60 px-4 pb-3 pt-4 text-left md:px-6 md:pb-4 md:pt-6">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <DialogTitle className="min-w-0 flex-1 text-left leading-snug">{dict.goals.detail.addAction}</DialogTitle>
+                                                <ModalHeaderActions
+                                                    isFullscreen={isFullscreen}
+                                                    onToggleFullscreen={() => setIsFullscreen((value) => !value)}
+                                                    fullscreenLabel={dict.common.fullscreen}
+                                                    exitFullscreenLabel={dict.common.exitFullscreen}
+                                                    hideFullscreenOnMobile
+                                                    renderCloseButton={(button) => <DialogClose asChild>{button}</DialogClose>}
+                                                />
+                                            </div>
                                         </DialogHeader>
-                                        <form action={handleSubmit} className="mt-4 flex min-h-0 flex-1 flex-col">
+                                        <form action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
                                             <div
-                                                className={isFullscreen ? 'min-h-0 flex-1 space-y-4 overflow-y-auto pr-1' : 'min-h-0 flex-1 space-y-4 overflow-y-auto'}
+                                                className={cn(
+                                                    'min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-6',
+                                                    isFullscreen && 'pr-1'
+                                                )}
                                                 style={{ paddingBottom: keyboardInset > 0 ? Math.max(16, keyboardInset * 0.35) : undefined }}
                                             >
                                             {showGoalCreatedBanner && (
@@ -535,24 +560,26 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                             ) : null}
                                             </div>
 
-                                            <div
-                                                className={isFullscreen ? 'border-t border-border/50 bg-background pt-4' : 'border-t border-border/50 bg-background pt-4'}
-                                                style={{ paddingBottom: open && keyboardInset > 0 ? `calc(env(safe-area-inset-bottom) + ${keyboardInset}px)` : undefined }}
-                                            >
-                                                <Button type="submit" className="w-full" disabled={isPending || !valid || (!goalId && !selectedGoalId) || descriptionUploading}>
-                                                    {isPending ? (
-                                                        <>
-                                                            <LoadingSpinner size={16} className="mr-2 text-current" />
-                                                            {dict.common.saving}
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Plus className="mr-2 h-4 w-4" />
-                                                            {dict.goals.detail.addAction}
-                                                        </>
-                                                    )}
-                                                </Button>
-                                            </div>
+                                            <ModalActionFooter insetBottom={open && keyboardInset > 0 ? `calc(env(safe-area-inset-bottom) + ${keyboardInset}px)` : undefined}>
+                                                <div className="flex items-center justify-end gap-2">
+                                                    <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
+                                                        {dict.common.cancel}
+                                                    </Button>
+                                                    <Button type="submit" disabled={isPending || !valid || (!goalId && !selectedGoalId) || descriptionUploading}>
+                                                        {isPending ? (
+                                                            <>
+                                                                <LoadingSpinner size={16} className="mr-2 text-current" />
+                                                                {dict.common.saving}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Plus className="mr-2 h-4 w-4" />
+                                                                {dict.goals.detail.addAction}
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </ModalActionFooter>
                                         </form>
                                     </>
                                 )}

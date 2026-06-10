@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
-import { Maximize2, Minimize2, Sparkles, X } from 'lucide-react'
+import { Sparkles } from 'lucide-react'
 import type en from '@/i18n/en.json'
 import { Dialog, DialogClose, DialogFormContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -12,6 +12,9 @@ import { BasicRichTextEditor } from '@/components/BasicRichTextEditor'
 import { createGoalEntry } from '@/app/(authenticated)/goals/entries/actions'
 import { useMobileInputVisible, useMobileKeyboardInset } from '@/components/ui/use-mobile-input-visible'
 import { cn } from '@/lib/utils'
+import { ModalActionFooter } from '@/components/ModalActionFooter'
+import { ModalHeaderActions } from '@/components/ModalHeaderActions'
+import { DESKTOP_MODAL_SHELL_CLASS } from '@/components/responsive-classes'
 
 type Dict = typeof en
 
@@ -75,7 +78,7 @@ export function AddGoalEntryDialog({
 	const isJourney = kind === 'journey'
 	const desktopDialogClassName = isDesktopFullscreen
 		? 'md:inset-0! md:h-dvh! md:w-screen! md:max-w-none! md:translate-x-0! md:translate-y-0! md:rounded-none! md:border-0!'
-		: 'md:left-[50%]! md:right-auto! md:top-[50%]! md:bottom-auto! md:h-auto! md:w-full! md:max-w-3xl! md:translate-x-[-50%]! md:translate-y-[-50%]! md:rounded-lg! md:border! md:pb-6!'
+		: 'md:left-[50%]! md:right-auto! md:top-[50%]! md:bottom-auto! md:h-auto! md:w-full! md:max-w-3xl! md:translate-x-[-50%]! md:translate-y-[-50%]! md:rounded-lg! md:border!'
 
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
@@ -92,40 +95,20 @@ export function AddGoalEntryDialog({
 			<DialogFormContent
 				mobileMode={isJourney ? 'fullscreen' : 'sheet'}
 				hideCloseButton
-				className={cn('p-0', desktopDialogClassName)}
+				className={cn('p-0', DESKTOP_MODAL_SHELL_CLASS, desktopDialogClassName)}
 			>
 				<div className={cn('flex flex-col', isDesktopFullscreen ? 'h-full' : 'h-full md:max-h-[90dvh]')}>
 					<DialogHeader className="border-b border-border/60 px-4 pb-3 pt-4 text-left md:px-6 md:pb-4 md:pt-6">
 						<div className="flex items-start justify-between gap-3">
 							<DialogTitle className="min-w-0 flex-1 text-left leading-snug">{title}</DialogTitle>
-							<div className="flex shrink-0 items-center gap-1">
-								<Button
-									type="button"
-									variant="ghost"
-									size="icon"
-									className={cn(
-										'h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground',
-										'hidden md:inline-flex'
-									)}
-									onClick={() => setIsDesktopFullscreen((value) => !value)}
-								>
-									{isDesktopFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-									<span className="sr-only">
-										{isDesktopFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen}
-									</span>
-								</Button>
-								<DialogClose asChild>
-									<Button
-										type="button"
-										variant="ghost"
-										size="icon"
-										className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-									>
-										<X className="h-4 w-4" />
-										<span className="sr-only">Close</span>
-									</Button>
-								</DialogClose>
-							</div>
+							<ModalHeaderActions
+								isFullscreen={isDesktopFullscreen}
+								onToggleFullscreen={() => setIsDesktopFullscreen((value) => !value)}
+								fullscreenLabel={dict.common.fullscreen}
+								exitFullscreenLabel={dict.common.exitFullscreen}
+								hideFullscreenOnMobile
+								renderCloseButton={(button) => <DialogClose asChild>{button}</DialogClose>}
+							/>
 						</div>
 					</DialogHeader>
 					<form action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
@@ -165,10 +148,7 @@ export function AddGoalEntryDialog({
 							{error ? <div className="text-sm text-destructive">{error}</div> : null}
 						</div>
 
-						<div
-							className="border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur md:bg-background/95 md:px-6 md:py-4"
-							style={{ paddingBottom: open && keyboardInset > 0 ? `calc(env(safe-area-inset-bottom) + ${keyboardInset}px)` : undefined }}
-						>
+						<ModalActionFooter insetBottom={open && keyboardInset > 0 ? `calc(env(safe-area-inset-bottom) + ${keyboardInset}px)` : undefined}>
 							<div className="flex items-center justify-end gap-2">
 								<Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
 									{dict.common.cancel}
@@ -184,7 +164,7 @@ export function AddGoalEntryDialog({
 									)}
 								</Button>
 							</div>
-						</div>
+						</ModalActionFooter>
 					</form>
 				</div>
 			</DialogFormContent>

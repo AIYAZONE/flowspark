@@ -24,6 +24,7 @@ export function NewGoalRouteModal({ dict }: { dict: Dict }) {
     >
       <NewGoalForm
         dict={dict}
+        fixedFooter
         action={createGoalModal}
         onSuccess={() => {
           setOpen(false)

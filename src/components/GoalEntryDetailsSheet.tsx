@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Archive, CalendarDays, Lightbulb, ListChecks, Pencil, Sparkles, Trash2, Undo2, X } from 'lucide-react'
+import { Archive, CalendarDays, Lightbulb, ListChecks, Pencil, Sparkles, Trash2, Undo2 } from 'lucide-react'
 import type en from '@/i18n/en.json'
 import { archiveGoalEntry, unarchiveGoalEntry } from '@/app/(authenticated)/goals/entries/actions'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,8 @@ import { RichTextImagePreviewDialog } from '@/components/RichTextImagePreviewDia
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { cn } from '@/lib/utils'
 import type { GoalEntry } from '@/components/goal-entry.types'
+import { ModalActionFooter } from '@/components/ModalActionFooter'
+import { ModalHeaderActions } from '@/components/ModalHeaderActions'
 
 type Dict = typeof en
 
@@ -113,12 +115,9 @@ export function GoalEntryDetailsSheet({
 										) : null}
 									</div>
 								</div>
-								<SheetClose asChild>
-									<Button variant="ghost" size="icon" className="h-8 w-8 rounded-full shrink-0">
-										<X className="h-4 w-4" />
-										<span className="sr-only">Close</span>
-									</Button>
-								</SheetClose>
+								<ModalHeaderActions
+									renderCloseButton={(button) => <SheetClose asChild>{button}</SheetClose>}
+								/>
 							</div>
 						</SheetHeader>
 
@@ -146,7 +145,7 @@ export function GoalEntryDetailsSheet({
 							</div>
 						</div>
 
-						<div className="border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur">
+						<ModalActionFooter className="px-4 md:px-4">
 							<div className="grid grid-cols-2 gap-2">
 								{isArchived ? (
 									<>
@@ -237,7 +236,7 @@ export function GoalEntryDetailsSheet({
 									</>
 								)}
 							</div>
-						</div>
+						</ModalActionFooter>
 					</div>
 				</SheetFormContent>
 			</Sheet>

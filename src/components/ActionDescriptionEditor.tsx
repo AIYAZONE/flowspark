@@ -9,6 +9,9 @@ import { Label } from '@/components/ui/label'
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const IMAGE_MIN_WIDTH = 96
+const IMAGE_RESIZE_HANDLES = ['nw', 'ne', 'sw', 'se'] as const
+
+type ImageResizeHandle = (typeof IMAGE_RESIZE_HANDLES)[number]
 
 export type ActionAttachmentDraft = {
   id: string
@@ -86,7 +89,14 @@ export function ActionDescriptionEditor(props: {
   const isComposingRef = useRef(false)
   const isInternalSyncRef = useRef(false)
   const selectedImageRef = useRef<HTMLImageElement | null>(null)
-  const resizeStateRef = useRef<{ startX: number; startWidth: number } | null>(null)
+  const resizeStateRef = useRef<{
+    handle: ImageResizeHandle
+    startX: number
+    startY: number
+    startWidth: number
+    startHeight: number
+    aspectRatio: number
+  } | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [hiddenValue, setHiddenValue] = useState(() => toEditableHtml(value))
@@ -132,8 +142,10 @@ export function ActionDescriptionEditor(props: {
 
       event.preventDefault()
       const editorWidth = editor.clientWidth - 24
+      const deltaX = event.clientX - state.startX
+      const widthDelta = state.handle === 'ne' || state.handle === 'se' ? deltaX : -deltaX
       const nextWidth = Math.min(
-        Math.max(IMAGE_MIN_WIDTH, state.startWidth + (event.clientX - state.startX)),
+        Math.max(IMAGE_MIN_WIDTH, state.startWidth + widthDelta),
         Math.max(IMAGE_MIN_WIDTH, editorWidth)
       )
 
@@ -268,6 +280,17 @@ export function ActionDescriptionEditor(props: {
     }
   }
 
+  const getResizeHandlePosition = (handle: ImageResizeHandle, rect: NonNullable<typeof selectedImageRect>) => {
+    const halfSize = 8
+    const horizontal = handle.endsWith('e') ? rect.left + rect.width - halfSize : rect.left - halfSize
+    const vertical = handle.startsWith('s') ? rect.top + rect.height - halfSize : rect.top - halfSize
+    return { left: horizontal, top: vertical }
+  }
+
+  const getResizeCursor = (handle: ImageResizeHandle) => {
+    return handle === 'nw' || handle === 'se' ? 'cursor-nwse-resize' : 'cursor-nesw-resize'
+  }
+
   return (
     <div className="grid gap-2">
       <Label htmlFor="description">{dict.today.descriptionLabel}</Label>
@@ -331,28 +354,39 @@ export function ActionDescriptionEditor(props: {
         />
 
         {selectedImageRect ? (
-          <button
-            type="button"
-            aria-label="Resize image"
-            className={cn(
-              'absolute h-4 w-4 rounded-full border border-primary bg-background shadow-sm',
-              'touch-none cursor-se-resize'
-            )}
-            style={{
-              left: selectedImageRect.left + selectedImageRect.width - 8,
-              top: selectedImageRect.top + selectedImageRect.height - 8,
-            }}
-            onPointerDown={(event) => {
-              const image = selectedImageRef.current
-              if (!image) return
-              event.preventDefault()
-              event.stopPropagation()
-              resizeStateRef.current = {
-                startX: event.clientX,
-                startWidth: image.getBoundingClientRect().width,
-              }
-            }}
-          />
+          <>
+            {IMAGE_RESIZE_HANDLES.map((handle) => {
+              const position = getResizeHandlePosition(handle, selectedImageRect)
+              return (
+                <button
+                  key={handle}
+                  type="button"
+                  aria-label={`Resize image from ${handle}`}
+                  className={cn(
+                    'absolute h-4 w-4 rounded-full border border-primary bg-background shadow-sm',
+                    'touch-none',
+                    getResizeCursor(handle)
+                  )}
+                  style={position}
+                  onPointerDown={(event) => {
+                    const image = selectedImageRef.current
+                    if (!image) return
+                    event.preventDefault()
+                    event.stopPropagation()
+                    const imageRect = image.getBoundingClientRect()
+                    resizeStateRef.current = {
+                      handle,
+                      startX: event.clientX,
+                      startY: event.clientY,
+                      startWidth: imageRect.width,
+                      startHeight: imageRect.height,
+                      aspectRatio: imageRect.width / Math.max(1, imageRect.height),
+                    }
+                  }}
+                />
+              )
+            })}
+          </>
         ) : null}
       </div>
       <input type="hidden" name="attachment_manifest" value={JSON.stringify(props.attachments)} />

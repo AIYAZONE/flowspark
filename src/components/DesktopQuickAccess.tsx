@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useSyncExternalStore } from 'react'
 import { Bot, Lightbulb, Plus, Target } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import type en from '@/i18n/en.json'
@@ -14,6 +14,31 @@ import { Button } from '@/components/ui/button'
 type Dict = typeof en
 
 const DESKTOP_QUICK_ACCESS_OPEN_KEY = 'desktop-quick-access-open-v1'
+const DESKTOP_QUICK_ACCESS_EVENT = 'desktop-quick-access-open-change'
+
+function subscribeDesktopQuickAccess(onStoreChange: () => void) {
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key === DESKTOP_QUICK_ACCESS_OPEN_KEY) {
+      onStoreChange()
+    }
+  }
+
+  window.addEventListener('storage', handleStorage)
+  window.addEventListener(DESKTOP_QUICK_ACCESS_EVENT, onStoreChange)
+
+  return () => {
+    window.removeEventListener('storage', handleStorage)
+    window.removeEventListener(DESKTOP_QUICK_ACCESS_EVENT, onStoreChange)
+  }
+}
+
+function getDesktopQuickAccessSnapshot() {
+  return window.localStorage.getItem(DESKTOP_QUICK_ACCESS_OPEN_KEY) === '1'
+}
+
+function getDesktopQuickAccessServerSnapshot() {
+  return false
+}
 
 export function DesktopQuickAccess({
   dict,
@@ -26,17 +51,18 @@ export function DesktopQuickAccess({
   tz: string
   today: string
 }) {
-  const [open, setOpen] = useState(() => {
-    if (typeof window === 'undefined') return false
-    return window.localStorage.getItem(DESKTOP_QUICK_ACCESS_OPEN_KEY) === '1'
-  })
+  const open = useSyncExternalStore(
+    subscribeDesktopQuickAccess,
+    getDesktopQuickAccessSnapshot,
+    getDesktopQuickAccessServerSnapshot
+  )
   const pathname = usePathname()
   const showAddGoalEntry = pathname === '/goals' || pathname.startsWith('/goals/')
 
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    window.localStorage.setItem(DESKTOP_QUICK_ACCESS_OPEN_KEY, open ? '1' : '0')
-  }, [open])
+  const setOpen = useCallback((nextOpen: boolean) => {
+    window.localStorage.setItem(DESKTOP_QUICK_ACCESS_OPEN_KEY, nextOpen ? '1' : '0')
+    window.dispatchEvent(new Event(DESKTOP_QUICK_ACCESS_EVENT))
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -45,7 +71,7 @@ export function DesktopQuickAccess({
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [open])
+  }, [open, setOpen])
 
   return (
     <>

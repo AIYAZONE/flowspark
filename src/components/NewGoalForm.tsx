@@ -24,6 +24,8 @@ import { sendAIFeedback } from '@/lib/aiFeedback'
 import { scheduleRangesWithinGoal } from '@/lib/actionScheduling'
 import type { Dictionary, GoalNewDictionary, CommonErrorDictionary } from '@/i18n/types'
 import type { GoalBriefInput, GoalSetupStepAOutput, GoalSetupStepBOutput } from '@/lib/ai/phase2aSchemas'
+import { ModalActionFooter } from '@/components/ModalActionFooter'
+import { cn } from '@/lib/utils'
 
 type Dict = Dictionary
 
@@ -31,6 +33,7 @@ interface NewGoalFormProps {
   dict: Dict
   onSuccess?: (created?: { id?: string; title?: string }) => void
   action?: (formData: FormData) => Promise<unknown>
+  fixedFooter?: boolean
 }
 
 type ActionType = 'core' | 'maintenance' | 'learning' | 'review' | 'rest'
@@ -53,7 +56,7 @@ function makeId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
-export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
+export function NewGoalForm({ dict, onSuccess, action, fixedFooter = false }: NewGoalFormProps) {
   const submitAction = action || createGoal
   const formRef = useRef<HTMLFormElement | null>(null)
   const newDict: GoalNewDictionary = dict.goals.new
@@ -353,8 +356,24 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
     }
   }
 
+  const actionButtons = (
+    <div className="flex justify-end gap-4">
+      {onSuccess ? (
+        <Button type="button" variant="outline" onClick={() => onSuccess()}>{dict.common.cancel}</Button>
+      ) : (
+        <Link href="/goals">
+          <Button type="button" variant="outline">{dict.common.cancel}</Button>
+        </Link>
+      )}
+      <SubmitButton disabled={!dateValid || creatingActions || (createMode === 'ai' && !aiStepB)}>
+        {hasEnabledDrafts ? (dict.goals.new.submitWithActions || dict.goals.new.submit) : dict.goals.new.submit}
+      </SubmitButton>
+    </div>
+  )
+
   return (
-    <form ref={formRef} action={handleSubmit} className="space-y-6">
+    <form ref={formRef} action={handleSubmit} className={cn(fixedFooter ? 'flex min-h-0 flex-1 flex-col' : 'space-y-6')}>
+      <div className={cn(fixedFooter ? 'min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-4 md:px-6' : 'space-y-6')}>
       <div className="flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 p-2">
         <button
           type="button"
@@ -681,19 +700,8 @@ export function NewGoalForm({ dict, onSuccess, action }: NewGoalFormProps) {
           </div>
         </>
       ) : null}
-
-      <div className="flex justify-end gap-4">
-        {onSuccess ? (
-          <Button type="button" variant="outline" onClick={() => onSuccess()}>{dict.common.cancel}</Button>
-        ) : (
-          <Link href="/goals">
-            <Button type="button" variant="outline">{dict.common.cancel}</Button>
-          </Link>
-        )}
-        <SubmitButton disabled={!dateValid || creatingActions || (createMode === 'ai' && !aiStepB)}>
-          {hasEnabledDrafts ? (dict.goals.new.submitWithActions || dict.goals.new.submit) : dict.goals.new.submit}
-        </SubmitButton>
       </div>
+      {fixedFooter ? <ModalActionFooter>{actionButtons}</ModalActionFooter> : actionButtons}
     </form>
   )
 }

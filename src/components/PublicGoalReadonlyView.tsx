@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { Info, Lightbulb, ListChecks, Sparkles } from 'lucide-react'
+import { Info, ListChecks, Sparkles } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { Button } from '@/components/ui/button'
@@ -40,7 +40,7 @@ type SharedGoal = {
 	stop_criteria: string
 }
 
-type TabKey = 'actions' | 'inspiration' | 'journey' | 'details'
+type TabKey = 'actions' | 'journey' | 'details'
 
 function normalizeRichText(raw: string): string {
 	return raw
@@ -128,10 +128,6 @@ export function PublicGoalReadonlyView({
 	categoryLabelMap: Record<string, string>
 }) {
 	const [activeTab, setActiveTab] = useState<TabKey>('actions')
-	const inspirationEntries = useMemo(
-		() => entries.filter((e) => e.kind === 'inspiration'),
-		[entries]
-	)
 	const journeyEntries = useMemo(
 		() => entries.filter((e) => e.kind === 'journey'),
 		[entries]
@@ -143,7 +139,7 @@ export function PublicGoalReadonlyView({
 
 	return (
 		<div className="space-y-4">
-			<div className="grid grid-cols-4 gap-1 rounded-full border border-border/40 bg-background/40 p-1">
+			<div className="grid grid-cols-3 gap-1 rounded-full border border-border/40 bg-background/40 p-1">
 				<Button
 					type="button"
 					variant="ghost"
@@ -153,16 +149,6 @@ export function PublicGoalReadonlyView({
 				>
 					<ListChecks className="h-4 w-4 mr-1" />
 					{labels.actions} ({actions.length})
-				</Button>
-				<Button
-					type="button"
-					variant="ghost"
-					size="sm"
-					className={`rounded-full h-9 ${activeTab === 'inspiration' ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}
-					onClick={() => setActiveTab('inspiration')}
-				>
-					<Lightbulb className="h-4 w-4 mr-1" />
-					{labels.inspiration} ({inspirationEntries.length})
 				</Button>
 				<Button
 					type="button"
@@ -208,35 +194,6 @@ export function PublicGoalReadonlyView({
 								incomplete: labels.incomplete
 							}}
 						/>
-					</CardContent>
-				</Card>
-			) : null}
-
-			{activeTab === 'inspiration' ? (
-				<Card>
-					<CardHeader>
-						<CardTitle>{labels.inspiration}</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-3">
-						{inspirationEntries.length === 0 ? (
-							<div className="text-sm text-muted-foreground">{labels.emptyInspiration}</div>
-						) : (
-							inspirationEntries.map((entry) => (
-								<div key={entry.id} className="rounded-md border border-border/50 bg-muted/20 p-3">
-									<div className="text-xs text-muted-foreground">
-										{labels.inspiration} · {entryStatusLabelMap[entry.status]}
-									</div>
-									<div className="mt-1 text-sm">
-										<RichText text={entry.content} />
-									</div>
-									{entry.note ? (
-										<div className="mt-2 text-xs text-muted-foreground">
-											<RichText text={entry.note} />
-										</div>
-									) : null}
-								</div>
-							))
-						)}
 					</CardContent>
 				</Card>
 			) : null}

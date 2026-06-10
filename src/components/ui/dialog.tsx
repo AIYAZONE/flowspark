@@ -67,10 +67,10 @@ const DialogFormContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed z-10000 gap-0 border bg-background p-0 shadow-lg duration-200 data-[state=closed]:pointer-events-none data-[state=open]:animate-in data-[state=closed]:animate-out md:gap-4 md:p-6",
+        "fixed z-10000 flex min-h-0 flex-col gap-0 border bg-background p-0 shadow-lg duration-200 data-[state=closed]:pointer-events-none data-[state=open]:animate-in data-[state=closed]:animate-out md:gap-4 md:p-6",
         mobileMode === "sheet"
-          ? "left-0 right-0 bottom-0 top-auto w-full max-w-none rounded-t-2xl border-b-0 max-h-[92dvh] overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+1rem)] data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom md:left-[50%] md:right-auto md:top-[50%] md:bottom-auto md:w-full md:max-w-lg md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg md:border md:pb-6 md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-95 md:data-[state=closed]:slide-out-to-left-1/2 md:data-[state=closed]:slide-out-to-top-[48%] md:data-[state=open]:slide-in-from-left-1/2 md:data-[state=open]:slide-in-from-top-[48%]"
-          : "inset-0 h-dvh w-screen max-w-none rounded-none border-0 max-h-none overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+1rem)] data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 md:inset-0 md:h-dvh md:w-screen md:max-w-none md:translate-x-0 md:translate-y-0 md:rounded-none md:border-0 md:max-h-none md:overflow-y-auto md:pb-[calc(env(safe-area-inset-bottom)+1rem)] md:data-[state=closed]:fade-out-0 md:data-[state=open]:fade-in-0",
+          ? "left-0 right-0 bottom-0 top-auto h-auto w-full max-w-none rounded-t-2xl border-b-0 max-h-[92dvh] overscroll-contain data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom md:left-[50%] md:right-auto md:top-[50%] md:bottom-auto md:w-full md:max-w-lg md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg md:border md:data-[state=closed]:zoom-out-95 md:data-[state=open]:zoom-in-95 md:data-[state=closed]:slide-out-to-left-1/2 md:data-[state=closed]:slide-out-to-top-[48%] md:data-[state=open]:slide-in-from-left-1/2 md:data-[state=open]:slide-in-from-top-[48%]"
+          : "inset-0 h-dvh w-screen max-w-none rounded-none border-0 max-h-none overscroll-contain data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 md:inset-0 md:h-dvh md:w-screen md:max-w-none md:translate-x-0 md:translate-y-0 md:rounded-none md:border-0 md:max-h-none md:data-[state=closed]:fade-out-0 md:data-[state=open]:fade-in-0",
         className
       )}
       {...props}

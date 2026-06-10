@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Archive, CalendarDays, Lightbulb, ListChecks, Pencil, Trash2, Undo2, X } from 'lucide-react'
+import { Archive, CalendarDays, Lightbulb, ListChecks, Pencil, Trash2, Undo2 } from 'lucide-react'
 import type en from '@/i18n/en.json'
 import { archiveInboxItem, unarchiveInboxItem } from '@/app/(authenticated)/inbox/actions'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,8 @@ import { EditInboxItemDialog } from '@/components/EditInboxItemDialog'
 import { ConvertInboxToActionDialog } from '@/components/ConvertInboxToActionDialog'
 import { ConfirmDeleteInboxItemDialog } from '@/components/ConfirmDeleteInboxItemDialog'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { ModalActionFooter } from '@/components/ModalActionFooter'
+import { ModalHeaderActions } from '@/components/ModalHeaderActions'
 
 type Dict = typeof en
 
@@ -104,12 +106,9 @@ export function InboxItemDetailsSheet({
 									) : null}
 								</div>
 							</div>
-							<SheetClose asChild>
-								<Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 rounded-full">
-									<X className="h-4 w-4" />
-									<span className="sr-only">Close</span>
-								</Button>
-							</SheetClose>
+							<ModalHeaderActions
+								renderCloseButton={(button) => <SheetClose asChild>{button}</SheetClose>}
+							/>
 						</div>
 					</SheetHeader>
 
@@ -145,7 +144,7 @@ export function InboxItemDetailsSheet({
 						</div>
 					</div>
 
-					<div className="border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur">
+					<ModalActionFooter className="px-4 md:px-4">
 						<div className="grid grid-cols-2 gap-2">
 							{isArchived ? (
 								<>
@@ -223,7 +222,7 @@ export function InboxItemDetailsSheet({
 								</>
 							)}
 						</div>
-					</div>
+					</ModalActionFooter>
 				</div>
 			</SheetFormContent>
 		</Sheet>

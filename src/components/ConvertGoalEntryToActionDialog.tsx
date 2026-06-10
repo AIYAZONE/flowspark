@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { convertGoalEntryToAction } from '@/app/(authenticated)/goals/entries/actions'
 import { useMobileInputVisible, useMobileKeyboardInset } from '@/components/ui/use-mobile-input-visible'
 import { cn, stripHtmlToPlainText } from '@/lib/utils'
+import { DESKTOP_MODAL_SHELL_CLASS } from '@/components/responsive-classes'
 
 type Dict = typeof en
 
@@ -85,9 +86,10 @@ export function ConvertGoalEntryToActionDialog({
 				hideCloseButton
 				className={cn(
 					'p-0',
+					DESKTOP_MODAL_SHELL_CLASS,
 					isDesktopFullscreen
 						? 'md:inset-0! md:h-dvh! md:w-screen! md:max-w-none! md:translate-x-0! md:translate-y-0! md:rounded-none! md:border-0!'
-						: 'md:left-[50%]! md:right-auto! md:top-[50%]! md:bottom-auto! md:h-auto! md:w-full! md:max-w-3xl! md:translate-x-[-50%]! md:translate-y-[-50%]! md:rounded-lg! md:border! md:pb-6!'
+						: 'md:left-[50%]! md:right-auto! md:top-[50%]! md:bottom-auto! md:h-auto! md:w-full! md:max-w-3xl! md:translate-x-[-50%]! md:translate-y-[-50%]! md:rounded-lg! md:border!'
 				)}
 			>
 				<div className={cn('flex flex-col', isDesktopFullscreen ? 'h-full' : 'h-full md:max-h-[90dvh]')}>
