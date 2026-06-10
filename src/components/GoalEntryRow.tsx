@@ -1,18 +1,19 @@
 'use client'
 
-import { forwardRef, useState, type HTMLAttributes, type ReactNode } from 'react'
+import { forwardRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
 import type en from '@/i18n/en.json'
-import { Archive, CalendarDays, Lightbulb, ListChecks, Pencil, Sparkles, Trash2, Undo2 } from 'lucide-react'
+import { Archive, CalendarDays, ChevronRight, Lightbulb, ListChecks, Pencil, Sparkles, Trash2, Undo2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { archiveGoalEntry, unarchiveGoalEntry } from '@/app/(authenticated)/goals/entries/actions'
 import { ConvertGoalEntryToActionDialog } from '@/components/ConvertGoalEntryToActionDialog'
 import { EditGoalEntryDialog } from '@/components/EditGoalEntryDialog'
 import { ConfirmDeleteGoalEntryDialog } from '@/components/ConfirmDeleteGoalEntryDialog'
+import { GoalEntryDetailsSheet } from '@/components/GoalEntryDetailsSheet'
 import { RichTextContentView } from '@/components/RichTextContentView'
 import { RichTextImagePreviewDialog } from '@/components/RichTextImagePreviewDialog'
 import { cn } from '@/lib/utils'
-import type { GoalEntry } from '@/components/GoalSubItemsTabs'
+import type { GoalEntry } from '@/components/goal-entry.types'
 
 type Dict = typeof en
 
@@ -48,6 +49,7 @@ export function GoalEntryRow({
 	endDefault: string
 }) {
 	const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
+	const [detailsOpen, setDetailsOpen] = useState(false)
 	const isJourney = entry.kind === 'journey'
 	const isArchived = entry.status === 'archived'
 	const kindLabel = isJourney ? dict.goals.detail.tabJourney : dict.goals.detail.tabInspiration
@@ -57,6 +59,24 @@ export function GoalEntryRow({
 	const timeText = new Intl.DateTimeFormat(dict.common.locale, { hour: '2-digit', minute: '2-digit' }).format(new Date(entry.created_at))
 	const locale = String(dict.common.locale || '').toLowerCase()
 	const noteLabel = dict.quickCapture.noteLabel || (locale.startsWith('zh') ? '补充说明' : 'Notes')
+
+	function shouldIgnoreMobileOpen(target: EventTarget | null, currentTarget: HTMLDivElement) {
+		if (!(target instanceof Element)) return false
+		if (target.closest('img, a, button, input, textarea, select, [data-richtext-image="true"]')) return true
+		const nestedButton = target.closest('[role="button"]')
+		return Boolean(nestedButton && nestedButton !== currentTarget)
+	}
+
+	function openMobileDetails(event: MouseEvent<HTMLDivElement>) {
+		if (shouldIgnoreMobileOpen(event.target, event.currentTarget)) return
+		setDetailsOpen(true)
+	}
+
+	function handleEntryActivate(event: KeyboardEvent<HTMLDivElement>) {
+		if (event.key !== 'Enter' && event.key !== ' ') return
+		event.preventDefault()
+		setDetailsOpen(true)
+	}
 
 	return (
 		<>
@@ -71,9 +91,15 @@ export function GoalEntryRow({
 			>
 				<CardContent className="p-0">
 					<div className="p-5">
-						<div className="space-y-4">
+						<div
+							role="button"
+							tabIndex={0}
+							onClick={openMobileDetails}
+							onKeyDown={handleEntryActivate}
+							className="space-y-4 rounded-2xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:cursor-default"
+						>
 							<div className="flex items-start justify-between gap-3">
-								<div className="flex flex-wrap items-center gap-2 pr-14">
+								<div className="flex flex-wrap items-center gap-2 pr-14 md:pr-14">
 									<div
 										className={cn(
 											'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium',
@@ -92,6 +118,10 @@ export function GoalEntryRow({
 											{dict.goals.status.archived}
 										</div>
 									) : null}
+								</div>
+
+								<div className="md:hidden pt-1 text-muted-foreground/60">
+									<ChevronRight className="h-4 w-4" />
 								</div>
 
 								<div className="hidden md:flex absolute right-4 top-4 z-50 pointer-events-auto items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100">
@@ -202,91 +232,19 @@ export function GoalEntryRow({
 								</div>
 							) : null}
 						</div>
-
-						<div className="md:hidden border-t border-border/50 pt-4">
-							{isArchived ? (
-								<div className="grid grid-cols-2 gap-2">
-									<form action={unarchiveGoalEntry}>
-										<input type="hidden" name="id" value={entry.id} />
-										<input type="hidden" name="goal_id" value={goalId} />
-										<Button type="submit" size="sm" className="w-full gap-2" title={dict.goals.detail.unarchiveAction}>
-											<Undo2 className="h-4 w-4" />
-											{dict.goals.detail.unarchive}
-										</Button>
-									</form>
-									<ConfirmDeleteGoalEntryDialog
-										id={entry.id}
-										goalId={goalId}
-										dict={dict}
-										trigger={
-											<Button
-												type="button"
-												size="sm"
-												variant="ghost"
-												className="w-full gap-1 text-muted-foreground hover:text-destructive"
-											>
-												<Trash2 className="h-4 w-4" />
-												{dict.common.delete}
-											</Button>
-										}
-									/>
-								</div>
-							) : (
-								<div className="grid grid-cols-2 gap-2">
-									<ConvertGoalEntryToActionDialog
-										entry={{ id: entry.id, content: entry.content, note: entry.note }}
-										goalId={goalId}
-										dict={dict}
-										startDefault={startDefault}
-										endDefault={endDefault}
-										trigger={
-											<Button size="sm" variant="outline" className="w-full gap-1">
-												<ListChecks className="h-4 w-4" />
-												{dict.goals.detail.convertToAction}
-											</Button>
-										}
-									/>
-									<EditGoalEntryDialog
-										entry={{ id: entry.id, kind: entry.kind, content: entry.content, note: entry.note }}
-										goalId={goalId}
-										dict={dict}
-										trigger={
-											<Button size="sm" variant="outline" className="w-full gap-1">
-												<Pencil className="h-4 w-4" />
-												{dict.common.edit}
-											</Button>
-										}
-									/>
-									<form action={archiveGoalEntry}>
-										<input type="hidden" name="id" value={entry.id} />
-										<input type="hidden" name="goal_id" value={goalId} />
-										<Button type="submit" size="sm" variant="outline" className="w-full gap-1">
-											<Archive className="h-4 w-4" />
-											{dict.goals.detail.archiveEntry}
-										</Button>
-									</form>
-									<ConfirmDeleteGoalEntryDialog
-										id={entry.id}
-										goalId={goalId}
-										dict={dict}
-										trigger={
-											<Button
-												type="button"
-												size="sm"
-												variant="ghost"
-												className="w-full gap-1 text-muted-foreground hover:text-destructive"
-											>
-												<Trash2 className="h-4 w-4" />
-												{dict.common.delete}
-											</Button>
-										}
-									/>
-								</div>
-							)}
-						</div>
 					</div>
 				</CardContent>
 			</Card>
+
+			<GoalEntryDetailsSheet
+				open={detailsOpen}
+				onOpenChange={setDetailsOpen}
+				entry={entry}
+				goalId={goalId}
+				dict={dict}
+				startDefault={startDefault}
+				endDefault={endDefault}
+			/>
 
 			<RichTextImagePreviewDialog
 				open={Boolean(previewImageUrl)}

@@ -37,9 +37,9 @@ const sheetVariants = cva(
         top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
         bottom:
           "inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-        left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+        left: "inset-y-0 left-0 h-full w-3/4 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left md:max-w-sm",
         right:
-          "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+          "inset-y-0 right-0 h-full w-3/4 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right md:max-w-sm",
       },
     },
     defaultVariants: {
@@ -83,8 +83,8 @@ const SheetFormContent = React.forwardRef<
     className={cn(
       "p-0",
       mobileMode === "sheet"
-        ? "max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:max-h-[85vh] sm:pb-6"
-        : "inset-0 h-dvh w-screen max-h-none rounded-none border-0 overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+1rem)] sm:inset-0 sm:h-dvh sm:w-screen sm:max-h-none sm:rounded-none sm:border-0 sm:pb-[calc(env(safe-area-inset-bottom)+1rem)]",
+        ? "max-h-[92dvh] overflow-y-auto overscroll-contain rounded-t-2xl pb-[calc(env(safe-area-inset-bottom)+1rem)] md:max-h-[85vh] md:pb-6"
+        : "inset-0 h-dvh w-screen max-h-none rounded-none border-0 overflow-y-auto overscroll-contain pb-[calc(env(safe-area-inset-bottom)+1rem)] md:inset-0 md:h-dvh md:w-screen md:max-h-none md:rounded-none md:border-0 md:pb-[calc(env(safe-area-inset-bottom)+1rem)]",
       className
     )}
     {...props}

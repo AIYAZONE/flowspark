@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Target, CalendarCheck, User, Lightbulb } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { MOBILE_ONLY_CLASS } from '@/components/responsive-classes'
 
 interface MobileNavBarProps {
   dict: {
@@ -67,7 +68,7 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
   return (
     <div
       key={epoch}
-      className="md:hidden shrink-0 bg-background/80 backdrop-blur-lg border-t border-border/40 pb-safe-area-inset-bottom"
+      className={`${MOBILE_ONLY_CLASS} shrink-0 bg-background/80 backdrop-blur-lg border-t border-border/40 pb-safe-area-inset-bottom`}
     >
       <nav
         className="flex items-center justify-around h-16 px-2"

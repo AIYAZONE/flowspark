@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { AddGoalDialog } from '@/components/AddGoalDialog'
 import { AddActionDialog } from '@/components/AddActionDialog'
 import { QuickCaptureDialog } from '@/components/QuickCaptureDialog'
+import { MOBILE_ONLY_CLASS } from '@/components/responsive-classes'
 
 type Dict = typeof en
 const FAB_POSITION_KEY = 'quick-capture-fab-position-v2'
@@ -227,7 +228,8 @@ export function QuickCaptureSpeedDial({
 	}
 
 	const wrapperClassName = cn(
-		'fixed z-50 md:hidden',
+		'fixed z-50',
+		MOBILE_ONLY_CLASS,
 		canDragFab && fabPosition ? '' : 'right-[10px] bottom-[calc(7.25rem+env(safe-area-inset-bottom))]'
 	)
 	const menuClassName = cn(

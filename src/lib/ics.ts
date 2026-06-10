@@ -1,3 +1,5 @@
+import { stripHtmlToPlainText } from "@/lib/utils"
+
 function escapeICSText(input: string) {
   return input
     .replaceAll('\\', '\\\\')
@@ -14,20 +16,6 @@ function addOneDay(date: string) {
   const base = new Date(`${date}T00:00:00.000Z`)
   base.setUTCDate(base.getUTCDate() + 1)
   return base.toISOString().slice(0, 10)
-}
-
-function stripHtml(input?: string | null) {
-  if (!input) return ''
-  return input
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/\s+/g, ' ')
-    .trim()
 }
 
 function slugifyFilename(input: string) {
@@ -67,7 +55,7 @@ export function buildGoalCalendarICS(params: {
     const descriptionParts = [
       event.type ? `Type: ${event.type}` : null,
       event.priority ? `Priority: ${event.priority}` : null,
-      stripHtml(event.description) || null,
+      stripHtmlToPlainText(event.description, { preserveLineBreaks: true }) || null,
     ].filter(Boolean)
 
     lines.push(

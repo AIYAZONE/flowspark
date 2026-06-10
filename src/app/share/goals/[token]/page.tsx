@@ -6,6 +6,7 @@ import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import Link from 'next/link'
 import { PublicGoalReadonlyView } from '@/components/PublicGoalReadonlyView'
 import { getSiteUrl } from '@/lib/get-site-url'
+import { stripHtmlToPlainText } from '@/lib/utils'
 
 type ShareSnapshot = {
   goal: {
@@ -54,19 +55,6 @@ function normalizeLocale(lang?: string): 'zh' | 'en' | undefined {
 
 function isShareExpired(expiresAt?: string | null) {
   return Boolean(expiresAt && new Date(expiresAt).getTime() <= Date.now())
-}
-
-function toPlainText(input: string) {
-  return input
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, '&')
-    .replace(/\s+/g, ' ')
-    .trim()
 }
 
 function truncateText(input: string, maxLength: number) {
@@ -130,7 +118,7 @@ export async function generateMetadata({ params, searchParams }: PageProps): Pro
   const inspirationCount = entries.filter((entry) => entry.kind === 'inspiration').length
   const journeyCount = entries.filter((entry) => entry.kind === 'journey').length
   const summaryPrefix = `${actions.length} ${dict.goals.detail.actions} / ${inspirationCount} ${dict.goals.detail.tabInspiration} / ${journeyCount} ${dict.goals.detail.tabJourney}`
-  const descriptionSource = toPlainText(goal.description || goal.success_criteria || dict.share.readonlyHint)
+  const descriptionSource = stripHtmlToPlainText(goal.description || goal.success_criteria || dict.share.readonlyHint)
   const description = truncateText(`${summaryPrefix} · ${descriptionSource}`, 150)
   const title = `${goal.title} | ${dict.share.openTitle}`
 

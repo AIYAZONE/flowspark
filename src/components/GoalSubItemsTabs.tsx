@@ -7,6 +7,7 @@ import type en from '@/i18n/en.json'
 import { Button } from '@/components/ui/button'
 import { ActionListFilter } from '@/components/ActionListFilter'
 import { GoalEntryRow } from '@/components/GoalEntryRow'
+import type { GoalEntry } from '@/components/goal-entry.types'
 import { cn } from '@/lib/utils'
 
 type Dict = typeof en
@@ -22,15 +23,6 @@ const AddGoalEntryDialog = dynamic(
 	() => import('@/components/AddGoalEntryDialog').then((m) => m.AddGoalEntryDialog),
 	{ ssr: false }
 )
-
-export interface GoalEntry {
-	id: string
-	kind: 'inspiration' | 'journey'
-	status: 'open' | 'archived'
-	content: string
-	note: string
-	created_at: string
-}
 
 interface Action {
 	id: string

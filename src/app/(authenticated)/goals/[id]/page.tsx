@@ -118,7 +118,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
 
     return (
         <div className="space-y-6">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-4">
                     <Button
                         asChild
@@ -133,9 +133,9 @@ export default async function GoalDetailPage({ params }: PageProps) {
                             <span className="text-sm font-medium">{dict.common.back}</span>
                         </Link>
                     </Button>
-                    <h1 className="text-lg md:text-2xl font-bold tracking-tight">{goal.title}</h1>
+                    <h1 className="hidden text-2xl font-bold tracking-tight lg:block">{goal.title}</h1>
                 </div>
-                <div className="hidden md:block md:w-[280px]">
+                <div className="hidden lg:block lg:w-[280px]">
                     <GoalQuickSwitch
                         currentGoalId={goal.id as string}
                         goals={activeGoals || []}

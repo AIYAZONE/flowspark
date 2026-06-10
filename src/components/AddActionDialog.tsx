@@ -245,7 +245,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
             </DialogTrigger>
             <DialogFormContent
                 mobileMode={isFullscreen ? 'fullscreen' : 'sheet'}
-                className={isFullscreen ? 'p-0' : 'p-0 block sm:max-w-[600px] sm:max-h-[85vh]'}
+                className={isFullscreen ? 'p-0' : 'p-0 block md:max-w-[600px] md:max-h-[85vh]'}
             >
                 {step === 'intro' ? (
                     <div className="relative h-full w-full overflow-hidden bg-linear-to-br from-primary/10 via-background to-background px-6 pb-8 pt-10">
@@ -276,7 +276,7 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                         </AnimatePresence>
                     </div>
                 ) : (
-                    <div className={isFullscreen ? 'flex h-full flex-col p-6' : 'flex max-h-[85dvh] flex-col p-6 sm:max-h-none'}>
+                    <div className={isFullscreen ? 'flex h-full flex-col p-6' : 'flex max-h-[85dvh] flex-col p-6 md:max-h-none'}>
                         <AnimatePresence mode="wait">
                             <motion.div
                                 key={step}

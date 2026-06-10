@@ -422,22 +422,22 @@ export function AITodayPlanButton({
           setAiOpen(open)
         }}
       >
-        <DialogFormContent className="flex max-h-[92dvh] max-w-none flex-col overflow-hidden border-border/60 bg-background p-0 shadow-2xl sm:max-w-[min(92vw,72rem)]! sm:max-h-[88dvh]">
-          <DialogHeader className="shrink-0 border-b border-border/40 bg-linear-to-b from-primary/5 to-transparent px-4 pb-4 pt-4 sm:px-6 sm:pb-4 sm:pt-5">
+        <DialogFormContent className="flex max-h-[92dvh] max-w-none flex-col overflow-hidden border-border/60 bg-background p-0 shadow-2xl md:max-w-[min(92vw,72rem)]! md:max-h-[88dvh]">
+          <DialogHeader className="shrink-0 border-b border-border/40 bg-linear-to-b from-primary/5 to-transparent px-4 pb-4 pt-4 md:px-6 md:pb-4 md:pt-5">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/6 px-3 py-1 text-sm font-medium text-primary">
               <Sparkles className="h-3.5 w-3.5" />
               AI Coach
             </div>
-            <DialogTitle className="max-w-none text-[1.8rem] leading-tight tracking-[-0.02em] sm:text-[2rem]">
+            <DialogTitle className="max-w-none text-[1.8rem] leading-tight tracking-[-0.02em] md:text-[2rem]">
               {planning?.aiPlanTitle || 'AI Core Action (Draft)'}
             </DialogTitle>
           </DialogHeader>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5">
             {aiError && <div className="mb-4 text-sm text-destructive">{aiError}</div>}
 
             {aiResult ? (
-              <div className="space-y-3 sm:space-y-4">
+              <div className="space-y-3 md:space-y-4">
                 <div className="rounded-2xl border border-dashed border-border/60 bg-muted/8 px-4 py-3 text-sm text-muted-foreground">
                   <div className="inline-flex items-start gap-2 font-medium text-foreground">
                     <Clock3 className="mt-0.5 h-4 w-4 shrink-0" />
@@ -459,13 +459,13 @@ export function AITodayPlanButton({
                   return (
                     <div
                       key={`${recommendation.kind}-${idx}`}
-                      className={`rounded-[24px] border p-4 transition-all sm:p-5 ${
+                      className={`rounded-[24px] border p-4 transition-all md:p-5 ${
                         isSelectedRecommendation
                           ? 'border-primary/25 bg-primary/[0.035] shadow-sm'
                           : 'border-border/60 bg-card/90'
                       }`}
                     >
-                      <div className="space-y-4 sm:space-y-5">
+                      <div className="space-y-4 md:space-y-5">
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-3">
                             <div className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground">
@@ -481,7 +481,7 @@ export function AITodayPlanButton({
                               <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90">
                                 {whyTodayLabel}
                               </div>
-                              <div className="max-w-none text-[15px] leading-8 text-muted-foreground sm:text-base">
+                              <div className="max-w-none text-[15px] leading-8 text-muted-foreground md:text-base">
                                 {recommendation.reason}
                               </div>
                             </div>
@@ -548,7 +548,7 @@ export function AITodayPlanButton({
                         </div>
 
                         {isSelectedRecommendation && currentVariant ? (
-                          <div className="rounded-[22px] border border-border/60 bg-background/90 p-4 text-sm shadow-sm sm:p-5">
+                          <div className="rounded-[22px] border border-border/60 bg-background/90 p-4 text-sm shadow-sm md:p-5">
                             <div className="grid gap-4 xl:grid-cols-[1.85fr_1fr] xl:gap-5">
                               <div className="space-y-4">
                                 <div className="space-y-3">
@@ -581,15 +581,15 @@ export function AITodayPlanButton({
                   )
                 })}
 
-                <div className="flex flex-col-reverse gap-3 border-t border-border/50 pt-5 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:pb-0">
-                  <div className="hidden text-xs text-muted-foreground sm:block">
+                <div className="flex flex-col-reverse gap-3 border-t border-border/50 pt-5 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] md:flex-row md:items-center md:justify-between md:gap-3 md:pb-0">
+                  <div className="hidden text-xs text-muted-foreground md:block">
                     {selected ? getVariantLabel(selected.minutes) : ''}
                   </div>
-                  <div className="flex flex-col-reverse gap-3 sm:flex-row sm:gap-2">
-                    <Button type="button" variant="outline" onClick={() => setAiOpen(false)} disabled={aiLoading} className="w-full rounded-full px-5 sm:w-auto">
+                  <div className="flex flex-col-reverse gap-3 md:flex-row md:gap-2">
+                    <Button type="button" variant="outline" onClick={() => setAiOpen(false)} disabled={aiLoading} className="w-full rounded-full px-5 md:w-auto">
                       {dict?.common?.cancel || 'Cancel'}
                     </Button>
-                    <Button type="button" onClick={applySelected} disabled={aiLoading || !selected} className="w-full rounded-full px-5 sm:w-auto">
+                    <Button type="button" onClick={applySelected} disabled={aiLoading || !selected} className="w-full rounded-full px-5 md:w-auto">
                       {aiLoading && <LoadingSpinner size={16} className="mr-2 text-primary-foreground/80" />}
                       {getApplyButtonLabel()}
                     </Button>

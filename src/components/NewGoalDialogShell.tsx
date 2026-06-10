@@ -21,11 +21,11 @@ export function NewGoalDialogShell({
         className={[
           'p-0',
           'w-[100vw] h-[100dvh] max-w-none left-0 top-0 translate-x-0 translate-y-0 rounded-none',
-          'sm:left-[50%] sm:top-[50%] sm:h-auto sm:w-full sm:max-w-4xl sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-lg'
+          'md:left-[50%] md:top-[50%] md:h-auto md:w-full md:max-w-4xl md:translate-x-[-50%] md:translate-y-[-50%] md:rounded-lg'
         ].join(' ')}
       >
-        <div className="flex h-[100dvh] flex-col sm:h-[85vh]">
-          <div className="sticky top-0 z-10 border-b border-border/60 bg-background/85 backdrop-blur px-4 py-3 sm:px-6">
+        <div className="flex h-[100dvh] flex-col md:h-[85vh]">
+          <div className="sticky top-0 z-10 border-b border-border/60 bg-background/85 backdrop-blur px-4 py-3 md:px-6">
             <DialogHeader className="space-y-0 text-left">
               <div className="flex items-center justify-between gap-4">
                 <DialogTitle>{title}</DialogTitle>
@@ -37,7 +37,7 @@ export function NewGoalDialogShell({
               </div>
             </DialogHeader>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-6">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-6">
             {children}
           </div>
         </div>

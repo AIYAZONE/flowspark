@@ -1,8 +1,9 @@
 'use client'
 
 import { useMemo, useRef, useState, useTransition } from 'react'
+import { Maximize2, Minimize2, X } from 'lucide-react'
 import type en from '@/i18n/en.json'
-import { Dialog, DialogFormContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogClose, DialogFormContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -11,7 +12,8 @@ import { DateRangeFields } from '@/components/DateRangeFields'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { convertInboxItemToAction } from '@/app/(authenticated)/inbox/actions'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useMobileInputVisible } from '@/components/ui/use-mobile-input-visible'
+import { useMobileInputVisible, useMobileKeyboardInset } from '@/components/ui/use-mobile-input-visible'
+import { cn } from '@/lib/utils'
 
 type Dict = typeof en
 
@@ -21,7 +23,8 @@ export function ConvertInboxToActionDialog({
 	dict,
 	startDefault,
 	endDefault,
-	trigger
+	trigger,
+	onSuccess
 }: {
 	item: { id: string; content: string; note: string; tags: string[] }
 	activeGoals: { id: string; title: string }[]
@@ -29,8 +32,10 @@ export function ConvertInboxToActionDialog({
 	startDefault: string
 	endDefault: string
 	trigger: React.ReactNode
+	onSuccess?: () => void
 }) {
 	const [open, setOpen] = useState(false)
+	const [isDesktopFullscreen, setIsDesktopFullscreen] = useState(false)
 	const [isPending, startTransition] = useTransition()
 	const [error, setError] = useState<string | null>(null)
 	const titleRef = useRef<HTMLInputElement | null>(null)
@@ -50,7 +55,10 @@ export function ConvertInboxToActionDialog({
 
 	function handleOpenChange(next: boolean) {
 		setOpen(next)
-		if (!next) return
+		if (!next) {
+			setIsDesktopFullscreen(false)
+			return
+		}
 		setError(null)
 		setGoalId(activeGoals[0]?.id || '')
 		setTitle(item.content)
@@ -60,6 +68,7 @@ export function ConvertInboxToActionDialog({
 	}
 
 	useMobileInputVisible(open, titleRef)
+	const keyboardInset = useMobileKeyboardInset(open)
 
 	async function handleSubmit(formData: FormData) {
 		setError(null)
@@ -67,6 +76,7 @@ export function ConvertInboxToActionDialog({
 			try {
 				await convertInboxItemToAction(formData)
 				setOpen(false)
+				onSuccess?.()
 			} catch (err) {
 				const key = err instanceof Error ? err.message : 'operation_failed'
 				const errors = dict.common.errors as unknown as Record<string, string>
@@ -78,114 +88,164 @@ export function ConvertInboxToActionDialog({
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogTrigger asChild>{trigger}</DialogTrigger>
-			<DialogFormContent className="sm:max-w-md">
-				<DialogHeader>
-					<DialogTitle>{dict.inbox.convertTitle}</DialogTitle>
-				</DialogHeader>
-				<form action={handleSubmit} className="space-y-4">
-					<input type="hidden" name="inbox_id" value={item.id} />
-					<div className="space-y-2">
-						<Label htmlFor={`goal-${item.id}`}>{dict.inbox.goalLabel}</Label>
-						<Select value={goalId} onValueChange={setGoalId}>
-							<SelectTrigger id={`goal-${item.id}`}>
-								<SelectValue placeholder={dict.inbox.goalPlaceholder} />
-							</SelectTrigger>
-							<SelectContent>
-								{activeGoals.map((g) => (
-									<SelectItem key={g.id} value={g.id}>
-										{g.title}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-						<input type="hidden" name="goal_id" value={goalId} />
-					</div>
+			<DialogFormContent
+				mobileMode="fullscreen"
+				hideCloseButton
+				className={cn(
+					'p-0',
+					isDesktopFullscreen
+						? 'md:inset-0! md:h-dvh! md:w-screen! md:max-w-none! md:translate-x-0! md:translate-y-0! md:rounded-none! md:border-0!'
+						: 'md:left-[50%]! md:right-auto! md:top-[50%]! md:bottom-auto! md:h-auto! md:w-full! md:max-w-3xl! md:translate-x-[-50%]! md:translate-y-[-50%]! md:rounded-lg! md:border! md:pb-6!'
+				)}
+			>
+				<div className={cn('flex flex-col', isDesktopFullscreen ? 'h-full' : 'h-full md:max-h-[90dvh]')}>
+					<DialogHeader className="border-b border-border/60 px-4 pb-3 pt-4 text-left md:px-6 md:pb-4 md:pt-6">
+						<div className="flex items-start justify-between gap-3">
+							<DialogTitle className="min-w-0 flex-1 text-left leading-snug">{dict.inbox.convertTitle}</DialogTitle>
+							<div className="flex shrink-0 items-center gap-1">
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+									onClick={() => setIsDesktopFullscreen((value) => !value)}
+								>
+									{isDesktopFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+									<span className="sr-only">{isDesktopFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen}</span>
+								</Button>
+								<DialogClose asChild>
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon"
+										className="h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+									>
+										<X className="h-4 w-4" />
+										<span className="sr-only">Close</span>
+									</Button>
+								</DialogClose>
+							</div>
+						</div>
+					</DialogHeader>
 
-					<div className="space-y-2">
-						<Label htmlFor={`title-${item.id}`}>{dict.inbox.actionTitleLabel}</Label>
-						<Input
-							ref={titleRef}
-							id={`title-${item.id}`}
-							name="title"
-							value={title}
-							onChange={(e) => setTitle(e.target.value)}
-							required
-						/>
-					</div>
+					<form action={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+						<input type="hidden" name="inbox_id" value={item.id} />
 
-					<div className="space-y-2">
-						<Label htmlFor={`desc-${item.id}`}>{dict.inbox.actionDescLabel}</Label>
-						<Textarea
-							id={`desc-${item.id}`}
-							name="description"
-							value={description}
-							onChange={(e) => setDescription(e.target.value)}
-							rows={4}
-						/>
-					</div>
+						<div
+							className="min-h-0 flex-1 space-y-5 overflow-y-auto px-4 py-4 md:px-6"
+							style={{ paddingBottom: keyboardInset > 0 ? Math.max(16, keyboardInset * 0.35) : undefined }}
+						>
+							<div className="space-y-2">
+								<Label htmlFor={`goal-${item.id}`}>{dict.inbox.goalLabel}</Label>
+								<Select value={goalId} onValueChange={setGoalId}>
+									<SelectTrigger id={`goal-${item.id}`}>
+										<SelectValue placeholder={dict.inbox.goalPlaceholder} />
+									</SelectTrigger>
+									<SelectContent>
+										{activeGoals.map((g) => (
+											<SelectItem key={g.id} value={g.id}>
+												{g.title}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+								<input type="hidden" name="goal_id" value={goalId} />
+							</div>
 
-					<DateRangeFields
-						defaultStart={startDefault}
-						defaultEnd={endDefault}
-						labels={{
-							start: dict.today.startTime,
-							end: dict.today.endTime,
-							error: dict.common.dateRangeInvalid
-						}}
-					/>
+							<div className="space-y-2">
+								<Label htmlFor={`title-${item.id}`}>{dict.inbox.actionTitleLabel}</Label>
+								<Input
+									ref={titleRef}
+									id={`title-${item.id}`}
+									name="title"
+									value={title}
+									onChange={(e) => setTitle(e.target.value)}
+									required
+								/>
+							</div>
 
-					<div className="grid grid-cols-2 gap-3">
-						<div className="space-y-2">
-							<Label>{dict.today.typeLabel}</Label>
-							<Select value={type} onValueChange={setType}>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="core">{dict.today.types.core}</SelectItem>
-									<SelectItem value="maintenance">{dict.today.types.maintenance}</SelectItem>
-									<SelectItem value="learning">{dict.today.types.learning}</SelectItem>
-									<SelectItem value="review">{dict.today.types.review}</SelectItem>
-									<SelectItem value="rest">{dict.today.types.rest}</SelectItem>
-								</SelectContent>
-							</Select>
-							<input type="hidden" name="type" value={type} />
+							<div className="space-y-2">
+								<Label htmlFor={`desc-${item.id}`}>{dict.inbox.actionDescLabel}</Label>
+								<Textarea
+									id={`desc-${item.id}`}
+									name="description"
+									value={description}
+									onChange={(e) => setDescription(e.target.value)}
+									rows={8}
+									className="min-h-[28dvh] md:min-h-[220px]"
+								/>
+							</div>
+
+							<DateRangeFields
+								defaultStart={startDefault}
+								defaultEnd={endDefault}
+								className="grid-cols-1 md:grid-cols-2"
+								labels={{
+									start: dict.today.startTime,
+									end: dict.today.endTime,
+									error: dict.common.dateRangeInvalid
+								}}
+							/>
+
+							<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+								<div className="space-y-2">
+									<Label>{dict.today.typeLabel}</Label>
+									<Select value={type} onValueChange={setType}>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="core">{dict.today.types.core}</SelectItem>
+											<SelectItem value="maintenance">{dict.today.types.maintenance}</SelectItem>
+											<SelectItem value="learning">{dict.today.types.learning}</SelectItem>
+											<SelectItem value="review">{dict.today.types.review}</SelectItem>
+											<SelectItem value="rest">{dict.today.types.rest}</SelectItem>
+										</SelectContent>
+									</Select>
+									<input type="hidden" name="type" value={type} />
+								</div>
+
+								<div className="space-y-2">
+									<Label>{dict.today.priorityLabel}</Label>
+									<Select value={priority} onValueChange={setPriority}>
+										<SelectTrigger>
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="high">{dict.goals.priority.high}</SelectItem>
+											<SelectItem value="medium">{dict.goals.priority.medium}</SelectItem>
+											<SelectItem value="low">{dict.goals.priority.low}</SelectItem>
+										</SelectContent>
+									</Select>
+									<input type="hidden" name="priority" value={priority} />
+								</div>
+							</div>
+
+							{error ? <div className="text-sm text-destructive">{error}</div> : null}
 						</div>
 
-						<div className="space-y-2">
-							<Label>{dict.today.priorityLabel}</Label>
-							<Select value={priority} onValueChange={setPriority}>
-								<SelectTrigger>
-									<SelectValue />
-								</SelectTrigger>
-								<SelectContent>
-									<SelectItem value="high">{dict.goals.priority.high}</SelectItem>
-									<SelectItem value="medium">{dict.goals.priority.medium}</SelectItem>
-									<SelectItem value="low">{dict.goals.priority.low}</SelectItem>
-								</SelectContent>
-							</Select>
-							<input type="hidden" name="priority" value={priority} />
+						<div
+							className="border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur md:bg-background/95 md:px-6 md:py-4"
+							style={{ paddingBottom: open && keyboardInset > 0 ? `calc(env(safe-area-inset-bottom) + ${keyboardInset}px)` : undefined }}
+						>
+							<div className="flex items-center justify-end gap-2">
+								<Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
+									{dict.common.cancel}
+								</Button>
+								<Button type="submit" disabled={isPending || !goalId || !title.trim()}>
+									{isPending ? (
+										<>
+											<LoadingSpinner className="mr-2 h-4 w-4 text-current" />
+											{dict.common.saving}
+										</>
+									) : (
+										dict.inbox.convertCta
+									)}
+								</Button>
+							</div>
 						</div>
-					</div>
-
-					{error ? <div className="text-sm text-destructive">{error}</div> : null}
-
-					<div className="flex items-center justify-end gap-2">
-						<Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isPending}>
-							{dict.common.cancel}
-						</Button>
-						<Button type="submit" disabled={isPending || !goalId || !title.trim()}>
-							{isPending ? (
-								<>
-									<LoadingSpinner className="mr-2 h-4 w-4" />
-									{dict.common.saving}
-								</>
-							) : (
-								dict.inbox.convertCta
-							)}
-						</Button>
-					</div>
-				</form>
+					</form>
+				</div>
 			</DialogFormContent>
 		</Dialog>
 	)

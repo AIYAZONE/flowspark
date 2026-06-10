@@ -40,7 +40,9 @@ export const BasicRichTextEditor = forwardRef<HTMLDivElement, BasicRichTextEdito
   forwardedRef
 ) {
   const editorRef = useRef<HTMLDivElement | null>(null)
+  const hiddenInputRef = useRef<HTMLInputElement | null>(null)
   const isComposingRef = useRef(false)
+  const isInternalSyncRef = useRef(false)
   const normalizedValue = useMemo(() => toEditableHtml(value), [value])
   const handleEditorRef = useCallback(
     (node: HTMLDivElement | null) => {
@@ -58,21 +60,38 @@ export const BasicRichTextEditor = forwardRef<HTMLDivElement, BasicRichTextEdito
 
   const syncValue = useCallback(
     (next: string) => {
+      isInternalSyncRef.current = true
+      if (hiddenInputRef.current) {
+        hiddenInputRef.current.value = next
+      }
       onChange(next)
     },
     [onChange]
   )
 
   useEffect(() => {
+    if (isInternalSyncRef.current) {
+      isInternalSyncRef.current = false
+      if (hiddenInputRef.current) {
+        hiddenInputRef.current.value = value
+      }
+      return
+    }
+
     const editor = editorRef.current
-    if (!editor) return
+    if (!editor) {
+      if (hiddenInputRef.current) {
+        hiddenInputRef.current.value = normalizedValue
+      }
+      return
+    }
 
     if (isComposingRef.current) return
 
     if (editor.innerHTML !== normalizedValue) {
       editor.innerHTML = normalizedValue
     }
-  }, [normalizedValue])
+  }, [normalizedValue, value])
 
   const applyCommand = (command: string) => {
     const editor = editorRef.current
@@ -85,7 +104,7 @@ export const BasicRichTextEditor = forwardRef<HTMLDivElement, BasicRichTextEdito
 
   return (
     <div className={cn('grid gap-2', className)}>
-      <input type="hidden" name={name} value={normalizedValue} />
+      <input ref={hiddenInputRef} type="hidden" name={name} defaultValue={normalizedValue} />
 
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-muted/20 p-2">
         <Button type="button" variant="ghost" size="sm" className="h-8 px-2.5" aria-label="Bold" onClick={() => applyCommand('bold')}>

@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import { GoalDetailsCard } from '@/components/GoalDetailsCard'
 import { GoalQuickSwitch } from '@/components/GoalQuickSwitch'
-import { GoalSubItemsTabs, type GoalEntry } from '@/components/GoalSubItemsTabs'
+import { GoalSubItemsTabs } from '@/components/GoalSubItemsTabs'
+import type { GoalEntry } from '@/components/goal-entry.types'
 import type en from '@/i18n/en.json'
 
 type Dict = typeof en

@@ -1,12 +1,15 @@
+'use client'
+
 import type en from '@/i18n/en.json'
-import { forwardRef, type HTMLAttributes, type ReactNode } from 'react'
-import { Archive, CalendarDays, Lightbulb, ListChecks, Pencil, Trash2, Undo2 } from 'lucide-react'
+import { forwardRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { Archive, CalendarDays, ChevronRight, Lightbulb, ListChecks, Pencil, Trash2, Undo2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { archiveInboxItem, unarchiveInboxItem } from '@/app/(authenticated)/inbox/actions'
 import { ConvertInboxToActionDialog } from '@/components/ConvertInboxToActionDialog'
 import { EditInboxItemDialog } from '@/components/EditInboxItemDialog'
 import { ConfirmDeleteInboxItemDialog } from '@/components/ConfirmDeleteInboxItemDialog'
+import { InboxItemDetailsSheet } from '@/components/InboxItemDetailsSheet'
 import { cn } from '@/lib/utils'
 
 type Dict = typeof en
@@ -44,6 +47,7 @@ export function InboxItemRow({
 	endDefault: string
 	mode?: 'open' | 'archived'
 }) {
+	const [detailsOpen, setDetailsOpen] = useState(false)
 	const canConvert = mode === 'open' && activeGoals.length > 0
 	const dateText = new Intl.DateTimeFormat(dict.common.locale, { year: 'numeric', month: '2-digit', day: '2-digit' }).format(
 		new Date(item.created_at)
@@ -54,207 +58,186 @@ export function InboxItemRow({
 	const visibleTags = item.tags.slice(0, 3)
 	const remainingTagsCount = Math.max(item.tags.length - visibleTags.length, 0)
 
-	return (
-		<Card
-			className={cn(
-				'group overflow-hidden md:overflow-visible rounded-2xl border shadow-sm transition-colors',
-				'border-amber-500/15 bg-linear-to-br from-amber-500/[0.07] via-background to-background',
-				mode === 'archived' ? 'opacity-80' : null
-			)}
-		>
-			<CardContent className="p-0">
-				<div className="p-5">
-					<div className="space-y-4">
-						<div className="flex items-start justify-between gap-3">
-							<div className="flex flex-wrap items-center gap-2">
-								<div className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
-									<Lightbulb className="h-3.5 w-3.5" />
-									{dict.inbox.title}
-								</div>
-								<div className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2.5 py-1 text-[11px] text-muted-foreground">
-									<CalendarDays className="h-3.5 w-3.5" />
-									{dateText} {timeText}
-								</div>
-								{mode === 'archived' ? (
-									<div className="rounded-full border border-border/60 bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
-										{dict.inbox.tabArchived}
-									</div>
-								) : null}
-							</div>
+	function isDesktopViewport() {
+		return typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches
+	}
 
-							<div className="hidden md:flex items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100">
-								{mode === 'open' ? (
-									<>
-										<ConvertInboxToActionDialog
-											item={{ id: item.id, content: item.content, note: item.note, tags: item.tags }}
-											activeGoals={activeGoals}
-											dict={dict}
-											startDefault={startDefault}
-											endDefault={endDefault}
-											trigger={
-												<HoverLabel label={dict.inbox.convertCta}>
-													<Button
-														type="button"
-														variant="ghost"
-														size="icon"
-														title={!canConvert ? dict.inbox.convertDisabledNoGoal : dict.inbox.convertCta}
-														aria-label={dict.inbox.convertCta}
-														disabled={!canConvert}
-													>
-														<ListChecks className="h-4 w-4" />
+	function shouldIgnoreMobileOpen(target: EventTarget | null, currentTarget: HTMLDivElement) {
+		if (!(target instanceof Element)) return false
+		if (target.closest('a, button, input, textarea, select')) return true
+		const nestedButton = target.closest('[role="button"]')
+		return Boolean(nestedButton && nestedButton !== currentTarget)
+	}
+
+	function openMobileDetails(event: MouseEvent<HTMLDivElement>) {
+		if (isDesktopViewport()) return
+		if (shouldIgnoreMobileOpen(event.target, event.currentTarget)) return
+		setDetailsOpen(true)
+	}
+
+	function handleItemActivate(event: KeyboardEvent<HTMLDivElement>) {
+		if (isDesktopViewport()) return
+		if (event.key !== 'Enter' && event.key !== ' ') return
+		event.preventDefault()
+		setDetailsOpen(true)
+	}
+
+	return (
+		<>
+			<Card
+				className={cn(
+					'group relative isolate overflow-hidden md:overflow-visible rounded-2xl border shadow-sm transition-colors',
+					'border-amber-500/15 bg-linear-to-br from-amber-500/[0.07] via-background to-background',
+					mode === 'archived' ? 'opacity-80' : null
+				)}
+			>
+				<CardContent className="p-0">
+					<div className="p-5">
+						<div
+							role="button"
+							tabIndex={0}
+							aria-haspopup="dialog"
+							onClick={openMobileDetails}
+							onKeyDown={handleItemActivate}
+							className="space-y-4 rounded-2xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:cursor-default"
+						>
+							<div className="flex items-start justify-between gap-3">
+								<div className="flex flex-wrap items-center gap-2 pr-14 md:pr-14">
+									<div className="inline-flex items-center gap-2 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-medium text-amber-700 dark:text-amber-300">
+										<Lightbulb className="h-3.5 w-3.5" />
+										{dict.inbox.title}
+									</div>
+									<div className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background/80 px-2.5 py-1 text-[11px] text-muted-foreground">
+										<CalendarDays className="h-3.5 w-3.5" />
+										{dateText} {timeText}
+									</div>
+									{mode === 'archived' ? (
+										<div className="rounded-full border border-border/60 bg-muted px-2.5 py-1 text-[11px] text-muted-foreground">
+											{dict.inbox.tabArchived}
+										</div>
+									) : null}
+								</div>
+
+								<div className="pt-1 text-muted-foreground/60 md:hidden">
+									<ChevronRight className="h-4 w-4" />
+								</div>
+
+								<div className="pointer-events-auto absolute right-4 top-4 z-50 hidden items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100 md:flex">
+									{mode === 'open' ? (
+										<>
+											<ConvertInboxToActionDialog
+												item={{ id: item.id, content: item.content, note: item.note, tags: item.tags }}
+												activeGoals={activeGoals}
+												dict={dict}
+												startDefault={startDefault}
+												endDefault={endDefault}
+												trigger={
+													<HoverLabel label={dict.inbox.convertCta}>
+														<Button
+															type="button"
+															variant="ghost"
+															size="icon"
+															title={!canConvert ? dict.inbox.convertDisabledNoGoal : dict.inbox.convertCta}
+															aria-label={dict.inbox.convertCta}
+															disabled={!canConvert}
+														>
+															<ListChecks className="h-4 w-4" />
+														</Button>
+													</HoverLabel>
+												}
+											/>
+											<EditInboxItemDialog
+												item={{ id: item.id, content: item.content, note: item.note, tags: item.tags }}
+												dict={dict}
+												trigger={
+													<HoverLabel label={dict.common.edit}>
+														<Button type="button" variant="ghost" size="icon" title={dict.common.edit} aria-label={dict.common.edit}>
+															<Pencil className="h-4 w-4" />
+														</Button>
+													</HoverLabel>
+												}
+											/>
+											<form action={archiveInboxItem}>
+												<input type="hidden" name="id" value={item.id} />
+												<HoverLabel label={dict.inbox.archiveAction}>
+													<Button type="submit" variant="ghost" size="icon" title={dict.inbox.archiveAction} aria-label={dict.inbox.archiveAction}>
+														<Archive className="h-4 w-4" />
 													</Button>
 												</HoverLabel>
-											}
-										/>
-										<EditInboxItemDialog
-											item={{ id: item.id, content: item.content, note: item.note, tags: item.tags }}
-											dict={dict}
-											trigger={
-												<HoverLabel label={dict.common.edit}>
-													<Button type="button" variant="ghost" size="icon" title={dict.common.edit} aria-label={dict.common.edit}>
-														<Pencil className="h-4 w-4" />
-													</Button>
-												</HoverLabel>
-											}
-										/>
-										<form action={archiveInboxItem}>
+											</form>
+										</>
+									) : (
+										<form action={unarchiveInboxItem}>
 											<input type="hidden" name="id" value={item.id} />
-											<HoverLabel label={dict.inbox.archiveAction}>
-												<Button type="submit" variant="ghost" size="icon" title={dict.inbox.archiveAction} aria-label={dict.inbox.archiveAction}>
-													<Archive className="h-4 w-4" />
+											<HoverLabel label={dict.inbox.unarchiveAction}>
+												<Button type="submit" variant="ghost" size="icon" title={dict.inbox.unarchiveAction} aria-label={dict.inbox.unarchiveAction}>
+													<Undo2 className="h-4 w-4" />
 												</Button>
 											</HoverLabel>
 										</form>
-									</>
-								) : (
-									<form action={unarchiveInboxItem}>
-										<input type="hidden" name="id" value={item.id} />
-										<HoverLabel label={dict.inbox.unarchiveAction}>
-											<Button type="submit" variant="ghost" size="icon" title={dict.inbox.unarchiveAction} aria-label={dict.inbox.unarchiveAction}>
-												<Undo2 className="h-4 w-4" />
-											</Button>
-										</HoverLabel>
-									</form>
-								)}
+									)}
 
-								<ConfirmDeleteInboxItemDialog
-									id={item.id}
-									dict={dict}
-									trigger={
-										<HoverLabel label={dict.common.delete}>
-											<Button
-												type="button"
-												variant="ghost"
-												size="icon"
-												title={dict.common.delete}
-												aria-label={dict.common.delete}
-												className="text-muted-foreground hover:text-destructive"
-											>
-												<Trash2 className="h-4 w-4" />
-											</Button>
-										</HoverLabel>
-									}
-								/>
+									<ConfirmDeleteInboxItemDialog
+										id={item.id}
+										dict={dict}
+										trigger={
+											<HoverLabel label={dict.common.delete}>
+												<Button
+													type="button"
+													variant="ghost"
+													size="icon"
+													title={dict.common.delete}
+													aria-label={dict.common.delete}
+													className="text-muted-foreground hover:text-destructive"
+												>
+													<Trash2 className="h-4 w-4" />
+												</Button>
+											</HoverLabel>
+										}
+									/>
+								</div>
 							</div>
-						</div>
 
-						<div className="rounded-2xl border border-border/60 bg-background/85 px-4 py-3">
-							<div className="text-sm font-medium whitespace-pre-wrap break-words">{item.content}</div>
-							{visibleTags.length > 0 ? (
-								<div className="mt-2 flex flex-wrap gap-1">
-									{visibleTags.map((t) => (
-										<span key={t} className="rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-											{t}
-										</span>
-									))}
-									{remainingTagsCount > 0 ? (
-										<span className="rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
-											+{remainingTagsCount}
-										</span>
-									) : null}
+							<div className="rounded-2xl border border-border/60 bg-background/85 px-4 py-3">
+								<div className="text-sm font-medium whitespace-pre-wrap wrap-break-word">{item.content}</div>
+								{visibleTags.length > 0 ? (
+									<div className="mt-2 flex flex-wrap gap-1">
+										{visibleTags.map((t) => (
+											<span key={t} className="rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+												{t}
+											</span>
+										))}
+										{remainingTagsCount > 0 ? (
+											<span className="rounded-md border border-border bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+												+{remainingTagsCount}
+											</span>
+										) : null}
+									</div>
+								) : null}
+								{mode === 'open' && !canConvert ? <div className="mt-2 text-xs text-muted-foreground">{dict.inbox.convertDisabledNoGoal}</div> : null}
+							</div>
+
+							{item.note ? (
+								<div className="rounded-2xl border border-amber-500/12 bg-amber-500/4 px-4 py-3">
+									<div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{noteLabel}</div>
+									<div className="whitespace-pre-wrap wrap-break-word text-sm leading-7 text-muted-foreground">{item.note}</div>
 								</div>
 							) : null}
-							{mode === 'open' && !canConvert ? (
-								<div className="mt-2 text-xs text-muted-foreground">{dict.inbox.convertDisabledNoGoal}</div>
-							) : null}
 						</div>
-
-						{item.note ? (
-							<div className="rounded-2xl border border-amber-500/12 bg-amber-500/4 px-4 py-3">
-								<div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{noteLabel}</div>
-								<div className="whitespace-pre-wrap wrap-break-word text-sm leading-7 text-muted-foreground">{item.note}</div>
-							</div>
-						) : null}
 					</div>
+				</CardContent>
+			</Card>
 
-					<div className="md:hidden border-t border-border/50 pt-4 mt-4">
-						{mode === 'archived' ? (
-							<div className="grid grid-cols-2 gap-2">
-								<form action={unarchiveInboxItem}>
-									<input type="hidden" name="id" value={item.id} />
-									<Button type="submit" size="sm" className="w-full gap-2" title={dict.inbox.unarchiveAction}>
-										<Undo2 className="h-4 w-4" />
-										{dict.inbox.unarchive}
-									</Button>
-								</form>
-								<ConfirmDeleteInboxItemDialog
-									id={item.id}
-									dict={dict}
-									trigger={
-										<Button type="button" size="sm" variant="ghost" className="w-full gap-1 text-muted-foreground hover:text-destructive">
-											<Trash2 className="h-4 w-4" />
-											{dict.common.delete}
-										</Button>
-									}
-								/>
-							</div>
-						) : (
-							<div className="grid grid-cols-2 gap-2">
-								<ConvertInboxToActionDialog
-									item={{ id: item.id, content: item.content, note: item.note, tags: item.tags }}
-									activeGoals={activeGoals}
-									dict={dict}
-									startDefault={startDefault}
-									endDefault={endDefault}
-									trigger={
-										<Button size="sm" className="w-full" disabled={!canConvert} title={!canConvert ? dict.inbox.convertDisabledNoGoal : undefined}>
-											<ListChecks className="h-4 w-4 mr-1" />
-											{dict.inbox.convertCta}
-										</Button>
-									}
-								/>
-								<EditInboxItemDialog
-									item={{ id: item.id, content: item.content, note: item.note, tags: item.tags }}
-									dict={dict}
-									trigger={
-										<Button type="button" size="sm" variant="outline" className="w-full gap-1">
-											<Pencil className="h-4 w-4" />
-											{dict.inbox.mobileEditShort}
-										</Button>
-									}
-								/>
-								<form action={archiveInboxItem}>
-									<input type="hidden" name="id" value={item.id} />
-									<Button type="submit" size="sm" variant="outline" className="w-full gap-1">
-										<Archive className="h-4 w-4" />
-										{dict.inbox.mobileArchiveShort}
-									</Button>
-								</form>
-								<ConfirmDeleteInboxItemDialog
-									id={item.id}
-									dict={dict}
-									trigger={
-										<Button type="button" size="sm" variant="ghost" className="w-full gap-1 text-muted-foreground hover:text-destructive">
-											<Trash2 className="h-4 w-4" />
-											{dict.common.delete}
-										</Button>
-									}
-								/>
-							</div>
-						)}
-					</div>
-				</div>
-			</CardContent>
-		</Card>
+			<InboxItemDetailsSheet
+				open={detailsOpen}
+				onOpenChange={setDetailsOpen}
+				item={item}
+				activeGoals={activeGoals}
+				dict={dict}
+				startDefault={startDefault}
+				endDefault={endDefault}
+				mode={mode}
+			/>
+		</>
 	)
 }

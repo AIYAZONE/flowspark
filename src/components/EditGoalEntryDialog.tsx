@@ -78,8 +78,8 @@ export function EditGoalEntryDialog({
 			: dict.goals.detail.journeyNotePlaceholder
 	const isJourney = entry.kind === 'journey'
 	const desktopDialogClassName = isDesktopFullscreen
-		? 'sm:inset-0! sm:h-dvh! sm:w-screen! sm:max-w-none! sm:translate-x-0! sm:translate-y-0! sm:rounded-none! sm:border-0!'
-		: 'sm:left-[50%]! sm:right-auto! sm:top-[50%]! sm:bottom-auto! sm:h-auto! sm:w-full! sm:max-w-3xl! sm:translate-x-[-50%]! sm:translate-y-[-50%]! sm:rounded-lg! sm:border! sm:pb-6!'
+		? 'md:inset-0! md:h-dvh! md:w-screen! md:max-w-none! md:translate-x-0! md:translate-y-0! md:rounded-none! md:border-0!'
+		: 'md:left-[50%]! md:right-auto! md:top-[50%]! md:bottom-auto! md:h-auto! md:w-full! md:max-w-3xl! md:translate-x-[-50%]! md:translate-y-[-50%]! md:rounded-lg! md:border! md:pb-6!'
 	return (
 		<Dialog open={open} onOpenChange={handleOpenChange}>
 			<DialogTrigger asChild>{trigger}</DialogTrigger>
@@ -88,9 +88,9 @@ export function EditGoalEntryDialog({
 				hideCloseButton
 				className={cn('p-0', desktopDialogClassName)}
 			>
-				<div className={cn('flex flex-col', isDesktopFullscreen ? 'h-full' : 'h-full sm:max-h-[90dvh]')}>
+				<div className={cn('flex flex-col', isDesktopFullscreen ? 'h-full' : 'h-full md:max-h-[90dvh]')}>
 					<DialogHeader
-						className="border-b border-border/60 px-4 pb-3 pt-4 text-left sm:px-6 sm:pb-4 sm:pt-6"
+						className="border-b border-border/60 px-4 pb-3 pt-4 text-left md:px-6 md:pb-4 md:pt-6"
 					>
 						<div className="flex items-start justify-between gap-3">
 							<DialogTitle className="min-w-0 flex-1 text-left leading-snug">{title}</DialogTitle>
@@ -99,7 +99,7 @@ export function EditGoalEntryDialog({
 									type="button"
 									variant="ghost"
 									size="icon"
-									className="hidden h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground sm:inline-flex"
+									className="hidden h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground md:inline-flex"
 									onClick={() => setIsDesktopFullscreen((value) => !value)}
 								>
 									{isDesktopFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
@@ -126,7 +126,7 @@ export function EditGoalEntryDialog({
 						<input type="hidden" name="goal_id" value={goalId} />
 
 						<div
-							className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 sm:px-6"
+							className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-6"
 							style={{ paddingBottom: keyboardInset > 0 ? Math.max(16, keyboardInset * 0.35) : undefined }}
 						>
 							<div className="space-y-2">
@@ -138,7 +138,7 @@ export function EditGoalEntryDialog({
 									value={content}
 									onChange={setContent}
 									placeholder={contentPlaceholder}
-									minHeightClassName={entry.kind === 'journey' ? 'min-h-[180px] sm:min-h-[220px]' : 'min-h-[160px] sm:min-h-[200px]'}
+									minHeightClassName={entry.kind === 'journey' ? 'min-h-[180px] md:min-h-[220px]' : 'min-h-[160px] md:min-h-[200px]'}
 								/>
 							</div>
 
@@ -151,7 +151,7 @@ export function EditGoalEntryDialog({
 									onChange={(e) => setNote(e.target.value)}
 									placeholder={notePlaceholder}
 									rows={entry.kind === 'journey' ? 10 : 6}
-									className={entry.kind === 'journey' ? 'min-h-[38dvh] sm:min-h-[320px]' : 'min-h-[28dvh] sm:min-h-[240px]'}
+									className={entry.kind === 'journey' ? 'min-h-[38dvh] md:min-h-[320px]' : 'min-h-[28dvh] md:min-h-[240px]'}
 								/>
 							</div>
 
@@ -159,7 +159,7 @@ export function EditGoalEntryDialog({
 						</div>
 
 						<div
-							className="border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur sm:bg-background/95 sm:px-6 sm:py-4"
+							className="border-t border-border/60 bg-background/95 px-4 py-3 backdrop-blur md:bg-background/95 md:px-6 md:py-4"
 							style={{ paddingBottom: open && keyboardInset > 0 ? `calc(env(safe-area-inset-bottom) + ${keyboardInset}px)` : undefined }}
 						>
 							<div className="flex items-center justify-end gap-2">

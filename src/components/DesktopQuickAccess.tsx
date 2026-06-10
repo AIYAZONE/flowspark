@@ -8,6 +8,7 @@ import { AddGoalDialog } from '@/components/AddGoalDialog'
 import { AddActionDialog } from '@/components/AddActionDialog'
 import { QuickCaptureDialog } from '@/components/QuickCaptureDialog'
 import { AITodayPlanButton } from '@/components/AITodayPlanButton'
+import { TABLET_AND_UP_CLASS } from '@/components/responsive-classes'
 import { Button } from '@/components/ui/button'
 
 type Dict = typeof en
@@ -48,14 +49,14 @@ export function DesktopQuickAccess({
 
   return (
     <>
-      {open ? <div className="fixed inset-0 z-30 hidden xl:block" onClick={() => setOpen(false)} /> : null}
-      <div className="fixed bottom-6 right-6 z-40 hidden xl:block">
+      {open ? <div className={`fixed inset-0 z-30 ${TABLET_AND_UP_CLASS}`} onClick={() => setOpen(false)} /> : null}
+      <div className={`fixed bottom-6 right-6 z-40 ${TABLET_AND_UP_CLASS}`}>
         {open ? (
           <div className="w-[320px] rounded-3xl border border-border/60 bg-background/92 p-4 shadow-2xl backdrop-blur">
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <div className="text-sm font-semibold text-foreground">{dict.quickCapture.fabLabel}</div>
-                <div className="text-xs text-muted-foreground">Desktop shortcuts</div>
+                <div className="text-xs text-muted-foreground">Quick shortcuts</div>
               </div>
               <div className="flex items-center gap-2">
                 <div className="inline-flex rounded-full border border-primary/15 bg-primary/8 px-2.5 py-1 text-[11px] font-medium text-primary">

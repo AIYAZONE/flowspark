@@ -22,12 +22,14 @@ export function ConfirmDeleteGoalEntryDialog({
 	id,
 	goalId,
 	dict,
-	trigger
+	trigger,
+	onSuccess
 }: {
 	id: string
 	goalId: string
 	dict: Dict
 	trigger: React.ReactNode
+	onSuccess?: () => void
 }) {
 	const [open, setOpen] = useState(false)
 	const [isPending, startTransition] = useTransition()
@@ -39,6 +41,7 @@ export function ConfirmDeleteGoalEntryDialog({
 			formData.set('goal_id', goalId)
 			await deleteGoalEntry(formData)
 			setOpen(false)
+			onSuccess?.()
 		})
 	}
 
@@ -74,4 +77,3 @@ export function ConfirmDeleteGoalEntryDialog({
 		</AlertDialog>
 	)
 }
-

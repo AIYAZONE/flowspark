@@ -1,6 +1,7 @@
 'use client'
 
 import { RefObject, useEffect, useState } from 'react'
+import { MOBILE_MEDIA_QUERY } from '@/components/responsive-classes'
 
 export function useMobileInputVisible(
   open: boolean,
@@ -13,7 +14,7 @@ export function useMobileInputVisible(
 
     const timer = window.setTimeout(() => {
       node.focus()
-      if (window.matchMedia('(max-width: 767px)').matches) {
+      if (window.matchMedia(MOBILE_MEDIA_QUERY).matches) {
         node.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
       }
     }, 30)

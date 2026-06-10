@@ -30,6 +30,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { GoalRequiredIntroCard } from './GoalRequiredIntroCard'
 import { Target } from 'lucide-react'
 import { useMobileInputVisible } from '@/components/ui/use-mobile-input-visible'
+import { TABLET_AND_UP_MEDIA_QUERY } from '@/components/responsive-classes'
 type Dict = typeof en
 
 type Goal = {
@@ -58,7 +59,7 @@ export function SetCoreActionSheet({ goals, dict, defaultDate, trigger }: SetCor
   const titleRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
-    const media = window.matchMedia('(min-width: 640px)')
+    const media = window.matchMedia(TABLET_AND_UP_MEDIA_QUERY)
     const sync = () => setIsDesktop(media.matches)
     sync()
     media.addEventListener('change', sync)
@@ -119,10 +120,10 @@ export function SetCoreActionSheet({ goals, dict, defaultDate, trigger }: SetCor
       </SheetTrigger>
       <SheetFormContent
         side={isDesktop ? 'right' : 'bottom'}
-        className="sm:max-w-sm p-0"
+        className="md:max-w-sm p-0"
       >
         {step === 'intro' ? (
-          <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-primary/10 via-background to-background px-6 pb-8 pt-10">
+          <div className="relative h-full w-full overflow-hidden bg-linear-to-br from-primary/10 via-background to-background px-6 pb-8 pt-10">
             <div className="pointer-events-none absolute -top-24 -right-24 h-60 w-60 rounded-full bg-primary/15 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-24 -left-24 h-60 w-60 rounded-full bg-purple-500/10 blur-3xl" />
             <AnimatePresence mode="wait">

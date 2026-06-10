@@ -21,11 +21,13 @@ type Dict = typeof en
 export function ConfirmDeleteInboxItemDialog({
 	id,
 	dict,
-	trigger
+	trigger,
+	onSuccess
 }: {
 	id: string
 	dict: Dict
 	trigger: React.ReactNode
+	onSuccess?: () => void
 }) {
 	const [open, setOpen] = useState(false)
 	const [isPending, startTransition] = useTransition()
@@ -36,6 +38,7 @@ export function ConfirmDeleteInboxItemDialog({
 			formData.set('id', id)
 			await deleteInboxItem(formData)
 			setOpen(false)
+			onSuccess?.()
 		})
 	}
 
