@@ -65,35 +65,37 @@ var goalCategories_1 = require("@/lib/goalCategories");
 var analytics_1 = require("@/lib/analytics");
 var aiFeedback_1 = require("@/lib/aiFeedback");
 var actionScheduling_1 = require("@/lib/actionScheduling");
+var ModalActionFooter_1 = require("@/components/ModalActionFooter");
+var utils_1 = require("@/lib/utils");
 function makeId() {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
         return crypto.randomUUID();
     return Date.now() + "-" + Math.random().toString(16).slice(2);
 }
 function NewGoalForm(_a) {
-    var dict = _a.dict, onSuccess = _a.onSuccess, action = _a.action;
+    var dict = _a.dict, onSuccess = _a.onSuccess, action = _a.action, _b = _a.fixedFooter, fixedFooter = _b === void 0 ? false : _b;
     var submitAction = action || actions_1.createGoal;
     var formRef = react_1.useRef(null);
     var newDict = dict.goals["new"];
     var commonErrors = dict.common.errors;
-    var _b = react_1.useState('manual'), createMode = _b[0], setCreateMode = _b[1];
-    var _c = react_1.useState(function () { return new Date().toISOString().slice(0, 10); }), goalStart = _c[0], setGoalStart = _c[1];
-    var _d = react_1.useState(function () { return new Date().toISOString().slice(0, 10); }), goalEnd = _d[0], setGoalEnd = _d[1];
-    var _e = react_1.useState('other'), category = _e[0], setCategory = _e[1];
-    var _f = react_1.useState('medium'), priority = _f[0], setPriority = _f[1];
-    var _g = react_1.useState(true), dateValid = _g[0], setDateValid = _g[1];
-    var _h = react_1.useState(''), goalTitle = _h[0], setGoalTitle = _h[1];
-    var _j = react_1.useState(false), aiLoading = _j[0], setAiLoading = _j[1];
-    var _k = react_1.useState(null), aiError = _k[0], setAiError = _k[1];
-    var _l = react_1.useState(null), submitError = _l[0], setSubmitError = _l[1];
-    var _m = react_1.useState(null), aiStepA = _m[0], setAiStepA = _m[1];
-    var _o = react_1.useState({}), aiAnswers = _o[0], setAiAnswers = _o[1];
-    var _p = react_1.useState(null), aiStepB = _p[0], setAiStepB = _p[1];
-    var _q = react_1.useState([]), draftActions = _q[0], setDraftActions = _q[1];
-    var _r = react_1.useState(false), creatingActions = _r[0], setCreatingActions = _r[1];
+    var _c = react_1.useState('manual'), createMode = _c[0], setCreateMode = _c[1];
+    var _d = react_1.useState(function () { return new Date().toISOString().slice(0, 10); }), goalStart = _d[0], setGoalStart = _d[1];
+    var _e = react_1.useState(function () { return new Date().toISOString().slice(0, 10); }), goalEnd = _e[0], setGoalEnd = _e[1];
+    var _f = react_1.useState('other'), category = _f[0], setCategory = _f[1];
+    var _g = react_1.useState('medium'), priority = _g[0], setPriority = _g[1];
+    var _h = react_1.useState(true), dateValid = _h[0], setDateValid = _h[1];
+    var _j = react_1.useState(''), goalTitle = _j[0], setGoalTitle = _j[1];
+    var _k = react_1.useState(false), aiLoading = _k[0], setAiLoading = _k[1];
+    var _l = react_1.useState(null), aiError = _l[0], setAiError = _l[1];
+    var _m = react_1.useState(null), submitError = _m[0], setSubmitError = _m[1];
+    var _o = react_1.useState(null), aiStepA = _o[0], setAiStepA = _o[1];
+    var _p = react_1.useState({}), aiAnswers = _p[0], setAiAnswers = _p[1];
+    var _q = react_1.useState(null), aiStepB = _q[0], setAiStepB = _q[1];
+    var _r = react_1.useState([]), draftActions = _r[0], setDraftActions = _r[1];
+    var _s = react_1.useState(false), creatingActions = _s[0], setCreatingActions = _s[1];
     var hasEnabledDrafts = draftActions.some(function (a) { return a.enabled; });
-    var _s = react_1.useState(''), successCriteriaText = _s[0], setSuccessCriteriaText = _s[1];
-    var _t = react_1.useState(''), stopCriteriaText = _t[0], setStopCriteriaText = _t[1];
+    var _t = react_1.useState(''), successCriteriaText = _t[0], setSuccessCriteriaText = _t[1];
+    var _u = react_1.useState(''), stopCriteriaText = _u[0], setStopCriteriaText = _u[1];
     function handleSubmit(formData) {
         return __awaiter(this, void 0, void 0, function () {
             var goalStartDate, goalEndDate, result, error_1, code, code, typed, goalId, enabledCount, _i, draftActions_1, a, start_date, end_date, actionData;
@@ -422,151 +424,153 @@ function NewGoalForm(_a) {
             });
         });
     }
-    return (React.createElement("form", { ref: formRef, action: handleSubmit, className: "space-y-6" },
-        React.createElement("div", { className: "flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 p-2" },
-            React.createElement("button", { type: "button", className: "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors " + (createMode === 'manual' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'), onClick: function () { return setCreateMode('manual'); } }, newDict.manualCreate || '手动创建'),
-            React.createElement("button", { type: "button", className: "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors " + (createMode === 'ai' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'), onClick: function () { return setCreateMode('ai'); } }, newDict.aiSplitCreate || 'AI 拆解创建')),
-        submitError && (React.createElement("div", { className: "text-sm text-destructive", role: "alert" }, submitError)),
-        React.createElement("div", { className: "grid gap-2" },
-            React.createElement(label_1.Label, { htmlFor: "title", required: true }, dict.goals["new"].titleLabel),
-            React.createElement(input_1.Input, { id: "title", name: "title", placeholder: dict.goals["new"].titlePlaceholder, required: true, onChange: function (e) { return setGoalTitle(e.target.value); } })),
-        React.createElement("div", { className: "grid gap-2" },
-            React.createElement(label_1.Label, { htmlFor: "description" }, dict.goals["new"].descriptionLabel),
-            React.createElement(textarea_1.Textarea, { id: "description", name: "description", placeholder: dict.goals["new"].descriptionPlaceholder }),
-            React.createElement("div", { className: "flex items-center gap-3" },
-                React.createElement(button_1.Button, { type: "button", variant: "outline", onClick: handleAISplit, disabled: aiLoading || creatingActions || !goalTitle.trim() || (createMode === 'manual' && !dateValid) },
-                    aiLoading && React.createElement(loading_spinner_1.LoadingSpinner, { size: 16, className: "mr-2 text-current" }),
-                    dict.goals["new"].aiSplitButton || 'AI 帮我拆解'),
-                React.createElement("div", { className: "text-xs text-muted-foreground" }, dict.goals["new"].aiSplitHint || '仅生成草案，不会创建目标；点击“创建目标”才会保存'),
-                creatingActions && (React.createElement("div", { className: "text-sm text-muted-foreground flex items-center" },
-                    React.createElement(loading_spinner_1.LoadingSpinner, { size: 14, className: "mr-2 text-current" }),
-                    dict.goals["new"].aiCreatingActions || '正在创建行动...'))),
-            aiError && React.createElement("div", { className: "text-sm text-destructive" }, aiError)),
-        aiStepA && (React.createElement("div", { className: "space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4" },
-            React.createElement("div", { className: "space-y-2" },
-                React.createElement("div", { className: "text-sm font-medium" }, newDict.aiUnderstandingTitle || 'AI 理解摘要（草案）'),
-                React.createElement("div", { className: "text-sm text-muted-foreground space-y-1" },
-                    React.createElement("div", null, aiStepA.understanding.goal_summary),
-                    aiStepA.understanding.key_constraints.length > 0 && (React.createElement("div", { className: "text-xs" },
-                        React.createElement("div", { className: "font-medium text-foreground/80" }, newDict.aiConstraintsLabel || '关键约束'),
-                        React.createElement("ul", { className: "list-disc pl-5" }, aiStepA.understanding.key_constraints.map(function (c, i) { return (React.createElement("li", { key: c + "-" + i }, c)); })))),
-                    aiStepA.understanding.likely_failure_reasons.length > 0 && (React.createElement("div", { className: "text-xs" },
-                        React.createElement("div", { className: "font-medium text-foreground/80" }, newDict.aiFrictionsLabel || '可能阻力'),
-                        React.createElement("ul", { className: "list-disc pl-5" }, aiStepA.understanding.likely_failure_reasons.map(function (c, i) { return (React.createElement("li", { key: c + "-" + i }, c)); })))),
-                    React.createElement("div", { className: "text-xs" },
-                        React.createElement("div", { className: "font-medium text-foreground/80" }, newDict.aiLeverageLabel || '建议杠杆点'),
-                        React.createElement("div", null, aiStepA.understanding.leverage_point)))),
-            aiStepA.need_more_info.blocking ? (React.createElement("div", { className: "space-y-2" },
-                React.createElement("div", { className: "text-sm font-medium text-destructive" }, newDict.aiNeedMoreTitle || '还需要补充'),
-                React.createElement("div", { className: "text-sm text-muted-foreground" }, aiStepA.need_more_info.message),
-                aiStepA.need_more_info.missing.length > 0 && (React.createElement("ul", { className: "list-disc pl-5 text-sm text-muted-foreground" }, aiStepA.need_more_info.missing.map(function (m, i) { return (React.createElement("li", { key: m + "-" + i }, m)); }))))) : (React.createElement("div", { className: "space-y-3" },
-                React.createElement("div", { className: "text-sm font-medium" }, newDict.aiQuestionsTitle || '快速澄清（2-3 题）'),
-                React.createElement("div", { className: "space-y-3" }, aiStepA.clarifying_questions.map(function (q) { return (React.createElement("div", { key: q.id, className: "space-y-2" },
-                    React.createElement("div", { className: "text-sm" }, q.question),
-                    q.type === 'single_choice' ? (React.createElement(select_1.Select, { value: aiAnswers[q.id] || undefined, onValueChange: function (value) {
-                            setAiAnswers(function (prev) {
-                                var _a;
-                                return (__assign(__assign({}, prev), (_a = {}, _a[q.id] = value, _a)));
-                            });
-                        } },
-                        React.createElement(select_1.SelectTrigger, { className: "bg-background/50" },
-                            React.createElement(select_1.SelectValue, { placeholder: newDict.aiSelectPlaceholder || '请选择' })),
-                        React.createElement(select_1.SelectContent, null, (q.options || []).map(function (opt) { return (React.createElement(select_1.SelectItem, { key: opt, value: opt }, opt)); })))) : (React.createElement(input_1.Input, { value: aiAnswers[q.id] || '', onChange: function (e) {
-                            var value = e.target.value;
-                            setAiAnswers(function (prev) {
-                                var _a;
-                                return (__assign(__assign({}, prev), (_a = {}, _a[q.id] = value, _a)));
-                            });
-                        }, placeholder: newDict.aiShortAnswerPlaceholder || '一句话回答即可' })))); })),
-                React.createElement(button_1.Button, { type: "button", onClick: handleAIGenerateDrafts, disabled: aiLoading || creatingActions },
-                    aiLoading && React.createElement(loading_spinner_1.LoadingSpinner, { size: 16, className: "mr-2 text-primary-foreground/80" }),
-                    newDict.aiGenerateDraftsButton || '生成草案'))))),
-        createMode === 'manual' || aiStepB ? (React.createElement(React.Fragment, null,
-            React.createElement("div", { className: "grid grid-cols-2 gap-4" },
-                React.createElement("div", { className: "grid gap-2" },
-                    React.createElement(label_1.Label, { htmlFor: "category" }, dict.goals.category.label),
-                    React.createElement(GoalCategorySelect_1.GoalCategorySelect, { dict: dict, value: category, onChange: setCategory })),
-                React.createElement("div", { className: "grid gap-2" },
-                    React.createElement(label_1.Label, { htmlFor: "priority" }, dict.goals.priority.label),
-                    React.createElement(select_1.Select, { name: "priority", value: priority, onValueChange: setPriority },
-                        React.createElement(select_1.SelectTrigger, null,
-                            React.createElement(select_1.SelectValue, { placeholder: dict.goals.priority.label })),
-                        React.createElement(select_1.SelectContent, null,
-                            React.createElement(select_1.SelectItem, { value: "high" }, dict.goals.priority.high),
-                            React.createElement(select_1.SelectItem, { value: "medium" }, dict.goals.priority.medium),
-                            React.createElement(select_1.SelectItem, { value: "low" }, dict.goals.priority.low))))),
-            React.createElement(DateRangeFields_1.DateRangeFields, { defaultStart: goalStart, defaultEnd: goalEnd, valueStart: goalStart, valueEnd: goalEnd, onChange: function (_a) {
-                    var start = _a.start, end = _a.end;
-                    setGoalStart(start);
-                    setGoalEnd(end);
-                }, labels: { start: dict.goals["new"].startDate, end: dict.goals["new"].endDate, error: dict.common.dateRangeInvalid }, onValidityChange: setDateValid }))) : null,
-        draftActions.length > 0 && (React.createElement("div", { className: "space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4" },
-            React.createElement("div", { className: "font-medium" }, dict.goals["new"].aiSuggestionsTitle || 'AI 建议行动（可编辑）'),
-            React.createElement("div", { className: "space-y-3" }, draftActions.map(function (a) {
-                var _a;
-                return (React.createElement("div", { key: a.id, className: "flex items-start gap-3 rounded-md border border-border/50 bg-background/50 p-3" },
-                    React.createElement("input", { type: "checkbox", className: "mt-1 h-4 w-4", checked: a.enabled, onChange: function (e) {
-                            var enabled = e.target.checked;
-                            setDraftActions(function (prev) { return prev.map(function (x) { return x.id === a.id ? __assign(__assign({}, x), { enabled: enabled }) : x; }); });
-                        } }),
-                    React.createElement("div", { className: "flex-1 space-y-2" },
-                        React.createElement(input_1.Input, { value: a.title, onChange: function (e) {
-                                var title = e.target.value;
-                                setDraftActions(function (prev) { return prev.map(function (x) { return x.id === a.id ? __assign(__assign({}, x), { title: title }) : x; }); });
+    var actionButtons = (React.createElement("div", { className: "flex justify-end gap-4" },
+        onSuccess ? (React.createElement(button_1.Button, { type: "button", variant: "outline", onClick: function () { return onSuccess(); } }, dict.common.cancel)) : (React.createElement(link_1["default"], { href: "/goals" },
+            React.createElement(button_1.Button, { type: "button", variant: "outline" }, dict.common.cancel))),
+        React.createElement(SubmitButton_1.SubmitButton, { disabled: !dateValid || creatingActions || (createMode === 'ai' && !aiStepB) }, hasEnabledDrafts ? (dict.goals["new"].submitWithActions || dict.goals["new"].submit) : dict.goals["new"].submit)));
+    return (React.createElement("form", { ref: formRef, action: handleSubmit, className: utils_1.cn(fixedFooter ? 'flex min-h-0 flex-1 flex-col' : 'space-y-6') },
+        React.createElement("div", { className: utils_1.cn(fixedFooter ? 'min-h-0 flex-1 space-y-6 overflow-y-auto px-4 py-4 md:px-6' : 'space-y-6') },
+            React.createElement("div", { className: "flex items-center justify-between gap-3 rounded-lg border border-border/60 bg-muted/20 p-2" },
+                React.createElement("button", { type: "button", className: "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors " + (createMode === 'manual' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'), onClick: function () { return setCreateMode('manual'); } }, newDict.manualCreate || '手动创建'),
+                React.createElement("button", { type: "button", className: "flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors " + (createMode === 'ai' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'), onClick: function () { return setCreateMode('ai'); } }, newDict.aiSplitCreate || 'AI 拆解创建')),
+            submitError && (React.createElement("div", { className: "text-sm text-destructive", role: "alert" }, submitError)),
+            React.createElement("div", { className: "grid gap-2" },
+                React.createElement(label_1.Label, { htmlFor: "title", required: true }, dict.goals["new"].titleLabel),
+                React.createElement(input_1.Input, { id: "title", name: "title", placeholder: dict.goals["new"].titlePlaceholder, required: true, onChange: function (e) { return setGoalTitle(e.target.value); } })),
+            React.createElement("div", { className: "grid gap-2" },
+                React.createElement(label_1.Label, { htmlFor: "description" }, dict.goals["new"].descriptionLabel),
+                React.createElement(textarea_1.Textarea, { id: "description", name: "description", placeholder: dict.goals["new"].descriptionPlaceholder }),
+                React.createElement("div", { className: "flex items-center gap-3" },
+                    React.createElement(button_1.Button, { type: "button", variant: "outline", onClick: handleAISplit, disabled: aiLoading || creatingActions || !goalTitle.trim() || (createMode === 'manual' && !dateValid) },
+                        aiLoading && React.createElement(loading_spinner_1.LoadingSpinner, { size: 16, className: "mr-2 text-current" }),
+                        dict.goals["new"].aiSplitButton || 'AI 帮我拆解'),
+                    React.createElement("div", { className: "text-xs text-muted-foreground" }, dict.goals["new"].aiSplitHint || '仅生成草案，不会创建目标；点击“创建目标”才会保存'),
+                    creatingActions && (React.createElement("div", { className: "text-sm text-muted-foreground flex items-center" },
+                        React.createElement(loading_spinner_1.LoadingSpinner, { size: 14, className: "mr-2 text-current" }),
+                        dict.goals["new"].aiCreatingActions || '正在创建行动...'))),
+                aiError && React.createElement("div", { className: "text-sm text-destructive" }, aiError)),
+            aiStepA && (React.createElement("div", { className: "space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4" },
+                React.createElement("div", { className: "space-y-2" },
+                    React.createElement("div", { className: "text-sm font-medium" }, newDict.aiUnderstandingTitle || 'AI 理解摘要（草案）'),
+                    React.createElement("div", { className: "text-sm text-muted-foreground space-y-1" },
+                        React.createElement("div", null, aiStepA.understanding.goal_summary),
+                        aiStepA.understanding.key_constraints.length > 0 && (React.createElement("div", { className: "text-xs" },
+                            React.createElement("div", { className: "font-medium text-foreground/80" }, newDict.aiConstraintsLabel || '关键约束'),
+                            React.createElement("ul", { className: "list-disc pl-5" }, aiStepA.understanding.key_constraints.map(function (c, i) { return (React.createElement("li", { key: c + "-" + i }, c)); })))),
+                        aiStepA.understanding.likely_failure_reasons.length > 0 && (React.createElement("div", { className: "text-xs" },
+                            React.createElement("div", { className: "font-medium text-foreground/80" }, newDict.aiFrictionsLabel || '可能阻力'),
+                            React.createElement("ul", { className: "list-disc pl-5" }, aiStepA.understanding.likely_failure_reasons.map(function (c, i) { return (React.createElement("li", { key: c + "-" + i }, c)); })))),
+                        React.createElement("div", { className: "text-xs" },
+                            React.createElement("div", { className: "font-medium text-foreground/80" }, newDict.aiLeverageLabel || '建议杠杆点'),
+                            React.createElement("div", null, aiStepA.understanding.leverage_point)))),
+                aiStepA.need_more_info.blocking ? (React.createElement("div", { className: "space-y-2" },
+                    React.createElement("div", { className: "text-sm font-medium text-destructive" }, newDict.aiNeedMoreTitle || '还需要补充'),
+                    React.createElement("div", { className: "text-sm text-muted-foreground" }, aiStepA.need_more_info.message),
+                    aiStepA.need_more_info.missing.length > 0 && (React.createElement("ul", { className: "list-disc pl-5 text-sm text-muted-foreground" }, aiStepA.need_more_info.missing.map(function (m, i) { return (React.createElement("li", { key: m + "-" + i }, m)); }))))) : (React.createElement("div", { className: "space-y-3" },
+                    React.createElement("div", { className: "text-sm font-medium" }, newDict.aiQuestionsTitle || '快速澄清（2-3 题）'),
+                    React.createElement("div", { className: "space-y-3" }, aiStepA.clarifying_questions.map(function (q) { return (React.createElement("div", { key: q.id, className: "space-y-2" },
+                        React.createElement("div", { className: "text-sm" }, q.question),
+                        q.type === 'single_choice' ? (React.createElement(select_1.Select, { value: aiAnswers[q.id] || undefined, onValueChange: function (value) {
+                                setAiAnswers(function (prev) {
+                                    var _a;
+                                    return (__assign(__assign({}, prev), (_a = {}, _a[q.id] = value, _a)));
+                                });
+                            } },
+                            React.createElement(select_1.SelectTrigger, { className: "bg-background/50" },
+                                React.createElement(select_1.SelectValue, { placeholder: newDict.aiSelectPlaceholder || '请选择' })),
+                            React.createElement(select_1.SelectContent, null, (q.options || []).map(function (opt) { return (React.createElement(select_1.SelectItem, { key: opt, value: opt }, opt)); })))) : (React.createElement(input_1.Input, { value: aiAnswers[q.id] || '', onChange: function (e) {
+                                var value = e.target.value;
+                                setAiAnswers(function (prev) {
+                                    var _a;
+                                    return (__assign(__assign({}, prev), (_a = {}, _a[q.id] = value, _a)));
+                                });
+                            }, placeholder: newDict.aiShortAnswerPlaceholder || '一句话回答即可' })))); })),
+                    React.createElement(button_1.Button, { type: "button", onClick: handleAIGenerateDrafts, disabled: aiLoading || creatingActions },
+                        aiLoading && React.createElement(loading_spinner_1.LoadingSpinner, { size: 16, className: "mr-2 text-primary-foreground/80" }),
+                        newDict.aiGenerateDraftsButton || '生成草案'))))),
+            createMode === 'manual' || aiStepB ? (React.createElement(React.Fragment, null,
+                React.createElement("div", { className: "grid grid-cols-2 gap-4" },
+                    React.createElement("div", { className: "grid gap-2" },
+                        React.createElement(label_1.Label, { htmlFor: "category" }, dict.goals.category.label),
+                        React.createElement(GoalCategorySelect_1.GoalCategorySelect, { dict: dict, value: category, onChange: setCategory })),
+                    React.createElement("div", { className: "grid gap-2" },
+                        React.createElement(label_1.Label, { htmlFor: "priority" }, dict.goals.priority.label),
+                        React.createElement(select_1.Select, { name: "priority", value: priority, onValueChange: setPriority },
+                            React.createElement(select_1.SelectTrigger, null,
+                                React.createElement(select_1.SelectValue, { placeholder: dict.goals.priority.label })),
+                            React.createElement(select_1.SelectContent, null,
+                                React.createElement(select_1.SelectItem, { value: "high" }, dict.goals.priority.high),
+                                React.createElement(select_1.SelectItem, { value: "medium" }, dict.goals.priority.medium),
+                                React.createElement(select_1.SelectItem, { value: "low" }, dict.goals.priority.low))))),
+                React.createElement(DateRangeFields_1.DateRangeFields, { defaultStart: goalStart, defaultEnd: goalEnd, valueStart: goalStart, valueEnd: goalEnd, onChange: function (_a) {
+                        var start = _a.start, end = _a.end;
+                        setGoalStart(start);
+                        setGoalEnd(end);
+                    }, labels: { start: dict.goals["new"].startDate, end: dict.goals["new"].endDate, error: dict.common.dateRangeInvalid }, onValidityChange: setDateValid }))) : null,
+            draftActions.length > 0 && (React.createElement("div", { className: "space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4" },
+                React.createElement("div", { className: "font-medium" }, dict.goals["new"].aiSuggestionsTitle || 'AI 建议行动（可编辑）'),
+                React.createElement("div", { className: "space-y-3" }, draftActions.map(function (a) {
+                    var _a;
+                    return (React.createElement("div", { key: a.id, className: "flex items-start gap-3 rounded-md border border-border/50 bg-background/50 p-3" },
+                        React.createElement("input", { type: "checkbox", className: "mt-1 h-4 w-4", checked: a.enabled, onChange: function (e) {
+                                var enabled = e.target.checked;
+                                setDraftActions(function (prev) { return prev.map(function (x) { return x.id === a.id ? __assign(__assign({}, x), { enabled: enabled }) : x; }); });
                             } }),
-                        React.createElement("div", { className: "grid grid-cols-2 gap-2" },
-                            React.createElement(select_1.Select, { value: a.type, onValueChange: function (value) {
-                                    var type = value;
-                                    setDraftActions(function (prev) { return prev.map(function (x) { return x.id === a.id ? __assign(__assign({}, x), { type: type }) : x; }); });
-                                } },
-                                React.createElement(select_1.SelectTrigger, { className: "bg-background/50" },
-                                    React.createElement(select_1.SelectValue, { placeholder: dict.today.typeLabel })),
-                                React.createElement(select_1.SelectContent, null,
-                                    React.createElement(select_1.SelectItem, { value: "core" }, dict.today.types.core),
-                                    React.createElement(select_1.SelectItem, { value: "maintenance" }, dict.today.types.maintenance),
-                                    React.createElement(select_1.SelectItem, { value: "learning" }, dict.today.types.learning),
-                                    React.createElement(select_1.SelectItem, { value: "review" }, dict.today.types.review),
-                                    React.createElement(select_1.SelectItem, { value: "rest" }, dict.today.types.rest))),
-                            React.createElement(select_1.Select, { value: a.priority, onValueChange: function (value) {
-                                    var priority = value;
-                                    setDraftActions(function (prev) { return prev.map(function (x) { return x.id === a.id ? __assign(__assign({}, x), { priority: priority }) : x; }); });
-                                } },
-                                React.createElement(select_1.SelectTrigger, { className: "bg-background/50" },
-                                    React.createElement(select_1.SelectValue, { placeholder: dict.goals.priority.label })),
-                                React.createElement(select_1.SelectContent, null,
-                                    React.createElement(select_1.SelectItem, { value: "high" }, dict.goals.priority.high),
-                                    React.createElement(select_1.SelectItem, { value: "medium" }, dict.goals.priority.medium),
-                                    React.createElement(select_1.SelectItem, { value: "low" }, dict.goals.priority.low)))),
-                        React.createElement("div", { className: "grid grid-cols-2 gap-2" },
-                            React.createElement(input_1.Input, { type: "date", value: a.start_date, onChange: function (e) {
-                                    var start_date = e.target.value;
-                                    setDraftActions(function (prev) { return prev.map(function (x) {
-                                        if (x.id !== a.id)
-                                            return x;
-                                        var nextEnd = x.end_date && x.end_date < start_date ? start_date : x.end_date;
-                                        return __assign(__assign({}, x), { start_date: start_date, end_date: nextEnd });
-                                    }); });
+                        React.createElement("div", { className: "flex-1 space-y-2" },
+                            React.createElement(input_1.Input, { value: a.title, onChange: function (e) {
+                                    var title = e.target.value;
+                                    setDraftActions(function (prev) { return prev.map(function (x) { return x.id === a.id ? __assign(__assign({}, x), { title: title }) : x; }); });
                                 } }),
-                            React.createElement(input_1.Input, { type: "date", value: a.end_date, min: a.start_date, onChange: function (e) {
-                                    var end_date = e.target.value;
-                                    setDraftActions(function (prev) { return prev.map(function (x) { return x.id === a.id ? __assign(__assign({}, x), { end_date: end_date }) : x; }); });
-                                } })),
-                        React.createElement(textarea_1.Textarea, { value: a.description, onChange: function (e) {
-                                var description = e.target.value;
-                                setDraftActions(function (prev) { return prev.map(function (x) { return x.id === a.id ? __assign(__assign({}, x), { description: description }) : x; }); });
-                            }, className: "min-h-[70px] text-sm bg-background/50", placeholder: dict.common.noDescription }),
-                        typeof a.estimated_minutes === 'number' && (React.createElement("div", { className: "text-xs text-muted-foreground" }, ((_a = dict.goals["new"].aiEstimatedMinutes) === null || _a === void 0 ? void 0 : _a.replace('{minutes}', a.estimated_minutes.toString())) || "\u7EA6 " + a.estimated_minutes + " \u5206\u949F")))));
-            })))),
-        createMode === 'manual' || aiStepB ? (React.createElement(React.Fragment, null,
-            React.createElement("div", { className: "grid gap-2" },
-                React.createElement(label_1.Label, { htmlFor: "success_criteria", required: true }, dict.goals["new"].successCriteriaLabel),
-                React.createElement(textarea_1.Textarea, { id: "success_criteria", name: "success_criteria", placeholder: dict.goals["new"].successCriteriaPlaceholder, required: true, value: successCriteriaText, onChange: function (e) { return setSuccessCriteriaText(e.target.value); } })),
-            React.createElement("div", { className: "grid gap-2" },
-                React.createElement(label_1.Label, { htmlFor: "stop_criteria", required: true }, dict.goals["new"].abandonCriteriaLabel),
-                React.createElement(textarea_1.Textarea, { id: "stop_criteria", name: "stop_criteria", placeholder: dict.goals["new"].abandonCriteriaPlaceholder, required: true, value: stopCriteriaText, onChange: function (e) { return setStopCriteriaText(e.target.value); } })))) : null,
-        React.createElement("div", { className: "flex justify-end gap-4" },
-            onSuccess ? (React.createElement(button_1.Button, { type: "button", variant: "outline", onClick: function () { return onSuccess(); } }, dict.common.cancel)) : (React.createElement(link_1["default"], { href: "/goals" },
-                React.createElement(button_1.Button, { type: "button", variant: "outline" }, dict.common.cancel))),
-            React.createElement(SubmitButton_1.SubmitButton, { disabled: !dateValid || creatingActions || (createMode === 'ai' && !aiStepB) }, hasEnabledDrafts ? (dict.goals["new"].submitWithActions || dict.goals["new"].submit) : dict.goals["new"].submit))));
+                            React.createElement("div", { className: "grid grid-cols-2 gap-2" },
+                                React.createElement(select_1.Select, { value: a.type, onValueChange: function (value) {
+                                        var type = value;
+                                        setDraftActions(function (prev) { return prev.map(function (x) { return x.id === a.id ? __assign(__assign({}, x), { type: type }) : x; }); });
+                                    } },
+                                    React.createElement(select_1.SelectTrigger, { className: "bg-background/50" },
+                                        React.createElement(select_1.SelectValue, { placeholder: dict.today.typeLabel })),
+                                    React.createElement(select_1.SelectContent, null,
+                                        React.createElement(select_1.SelectItem, { value: "core" }, dict.today.types.core),
+                                        React.createElement(select_1.SelectItem, { value: "maintenance" }, dict.today.types.maintenance),
+                                        React.createElement(select_1.SelectItem, { value: "learning" }, dict.today.types.learning),
+                                        React.createElement(select_1.SelectItem, { value: "review" }, dict.today.types.review),
+                                        React.createElement(select_1.SelectItem, { value: "rest" }, dict.today.types.rest))),
+                                React.createElement(select_1.Select, { value: a.priority, onValueChange: function (value) {
+                                        var priority = value;
+                                        setDraftActions(function (prev) { return prev.map(function (x) { return x.id === a.id ? __assign(__assign({}, x), { priority: priority }) : x; }); });
+                                    } },
+                                    React.createElement(select_1.SelectTrigger, { className: "bg-background/50" },
+                                        React.createElement(select_1.SelectValue, { placeholder: dict.goals.priority.label })),
+                                    React.createElement(select_1.SelectContent, null,
+                                        React.createElement(select_1.SelectItem, { value: "high" }, dict.goals.priority.high),
+                                        React.createElement(select_1.SelectItem, { value: "medium" }, dict.goals.priority.medium),
+                                        React.createElement(select_1.SelectItem, { value: "low" }, dict.goals.priority.low)))),
+                            React.createElement("div", { className: "grid grid-cols-2 gap-2" },
+                                React.createElement(input_1.Input, { type: "date", value: a.start_date, onChange: function (e) {
+                                        var start_date = e.target.value;
+                                        setDraftActions(function (prev) { return prev.map(function (x) {
+                                            if (x.id !== a.id)
+                                                return x;
+                                            var nextEnd = x.end_date && x.end_date < start_date ? start_date : x.end_date;
+                                            return __assign(__assign({}, x), { start_date: start_date, end_date: nextEnd });
+                                        }); });
+                                    } }),
+                                React.createElement(input_1.Input, { type: "date", value: a.end_date, min: a.start_date, onChange: function (e) {
+                                        var end_date = e.target.value;
+                                        setDraftActions(function (prev) { return prev.map(function (x) { return x.id === a.id ? __assign(__assign({}, x), { end_date: end_date }) : x; }); });
+                                    } })),
+                            React.createElement(textarea_1.Textarea, { value: a.description, onChange: function (e) {
+                                    var description = e.target.value;
+                                    setDraftActions(function (prev) { return prev.map(function (x) { return x.id === a.id ? __assign(__assign({}, x), { description: description }) : x; }); });
+                                }, className: "min-h-[70px] text-sm bg-background/50", placeholder: dict.common.noDescription }),
+                            typeof a.estimated_minutes === 'number' && (React.createElement("div", { className: "text-xs text-muted-foreground" }, ((_a = dict.goals["new"].aiEstimatedMinutes) === null || _a === void 0 ? void 0 : _a.replace('{minutes}', a.estimated_minutes.toString())) || "\u7EA6 " + a.estimated_minutes + " \u5206\u949F")))));
+                })))),
+            createMode === 'manual' || aiStepB ? (React.createElement(React.Fragment, null,
+                React.createElement("div", { className: "grid gap-2" },
+                    React.createElement(label_1.Label, { htmlFor: "success_criteria", required: true }, dict.goals["new"].successCriteriaLabel),
+                    React.createElement(textarea_1.Textarea, { id: "success_criteria", name: "success_criteria", placeholder: dict.goals["new"].successCriteriaPlaceholder, required: true, value: successCriteriaText, onChange: function (e) { return setSuccessCriteriaText(e.target.value); } })),
+                React.createElement("div", { className: "grid gap-2" },
+                    React.createElement(label_1.Label, { htmlFor: "stop_criteria", required: true }, dict.goals["new"].abandonCriteriaLabel),
+                    React.createElement(textarea_1.Textarea, { id: "stop_criteria", name: "stop_criteria", placeholder: dict.goals["new"].abandonCriteriaPlaceholder, required: true, value: stopCriteriaText, onChange: function (e) { return setStopCriteriaText(e.target.value); } })))) : null),
+        fixedFooter ? React.createElement(ModalActionFooter_1.ModalActionFooter, null, actionButtons) : actionButtons));
 }
 exports.NewGoalForm = NewGoalForm;

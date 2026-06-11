@@ -91,6 +91,10 @@ var client_1 = require("@/lib/supabase/client");
 var ActionDescriptionEditor_1 = require("@/components/ActionDescriptionEditor");
 var RichTextContentView_1 = require("@/components/RichTextContentView");
 var RichTextImagePreviewDialog_1 = require("@/components/RichTextImagePreviewDialog");
+var ActionSubItemsSection_1 = require("@/components/ActionSubItemsSection");
+var ModalActionFooter_1 = require("@/components/ModalActionFooter");
+var ModalHeaderActions_1 = require("@/components/ModalHeaderActions");
+var responsive_classes_1 = require("@/components/responsive-classes");
 var actionRecurrence_1 = require("@/lib/actionRecurrence");
 var select_1 = require("@/components/ui/select");
 function decodeHtmlEntities(input) {
@@ -426,6 +430,7 @@ function ActionItem(_a) {
         weekly: todayText.repeatWeekly || (locale === 'zh' ? '每周' : 'Weekly'),
         monthly: todayText.repeatMonthly || (locale === 'zh' ? '每月' : 'Monthly')
     };
+    var closeLabel = locale === 'zh' ? '关闭' : 'Close';
     var parsedAITodayPlan = aiTodayPlan_1.parseAITodayPlanFromDescription(recurrenceMeta.cleanDescription || '');
     var displayDescription = (parsedAITodayPlan === null || parsedAITodayPlan === void 0 ? void 0 : parsedAITodayPlan.remainingDescription) || recurrenceMeta.cleanDescription || '';
     var hasDescription = Boolean(displayDescription);
@@ -824,7 +829,7 @@ function ActionItem(_a) {
         React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", onClick: function () { return handleCopy('full'); }, className: "gap-1.5" },
             copiedMode === 'full' ? React.createElement(lucide_react_1.Check, { className: "h-4 w-4" }) : React.createElement(lucide_react_1.Copy, { className: "h-4 w-4" }),
             copiedMode === 'full' ? copiedText : copyFullText)));
-    var editForm = (React.createElement("form", { action: handleUpdate, className: "space-y-4" },
+    var editFormFields = (React.createElement(React.Fragment, null,
         React.createElement("input", { type: "hidden", name: "id", value: action.id }),
         React.createElement("input", { type: "hidden", name: "from_goal_id", value: action.goal_id }),
         React.createElement("input", { type: "hidden", name: "repeat_rule", value: editRepeatRule }),
@@ -923,14 +928,7 @@ function ActionItem(_a) {
                     React.createElement("div", { className: "text-sm font-medium" }, draft.title),
                     draft.description ? (React.createElement("div", { className: "mt-1 line-clamp-2 text-xs text-muted-foreground" }, draft.description)) : null,
                     React.createElement("div", { className: "mt-1 text-[11px] text-primary" }, goalNewText.aiImportOneSubItem || '点击导入为子行动'))); })))) : null),
-        editDescriptionUploading ? (React.createElement("div", { className: "text-xs text-muted-foreground" }, goalNewText.wait_upload_complete || '图片上传中，请稍后提交。')) : null,
-        React.createElement("div", { className: "flex justify-end gap-2 pt-2" },
-            React.createElement(button_1.Button, { type: "button", variant: "ghost", size: "sm", onClick: function () { return requestExitEdit('switch_to_view'); }, disabled: isLoading },
-                React.createElement(lucide_react_1.X, { className: "h-4 w-4 mr-1" }),
-                dict.common.cancel),
-            React.createElement(SubmitButton_1.SubmitButton, { size: "sm", disabled: !dateRangeValid || editDescriptionUploading },
-                React.createElement(lucide_react_1.Save, { className: "h-4 w-4 mr-1" }),
-                dict.common.save))));
+        editDescriptionUploading ? (React.createElement("div", { className: "text-xs text-muted-foreground" }, goalNewText.wait_upload_complete || '图片上传中，请稍后提交。')) : null));
     return (React.createElement("div", { className: utils_1.cn("group relative overflow-hidden rounded-xl border border-border/40 bg-card transition-all duration-300 md:hover:shadow-sm md:hover:border-primary/20 md:hover:bg-muted/10", isNew && "border-primary/40 bg-primary/4") },
         React.createElement("div", { className: "absolute inset-y-0 right-0 z-0 w-32 md:hidden" },
             React.createElement("div", { className: "flex h-full w-full items-stretch" },
@@ -975,37 +973,18 @@ function ActionItem(_a) {
                     React.createElement(button_1.Button, { type: "button", variant: "ghost", size: "icon", onClick: function () { closeSwipe(); setDeleteDialogOpen(true); }, className: "h-9 w-9 lg:h-8 lg:w-8 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors", disabled: isLoading || isDeleting },
                         React.createElement(lucide_react_1.Trash2, { className: "h-4 w-4 lg:h-3.5 lg:w-3.5" }),
                         React.createElement("span", { className: "sr-only" }, dict.common["delete"] || '删除')))),
-            subItems.length > 0 ? (React.createElement("div", { className: "mt-2 ml-11 rounded-md border border-border/40 bg-secondary/15 p-2" },
-                React.createElement("button", { type: "button", className: "flex w-full items-center justify-between rounded-md px-1 py-1 text-xs text-muted-foreground transition-colors hover:bg-background/60", onClick: function () { return setSubItemsOpen(function (prev) { return !prev; }); } },
-                    React.createElement("span", { className: "font-medium" },
-                        todayText.subItemsLabel || '子行动',
-                        " ",
-                        subItemsCompletedCount,
-                        "/",
-                        subItems.length),
-                    React.createElement("span", { className: "inline-flex items-center gap-1" },
-                        subItemsOpen ? dict.common.showLess : dict.common.showMore,
-                        subItemsOpen ? React.createElement(lucide_react_1.ChevronDown, { className: "h-3.5 w-3.5" }) : React.createElement(lucide_react_1.ChevronRight, { className: "h-3.5 w-3.5" }))),
-                subItemsOpen ? (React.createElement("div", { className: "mt-2 space-y-1" }, subItems.map(function (item) { return (React.createElement("button", { key: item.id, type: "button", className: "flex w-full items-center gap-2 rounded px-1 py-1 text-left text-xs hover:bg-background/50", onClick: function () { return onToggleSubItem(item.id, item.completed); }, disabled: subItemBusyId === item.id },
-                    item.completed ? (React.createElement(lucide_react_1.CheckCircle2, { className: "h-3.5 w-3.5 text-primary" })) : (React.createElement(lucide_react_1.Circle, { className: "h-3.5 w-3.5 text-muted-foreground" })),
-                    React.createElement("span", { className: item.completed ? 'line-through text-muted-foreground' : 'text-foreground' }, item.title))); }))) : null)) : null),
+            subItems.length > 0 ? (React.createElement(ActionSubItemsSection_1.ActionSubItemsSection, { items: subItems, label: todayText.subItemsLabel || '子行动', completedCount: subItemsCompletedCount, onToggleItem: onToggleSubItem, busyId: subItemBusyId, collapsible: true, expanded: subItemsOpen, onExpandedChange: setSubItemsOpen, showMoreLabel: dict.common.showMore, showLessLabel: dict.common.showLess, className: "mt-2 ml-11" })) : null),
         isDesktop ? (React.createElement(dialog_1.Dialog, { open: detailsOpen, onOpenChange: handlePanelOpenChange },
-            React.createElement(dialog_1.DialogFormContent, { mobileMode: isPanelFullscreen ? 'fullscreen' : 'sheet', hideCloseButton: true, className: utils_1.cn(isPanelFullscreen
+            React.createElement(dialog_1.DialogFormContent, { mobileMode: isPanelFullscreen ? 'fullscreen' : 'sheet', hideCloseButton: true, className: utils_1.cn(responsive_classes_1.DESKTOP_MODAL_SHELL_CLASS, isPanelFullscreen
                     ? 'overflow-hidden p-0 sm:p-0'
                     : 'max-w-lg overflow-hidden p-0 sm:p-0') },
                 React.createElement("div", { className: utils_1.cn('flex min-h-0 flex-col', isPanelFullscreen ? 'h-full' : 'max-h-[85vh]') },
                     React.createElement(dialog_1.DialogHeader, { className: "px-4 pt-4 text-left sm:px-6 sm:pt-6" },
                         React.createElement("div", { className: "flex items-start justify-between gap-3" },
                             React.createElement(dialog_1.DialogTitle, { className: "min-w-0 flex-1 text-left leading-snug" }, panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)),
-                            React.createElement("div", { className: "flex shrink-0 items-center gap-1" },
-                                React.createElement(button_1.Button, { type: "button", variant: "ghost", size: "icon", className: "h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground", onClick: function () { return setIsPanelFullscreen(function (value) { return !value; }); } },
-                                    isPanelFullscreen ? React.createElement(lucide_react_1.Minimize2, { className: "h-4 w-4" }) : React.createElement(lucide_react_1.Maximize2, { className: "h-4 w-4" }),
-                                    React.createElement("span", { className: "sr-only" }, isPanelFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen)),
-                                React.createElement(dialog_1.DialogClose, { asChild: true },
-                                    React.createElement(button_1.Button, { type: "button", variant: "ghost", size: "icon", className: "h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground" },
-                                        React.createElement(lucide_react_1.X, { className: "h-4 w-4" }),
-                                        React.createElement("span", { className: "sr-only" }, "Close")))))),
-                    React.createElement("div", { className: "min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-4 sm:px-6 sm:pb-6" }, panelMode === 'edit' ? (React.createElement("div", { className: utils_1.cn(isPanelFullscreen && 'pr-1') }, editForm)) : panelMode === 'rescue' ? (React.createElement("div", { className: utils_1.cn('space-y-4', isPanelFullscreen && 'pr-1') }, !goalTitle ? (React.createElement("div", { className: "text-sm text-muted-foreground" }, dict.common.errors.operation_failed)) : (React.createElement(React.Fragment, null,
+                            React.createElement(ModalHeaderActions_1.ModalHeaderActions, { isFullscreen: isPanelFullscreen, onToggleFullscreen: function () { return setIsPanelFullscreen(function (value) { return !value; }); }, fullscreenLabel: dict.common.fullscreen, exitFullscreenLabel: dict.common.exitFullscreen, closeLabel: closeLabel, renderCloseButton: function (button) { return React.createElement(dialog_1.DialogClose, { asChild: true }, button); } }))),
+                    React.createElement("div", { className: "min-h-0 flex-1 overflow-y-auto px-4 pt-4 sm:px-6" }, panelMode === 'edit' ? (React.createElement("form", { action: handleUpdate, className: "flex min-h-0 flex-1 flex-col" },
+                        React.createElement("div", { className: utils_1.cn('space-y-4 pb-4 sm:pb-6', isPanelFullscreen && 'pr-1') }, editFormFields))) : panelMode === 'rescue' ? (React.createElement("div", { className: utils_1.cn('space-y-4', isPanelFullscreen && 'pr-1') }, !goalTitle ? (React.createElement("div", { className: "text-sm text-muted-foreground" }, dict.common.errors.operation_failed)) : (React.createElement(React.Fragment, null,
                         React.createElement("div", { className: "space-y-2" },
                             React.createElement("div", { className: "text-sm font-medium" }, locale === 'zh' ? '原因' : 'Reason'),
                             React.createElement(select_1.Select, { value: rescueReason, onValueChange: function (value) { return setRescueReason(value); }, disabled: rescueLoading },
@@ -1038,10 +1017,21 @@ function ActionItem(_a) {
                         copyActions,
                         aiPlanInsightCard,
                         viewDescription,
+                        React.createElement(ActionSubItemsSection_1.ActionSubItemsSection, { items: subItems, label: todayText.subItemsLabel || '子行动', completedCount: subItemsCompletedCount, onToggleItem: onToggleSubItem, busyId: subItemBusyId })))),
+                    panelMode === 'edit' ? (React.createElement(ModalActionFooter_1.ModalActionFooter, null,
+                        React.createElement("div", { className: "flex justify-end gap-2" },
+                            React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", onClick: function () { return requestExitEdit('switch_to_view'); }, disabled: isLoading }, dict.common.cancel),
+                            React.createElement(SubmitButton_1.SubmitButton, { size: "sm", disabled: !dateRangeValid || editDescriptionUploading },
+                                React.createElement(lucide_react_1.Save, { className: "mr-1 h-4 w-4" }),
+                                dict.common.save)))) : panelMode === 'rescue' ? (rescueResult ? (React.createElement(ModalActionFooter_1.ModalActionFooter, null,
+                        React.createElement("div", { className: "flex justify-end gap-2" },
+                            React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", onClick: function () { return setPanelMode('view'); }, disabled: rescueLoading }, dict.common.back || 'Back'),
+                            React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", onClick: applyRescueAdd, disabled: rescueLoading }, locale === 'zh' ? '新增最小行动' : 'Add minimal'),
+                            React.createElement(button_1.Button, { type: "button", size: "sm", onClick: applyRescueReplace, disabled: rescueLoading }, locale === 'zh' ? '替换当前行动' : 'Replace')))) : null) : (React.createElement(ModalActionFooter_1.ModalActionFooter, null,
                         React.createElement("div", { className: "flex justify-end gap-2" },
                             React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", className: "border-destructive/30 text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/30", onClick: function () { return setDeleteDialogOpen(true); }, disabled: isDeleting }, dict.common["delete"]),
                             action.type === 'core' && !action.completed && goalTitle ? (React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", onClick: openRescuePanel, disabled: isLoading }, rescueTitleText)) : null,
-                            React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", onClick: openEditPanel, disabled: isLoading }, dict.common.edit))))))))) : (React.createElement(sheet_1.Sheet, { open: detailsOpen, onOpenChange: handlePanelOpenChange },
+                            React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", onClick: openEditPanel, disabled: isLoading }, dict.common.edit)))))))) : (React.createElement(sheet_1.Sheet, { open: detailsOpen, onOpenChange: handlePanelOpenChange },
             React.createElement(sheet_1.SheetFormContent, { side: "bottom", mobileMode: isPanelFullscreen ? 'fullscreen' : 'sheet', className: utils_1.cn(isPanelFullscreen
                     ? 'overflow-hidden p-0'
                     : panelMode === 'edit'
@@ -1051,15 +1041,9 @@ function ActionItem(_a) {
                     React.createElement(sheet_1.SheetHeader, { className: "px-4 pt-4 text-left" },
                         React.createElement("div", { className: "flex items-start justify-between gap-3" },
                             React.createElement(sheet_1.SheetTitle, { className: "block min-w-0 flex-1 text-left text-base leading-snug" }, panelMode === 'edit' ? dict.common.edit : (panelMode === 'rescue' ? rescueTitleText : action.title)),
-                            React.createElement("div", { className: "flex shrink-0 items-center gap-1" },
-                                React.createElement(button_1.Button, { type: "button", variant: "ghost", size: "icon", className: "h-8 w-8 rounded-full text-muted-foreground hover:bg-muted hover:text-foreground", onClick: function () { return setIsPanelFullscreen(function (value) { return !value; }); } },
-                                    isPanelFullscreen ? React.createElement(lucide_react_1.Minimize2, { className: "h-4 w-4" }) : React.createElement(lucide_react_1.Maximize2, { className: "h-4 w-4" }),
-                                    React.createElement("span", { className: "sr-only" }, isPanelFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen)),
-                                React.createElement(sheet_1.SheetClose, { asChild: true },
-                                    React.createElement(button_1.Button, { variant: "ghost", size: "icon", className: "h-8 w-8 rounded-full shrink-0" },
-                                        React.createElement(lucide_react_1.X, { className: "h-4 w-4" }),
-                                        React.createElement("span", { className: "sr-only" }, "Close")))))),
-                    React.createElement("div", { className: "min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4" }, panelMode === 'edit' ? (editForm) : panelMode === 'rescue' ? (React.createElement("div", { className: "space-y-4" }, !goalTitle ? (React.createElement("div", { className: "text-sm text-muted-foreground" }, dict.common.errors.operation_failed)) : (React.createElement(React.Fragment, null,
+                            React.createElement(ModalHeaderActions_1.ModalHeaderActions, { isFullscreen: isPanelFullscreen, onToggleFullscreen: function () { return setIsPanelFullscreen(function (value) { return !value; }); }, fullscreenLabel: dict.common.fullscreen, exitFullscreenLabel: dict.common.exitFullscreen, closeLabel: closeLabel, renderCloseButton: function (button) { return React.createElement(sheet_1.SheetClose, { asChild: true }, button); } }))),
+                    React.createElement("div", { className: "min-h-0 flex-1 overflow-y-auto px-4 pt-4" }, panelMode === 'edit' ? (React.createElement("form", { action: handleUpdate, className: "flex min-h-0 flex-1 flex-col" },
+                        React.createElement("div", { className: "space-y-4 pb-4" }, editFormFields))) : panelMode === 'rescue' ? (React.createElement("div", { className: "space-y-4" }, !goalTitle ? (React.createElement("div", { className: "text-sm text-muted-foreground" }, dict.common.errors.operation_failed)) : (React.createElement(React.Fragment, null,
                         React.createElement("div", { className: "space-y-2" },
                             React.createElement("div", { className: "text-sm font-medium" }, locale === 'zh' ? '原因' : 'Reason'),
                             React.createElement(select_1.Select, { value: rescueReason, onValueChange: function (value) { return setRescueReason(value); }, disabled: rescueLoading },
@@ -1083,19 +1067,26 @@ function ActionItem(_a) {
                                     locale === 'zh' ? 'If-Then：如果' : 'If-Then: if ',
                                     rescueResult.if_then["if"],
                                     locale === 'zh' ? '那么' : ' then ',
-                                    rescueResult.if_then.then)),
-                            React.createElement("div", { className: "flex items-center justify-between gap-2" },
-                                React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", className: "flex-1", onClick: function () { return setPanelMode('view'); }, disabled: rescueLoading }, dict.common.back || 'Back'),
-                                React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", className: "flex-1", onClick: applyRescueAdd, disabled: rescueLoading }, locale === 'zh' ? '新增' : 'Add'),
-                                React.createElement(button_1.Button, { type: "button", size: "sm", className: "flex-1", onClick: applyRescueReplace, disabled: rescueLoading }, locale === 'zh' ? '替换' : 'Replace')))) : null)))) : (React.createElement("div", { className: "space-y-4" },
+                                    rescueResult.if_then.then)))) : null)))) : (React.createElement("div", { className: "space-y-4" },
                         metaBadges,
                         copyActions,
                         aiPlanInsightCard,
                         viewDescription,
+                        React.createElement(ActionSubItemsSection_1.ActionSubItemsSection, { items: subItems, label: todayText.subItemsLabel || '子行动', completedCount: subItemsCompletedCount, onToggleItem: onToggleSubItem, busyId: subItemBusyId })))),
+                    panelMode === 'edit' ? (React.createElement(ModalActionFooter_1.ModalActionFooter, { insetBottom: "calc(env(safe-area-inset-bottom) + 1rem)", className: "px-4 md:px-4" },
+                        React.createElement("div", { className: "flex items-center gap-2" },
+                            React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", className: "flex-1", onClick: function () { return requestExitEdit('switch_to_view'); }, disabled: isLoading }, dict.common.cancel),
+                            React.createElement(SubmitButton_1.SubmitButton, { size: "sm", className: "flex-1", disabled: !dateRangeValid || editDescriptionUploading },
+                                React.createElement(lucide_react_1.Save, { className: "mr-1 h-4 w-4" }),
+                                dict.common.save)))) : panelMode === 'rescue' ? (rescueResult ? (React.createElement(ModalActionFooter_1.ModalActionFooter, { insetBottom: "calc(env(safe-area-inset-bottom) + 1rem)", className: "px-4 md:px-4" },
+                        React.createElement("div", { className: "flex items-center justify-between gap-2" },
+                            React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", className: "flex-1", onClick: function () { return setPanelMode('view'); }, disabled: rescueLoading }, dict.common.back || 'Back'),
+                            React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", className: "flex-1", onClick: applyRescueAdd, disabled: rescueLoading }, locale === 'zh' ? '新增' : 'Add'),
+                            React.createElement(button_1.Button, { type: "button", size: "sm", className: "flex-1", onClick: applyRescueReplace, disabled: rescueLoading }, locale === 'zh' ? '替换' : 'Replace')))) : null) : (React.createElement(ModalActionFooter_1.ModalActionFooter, { insetBottom: "calc(env(safe-area-inset-bottom) + 1rem)", className: "px-4 md:px-4" },
                         React.createElement("div", { className: "flex items-center gap-2" },
                             React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", className: "flex-1 border-destructive/30 text-destructive hover:border-destructive/40 hover:bg-destructive/10 hover:text-destructive focus-visible:ring-destructive/30", onClick: function () { return setDeleteDialogOpen(true); }, disabled: isDeleting }, dict.common["delete"]),
                             action.type === 'core' && !action.completed && goalTitle ? (React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", className: "flex-1", onClick: openRescuePanel, disabled: isLoading }, rescueTitleText)) : null,
-                            React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", className: "flex-1", onClick: openEditPanel, disabled: isLoading }, dict.common.edit))))))))),
+                            React.createElement(button_1.Button, { type: "button", variant: "outline", size: "sm", className: "flex-1", onClick: openEditPanel, disabled: isLoading }, dict.common.edit)))))))),
         React.createElement(RichTextImagePreviewDialog_1.RichTextImagePreviewDialog, { open: Boolean(previewImageUrl), imageUrl: previewImageUrl, title: dict.common.imagePreviewTitle, openOriginalLabel: dict.common.openOriginal, onOpenChange: function (open) {
                 if (!open)
                     setPreviewImageUrl(null);

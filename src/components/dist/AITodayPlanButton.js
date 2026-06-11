@@ -53,6 +53,7 @@ var button_1 = require("@/components/ui/button");
 var loading_spinner_1 = require("@/components/ui/loading-spinner");
 var analytics_1 = require("@/lib/analytics");
 var aiFeedback_1 = require("@/lib/aiFeedback");
+var responsive_classes_1 = require("@/components/responsive-classes");
 function buildPlanDescription(params) {
     var locale = params.locale, sourceActionTitle = params.sourceActionTitle, firstStep = params.firstStep, definitionOfDone = params.definitionOfDone, reason = params.reason;
     var isZh = locale === 'zh';
@@ -410,15 +411,15 @@ function AITodayPlanButton(_a) {
                 }
                 setAiOpen(open);
             } },
-            React.createElement(dialog_1.DialogFormContent, { className: "flex max-h-[92dvh] max-w-none flex-col overflow-hidden border-border/60 bg-background p-0 shadow-2xl sm:max-w-[min(92vw,72rem)]! sm:max-h-[88dvh]" },
-                React.createElement(dialog_1.DialogHeader, { className: "shrink-0 border-b border-border/40 bg-linear-to-b from-primary/5 to-transparent px-4 pb-4 pt-4 sm:px-6 sm:pb-4 sm:pt-5" },
+            React.createElement(dialog_1.DialogFormContent, { className: "flex max-h-[92dvh] max-w-none flex-col overflow-hidden border-border/60 bg-background p-0 shadow-2xl " + responsive_classes_1.DESKTOP_MODAL_SHELL_CLASS + " md:max-w-[min(92vw,72rem)]! md:max-h-[88dvh]" },
+                React.createElement(dialog_1.DialogHeader, { className: "shrink-0 border-b border-border/40 bg-linear-to-b from-primary/5 to-transparent px-4 pb-4 pt-4 md:px-6 md:pb-4 md:pt-5" },
                     React.createElement("div", { className: "inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/6 px-3 py-1 text-sm font-medium text-primary" },
                         React.createElement(lucide_react_1.Sparkles, { className: "h-3.5 w-3.5" }),
                         "AI Coach"),
-                    React.createElement(dialog_1.DialogTitle, { className: "max-w-none text-[1.8rem] leading-tight tracking-[-0.02em] sm:text-[2rem]" }, (planning === null || planning === void 0 ? void 0 : planning.aiPlanTitle) || 'AI Core Action (Draft)')),
-                React.createElement("div", { className: "min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5" },
+                    React.createElement(dialog_1.DialogTitle, { className: "max-w-none text-[1.8rem] leading-tight tracking-[-0.02em] md:text-[2rem]" }, (planning === null || planning === void 0 ? void 0 : planning.aiPlanTitle) || 'AI Core Action (Draft)')),
+                React.createElement("div", { className: "min-h-0 flex-1 overflow-y-auto px-4 py-4 md:px-6 md:py-5" },
                     aiError && React.createElement("div", { className: "mb-4 text-sm text-destructive" }, aiError),
-                    aiResult ? (React.createElement("div", { className: "space-y-3 sm:space-y-4" },
+                    aiResult ? (React.createElement("div", { className: "space-y-3 md:space-y-4" },
                         React.createElement("div", { className: "rounded-2xl border border-dashed border-border/60 bg-muted/8 px-4 py-3 text-sm text-muted-foreground" },
                             React.createElement("div", { className: "inline-flex items-start gap-2 font-medium text-foreground" },
                                 React.createElement(lucide_react_1.Clock3, { className: "mt-0.5 h-4 w-4 shrink-0" }),
@@ -432,10 +433,10 @@ function AITodayPlanButton(_a) {
                                 || null;
                             var whyTodayLabel = locale === 'zh' ? '为什么是今天' : 'Why today';
                             var selectedVersionLabel = locale === 'zh' ? '当前选择' : 'Current choice';
-                            return (React.createElement("div", { key: recommendation.kind + "-" + idx, className: "rounded-[24px] border p-4 transition-all sm:p-5 " + (isSelectedRecommendation
+                            return (React.createElement("div", { key: recommendation.kind + "-" + idx, className: "rounded-[24px] border p-4 transition-all md:p-5 " + (isSelectedRecommendation
                                     ? 'border-primary/25 bg-primary/[0.035] shadow-sm'
                                     : 'border-border/60 bg-card/90') },
-                                React.createElement("div", { className: "space-y-4 sm:space-y-5" },
+                                React.createElement("div", { className: "space-y-4 md:space-y-5" },
                                     React.createElement("div", { className: "flex items-start justify-between gap-3" },
                                         React.createElement("div", { className: "space-y-3" },
                                             React.createElement("div", { className: "inline-flex rounded-full bg-muted px-3 py-1 text-xs font-medium text-foreground" }, recommendation.kind === 'core'
@@ -445,7 +446,7 @@ function AITodayPlanButton(_a) {
                                                     || '备选')),
                                             React.createElement("div", { className: "rounded-2xl border border-border/50 bg-background/70 px-4 py-3" },
                                                 React.createElement("div", { className: "mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90" }, whyTodayLabel),
-                                                React.createElement("div", { className: "max-w-none text-[15px] leading-8 text-muted-foreground sm:text-base" }, recommendation.reason)),
+                                                React.createElement("div", { className: "max-w-none text-[15px] leading-8 text-muted-foreground md:text-base" }, recommendation.reason)),
                                             recommendation.source_action_title ? (React.createElement("div", { className: "grid gap-2 rounded-2xl border border-border/60 bg-background/80 p-2 text-xs text-muted-foreground lg:grid-cols-3 lg:p-3" },
                                                 React.createElement("div", { className: "rounded-xl bg-muted/35 px-3 py-2.5" },
                                                     React.createElement("div", { className: "mb-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground/90" }, planning.aiPlanBasedOn || '基于当前任务'),
@@ -467,7 +468,7 @@ function AITodayPlanButton(_a) {
                                                 React.createElement("span", null, getVariantLabel(variant.minutes)),
                                                 active ? (React.createElement("span", { className: "text-[11px] font-medium opacity-80" }, selectedVersionLabel)) : null)));
                                     })),
-                                    isSelectedRecommendation && currentVariant ? (React.createElement("div", { className: "rounded-[22px] border border-border/60 bg-background/90 p-4 text-sm shadow-sm sm:p-5" },
+                                    isSelectedRecommendation && currentVariant ? (React.createElement("div", { className: "rounded-[22px] border border-border/60 bg-background/90 p-4 text-sm shadow-sm md:p-5" },
                                         React.createElement("div", { className: "grid gap-4 xl:grid-cols-[1.85fr_1fr] xl:gap-5" },
                                             React.createElement("div", { className: "space-y-4" },
                                                 React.createElement("div", { className: "space-y-3" },
@@ -486,11 +487,11 @@ function AITodayPlanButton(_a) {
                                                         (planning === null || planning === void 0 ? void 0 : planning.aiPlanDefinitionOfDone) || '完成标准'),
                                                     React.createElement("div", { className: "leading-7" }, currentVariant.definition_of_done)))))) : null)));
                         }),
-                        React.createElement("div", { className: "flex flex-col-reverse gap-3 border-t border-border/50 pt-5 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:pb-0" },
-                            React.createElement("div", { className: "hidden text-xs text-muted-foreground sm:block" }, selected ? getVariantLabel(selected.minutes) : ''),
-                            React.createElement("div", { className: "flex flex-col-reverse gap-3 sm:flex-row sm:gap-2" },
-                                React.createElement(button_1.Button, { type: "button", variant: "outline", onClick: function () { return setAiOpen(false); }, disabled: aiLoading, className: "w-full rounded-full px-5 sm:w-auto" }, ((_e = dict === null || dict === void 0 ? void 0 : dict.common) === null || _e === void 0 ? void 0 : _e.cancel) || 'Cancel'),
-                                React.createElement(button_1.Button, { type: "button", onClick: applySelected, disabled: aiLoading || !selected, className: "w-full rounded-full px-5 sm:w-auto" },
+                        React.createElement("div", { className: "flex flex-col-reverse gap-3 border-t border-border/50 pt-5 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] md:flex-row md:items-center md:justify-between md:gap-3 md:pb-0" },
+                            React.createElement("div", { className: "hidden text-xs text-muted-foreground md:block" }, selected ? getVariantLabel(selected.minutes) : ''),
+                            React.createElement("div", { className: "flex flex-col-reverse gap-3 md:flex-row md:gap-2" },
+                                React.createElement(button_1.Button, { type: "button", variant: "outline", onClick: function () { return setAiOpen(false); }, disabled: aiLoading, className: "w-full rounded-full px-5 md:w-auto" }, ((_e = dict === null || dict === void 0 ? void 0 : dict.common) === null || _e === void 0 ? void 0 : _e.cancel) || 'Cancel'),
+                                React.createElement(button_1.Button, { type: "button", onClick: applySelected, disabled: aiLoading || !selected, className: "w-full rounded-full px-5 md:w-auto" },
                                     aiLoading && React.createElement(loading_spinner_1.LoadingSpinner, { size: 16, className: "mr-2 text-primary-foreground/80" }),
                                     getApplyButtonLabel()))))) : (React.createElement("div", { className: "py-8 text-sm text-muted-foreground" }, aiLoading
                         ? ((planning === null || planning === void 0 ? void 0 : planning.aiPlanLoading) || 'Generating...')

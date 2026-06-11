@@ -74,6 +74,10 @@ var GoalRequiredIntroCard_1 = require("./GoalRequiredIntroCard");
 var use_mobile_input_visible_1 = require("@/components/ui/use-mobile-input-visible");
 var client_1 = require("@/lib/supabase/client");
 var ActionDescriptionEditor_1 = require("@/components/ActionDescriptionEditor");
+var ModalActionFooter_1 = require("@/components/ModalActionFooter");
+var ModalHeaderActions_1 = require("@/components/ModalHeaderActions");
+var responsive_classes_1 = require("@/components/responsive-classes");
+var utils_1 = require("@/lib/utils");
 function makeDraftId() {
     if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function')
         return crypto.randomUUID();
@@ -297,19 +301,21 @@ function AddActionDialog(_a) {
         React.createElement(dialog_1.DialogTrigger, { asChild: true }, trigger ? trigger : (React.createElement(button_1.Button, { size: "sm", className: "gap-1" },
             React.createElement(lucide_react_1.Plus, { className: "h-4 w-4" }),
             dict.goals.detail.addAction))),
-        React.createElement(dialog_1.DialogFormContent, { mobileMode: isFullscreen ? 'fullscreen' : 'sheet', className: isFullscreen ? 'p-0' : 'p-0 block sm:max-w-[600px] sm:max-h-[85vh]' }, step === 'intro' ? (React.createElement("div", { className: "relative h-full w-full overflow-hidden bg-linear-to-br from-primary/10 via-background to-background px-6 pb-8 pt-10" },
+        React.createElement(dialog_1.DialogFormContent, { mobileMode: isFullscreen ? 'fullscreen' : 'sheet', hideCloseButton: true, className: utils_1.cn('p-0', responsive_classes_1.DESKTOP_MODAL_SHELL_CLASS, !isFullscreen && 'md:max-w-[600px] md:max-h-[85vh]') }, step === 'intro' ? (React.createElement("div", { className: "relative h-full w-full overflow-hidden bg-linear-to-br from-primary/10 via-background to-background px-6 pb-8 pt-10" },
             React.createElement("div", { className: "pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-primary/15 blur-3xl" }),
             React.createElement("div", { className: "pointer-events-none absolute -bottom-24 -left-24 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl" }),
             React.createElement(framer_motion_1.AnimatePresence, { mode: "wait" },
                 React.createElement(framer_motion_1.motion.div, { key: "intro", initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -8 }, transition: { duration: 0.16 } },
                     React.createElement(dialog_1.DialogHeader, null,
                         React.createElement(dialog_1.DialogTitle, { className: "sr-only" }, dict.today.addActionIntroTitle)),
-                    React.createElement(GoalRequiredIntroCard_1.GoalRequiredIntroCard, { title: dict.today.addActionIntroTitle, description: dict.today.addActionIntroDesc, points: dict.today.addActionIntroPoints, icon: React.createElement(lucide_react_1.Target, { className: "h-5 w-5" }), primaryLabel: dict.today.createGoalAndContinue, secondaryLabel: dict.today.later, onPrimary: function () { setStep('goal'); analytics_1.logEvent('intro_continue'); }, onSecondary: function () { setOpen(false); analytics_1.logEvent('intro_cancel'); } }))))) : (React.createElement("div", { className: isFullscreen ? 'flex h-full flex-col p-6' : 'flex max-h-[85dvh] flex-col p-6 sm:max-h-none' },
+                    React.createElement(GoalRequiredIntroCard_1.GoalRequiredIntroCard, { title: dict.today.addActionIntroTitle, description: dict.today.addActionIntroDesc, points: dict.today.addActionIntroPoints, icon: React.createElement(lucide_react_1.Target, { className: "h-5 w-5" }), primaryLabel: dict.today.createGoalAndContinue, secondaryLabel: dict.today.later, onPrimary: function () { setStep('goal'); analytics_1.logEvent('intro_continue'); }, onSecondary: function () { setOpen(false); analytics_1.logEvent('intro_cancel'); } }))))) : (React.createElement("div", { className: utils_1.cn('flex min-h-0 flex-1 flex-col', isFullscreen ? 'h-full' : 'md:max-h-[85dvh]') },
             React.createElement(framer_motion_1.AnimatePresence, { mode: "wait" },
-                React.createElement(framer_motion_1.motion.div, { key: step, initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -8 }, transition: { duration: 0.16 } }, step === 'goal' ? (React.createElement(React.Fragment, null,
-                    React.createElement(dialog_1.DialogHeader, null,
-                        React.createElement(dialog_1.DialogTitle, null, dict.goals["new"].title)),
-                    React.createElement(NewGoalForm_1.NewGoalForm, { dict: dict, action: actions_2.createGoalModal, onSuccess: function (created) {
+                React.createElement(framer_motion_1.motion.div, { key: step, className: "flex min-h-0 flex-1 flex-col", initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: -8 }, transition: { duration: 0.16 } }, step === 'goal' ? (React.createElement(React.Fragment, null,
+                    React.createElement(dialog_1.DialogHeader, { className: "border-b border-border/60 px-4 pb-3 pt-4 text-left md:px-6 md:pb-4 md:pt-6" },
+                        React.createElement("div", { className: "flex items-start justify-between gap-3" },
+                            React.createElement(dialog_1.DialogTitle, { className: "min-w-0 flex-1 text-left leading-snug" }, dict.goals["new"].title),
+                            React.createElement(ModalHeaderActions_1.ModalHeaderActions, { isFullscreen: isFullscreen, onToggleFullscreen: function () { return setIsFullscreen(function (value) { return !value; }); }, fullscreenLabel: dict.common.fullscreen, exitFullscreenLabel: dict.common.exitFullscreen, hideFullscreenOnMobile: true, renderCloseButton: function (button) { return React.createElement(dialog_1.DialogClose, { asChild: true }, button); } }))),
+                    React.createElement(NewGoalForm_1.NewGoalForm, { dict: dict, fixedFooter: true, action: actions_2.createGoalModal, onSuccess: function (created) {
                             if ((created === null || created === void 0 ? void 0 : created.id) && created.title) {
                                 setGoals(function (prev) { return __spreadArrays(prev, [{ id: created.id, title: created.title }]); });
                                 setSelectedGoalId(created.id);
@@ -319,13 +325,12 @@ function AddActionDialog(_a) {
                             }
                             setStep('action');
                         } }))) : (React.createElement(React.Fragment, null,
-                    React.createElement(dialog_1.DialogHeader, { className: "flex flex-row items-start justify-between gap-3 space-y-0" },
-                        React.createElement(dialog_1.DialogTitle, null, dict.goals.detail.addAction),
-                        React.createElement(button_1.Button, { type: "button", variant: "ghost", size: "sm", className: "shrink-0 gap-2", onClick: function () { return setIsFullscreen(function (value) { return !value; }); } },
-                            isFullscreen ? React.createElement(lucide_react_1.Minimize2, { className: "h-4 w-4" }) : React.createElement(lucide_react_1.Maximize2, { className: "h-4 w-4" }),
-                            isFullscreen ? dict.common.exitFullscreen : dict.common.fullscreen)),
-                    React.createElement("form", { action: handleSubmit, className: "mt-4 flex min-h-0 flex-1 flex-col" },
-                        React.createElement("div", { className: isFullscreen ? 'min-h-0 flex-1 space-y-4 overflow-y-auto pr-1' : 'min-h-0 flex-1 space-y-4 overflow-y-auto', style: { paddingBottom: keyboardInset > 0 ? Math.max(16, keyboardInset * 0.35) : undefined } },
+                    React.createElement(dialog_1.DialogHeader, { className: "border-b border-border/60 px-4 pb-3 pt-4 text-left md:px-6 md:pb-4 md:pt-6" },
+                        React.createElement("div", { className: "flex items-start justify-between gap-3" },
+                            React.createElement(dialog_1.DialogTitle, { className: "min-w-0 flex-1 text-left leading-snug" }, dict.goals.detail.addAction),
+                            React.createElement(ModalHeaderActions_1.ModalHeaderActions, { isFullscreen: isFullscreen, onToggleFullscreen: function () { return setIsFullscreen(function (value) { return !value; }); }, fullscreenLabel: dict.common.fullscreen, exitFullscreenLabel: dict.common.exitFullscreen, hideFullscreenOnMobile: true, renderCloseButton: function (button) { return React.createElement(dialog_1.DialogClose, { asChild: true }, button); } }))),
+                    React.createElement("form", { action: handleSubmit, className: "flex min-h-0 flex-1 flex-col" },
+                        React.createElement("div", { className: utils_1.cn('min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4 md:px-6', isFullscreen && 'pr-1'), style: { paddingBottom: keyboardInset > 0 ? Math.max(16, keyboardInset * 0.35) : undefined } },
                             showGoalCreatedBanner && (React.createElement("div", { className: "rounded-md border bg-muted/30 px-3 py-2 text-sm", role: "status" }, dict.today.goalCreatedAutoselected)),
                             goalId ? (React.createElement("input", { type: "hidden", name: "goal_id", value: goalId })) : (React.createElement("div", { className: "grid gap-2" },
                                 React.createElement(label_1.Label, { htmlFor: "goal_id", required: true }, dict.today.goalLabel),
@@ -398,11 +403,13 @@ function AddActionDialog(_a) {
                                     React.createElement("div", { className: "mt-1 text-[11px] text-primary" }, goalNewText.aiImportOneSubItem || '点击导入为子行动'))); })))) : null,
                             error ? React.createElement("div", { className: "text-sm text-destructive" }, error) : null,
                             descriptionUploading ? (React.createElement("div", { className: "text-xs text-muted-foreground" }, goalNewText.wait_upload_complete || '图片上传中，请稍后提交。')) : null),
-                        React.createElement("div", { className: isFullscreen ? 'border-t border-border/50 bg-background pt-4' : 'border-t border-border/50 bg-background pt-4', style: { paddingBottom: open && keyboardInset > 0 ? "calc(env(safe-area-inset-bottom) + " + keyboardInset + "px)" : undefined } },
-                            React.createElement(button_1.Button, { type: "submit", className: "w-full", disabled: isPending || !valid || (!goalId && !selectedGoalId) || descriptionUploading }, isPending ? (React.createElement(React.Fragment, null,
-                                React.createElement(loading_spinner_1.LoadingSpinner, { size: 16, className: "mr-2 text-current" }),
-                                dict.common.saving)) : (React.createElement(React.Fragment, null,
-                                React.createElement(lucide_react_1.Plus, { className: "mr-2 h-4 w-4" }),
-                                dict.goals.detail.addAction))))))))))))));
+                        React.createElement(ModalActionFooter_1.ModalActionFooter, { insetBottom: open && keyboardInset > 0 ? "calc(env(safe-area-inset-bottom) + " + keyboardInset + "px)" : undefined },
+                            React.createElement("div", { className: "flex items-center justify-end gap-2" },
+                                React.createElement(button_1.Button, { type: "button", variant: "outline", onClick: function () { return setOpen(false); }, disabled: isPending }, dict.common.cancel),
+                                React.createElement(button_1.Button, { type: "submit", disabled: isPending || !valid || (!goalId && !selectedGoalId) || descriptionUploading }, isPending ? (React.createElement(React.Fragment, null,
+                                    React.createElement(loading_spinner_1.LoadingSpinner, { size: 16, className: "mr-2 text-current" }),
+                                    dict.common.saving)) : (React.createElement(React.Fragment, null,
+                                    React.createElement(lucide_react_1.Plus, { className: "mr-2 h-4 w-4" }),
+                                    dict.goals.detail.addAction)))))))))))))));
 }
 exports.AddActionDialog = AddActionDialog;
