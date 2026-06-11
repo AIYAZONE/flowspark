@@ -891,11 +891,7 @@ export function ActionItemPanel({
 
   const content =
     panelMode === 'edit' ? (
-      <form action={handleUpdate} className="flex min-h-0 flex-1 flex-col">
-        <div className={cn('space-y-4 pb-4 sm:pb-6', isPanelFullscreen && 'pr-1')}>
-          {editFormFields}
-        </div>
-      </form>
+      <div className={cn('space-y-4 pb-4 sm:pb-6', isPanelFullscreen && 'pr-1')}>{editFormFields}</div>
     ) : panelMode === 'rescue' ? (
       <div className={cn('space-y-4', isPanelFullscreen && 'pr-1')}>
         {!goalTitle ? (
@@ -971,7 +967,7 @@ export function ActionItemPanel({
           <SubmitButton
             size="sm"
             className={!isDesktop ? 'flex-1' : undefined}
-            disabled={!dateRangeValid || editDescriptionUploading}
+            disabled={isLoading || !dateRangeValid || editDescriptionUploading}
           >
             <Save className="mr-1 h-4 w-4" />
             {dict.common.save}
@@ -1066,10 +1062,17 @@ export function ActionItemPanel({
                   />
                 </div>
               </DialogHeader>
-              <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 sm:px-6">
-                {content}
-              </div>
-              {footer}
+              {panelMode === 'edit' ? (
+                <form action={handleUpdate} className="flex min-h-0 flex-1 flex-col">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 sm:px-6">{content}</div>
+                  {footer}
+                </form>
+              ) : (
+                <>
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 sm:px-6">{content}</div>
+                  {footer}
+                </>
+              )}
             </div>
           </DialogFormContent>
         </Dialog>
@@ -1102,10 +1105,17 @@ export function ActionItemPanel({
                   />
                 </div>
               </SheetHeader>
-              <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4">
-                {content}
-              </div>
-              {footer}
+              {panelMode === 'edit' ? (
+                <form action={handleUpdate} className="flex min-h-0 flex-1 flex-col">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4">{content}</div>
+                  {footer}
+                </form>
+              ) : (
+                <>
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4">{content}</div>
+                  {footer}
+                </>
+              )}
             </div>
           </SheetFormContent>
         </Sheet>

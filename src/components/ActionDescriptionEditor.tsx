@@ -86,6 +86,8 @@ export function ActionDescriptionEditor(props: {
   const { userId, value, onChange, attachments, onAttachmentsChange, onUploadingChange, dict } = props
   const supabase = createClient()
   const editorRef = useRef<HTMLDivElement | null>(null)
+  const descriptionInputRef = useRef<HTMLInputElement | null>(null)
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null)
   const isComposingRef = useRef(false)
   const isInternalSyncRef = useRef(false)
   const selectedImageRef = useRef<HTMLImageElement | null>(null)
@@ -111,6 +113,7 @@ export function ActionDescriptionEditor(props: {
   const syncEditorValue = useCallback((html: string) => {
     isInternalSyncRef.current = true
     setHiddenValue(html)
+    if (descriptionInputRef.current) descriptionInputRef.current.value = html
     onChange(html)
   }, [onChange])
 
@@ -132,6 +135,14 @@ export function ActionDescriptionEditor(props: {
     }
     setHiddenValue(next)
   }, [value])
+
+  useEffect(() => {
+    if (descriptionInputRef.current) descriptionInputRef.current.value = hiddenValue
+  }, [hiddenValue])
+
+  useEffect(() => {
+    if (attachmentInputRef.current) attachmentInputRef.current.value = JSON.stringify(props.attachments)
+  }, [props.attachments])
 
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
@@ -294,14 +305,14 @@ export function ActionDescriptionEditor(props: {
   return (
     <div className="grid gap-2">
       <Label htmlFor="description">{dict.today.descriptionLabel}</Label>
-      <input type="hidden" name="description" value={hiddenValue} />
+      <input ref={descriptionInputRef} type="hidden" name="description" defaultValue={hiddenValue} />
       <div className="relative">
         <div
           ref={editorRef}
           id="description"
           contentEditable
           suppressContentEditableWarning
-          className="min-h-[140px] rounded-md border border-input bg-background px-3 py-2 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground"
+          className="min-h-[140px] rounded-md border border-input bg-background px-3 py-2 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground [&_img]:my-3 [&_img]:block [&_img]:max-w-full [&_img]:rounded-md [&_img]:border [&_img]:border-border/40"
           data-placeholder={dict.today.descriptionPlaceholder}
           onInput={(e) => {
             if (isComposingRef.current) return
@@ -389,7 +400,7 @@ export function ActionDescriptionEditor(props: {
           </>
         ) : null}
       </div>
-      <input type="hidden" name="attachment_manifest" value={JSON.stringify(props.attachments)} />
+      <input ref={attachmentInputRef} type="hidden" name="attachment_manifest" defaultValue={JSON.stringify(props.attachments)} />
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         {isUploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
         <span>{helperText}</span>

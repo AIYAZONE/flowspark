@@ -47,6 +47,7 @@ import { toggleAction } from '@/app/(authenticated)/dashboard/actions'
 import { deleteAction, toggleActionSubItem } from '@/app/(authenticated)/goals/actions'
 import type { Dictionary, TodayDictionary } from '@/i18n/types'
 import { ActionSubItemsSection } from '@/components/ActionSubItemsSection'
+import { RichTextContentView } from '@/components/RichTextContentView'
 import {
     parseActionRecurrenceDescription,
     type ActionRecurrenceRule,
@@ -306,11 +307,26 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const aiAdoptedLabel = todayText.aiAdoptedLabel || 'AI 已采纳'
     const aiAdoptedHint = todayText.aiAdoptedHint || '该行动来自 AI 建议并已被采纳'
 
-    const descriptionPreview = (() => {
-        const plain = richTextToPlainText(recurrenceMeta.cleanDescription, locale).trim()
-        if (!plain) return ''
-        return plain.length > 180 ? `${plain.slice(0, 180)}…` : plain
-    })()
+    const stripImageUrlLines = (raw: string) => {
+        const lines = (raw || '').split('\n')
+        return lines
+            .filter((line) => {
+                const t = line.trim()
+                if (!t) return false
+                if (/^(图片|image)\s*[:：]\s*https?:\/\//i.test(t)) return false
+                return true
+            })
+            .join('\n')
+            .trim()
+    }
+
+    const descriptionPreviewSource = stripImageUrlLines(recurrenceMeta.cleanDescription)
+    const hasDescriptionPreview = Boolean(
+        richTextToPlainText(descriptionPreviewSource, locale).trim() ||
+        /<img[\s\S]*?>/i.test(descriptionPreviewSource) ||
+        /!\[[^\]]*]\((https?:\/\/[^\s)]+)\)/i.test(descriptionPreviewSource) ||
+        /(https?:\/\/[^\s)]+?\.(?:png|jpe?g|webp)(?:\?[^\s)]*)?)/i.test(descriptionPreviewSource)
+    )
 
     return (
         <div className={cn(
@@ -357,13 +373,20 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                             <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
                             <CompleteButton completed={action.completed} type={action.type} />
                         </form>
-                        <button
-                            type="button"
-                            onClick={openDetails}
-                            disabled={!hasDetails}
+                        <div
+                            role={hasDetails ? 'button' : undefined}
+                            tabIndex={hasDetails ? 0 : -1}
+                            onClick={hasDetails ? openDetails : undefined}
+                            onKeyDown={(event) => {
+                                if (!hasDetails) return
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                    event.preventDefault()
+                                    openDetails()
+                                }
+                            }}
                             className={cn(
                                 "flex-1 min-w-0 text-left rounded-lg -m-2 p-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-                                hasDetails ? "active:bg-muted/40" : "cursor-default"
+                                hasDetails ? "active:bg-muted/40 cursor-pointer" : "cursor-default"
                             )}
                             aria-disabled={!hasDetails}
                         >
@@ -421,13 +444,15 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                     </span>
                                 )}
                             </div>
-                            {descriptionPreview ? (
+                            {hasDescriptionPreview ? (
                                 <div className="mt-3 rounded-md bg-muted/30 p-2 text-xs text-muted-foreground">
                                     <div className="mb-1 font-medium opacity-70">{dict.today.descriptionLabel}</div>
-                                    <div className="whitespace-pre-wrap line-clamp-4">{descriptionPreview}</div>
+                                    <div className="max-h-28 overflow-hidden [&_img]:max-h-24">
+                                        <RichTextContentView html={descriptionPreviewSource} compact />
+                                    </div>
                                 </div>
                             ) : null}
-                        </button>
+                        </div>
                     </div>
 
                     <div className="hidden md:flex items-center gap-1 shrink-0 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity duration-200">

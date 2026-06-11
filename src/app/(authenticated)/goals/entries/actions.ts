@@ -116,6 +116,7 @@ export async function updateGoalEntry(formData: FormData) {
 		}
 	}
 
+	revalidatePath('/today')
 	revalidatePath(`/goals/${goal_id}`)
 }
 

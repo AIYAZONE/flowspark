@@ -142,7 +142,7 @@ export const BasicRichTextEditor = forwardRef<HTMLDivElement, BasicRichTextEdito
         suppressContentEditableWarning
         className={cn(
           'rounded-xl border border-input bg-background px-3 py-3 text-sm leading-7 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground',
-          'prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0',
+          'prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-img:my-3 prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-border/40',
           minHeightClassName || 'min-h-[140px]'
         )}
         data-placeholder={placeholder}

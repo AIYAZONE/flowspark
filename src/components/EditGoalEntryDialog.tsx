@@ -10,6 +10,7 @@ import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { BasicRichTextEditor } from '@/components/BasicRichTextEditor'
 import { updateGoalEntry } from '@/app/(authenticated)/goals/entries/actions'
 import { useMobileInputVisible, useMobileKeyboardInset } from '@/components/ui/use-mobile-input-visible'
+import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { ModalActionFooter } from '@/components/ModalActionFooter'
 import { ModalHeaderActions } from '@/components/ModalHeaderActions'
@@ -30,6 +31,7 @@ export function EditGoalEntryDialog({
 	trigger: React.ReactNode
 	onSuccess?: () => void
 }) {
+	const router = useRouter()
 	const [open, setOpen] = useState(false)
 	const [isDesktopFullscreen, setIsDesktopFullscreen] = useState(false)
 	const [isPending, startTransition] = useTransition()
@@ -58,8 +60,9 @@ export function EditGoalEntryDialog({
 		startTransition(async () => {
 			try {
 				await updateGoalEntry(formData)
-				setOpen(false)
 				onSuccess?.()
+				setOpen(false)
+				router.refresh()
 			} catch (err) {
 				const key = err instanceof Error ? err.message : 'operation_failed'
 				const errors = dict.common.errors as unknown as Record<string, string>

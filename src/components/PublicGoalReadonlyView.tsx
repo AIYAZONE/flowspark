@@ -70,14 +70,14 @@ function RichText({ text }: { text: string }) {
 	if (looksLikeHtml) {
 		return (
 			<div
-				className="prose prose-sm dark:prose-invert max-w-none break-words prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-img:my-2 prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-border/40"
+				className="prose prose-sm dark:prose-invert max-w-none break-words prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-img:my-3 prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-border/40"
 				dangerouslySetInnerHTML={{ __html: sanitizeHtml(normalized) }}
 			/>
 		)
 	}
 
 	return (
-		<div className="prose prose-sm dark:prose-invert max-w-none break-words prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-img:my-2 prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-border/40">
+		<div className="prose prose-sm dark:prose-invert max-w-none break-words prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-img:my-3 prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-border/40">
 			<ReactMarkdown remarkPlugins={[remarkGfm]}>{normalized}</ReactMarkdown>
 		</div>
 	)

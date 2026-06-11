@@ -21,8 +21,8 @@ function normalizeImageStyles(html: string) {
     const hasClass = /\sclass=/.test(attrs)
     const hasStyle = /\sstyle=/.test(attrs)
     const attrsWithClass = hasClass
-      ? attrs.replace(/class=(['"])(.*?)\1/i, (_m: string, q: string, cls: string) => `class=${q}${cls} cursor-zoom-in${q}`)
-      : `${attrs} class="cursor-zoom-in"`
+      ? attrs.replace(/class=(['"])(.*?)\1/i, (_m: string, q: string, cls: string) => `class=${q}${cls} cursor-zoom-in block my-3${q}`)
+      : `${attrs} class="cursor-zoom-in block my-3"`
     const attrsWithStyle = hasStyle
       ? attrsWithClass.replace(/style=(['"])(.*?)\1/i, (_m: string, q: string, style: string) => {
           const safeStyle = style
@@ -55,7 +55,7 @@ export function RichTextContentView(props: {
       className={cn(
         'prose prose-sm dark:prose-invert max-w-none wrap-break-word',
         'prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0',
-        'prose-img:my-2 prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-border/40',
+        'prose-img:block prose-img:my-3 prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-border/40',
         props.compact && 'max-h-24 overflow-hidden'
       )}
       onClick={(event) => {
