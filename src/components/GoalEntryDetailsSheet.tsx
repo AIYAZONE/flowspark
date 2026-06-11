@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { Archive, CalendarDays, Lightbulb, ListChecks, Pencil, Sparkles, Trash2, Undo2 } from 'lucide-react'
 import type en from '@/i18n/en.json'
 import { archiveGoalEntry, unarchiveGoalEntry } from '@/app/(authenticated)/goals/entries/actions'
@@ -19,15 +19,7 @@ import { ModalHeaderActions } from '@/components/ModalHeaderActions'
 
 type Dict = typeof en
 
-export function GoalEntryDetailsSheet({
-	open,
-	onOpenChange,
-	entry,
-	goalId,
-	dict,
-	startDefault,
-	endDefault
-}: {
+type GoalEntryDetailsSheetProps = {
 	open: boolean
 	onOpenChange: (next: boolean) => void
 	entry: GoalEntry
@@ -35,7 +27,48 @@ export function GoalEntryDetailsSheet({
 	dict: Dict
 	startDefault: string
 	endDefault: string
-}) {
+	enabled?: boolean
+}
+
+export function GoalEntryDetailsSheet({
+	open,
+	onOpenChange,
+	entry,
+	goalId,
+	dict,
+	startDefault,
+	endDefault,
+	enabled = true
+}: GoalEntryDetailsSheetProps) {
+	useEffect(() => {
+		if (enabled) return
+		if (open) onOpenChange(false)
+	}, [enabled, onOpenChange, open])
+
+	if (!enabled) return null
+
+	return (
+		<GoalEntryDetailsSheetInner
+			open={open}
+			onOpenChange={onOpenChange}
+			entry={entry}
+			goalId={goalId}
+			dict={dict}
+			startDefault={startDefault}
+			endDefault={endDefault}
+		/>
+	)
+}
+
+function GoalEntryDetailsSheetInner({
+	open,
+	onOpenChange,
+	entry,
+	goalId,
+	dict,
+	startDefault,
+	endDefault
+}: Omit<GoalEntryDetailsSheetProps, 'enabled'>) {
 	const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
 	const [actionError, setActionError] = useState<string | null>(null)
 	const [isArchivePending, startArchiveTransition] = useTransition()
@@ -82,11 +115,7 @@ export function GoalEntryDetailsSheet({
 	return (
 		<>
 			<Sheet open={open} onOpenChange={handleOpenChange}>
-				<SheetFormContent
-					side="bottom"
-					mobileMode="sheet"
-					className="max-h-[85vh] overflow-hidden rounded-t-2xl p-0 md:hidden"
-				>
+				<SheetFormContent side="bottom" mobileMode="sheet" className="max-h-[85vh] overflow-hidden rounded-t-2xl p-0">
 					<div className="flex min-h-0 max-h-[85vh] flex-col">
 						<SheetHeader className="border-b border-border/60 px-4 pb-3 pt-4 text-left">
 							<div className="flex items-start justify-between gap-3">

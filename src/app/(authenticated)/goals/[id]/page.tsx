@@ -1,15 +1,8 @@
-import { ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
-
 import { createClient } from '@/lib/supabase/server'
-import { Button } from '@/components/ui/button'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { getTodayInTZ, getUserTimezone } from '@/lib/time'
 
-import { GoalDetailsCard } from '@/components/GoalDetailsCard'
-import { GoalDetailMobileLayout } from '@/components/GoalDetailMobileLayout'
-import { GoalQuickSwitch } from '@/components/GoalQuickSwitch'
-import { GoalSubItemsTabs } from '@/components/GoalSubItemsTabs'
+import { GoalDetailResponsiveLayout } from '@/components/GoalDetailResponsiveLayout'
 
 function addDaysFromDateString(date: string, days: number): string {
 	const d = new Date(`${date}T00:00:00Z`)
@@ -39,61 +32,14 @@ export default async function GoalDetailPage({ params }: PageProps) {
     const { id } = await params
 
     const supabase = await createClient()
-
-    const dict = await getDictionary()
-
-    const { data: { user } } = await supabase.auth.getUser()
+    const [dict, { data: { user } }] = await Promise.all([
+		getDictionary(),
+		supabase.auth.getUser()
+	])
 
     if (!user) return null
 
-    // Get goal details
-    const { data: goal } = await supabase
-        .from('goals')
-        .select('*')
-        .eq('id', id)
-        .eq('user_id', user.id)
-        .single()
-
-    if (!goal) return <div>{dict.goals.detail.notFound}</div>
-
-    const { data: activeGoals } = await supabase
-        .from('goals')
-        .select('id, title')
-        .eq('user_id', user.id)
-        .eq('status', 'active')
-        .order('created_at', { ascending: false })
-
-    // Get actions for this goal
-    const { data: actions } = await supabase
-        .from('actions')
-        .select(`
-            *,
-            action_sub_items (
-                id,
-                title,
-                completed,
-                sort_order
-            )
-        `)
-        .eq('goal_id', id)
-        .eq('user_id', user.id)
-        .order('completed', { ascending: true }) // Uncompleted first
-        .order('priority', { ascending: false }) // High priority first
-        .order('start_date', { ascending: false }) // Newest first
-
-    const { data: shareData } = await supabase
-        .from('goal_shares')
-        .select('token, expires_at, revoked_at')
-        .eq('goal_id', id)
-        .eq('owner_id', user.id)
-        .maybeSingle()
-
-	const tz = await getUserTimezone(supabase, user.id)
-	const startDefault = getTodayInTZ(tz)
-	const endDefault = addDaysFromDateString(startDefault, 7)
-
-	let goalEntries: RawGoalEntry[] = []
-	{
+	const goalEntriesPromise = (async (): Promise<RawGoalEntry[]> => {
 		const { data, error } = await supabase
 			.from('goal_entries')
 			.select('id, kind, status, content, note, created_at')
@@ -110,88 +56,84 @@ export default async function GoalDetailPage({ params }: PageProps) {
 				.eq('kind', 'journey')
 				.eq('user_id', user.id)
 				.order('created_at', { ascending: false })
-			goalEntries = legacyData || []
-		} else {
-			goalEntries = data || []
+			return legacyData || []
 		}
-	}
 
-    return (
-        <div className="space-y-6">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex items-center gap-4">
-                    <Button
-                        asChild
-                        variant="ghost"
-                        size="sm"
-                        className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-primary/10 hover:text-primary active:bg-primary/10 active:text-primary transition-all duration-300"
-                    >
-                        <Link href="/goals">
-                            <div className="rounded-full bg-background/80 p-1 group-hover:bg-background transition-colors">
-                                <ArrowLeft className="h-4 w-4" />
-                            </div>
-                            <span className="text-sm font-medium">{dict.common.back}</span>
-                        </Link>
-                    </Button>
-                    <h1 className="hidden text-2xl font-bold tracking-tight lg:block">{goal.title}</h1>
-                </div>
-                <div className="hidden lg:block lg:w-[280px]">
-                    <GoalQuickSwitch
-                        currentGoalId={goal.id as string}
-                        goals={activeGoals || []}
-                        dict={dict}
-                    />
-                </div>
-            </div>
+		return data || []
+	})()
 
-            <GoalDetailMobileLayout
-				goal={goal}
-				actions={actions || []}
-				entries={(goalEntries || []).map((e) => ({
-					id: e.id as string,
-					kind: e.kind as 'inspiration' | 'journey',
-					status: (e.status as 'open' | 'archived' | null) || 'open',
-					content: e.content as string,
-					note: (e.note as string) || '',
-					created_at: e.created_at as string
-				}))}
-				dict={dict}
-				goalsForEdit={activeGoals || []}
-				goalsForSwitch={activeGoals || []}
-				shareInfo={{
-					token: (shareData?.revoked_at ? null : (shareData?.token as string | null)) || null,
-					expiresAt: (shareData?.expires_at as string | null) || null
-				}}
-				tzDefaults={{ startDefault, endDefault }}
-			/>
+	const [
+		{ data: goal },
+		{ data: activeGoals },
+		{ data: actions },
+		{ data: shareData },
+		tz,
+		goalEntries
+	] = await Promise.all([
+		supabase
+			.from('goals')
+			.select('*')
+			.eq('id', id)
+			.eq('user_id', user.id)
+			.single(),
+		supabase
+			.from('goals')
+			.select('id, title')
+			.eq('user_id', user.id)
+			.eq('status', 'active')
+			.order('created_at', { ascending: false }),
+		supabase
+			.from('actions')
+			.select(`
+				*,
+				action_sub_items (
+					id,
+					title,
+					completed,
+					sort_order
+				)
+			`)
+			.eq('goal_id', id)
+			.eq('user_id', user.id)
+			.order('completed', { ascending: true })
+			.order('priority', { ascending: false })
+			.order('start_date', { ascending: false }),
+		supabase
+			.from('goal_shares')
+			.select('token, expires_at, revoked_at')
+			.eq('goal_id', id)
+			.eq('owner_id', user.id)
+			.maybeSingle(),
+		getUserTimezone(supabase, user.id),
+		goalEntriesPromise
+	])
 
-            <div className="hidden lg:block">
-				<GoalSubItemsTabs
-					goalId={goal.id as string}
-					actions={actions || []}
-					entries={(goalEntries || []).map((e) => ({
-						id: e.id as string,
-						kind: e.kind as 'inspiration' | 'journey',
-						status: (e.status as 'open' | 'archived' | null) || 'open',
-						content: e.content as string,
-						note: (e.note as string) || '',
-						created_at: e.created_at as string
-					}))}
-					dict={dict}
-					goalsForEdit={activeGoals || []}
-					tzDefaults={{ startDefault, endDefault }}
-					includeDetails={true}
-					actionsLabel={dict.goals.detail.actions}
-					detailsContent={
-						<GoalDetailsCard
-							goal={goal}
-							dict={dict}
-							initialShareToken={(shareData?.revoked_at ? null : (shareData?.token as string | null)) || null}
-							initialShareExpiresAt={(shareData?.expires_at as string | null) || null}
-						/>
-					}
-				/>
-            </div>
-        </div>
-    )
+	if (!goal) return <div>{dict.goals.detail.notFound}</div>
+
+	const startDefault = getTodayInTZ(tz)
+	const endDefault = addDaysFromDateString(startDefault, 7)
+
+	const mappedEntries = (goalEntries || []).map((e) => ({
+		id: e.id as string,
+		kind: e.kind as 'inspiration' | 'journey',
+		status: (e.status as 'open' | 'archived' | null) || 'open',
+		content: e.content as string,
+		note: (e.note as string) || '',
+		created_at: e.created_at as string
+	}))
+
+	return (
+		<GoalDetailResponsiveLayout
+			goal={goal}
+			actions={actions || []}
+			entries={mappedEntries}
+			dict={dict}
+			activeGoals={(activeGoals || []).map((g) => ({ id: g.id as string, title: g.title as string }))}
+			shareInfo={{
+				token: (shareData?.revoked_at ? null : (shareData?.token as string | null)) || null,
+				expiresAt: (shareData?.expires_at as string | null) || null
+			}}
+			tzDefaults={{ startDefault, endDefault }}
+		/>
+	)
 }

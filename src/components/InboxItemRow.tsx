@@ -1,7 +1,7 @@
 'use client'
 
 import type en from '@/i18n/en.json'
-import { forwardRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { useState, useTransition, type KeyboardEvent, type MouseEvent } from 'react'
 import { Archive, CalendarDays, ChevronRight, Lightbulb, ListChecks, Pencil, Trash2, Undo2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,27 +10,13 @@ import { ConvertInboxToActionDialog } from '@/components/ConvertInboxToActionDia
 import { EditInboxItemDialog } from '@/components/EditInboxItemDialog'
 import { ConfirmDeleteInboxItemDialog } from '@/components/ConfirmDeleteInboxItemDialog'
 import { InboxItemDetailsSheet } from '@/components/InboxItemDetailsSheet'
+import { HoverLabel } from '@/components/HoverLabel'
+import { useMediaQuery } from '@/components/ui/use-media-query'
+import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { cn } from '@/lib/utils'
+import { TABLET_AND_UP_MEDIA_QUERY } from '@/components/responsive-classes'
 
 type Dict = typeof en
-
-const HoverLabel = forwardRef<
-	HTMLDivElement,
-	{
-		label: string
-		children: ReactNode
-	} & HTMLAttributes<HTMLDivElement>
->(({ label, children, className, ...props }, ref) => {
-	return (
-		<div ref={ref} className={cn('relative group/hoverlabel', className)} {...props}>
-			{children}
-			<div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md border border-border/60 bg-background/95 px-2 py-1 text-[11px] text-foreground opacity-0 shadow-sm transition-opacity group-hover/hoverlabel:opacity-100">
-				{label}
-			</div>
-		</div>
-	)
-})
-HoverLabel.displayName = 'HoverLabel'
 
 export function InboxItemRow({
 	item,
@@ -38,7 +24,8 @@ export function InboxItemRow({
 	dict,
 	startDefault,
 	endDefault,
-	mode = 'open'
+	mode = 'open',
+	onMutateSuccess
 }: {
 	item: { id: string; content: string; note: string; tags: string[]; created_at: string }
 	activeGoals: { id: string; title: string }[]
@@ -46,8 +33,12 @@ export function InboxItemRow({
 	startDefault: string
 	endDefault: string
 	mode?: 'open' | 'archived'
+	onMutateSuccess?: () => void | Promise<void>
 }) {
 	const [detailsOpen, setDetailsOpen] = useState(false)
+	const [actionError, setActionError] = useState<string | null>(null)
+	const [isArchivePending, startArchiveTransition] = useTransition()
+	const isTabletAndUp = useMediaQuery(TABLET_AND_UP_MEDIA_QUERY)
 	const canConvert = mode === 'open' && activeGoals.length > 0
 	const dateText = new Intl.DateTimeFormat(dict.common.locale, { year: 'numeric', month: '2-digit', day: '2-digit' }).format(
 		new Date(item.created_at)
@@ -58,10 +49,6 @@ export function InboxItemRow({
 	const visibleTags = item.tags.slice(0, 3)
 	const remainingTagsCount = Math.max(item.tags.length - visibleTags.length, 0)
 
-	function isDesktopViewport() {
-		return typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches
-	}
-
 	function shouldIgnoreMobileOpen(target: EventTarget | null, currentTarget: HTMLDivElement) {
 		if (!(target instanceof Element)) return false
 		if (target.closest('a, button, input, textarea, select')) return true
@@ -70,16 +57,36 @@ export function InboxItemRow({
 	}
 
 	function openMobileDetails(event: MouseEvent<HTMLDivElement>) {
-		if (isDesktopViewport()) return
+		if (isTabletAndUp) return
 		if (shouldIgnoreMobileOpen(event.target, event.currentTarget)) return
 		setDetailsOpen(true)
 	}
 
 	function handleItemActivate(event: KeyboardEvent<HTMLDivElement>) {
-		if (isDesktopViewport()) return
+		if (isTabletAndUp) return
 		if (event.key !== 'Enter' && event.key !== ' ') return
 		event.preventDefault()
 		setDetailsOpen(true)
+	}
+
+	function handleArchiveOrRestore() {
+		setActionError(null)
+		startArchiveTransition(async () => {
+			try {
+				const formData = new FormData()
+				formData.set('id', item.id)
+				if (mode === 'archived') {
+					await unarchiveInboxItem(formData)
+				} else {
+					await archiveInboxItem(formData)
+				}
+				await onMutateSuccess?.()
+			} catch (err) {
+				const key = err instanceof Error ? err.message : 'operation_failed'
+				const errors = dict.common.errors as unknown as Record<string, string>
+				setActionError(errors[key] || dict.common.errors.operation_failed)
+			}
+		})
 	}
 
 	return (
@@ -131,6 +138,7 @@ export function InboxItemRow({
 												dict={dict}
 												startDefault={startDefault}
 												endDefault={endDefault}
+												onSuccess={onMutateSuccess}
 												trigger={
 													<HoverLabel label={dict.inbox.convertCta}>
 														<Button
@@ -149,6 +157,7 @@ export function InboxItemRow({
 											<EditInboxItemDialog
 												item={{ id: item.id, content: item.content, note: item.note, tags: item.tags }}
 												dict={dict}
+												onSuccess={onMutateSuccess}
 												trigger={
 													<HoverLabel label={dict.common.edit}>
 														<Button type="button" variant="ghost" size="icon" title={dict.common.edit} aria-label={dict.common.edit}>
@@ -157,29 +166,40 @@ export function InboxItemRow({
 													</HoverLabel>
 												}
 											/>
-											<form action={archiveInboxItem}>
-												<input type="hidden" name="id" value={item.id} />
-												<HoverLabel label={dict.inbox.archiveAction}>
-													<Button type="submit" variant="ghost" size="icon" title={dict.inbox.archiveAction} aria-label={dict.inbox.archiveAction}>
-														<Archive className="h-4 w-4" />
-													</Button>
-												</HoverLabel>
-											</form>
-										</>
-									) : (
-										<form action={unarchiveInboxItem}>
-											<input type="hidden" name="id" value={item.id} />
-											<HoverLabel label={dict.inbox.unarchiveAction}>
-												<Button type="submit" variant="ghost" size="icon" title={dict.inbox.unarchiveAction} aria-label={dict.inbox.unarchiveAction}>
-													<Undo2 className="h-4 w-4" />
+											<HoverLabel label={dict.inbox.archiveAction}>
+												<Button
+													type="button"
+													variant="ghost"
+													size="icon"
+													title={dict.inbox.archiveAction}
+													aria-label={dict.inbox.archiveAction}
+													onClick={handleArchiveOrRestore}
+													disabled={isArchivePending}
+												>
+													{isArchivePending ? <LoadingSpinner size={16} className="text-current" /> : <Archive className="h-4 w-4" />}
 												</Button>
 											</HoverLabel>
-										</form>
+										</>
+									) : (
+										<HoverLabel label={dict.inbox.unarchiveAction}>
+											<Button
+												type="button"
+												variant="ghost"
+												size="icon"
+												title={dict.inbox.unarchiveAction}
+												aria-label={dict.inbox.unarchiveAction}
+												onClick={handleArchiveOrRestore}
+												disabled={isArchivePending}
+											>
+												{isArchivePending ? <LoadingSpinner size={16} className="text-current" /> : <Undo2 className="h-4 w-4" />}
+											</Button>
+										</HoverLabel>
 									)}
 
 									<ConfirmDeleteInboxItemDialog
 										id={item.id}
 										dict={dict}
+										onSuccess={onMutateSuccess}
 										trigger={
 											<HoverLabel label={dict.common.delete}>
 												<Button
@@ -223,6 +243,8 @@ export function InboxItemRow({
 									<div className="whitespace-pre-wrap wrap-break-word text-sm leading-7 text-muted-foreground">{item.note}</div>
 								</div>
 							) : null}
+
+							{actionError ? <div className="text-sm text-destructive">{actionError}</div> : null}
 						</div>
 					</div>
 				</CardContent>
@@ -237,6 +259,8 @@ export function InboxItemRow({
 				startDefault={startDefault}
 				endDefault={endDefault}
 				mode={mode}
+				enabled={!isTabletAndUp}
+				onSuccess={onMutateSuccess}
 			/>
 		</>
 	)

@@ -1,6 +1,6 @@
 'use client'
 
-import { forwardRef, useState, type HTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react'
+import { useState, type KeyboardEvent, type MouseEvent } from 'react'
 import type en from '@/i18n/en.json'
 import { Archive, CalendarDays, ChevronRight, Lightbulb, ListChecks, Pencil, Sparkles, Trash2, Undo2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
@@ -12,28 +12,14 @@ import { ConfirmDeleteGoalEntryDialog } from '@/components/ConfirmDeleteGoalEntr
 import { GoalEntryDetailsSheet } from '@/components/GoalEntryDetailsSheet'
 import { RichTextContentView } from '@/components/RichTextContentView'
 import { RichTextImagePreviewDialog } from '@/components/RichTextImagePreviewDialog'
+import { HoverLabel } from '@/components/HoverLabel'
+import { FormIconButton } from '@/components/FormIconButton'
+import { useMediaQuery } from '@/components/ui/use-media-query'
 import { cn } from '@/lib/utils'
 import type { GoalEntry } from '@/components/goal-entry.types'
+import { TABLET_AND_UP_MEDIA_QUERY } from '@/components/responsive-classes'
 
 type Dict = typeof en
-
-const HoverLabel = forwardRef<
-	HTMLDivElement,
-	{
-		label: string
-		children: ReactNode
-	} & HTMLAttributes<HTMLDivElement>
->(({ label, children, className, ...props }, ref) => {
-	return (
-		<div ref={ref} className={cn('relative group/hoverlabel', className)} {...props}>
-			{children}
-			<div className="pointer-events-none absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2 whitespace-nowrap rounded-md border border-border/60 bg-background/95 px-2 py-1 text-[11px] text-foreground opacity-0 shadow-sm transition-opacity group-hover/hoverlabel:opacity-100">
-				{label}
-			</div>
-		</div>
-	)
-})
-HoverLabel.displayName = 'HoverLabel'
 
 export function GoalEntryRow({
 	entry,
@@ -50,6 +36,7 @@ export function GoalEntryRow({
 }) {
 	const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
 	const [detailsOpen, setDetailsOpen] = useState(false)
+	const isTabletAndUp = useMediaQuery(TABLET_AND_UP_MEDIA_QUERY)
 	const isJourney = entry.kind === 'journey'
 	const isArchived = entry.status === 'archived'
 	const kindLabel = isJourney ? dict.goals.detail.tabJourney : dict.goals.detail.tabInspiration
@@ -68,11 +55,13 @@ export function GoalEntryRow({
 	}
 
 	function openMobileDetails(event: MouseEvent<HTMLDivElement>) {
+		if (isTabletAndUp) return
 		if (shouldIgnoreMobileOpen(event.target, event.currentTarget)) return
 		setDetailsOpen(true)
 	}
 
 	function handleEntryActivate(event: KeyboardEvent<HTMLDivElement>) {
+		if (isTabletAndUp) return
 		if (event.key !== 'Enter' && event.key !== ' ') return
 		event.preventDefault()
 		setDetailsOpen(true)
@@ -126,21 +115,18 @@ export function GoalEntryRow({
 
 								<div className="hidden md:flex absolute right-4 top-4 z-50 pointer-events-auto items-center gap-1 opacity-60 transition-opacity group-hover:opacity-100">
 									{isArchived ? (
-										<form action={unarchiveGoalEntry}>
-											<input type="hidden" name="id" value={entry.id} />
-											<input type="hidden" name="goal_id" value={goalId} />
-											<HoverLabel label={dict.goals.detail.unarchiveAction}>
-												<Button
-													type="submit"
-													variant="ghost"
-													size="icon"
-													title={dict.goals.detail.unarchiveAction}
-													aria-label={dict.goals.detail.unarchiveAction}
-												>
-													<Undo2 className="h-4 w-4" />
-												</Button>
-											</HoverLabel>
-										</form>
+										<FormIconButton
+											action={unarchiveGoalEntry}
+											fields={[
+												{ name: 'id', value: entry.id },
+												{ name: 'goal_id', value: goalId }
+											]}
+											label={dict.goals.detail.unarchiveAction}
+											title={dict.goals.detail.unarchiveAction}
+											ariaLabel={dict.goals.detail.unarchiveAction}
+										>
+											<Undo2 className="h-4 w-4" />
+										</FormIconButton>
 									) : (
 										<>
 											<EditGoalEntryDialog
@@ -175,21 +161,18 @@ export function GoalEntryRow({
 													</HoverLabel>
 												}
 											/>
-											<form action={archiveGoalEntry}>
-												<input type="hidden" name="id" value={entry.id} />
-												<input type="hidden" name="goal_id" value={goalId} />
-												<HoverLabel label={dict.goals.detail.archiveEntry}>
-													<Button
-														type="submit"
-														variant="ghost"
-														size="icon"
-														title={dict.goals.detail.archiveEntry}
-														aria-label={dict.goals.detail.archiveEntry}
-													>
-														<Archive className="h-4 w-4" />
-													</Button>
-												</HoverLabel>
-											</form>
+											<FormIconButton
+												action={archiveGoalEntry}
+												fields={[
+													{ name: 'id', value: entry.id },
+													{ name: 'goal_id', value: goalId }
+												]}
+												label={dict.goals.detail.archiveEntry}
+												title={dict.goals.detail.archiveEntry}
+												ariaLabel={dict.goals.detail.archiveEntry}
+											>
+												<Archive className="h-4 w-4" />
+											</FormIconButton>
 										</>
 									)}
 									<ConfirmDeleteGoalEntryDialog
@@ -244,6 +227,7 @@ export function GoalEntryRow({
 				dict={dict}
 				startDefault={startDefault}
 				endDefault={endDefault}
+				enabled={!isTabletAndUp}
 			/>
 
 			<RichTextImagePreviewDialog

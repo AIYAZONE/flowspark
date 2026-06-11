@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import type en from '@/i18n/en.json'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { Archive, CalendarDays, Lightbulb, ListChecks, Pencil, Trash2, Undo2 } from 'lucide-react'
 import type en from '@/i18n/en.json'
 import { archiveInboxItem, unarchiveInboxItem } from '@/app/(authenticated)/inbox/actions'
@@ -23,16 +23,7 @@ type InboxItem = {
 	created_at: string
 }
 
-export function InboxItemDetailsSheet({
-	open,
-	onOpenChange,
-	item,
-	activeGoals,
-	dict,
-	startDefault,
-	endDefault,
-	mode = 'open'
-}: {
+type InboxItemDetailsSheetProps = {
 	open: boolean
 	onOpenChange: (next: boolean) => void
 	item: InboxItem
@@ -41,7 +32,55 @@ export function InboxItemDetailsSheet({
 	startDefault: string
 	endDefault: string
 	mode?: 'open' | 'archived'
-}) {
+	enabled?: boolean
+	onSuccess?: () => void | Promise<void>
+}
+
+export function InboxItemDetailsSheet({
+	open,
+	onOpenChange,
+	item,
+	activeGoals,
+	dict,
+	startDefault,
+	endDefault,
+	mode = 'open',
+	enabled = true,
+	onSuccess
+}: InboxItemDetailsSheetProps) {
+	useEffect(() => {
+		if (enabled) return
+		if (open) onOpenChange(false)
+	}, [enabled, onOpenChange, open])
+
+	if (!enabled) return null
+
+	return (
+		<InboxItemDetailsSheetInner
+			open={open}
+			onOpenChange={onOpenChange}
+			item={item}
+			activeGoals={activeGoals}
+			dict={dict}
+			startDefault={startDefault}
+			endDefault={endDefault}
+			mode={mode}
+			onSuccess={onSuccess}
+		/>
+	)
+}
+
+function InboxItemDetailsSheetInner({
+	open,
+	onOpenChange,
+	item,
+	activeGoals,
+	dict,
+	startDefault,
+	endDefault,
+	mode = 'open',
+	onSuccess
+}: Omit<InboxItemDetailsSheetProps, 'enabled'>) {
 	const [actionError, setActionError] = useState<string | null>(null)
 	const [isArchivePending, startArchiveTransition] = useTransition()
 	const canConvert = mode === 'open' && activeGoals.length > 0
@@ -73,6 +112,7 @@ export function InboxItemDetailsSheet({
 				} else {
 					await archiveInboxItem(formData)
 				}
+				await onSuccess?.()
 				onOpenChange(false)
 			} catch (err) {
 				const key = err instanceof Error ? err.message : 'operation_failed'
@@ -84,7 +124,7 @@ export function InboxItemDetailsSheet({
 
 	return (
 		<Sheet open={open} onOpenChange={handleOpenChange}>
-			<SheetFormContent side="bottom" mobileMode="sheet" className="max-h-[85vh] overflow-hidden rounded-t-2xl p-0 md:hidden">
+			<SheetFormContent side="bottom" mobileMode="sheet" className="max-h-[85vh] overflow-hidden rounded-t-2xl p-0">
 				<div className="flex min-h-0 max-h-[85vh] flex-col">
 					<SheetHeader className="border-b border-border/60 px-4 pb-3 pt-4 text-left">
 						<div className="flex items-start justify-between gap-3">
@@ -155,7 +195,10 @@ export function InboxItemDetailsSheet({
 									<ConfirmDeleteInboxItemDialog
 										id={item.id}
 										dict={dict}
-										onSuccess={() => onOpenChange(false)}
+										onSuccess={async () => {
+											await onSuccess?.()
+											onOpenChange(false)
+										}}
 										trigger={
 											<Button type="button" size="sm" variant="ghost" className="w-full gap-1 text-muted-foreground hover:text-destructive">
 												<Trash2 className="h-4 w-4" />
@@ -169,7 +212,10 @@ export function InboxItemDetailsSheet({
 									<EditInboxItemDialog
 										item={{ id: item.id, content: item.content, note: item.note, tags: item.tags }}
 										dict={dict}
-										onSuccess={() => onOpenChange(false)}
+										onSuccess={async () => {
+											await onSuccess?.()
+											onOpenChange(false)
+										}}
 										trigger={
 											<Button size="sm" variant="outline" className="w-full gap-1">
 												<Pencil className="h-4 w-4" />
@@ -183,7 +229,10 @@ export function InboxItemDetailsSheet({
 										dict={dict}
 										startDefault={startDefault}
 										endDefault={endDefault}
-										onSuccess={() => onOpenChange(false)}
+										onSuccess={async () => {
+											await onSuccess?.()
+											onOpenChange(false)
+										}}
 										trigger={
 											<Button
 												size="sm"
@@ -211,7 +260,10 @@ export function InboxItemDetailsSheet({
 									<ConfirmDeleteInboxItemDialog
 										id={item.id}
 										dict={dict}
-										onSuccess={() => onOpenChange(false)}
+										onSuccess={async () => {
+											await onSuccess?.()
+											onOpenChange(false)
+										}}
 										trigger={
 											<Button type="button" size="sm" variant="ghost" className="w-full gap-1 text-muted-foreground hover:text-destructive">
 												<Trash2 className="h-4 w-4" />
