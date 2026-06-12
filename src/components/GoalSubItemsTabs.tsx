@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, type ReactNode } from 'react'
-import { Info, ListChecks, Sparkles } from 'lucide-react'
+import { Info, ListChecks, Plus, Sparkles } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import type en from '@/i18n/en.json'
 import { Button } from '@/components/ui/button'
@@ -55,7 +55,10 @@ export function GoalSubItemsTabs({
 	tzDefaults,
 	includeDetails = false,
 	detailsContent,
-	actionsLabel
+	actionsLabel,
+	activeTab,
+	onActiveTabChange,
+	hideTabBar = false
 }: {
 	goalId: string
 	actions: Action[]
@@ -66,20 +69,41 @@ export function GoalSubItemsTabs({
 	includeDetails?: boolean
 	detailsContent?: ReactNode
 	actionsLabel?: string
+	activeTab?: TabKey
+	onActiveTabChange?: (tab: TabKey) => void
+	hideTabBar?: boolean
 }) {
-	const [activeTab, setActiveTab] = useState<TabKey>('actions')
+	const [internalActiveTab, setInternalActiveTab] = useState<TabKey>('actions')
 
 	const journeyEntries = useMemo(() => entries.filter((e) => e.kind === 'journey'), [entries])
+	const resolvedActiveTab = activeTab ?? internalActiveTab
+
+	function setResolvedActiveTab(nextTab: TabKey) {
+		if (activeTab === undefined) {
+			setInternalActiveTab(nextTab)
+		}
+		onActiveTabChange?.(nextTab)
+	}
 
 	const addTrigger = useMemo(() => {
-		if (activeTab === 'actions' || activeTab === 'details') return null
+		if (resolvedActiveTab === 'actions' || resolvedActiveTab === 'details') return null
 		return (
-			<Button size="sm" className="gap-1">
+			<Button size="sm" className="h-9 gap-1.5 rounded-full px-4 shadow-sm">
 				<Sparkles className="h-4 w-4" />
 				{dict.goals.detail.addJourney}
 			</Button>
 		)
-	}, [activeTab, dict.goals.detail.addJourney])
+	}, [dict.goals.detail.addJourney, resolvedActiveTab])
+
+	const addActionTrigger = useMemo(
+		() => (
+			<Button size="sm" className="h-9 gap-1.5 rounded-full px-4 shadow-sm">
+				<Plus className="h-4 w-4" />
+				{dict.goals.detail.addAction}
+			</Button>
+		),
+		[dict.goals.detail.addAction]
+	)
 
 	const actionsTabTitle = actionsLabel ?? dict.goals.detail.tabActions
 	const currentEntries = journeyEntries
@@ -90,57 +114,81 @@ export function GoalSubItemsTabs({
 		? '记录关键过程、情绪变化和阶段性体会，让成长轨迹更完整。'
 		: 'Record milestones, emotions, and reflections to make progress more visible.'
 	const SectionIcon = Sparkles
+	const tabs = [
+		{
+			key: 'actions' as const,
+			label: actionsTabTitle,
+			count: actions.length,
+			icon: ListChecks
+		},
+		{
+			key: 'journey' as const,
+			label: dict.goals.detail.tabJourney,
+			count: journeyEntries.length,
+			icon: Sparkles
+		},
+		...(includeDetails
+			? [
+					{
+						key: 'details' as const,
+						label: dict.goals.detail.details,
+						icon: Info
+					}
+				]
+			: [])
+	]
+	const contextualAction =
+		resolvedActiveTab === 'actions' ? (
+			<AddActionDialog goalId={goalId} dict={dict} trigger={addActionTrigger} />
+		) : resolvedActiveTab === 'journey' ? (
+			<AddGoalEntryDialog goalId={goalId} kind="journey" dict={dict} trigger={addTrigger} />
+		) : null
 
 	return (
 		<div className="space-y-4">
-			<div className="flex items-center justify-between gap-3">
-				<div
-					className={cn(
-						'grid gap-1 rounded-full border border-border/40 bg-background/40 p-1 w-full',
-						includeDetails ? 'grid-cols-3 max-w-lg' : 'grid-cols-2 max-w-sm'
-					)}
-				>
-					<Button
-						type="button"
-						variant="ghost"
-						size="sm"
-						className={`rounded-full h-9 ${activeTab === 'actions' ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}
-						onClick={() => setActiveTab('actions')}
-					>
-						<ListChecks className="h-4 w-4 mr-1" />
-						{actionsTabTitle} ({actions.length})
-					</Button>
-					<Button
-						type="button"
-						variant="ghost"
-						size="sm"
-						className={`rounded-full h-9 ${activeTab === 'journey' ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}
-						onClick={() => setActiveTab('journey')}
-					>
-						<Sparkles className="h-4 w-4 mr-1" />
-						{dict.goals.detail.tabJourney} ({journeyEntries.length})
-					</Button>
-					{includeDetails ? (
-						<Button
-							type="button"
-							variant="ghost"
-							size="sm"
-							className={`rounded-full h-9 ${activeTab === 'details' ? 'bg-background shadow-sm' : 'text-muted-foreground'}`}
-							onClick={() => setActiveTab('details')}
-						>
-							<Info className="h-4 w-4 mr-1" />
-							{dict.goals.detail.details}
-						</Button>
-					) : null}
+			{!hideTabBar ? (
+				<div className="flex flex-col gap-3 border-b border-border/60 pb-1 sm:flex-row sm:items-end sm:justify-between">
+					<div className="flex min-w-0 items-center gap-5 overflow-x-auto overflow-y-hidden">
+						{tabs.map((tab) => {
+							const Icon = tab.icon
+							const isActive = resolvedActiveTab === tab.key
+
+							return (
+								<button
+									key={tab.key}
+									type="button"
+									onClick={() => setResolvedActiveTab(tab.key)}
+									className={cn(
+										'-mb-px inline-flex h-10 items-center gap-2 border-b-2 px-1 text-sm font-medium whitespace-nowrap transition-colors',
+										isActive
+											? 'border-primary text-foreground'
+											: 'border-transparent text-muted-foreground hover:text-foreground'
+									)}
+								>
+									<Icon className={cn('h-4 w-4', isActive ? 'text-primary' : 'text-muted-foreground')} />
+									<span>{tab.label}</span>
+									{typeof tab.count === 'number' ? (
+										<span
+											className={cn(
+												'rounded-full px-2 py-0.5 text-[11px] leading-none',
+												isActive
+													? 'bg-primary/10 text-primary'
+													: 'bg-muted text-muted-foreground'
+											)}
+										>
+											{tab.count}
+										</span>
+									) : null}
+								</button>
+							)
+						})}
+					</div>
+
+					{contextualAction ? <div className="shrink-0">{contextualAction}</div> : null}
 				</div>
+			) : null}
 
-				{activeTab === 'actions' ? <AddActionDialog goalId={goalId} dict={dict} /> : null}
-				{activeTab === 'journey' ? (
-					<AddGoalEntryDialog goalId={goalId} kind="journey" dict={dict} trigger={addTrigger} />
-				) : null}
-			</div>
-
-			{activeTab === 'actions' ? (
+			{resolvedActiveTab === 'actions' ? (
 				<ActionListFilter
 					initialActions={actions}
 					dict={dict}
@@ -150,14 +198,14 @@ export function GoalSubItemsTabs({
 				/>
 			) : null}
 
-			{activeTab === 'details' ? detailsContent : null}
+			{resolvedActiveTab === 'details' ? detailsContent : null}
 
-			{activeTab === 'journey' ? (
+			{resolvedActiveTab === 'journey' ? (
 				<div className="space-y-4">
 					<div
 						className={cn(
 							'overflow-hidden rounded-2xl border px-5 py-5 shadow-sm',
-							'border-primary/15 bg-linear-to-br from-primary/[0.08] via-background to-background'
+							'border-primary/15 bg-linear-to-br from-primary/8 via-background to-background'
 						)}
 					>
 						<div className="flex flex-col gap-4 lg:flex-row lg:items-start">
@@ -170,7 +218,7 @@ export function GoalSubItemsTabs({
 								<div className="mt-1 max-w-2xl text-sm leading-6 text-muted-foreground">{sectionDescription}</div>
 								<div className="mt-4 flex flex-wrap gap-2">
 									<div className="rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs text-muted-foreground">
-										{dict.goals.detail.actions}: {currentEntries.length}
+										{sectionTitle}: {currentEntries.length}
 									</div>
 									<div className="rounded-full border border-border/60 bg-background/80 px-3 py-1 text-xs text-muted-foreground">
 										{dict.goals.status.active}: {openEntriesCount}
@@ -201,7 +249,7 @@ export function GoalSubItemsTabs({
 						<div className="space-y-4">
 							{currentEntries.map((entry, index) => (
 								<div key={entry.id} className="relative">
-									{activeTab === 'journey' && index < currentEntries.length - 1 ? (
+									{resolvedActiveTab === 'journey' && index < currentEntries.length - 1 ? (
 										<div className="pointer-events-none absolute bottom-[-16px] left-6 top-[72px] w-px bg-border/50 md:left-8" />
 									) : null}
 									<div className="relative">

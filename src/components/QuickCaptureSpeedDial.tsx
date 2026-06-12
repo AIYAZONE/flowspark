@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { Plus, Sparkles, Target } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Lightbulb, Plus, Sparkles, Target } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import type en from '@/i18n/en.json'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { AddGoalDialog } from '@/components/AddGoalDialog'
 import { AddActionDialog } from '@/components/AddActionDialog'
+import { AddGoalEntryDialog } from '@/components/AddGoalEntryDialog'
 import { QuickCaptureDialog } from '@/components/QuickCaptureDialog'
 import { MOBILE_ONLY_CLASS } from '@/components/responsive-classes'
 
@@ -243,6 +244,13 @@ export function QuickCaptureSpeedDial({
 		!open && menuPlacement.vertical === 'down' && '-translate-y-2'
 	)
 	const showAddGoalEntry = pathname === '/goals' || pathname.startsWith('/goals/')
+	const goalIdFromPath = useMemo(() => {
+		const match = pathname.match(/^\/goals\/([^/]+)$/)
+		if (!match) return null
+		const id = match[1]
+		if (!id || id === 'new' || id === 'entries') return null
+		return id
+	}, [pathname])
 
 	return (
 		<>
@@ -268,6 +276,7 @@ export function QuickCaptureSpeedDial({
 						/>
 					) : null}
 					<AddActionDialog
+						goalId={goalIdFromPath || undefined}
 						activeGoals={activeGoals}
 						dict={dict}
 						tz={tz}
@@ -285,6 +294,26 @@ export function QuickCaptureSpeedDial({
 							</Button>
 						}
 					/>
+					{goalIdFromPath ? (
+						<AddGoalEntryDialog
+							goalId={goalIdFromPath}
+							kind="journey"
+							dict={dict}
+							trigger={
+								<Button
+									type="button"
+									variant="secondary"
+									className={cn(
+										'shadow-lg gap-2 transition-all whitespace-nowrap',
+										open ? 'opacity-100 translate-y-0' : 'opacity-0'
+									)}
+								>
+									<Sparkles className="h-4 w-4" />
+									{dict.goals.detail.addJourney}
+								</Button>
+							}
+						/>
+					) : null}
 					<QuickCaptureDialog
 						dict={dict}
 						trigger={
@@ -296,7 +325,7 @@ export function QuickCaptureSpeedDial({
 									open ? 'opacity-100 translate-y-0' : 'opacity-0'
 								)}
 							>
-								<Sparkles className="h-4 w-4" />
+								<Lightbulb className="h-4 w-4" />
 								{dict.quickCapture.addIdea}
 							</Button>
 						}
