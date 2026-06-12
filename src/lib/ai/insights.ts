@@ -9,6 +9,34 @@ function normalizeConfidence(value: unknown): WeeklyInsightOutput['confidence'] 
   return value === 'low' || value === 'medium' || value === 'high' ? value : undefined
 }
 
+function resolveStrongestTimeBucket(params: {
+  aiValue?: string | null
+  context: CoachContext
+}) {
+  const { aiValue, context } = params
+  return aiValue
+    ?? context.behavior.activeTimeBucket
+    ?? context.profile.preferredTimeBucket
+    ?? null
+}
+
+function resolveTopFriction(params: {
+  aiValue?: string | null
+  context: CoachContext
+}) {
+  const { aiValue, context } = params
+  const structured = context.frictions[0]?.reasonTag ?? null
+  const overdueCount = context.actionContext.overdueOpen.length
+  const scoreAvg7d = context.behavior.scoreAvg7d
+  const momentum = context.behavior.momentumBucket
+  return aiValue
+    ?? structured
+    ?? (overdueCount > 0 ? 'no_time' : null)
+    ?? (typeof scoreAvg7d === 'number' && scoreAvg7d <= 2 ? 'low_energy' : null)
+    ?? (momentum === 'low' || momentum === 'unknown' ? 'unclear_next' : null)
+    ?? null
+}
+
 function parseWeeklyInsight(payload: unknown): WeeklyInsightOutput | null {
   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return null
   const row = payload as Record<string, unknown>
@@ -32,8 +60,8 @@ function parseWeeklyInsight(payload: unknown): WeeklyInsightOutput | null {
 }
 
 function buildFallbackInsight(context: CoachContext): WeeklyInsightOutput {
-  const topFriction = context.frictions[0]?.reasonTag ?? null
-  const strongestTimeBucket = context.profile.preferredTimeBucket ?? null
+  const topFriction = resolveTopFriction({ context })
+  const strongestTimeBucket = resolveStrongestTimeBucket({ context })
   const momentum = context.behavior.momentumBucket ?? 'unknown'
 
   const summaryByLocale = context.identity.locale === 'zh'
@@ -94,7 +122,20 @@ export async function aiWeeklyInsight(params: {
     if (!parsed) {
       return { output: buildFallbackInsight(context), fallbackUsed: true }
     }
-    return { output: parsed, fallbackUsed: false }
+    return {
+      output: {
+        ...parsed,
+        strongestTimeBucket: resolveStrongestTimeBucket({
+          aiValue: parsed.strongestTimeBucket,
+          context,
+        }),
+        topFriction: resolveTopFriction({
+          aiValue: parsed.topFriction,
+          context,
+        }),
+      },
+      fallbackUsed: false,
+    }
   } catch {
     return { output: buildFallbackInsight(context), fallbackUsed: true }
   }

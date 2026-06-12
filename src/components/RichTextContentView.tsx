@@ -56,6 +56,7 @@ export function RichTextContentView(props: {
         'prose prose-sm dark:prose-invert max-w-none wrap-break-word',
         'prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0',
         'prose-img:block prose-img:my-3 prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-border/40',
+        '[&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-0',
         props.compact && 'max-h-24 overflow-hidden'
       )}
       onClick={(event) => {

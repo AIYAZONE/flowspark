@@ -1,9 +1,9 @@
 'use client'
 
 import { forwardRef, useCallback, useEffect, useMemo, useRef } from 'react'
-import { Bold, Eraser, Italic, List } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Bold, Eraser, Italic, List, ListOrdered } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { RichTextToolbar, RichTextToolbarButton } from '@/components/RichTextToolbar'
 
 function escapeHtml(text: string) {
   return text
@@ -106,34 +106,27 @@ export const BasicRichTextEditor = forwardRef<HTMLDivElement, BasicRichTextEdito
     <div className={cn('grid gap-2', className)}>
       <input ref={hiddenInputRef} type="hidden" name={name} defaultValue={normalizedValue} />
 
-      <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-muted/20 p-2">
-        <Button type="button" variant="ghost" size="sm" className="h-8 px-2.5" aria-label="Bold" onClick={() => applyCommand('bold')}>
-          <Bold className="h-4 w-4" />
-        </Button>
-        <Button type="button" variant="ghost" size="sm" className="h-8 px-2.5" aria-label="Italic" onClick={() => applyCommand('italic')}>
-          <Italic className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 px-2.5"
-          aria-label="Bullet list"
-          onClick={() => applyCommand('insertUnorderedList')}
-        >
-          <List className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 px-2.5"
-          aria-label="Clear formatting"
-          onClick={() => applyCommand('removeFormat')}
-        >
-          <Eraser className="h-4 w-4" />
-        </Button>
-      </div>
+      <RichTextToolbar
+        left={
+          <>
+            <RichTextToolbarButton type="button" aria-label="Bold" onClick={() => applyCommand('bold')}>
+              <Bold className="h-4 w-4" />
+            </RichTextToolbarButton>
+            <RichTextToolbarButton type="button" aria-label="Italic" onClick={() => applyCommand('italic')}>
+              <Italic className="h-4 w-4" />
+            </RichTextToolbarButton>
+            <RichTextToolbarButton type="button" aria-label="Bullet list" onClick={() => applyCommand('insertUnorderedList')}>
+              <List className="h-4 w-4" />
+            </RichTextToolbarButton>
+            <RichTextToolbarButton type="button" aria-label="Numbered list" onClick={() => applyCommand('insertOrderedList')}>
+              <ListOrdered className="h-4 w-4" />
+            </RichTextToolbarButton>
+            <RichTextToolbarButton type="button" aria-label="Clear formatting" onClick={() => applyCommand('removeFormat')}>
+              <Eraser className="h-4 w-4" />
+            </RichTextToolbarButton>
+          </>
+        }
+      />
 
       <div
         ref={handleEditorRef}
@@ -142,7 +135,8 @@ export const BasicRichTextEditor = forwardRef<HTMLDivElement, BasicRichTextEdito
         suppressContentEditableWarning
         className={cn(
           'rounded-xl border border-input bg-background px-3 py-3 text-sm leading-7 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground',
-          'prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-img:my-3 prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-border/40',
+          'prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-img:my-3 prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-border/40',
+          '[&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-0',
           minHeightClassName || 'min-h-[140px]'
         )}
         data-placeholder={placeholder}

@@ -333,7 +333,10 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             "group relative overflow-hidden rounded-xl border border-border/40 bg-card transition-all duration-300 md:hover:shadow-sm md:hover:border-primary/20 md:hover:bg-muted/10",
             isNew && "border-primary/40 bg-primary/4"
         )}>
-            <div className="absolute inset-y-0 right-0 z-0 w-32 md:hidden">
+            <div className={cn(
+                "absolute inset-y-0 right-0 z-0 w-32",
+                swipeEnabled ? "block" : "hidden"
+            )}>
                 <div className="flex h-full w-full items-stretch">
                     <button
                         type="button"
@@ -455,7 +458,11 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                         </div>
                     </div>
 
-                    <div className="hidden md:flex items-center gap-1 shrink-0 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity duration-200">
+                    <div className={cn(
+                        "hidden md:flex items-center gap-1 shrink-0 opacity-0 pointer-events-none transition-opacity duration-200",
+                        "group-hover:opacity-100 group-hover:pointer-events-auto",
+                        !swipeEnabled && "group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+                    )}>
                         <Button
                             type="button"
                             variant="ghost"

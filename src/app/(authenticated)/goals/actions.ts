@@ -939,7 +939,7 @@ export async function toggleActionSubItem(formData: FormData) {
 		let parentRecommendationId: string | null = null;
 		const parentByOwner = await supabase
 			.from('actions')
-			.update({ completed: parentCompleted })
+			.update({ completed: parentCompleted, updated_at: new Date().toISOString() })
 			.eq('id', actionId)
 			.eq('owner_id', user.id)
 			.select('ai_recommendation_id')
@@ -950,7 +950,7 @@ export async function toggleActionSubItem(formData: FormData) {
 		if (parentUpdateError) {
 			const parentByUser = await supabase
 				.from('actions')
-				.update({ completed: parentCompleted })
+				.update({ completed: parentCompleted, updated_at: new Date().toISOString() })
 				.eq('id', actionId)
 				.eq('user_id', user.id)
 				.select('ai_recommendation_id')

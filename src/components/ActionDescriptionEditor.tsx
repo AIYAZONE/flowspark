@@ -1,10 +1,11 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Bold, Eraser, Italic, List, ListOrdered, Loader2, UploadCloud } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { Label } from '@/components/ui/label'
+import { RichTextToolbar, RichTextToolbarButton } from '@/components/RichTextToolbar'
 
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024
 const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp']
@@ -88,6 +89,8 @@ export function ActionDescriptionEditor(props: {
   const editorRef = useRef<HTMLDivElement | null>(null)
   const descriptionInputRef = useRef<HTMLInputElement | null>(null)
   const attachmentInputRef = useRef<HTMLInputElement | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const attachmentsRef = useRef<ActionAttachmentDraft[]>(attachments)
   const isComposingRef = useRef(false)
   const isInternalSyncRef = useRef(false)
   const selectedImageRef = useRef<HTMLImageElement | null>(null)
@@ -104,9 +107,17 @@ export function ActionDescriptionEditor(props: {
   const [hiddenValue, setHiddenValue] = useState(() => toEditableHtml(value))
   const [selectedImageRect, setSelectedImageRect] = useState<{ left: number; top: number; width: number; height: number } | null>(null)
 
+  useEffect(() => {
+    attachmentsRef.current = attachments
+  }, [attachments])
+
+  const uploadLabel = useMemo(() => {
+    return dict.goals.new.uploadImage || '上传图片'
+  }, [dict.goals.new.uploadImage])
+
   const helperText = useMemo(() => {
     return (
-      dict.goals.new.richtextPasteHint || '直接粘贴截图或拖入图片（PNG/JPG/WebP，最大 5MB）'
+      dict.goals.new.richtextPasteHint || '支持上传图片；PC 可粘贴截图或拖入图片（PNG/JPG/WebP，最大 5MB）'
     )
   }, [dict.goals.new.richtextPasteHint])
 
@@ -144,6 +155,31 @@ export function ActionDescriptionEditor(props: {
     if (attachmentInputRef.current) attachmentInputRef.current.value = JSON.stringify(props.attachments)
   }, [props.attachments])
 
+  const setUploading = (next: boolean) => {
+    setIsUploading(next)
+    onUploadingChange(next)
+  }
+
+  const clearImageSelection = () => {
+    if (selectedImageRef.current) {
+      selectedImageRef.current.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-background')
+    }
+    selectedImageRef.current = null
+    setSelectedImageRect(null)
+  }
+
+  function updateSelectedImageRect(image: HTMLImageElement) {
+    const editorRect = editorRef.current?.getBoundingClientRect()
+    const imageRect = image.getBoundingClientRect()
+    if (!editorRect) return
+    setSelectedImageRect({
+      left: imageRect.left - editorRect.left,
+      top: imageRect.top - editorRect.top,
+      width: imageRect.width,
+      height: imageRect.height,
+    })
+  }
+
   useEffect(() => {
     const handlePointerMove = (event: PointerEvent) => {
       const state = resizeStateRef.current
@@ -179,31 +215,6 @@ export function ActionDescriptionEditor(props: {
       window.removeEventListener('pointerup', handlePointerUp)
     }
   }, [syncEditorValue])
-
-  const setUploading = (next: boolean) => {
-    setIsUploading(next)
-    onUploadingChange(next)
-  }
-
-  const clearImageSelection = () => {
-    if (selectedImageRef.current) {
-      selectedImageRef.current.classList.remove('ring-2', 'ring-primary', 'ring-offset-2', 'ring-offset-background')
-    }
-    selectedImageRef.current = null
-    setSelectedImageRect(null)
-  }
-
-  const updateSelectedImageRect = (image: HTMLImageElement) => {
-    const editorRect = editorRef.current?.getBoundingClientRect()
-    const imageRect = image.getBoundingClientRect()
-    if (!editorRect) return
-    setSelectedImageRect({
-      left: imageRect.left - editorRect.left,
-      top: imageRect.top - editorRect.top,
-      width: imageRect.width,
-      height: imageRect.height,
-    })
-  }
 
   const selectImage = (image: HTMLImageElement) => {
     if (selectedImageRef.current === image) {
@@ -270,7 +281,9 @@ export function ActionDescriptionEditor(props: {
       mime_type: file.type,
       size_bytes: file.size,
     }
-    onAttachmentsChange([...attachments, attachment])
+    const nextAttachments = [...attachmentsRef.current, attachment]
+    attachmentsRef.current = nextAttachments
+    onAttachmentsChange(nextAttachments)
     insertImageIntoEditor(attachment.public_url, file.name)
   }
 
@@ -302,17 +315,90 @@ export function ActionDescriptionEditor(props: {
     return handle === 'nw' || handle === 'se' ? 'cursor-nwse-resize' : 'cursor-nesw-resize'
   }
 
+  const applyCommand = (command: string) => {
+    const editor = editorRef.current
+    if (!editor || typeof document === 'undefined') return
+
+    editor.focus()
+    document.execCommand(command, false)
+    syncEditorValue(editor.innerHTML)
+  }
+
   return (
     <div className="grid gap-2">
       <Label htmlFor="description">{dict.today.descriptionLabel}</Label>
       <input ref={descriptionInputRef} type="hidden" name="description" defaultValue={hiddenValue} />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        capture="environment"
+        className="hidden"
+        onChange={(event) => {
+          const files = Array.from(event.target.files || [])
+          event.target.value = ''
+          if (!files.length) return
+          void (async () => {
+            setUploadError(null)
+            setUploading(true)
+            try {
+              for (const file of files) {
+                try {
+                  await uploadImageFile(file)
+                } catch (err) {
+                  setUploadError(resolveErrorText(err))
+                }
+              }
+            } finally {
+              setUploading(false)
+            }
+          })()
+        }}
+      />
+      <RichTextToolbar
+        left={
+          <>
+            <RichTextToolbarButton type="button" aria-label="Bold" onClick={() => applyCommand('bold')}>
+              <Bold className="h-4 w-4" />
+            </RichTextToolbarButton>
+            <RichTextToolbarButton type="button" aria-label="Italic" onClick={() => applyCommand('italic')}>
+              <Italic className="h-4 w-4" />
+            </RichTextToolbarButton>
+            <RichTextToolbarButton type="button" aria-label="Bullet list" onClick={() => applyCommand('insertUnorderedList')}>
+              <List className="h-4 w-4" />
+            </RichTextToolbarButton>
+            <RichTextToolbarButton type="button" aria-label="Numbered list" onClick={() => applyCommand('insertOrderedList')}>
+              <ListOrdered className="h-4 w-4" />
+            </RichTextToolbarButton>
+            <RichTextToolbarButton type="button" aria-label="Clear formatting" onClick={() => applyCommand('removeFormat')}>
+              <Eraser className="h-4 w-4" />
+            </RichTextToolbarButton>
+          </>
+        }
+        right={
+          <RichTextToolbarButton
+            type="button"
+            className="gap-2 px-3 text-xs text-foreground"
+            disabled={isUploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <UploadCloud className="h-4 w-4" />
+            {uploadLabel}
+          </RichTextToolbarButton>
+        }
+      />
       <div className="relative">
         <div
           ref={editorRef}
           id="description"
           contentEditable
           suppressContentEditableWarning
-          className="min-h-[140px] rounded-md border border-input bg-background px-3 py-2 text-sm leading-relaxed outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground [&_img]:my-3 [&_img]:block [&_img]:max-w-full [&_img]:rounded-md [&_img]:border [&_img]:border-border/40"
+          className={cn(
+            'min-h-[140px] rounded-xl border border-input bg-background px-3 py-3 text-sm leading-7 outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground',
+            'prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-img:my-3 prose-img:max-w-full prose-img:rounded-md prose-img:border prose-img:border-border/40',
+            '[&_ul]:my-1 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:my-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_li]:my-0'
+          )}
           data-placeholder={dict.today.descriptionPlaceholder}
           onInput={(e) => {
             if (isComposingRef.current) return

@@ -38,26 +38,30 @@ function summarizeBehavior(params: {
 }): SnapshotSummary & {
   actionsCreated7d: number
   actionsCompleted7d: number
+  coreActionsCompleted7d: number
 } {
   const { recentActions, recentScores } = params
   const sinceTs7 = isoTimestampNDaysAgo(7)
   const sinceTs30 = isoTimestampNDaysAgo(30)
 
-  const coreCreated7d = recentActions.filter(
-    a => a.type === 'core' && typeof a.created_at === 'string' && a.created_at >= sinceTs7
+  const actionsCreated7d = recentActions.filter(
+    a => typeof a.created_at === 'string' && a.created_at >= sinceTs7
   ).length
-  const coreCompleted7d = recentActions.filter(
+  const actionsCompleted7d = recentActions.filter(
+    a => a.completed === true && typeof a.updated_at === 'string' && a.updated_at >= sinceTs7
+  ).length
+  const actionsCreated30d = recentActions.filter(
+    a => typeof a.created_at === 'string' && a.created_at >= sinceTs30
+  ).length
+  const actionsCompleted30d = recentActions.filter(
+    a => a.completed === true && typeof a.updated_at === 'string' && a.updated_at >= sinceTs30
+  ).length
+  const coreActionsCompleted7d = recentActions.filter(
     a => a.type === 'core' && a.completed === true && typeof a.updated_at === 'string' && a.updated_at >= sinceTs7
   ).length
-  const coreCreated30d = recentActions.filter(
-    a => a.type === 'core' && typeof a.created_at === 'string' && a.created_at >= sinceTs30
-  ).length
-  const coreCompleted30d = recentActions.filter(
-    a => a.type === 'core' && a.completed === true && typeof a.updated_at === 'string' && a.updated_at >= sinceTs30
-  ).length
 
-  const completionRate7d = coreCreated7d > 0 ? Math.min(1, coreCompleted7d / coreCreated7d) : null
-  const completionRate30d = coreCreated30d > 0 ? Math.min(1, coreCompleted30d / coreCreated30d) : null
+  const completionRate7d = actionsCreated7d > 0 ? Math.min(1, actionsCompleted7d / actionsCreated7d) : null
+  const completionRate30d = actionsCreated30d > 0 ? Math.min(1, actionsCompleted30d / actionsCreated30d) : null
   const validScores = recentScores
     .map(row => (typeof row.score === 'number' ? row.score : null))
     .filter((score): score is number => typeof score === 'number')
@@ -66,9 +70,9 @@ function summarizeBehavior(params: {
     : null
 
   const momentumBucket =
-    coreCompleted7d >= 4 ? 'high'
-    : coreCompleted7d >= 2 ? 'medium'
-    : coreCreated7d >= 1 ? 'low'
+    actionsCompleted7d >= 4 ? 'high'
+    : actionsCompleted7d >= 2 ? 'medium'
+    : actionsCompleted7d >= 1 || actionsCreated7d >= 1 ? 'low'
     : 'unknown'
 
   const activeHours = recentActions
@@ -90,8 +94,9 @@ function summarizeBehavior(params: {
     scoreAvg7d,
     momentumBucket,
     activeTimeBucket,
-    actionsCreated7d: coreCreated7d,
-    actionsCompleted7d: coreCompleted7d,
+    actionsCreated7d,
+    actionsCompleted7d,
+    coreActionsCompleted7d,
   }
 }
 
@@ -199,7 +204,7 @@ export async function upsertBehaviorSnapshot(params: {
       snapshot_date: snapshotDate,
       actions_created: summary.actionsCreated7d,
       actions_completed: summary.actionsCompleted7d,
-      core_actions_completed: summary.actionsCompleted7d,
+      core_actions_completed: summary.coreActionsCompleted7d,
       completion_rate: summary.completionRate7d,
       daily_score: summary.scoreAvg7d == null ? null : Math.round(summary.scoreAvg7d),
       momentum_bucket: summary.momentumBucket,

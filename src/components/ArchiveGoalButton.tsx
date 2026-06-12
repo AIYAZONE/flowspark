@@ -47,7 +47,7 @@ export function ArchiveGoalButton({ id, isArchived, dict }: ArchiveGoalButtonPro
                 size="sm" 
                 onClick={handleArchive} 
                 disabled={isLoading}
-                className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-primary/10 hover:text-primary transition-all duration-300 w-full sm:w-auto"
             >
                 <div className="rounded-full bg-background/80 p-1 group-hover:bg-background transition-colors">
                     {isLoading ? <LoadingSpinner size={16} /> : <RotateCcw className="h-4 w-4" />}
@@ -63,7 +63,7 @@ export function ArchiveGoalButton({ id, isArchived, dict }: ArchiveGoalButtonPro
                 <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-primary/10 hover:text-primary transition-all duration-300"
+                    className="group flex items-center gap-2 rounded-full border border-border/40 bg-background/50 pl-2 pr-4 backdrop-blur-xl hover:bg-primary/10 hover:text-primary transition-all duration-300 w-full sm:w-auto"
                 >
                     <div className="rounded-full bg-background/80 p-1 group-hover:bg-background transition-colors">
                         <Archive className="h-4 w-4" />
