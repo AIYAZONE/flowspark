@@ -18,7 +18,7 @@ const PHASE_TARGETS: Array<{ phaseKey: StreakPhaseKey; atStreak: number }> = [
 ]
 
 export function getExpandedMilestones(targetStreak: number): number[] {
-  const milestones = [...BASE_MILESTONES]
+  const milestones: number[] = [...BASE_MILESTONES]
 
   let next = milestones[milestones.length - 1]
   while (next <= targetStreak) {
