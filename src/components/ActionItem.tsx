@@ -53,15 +53,13 @@ import {
     type ActionRecurrenceRule,
 } from '@/lib/actionRecurrence'
 
+const loadActionItemPanel = () => import('@/components/ActionItemPanel')
+
 const ActionItemPanel = dynamic(
-    () => import('@/components/ActionItemPanel').then((m) => m.ActionItemPanel),
+    () => loadActionItemPanel().then((m) => m.ActionItemPanel),
     {
         ssr: false,
-        loading: () => (
-            <div className="flex h-[60vh] items-center justify-center">
-                <LoadingSpinner size={32} />
-            </div>
-        ),
+        loading: () => null,
     }
 )
 
@@ -225,23 +223,26 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         }
     }
 
-    function openDetails() {
+    async function openDetails() {
         if (draggedRecently) return
         closeSwipe()
         setPanelMode('view')
+        await loadActionItemPanel()
         setDetailsOpen(true)
     }
 
-    function openEditPanel() {
+    async function openEditPanel() {
         closeSwipe()
         setPanelMode('edit')
+        await loadActionItemPanel()
         setDetailsOpen(true)
     }
 
-    function openRescuePanel() {
+    async function openRescuePanel() {
         closeSwipe()
         setPanelMode('rescue')
         setRescueOutcomeState('idle')
+        await loadActionItemPanel()
         setDetailsOpen(true)
     }
 

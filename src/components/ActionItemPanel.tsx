@@ -950,9 +950,11 @@ export function ActionItemPanel({
       </div>
     )
 
+  const footerClassName = isDesktop ? 'md:px-6 md:pt-4 md:pb-6' : 'px-4 md:px-4'
+
   const footer =
     panelMode === 'edit' ? (
-      <ModalActionFooter insetBottom={!isDesktop ? 'calc(env(safe-area-inset-bottom) + 1rem)' : undefined} className={!isDesktop ? 'px-4 md:px-4' : undefined}>
+      <ModalActionFooter insetBottom={!isDesktop ? 'calc(env(safe-area-inset-bottom) + 1rem)' : undefined} className={footerClassName}>
         <div className={isDesktop ? 'flex justify-end gap-2' : 'flex items-center gap-2'}>
           <Button
             type="button"
@@ -976,7 +978,7 @@ export function ActionItemPanel({
       </ModalActionFooter>
     ) : panelMode === 'rescue' ? (
       rescueResult ? (
-        <ModalActionFooter insetBottom={!isDesktop ? 'calc(env(safe-area-inset-bottom) + 1rem)' : undefined} className={!isDesktop ? 'px-4 md:px-4' : undefined}>
+        <ModalActionFooter insetBottom={!isDesktop ? 'calc(env(safe-area-inset-bottom) + 1rem)' : undefined} className={footerClassName}>
           <div className={isDesktop ? 'flex justify-end gap-2' : 'flex items-center justify-between gap-2'}>
             <Button type="button" variant="outline" size="sm" className={!isDesktop ? 'flex-1' : undefined} onClick={() => onPanelModeChange('view')} disabled={rescueLoading}>
               {dict.common.back || 'Back'}
@@ -991,7 +993,7 @@ export function ActionItemPanel({
         </ModalActionFooter>
       ) : null
     ) : (
-      <ModalActionFooter insetBottom={!isDesktop ? 'calc(env(safe-area-inset-bottom) + 1rem)' : undefined} className={!isDesktop ? 'px-4 md:px-4' : undefined}>
+      <ModalActionFooter insetBottom={!isDesktop ? 'calc(env(safe-area-inset-bottom) + 1rem)' : undefined} className={footerClassName}>
         <div className={isDesktop ? 'flex justify-end gap-2' : 'flex items-center gap-2'}>
           <Button
             type="button"
@@ -1064,12 +1066,12 @@ export function ActionItemPanel({
               </DialogHeader>
               {panelMode === 'edit' ? (
                 <form action={handleUpdate} className="flex min-h-0 flex-1 flex-col">
-                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 sm:px-6">{content}</div>
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-4 sm:px-6 sm:pb-6">{content}</div>
                   {footer}
                 </form>
               ) : (
                 <>
-                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 sm:px-6">{content}</div>
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-4 sm:px-6 sm:pb-6">{content}</div>
                   {footer}
                 </>
               )}
@@ -1107,12 +1109,12 @@ export function ActionItemPanel({
               </SheetHeader>
               {panelMode === 'edit' ? (
                 <form action={handleUpdate} className="flex min-h-0 flex-1 flex-col">
-                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4">{content}</div>
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-4">{content}</div>
                   {footer}
                 </form>
               ) : (
                 <>
-                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4">{content}</div>
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-4">{content}</div>
                   {footer}
                 </>
               )}

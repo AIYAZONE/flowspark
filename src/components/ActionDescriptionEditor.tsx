@@ -333,7 +333,6 @@ export function ActionDescriptionEditor(props: {
         type="file"
         accept="image/*"
         multiple
-        capture="environment"
         className="hidden"
         onChange={(event) => {
           const files = Array.from(event.target.files || [])
