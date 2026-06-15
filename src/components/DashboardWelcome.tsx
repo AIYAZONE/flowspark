@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Copy, Download, Palette, RefreshCw, Send, Share2, Sparkles } from 'lucide-react'
+import { Check, ChevronDown, Copy, Download, Palette, RefreshCw, Send, Share2, Smartphone, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -16,6 +16,13 @@ const DAILY_REFRESH_LIMIT = 5
 
 type TemplateOption = {
   value: QuoteShareTemplate
+  label: string
+}
+
+type ShareSize = 'auto' | '9:16' | '19.5:9' | '20:9'
+
+type ShareSizeOption = {
+  value: ShareSize
   label: string
 }
 
@@ -40,6 +47,12 @@ interface WelcomeDict {
   templateCalm: string
   templateSpotlight: string
   templateDusk: string
+  shareSizeLabel: string
+  sizeAuto: string
+  size9x16: string
+  size19_5x9: string
+  size20x9: string
+  shareSizeMore: string
   quoteHistoryUndoCta: string
   quoteHistoryTitle: string
   quoteHistoryEmpty: string
@@ -76,6 +89,8 @@ export function DashboardWelcome({
   const [hasHydratedQuoteState, setHasHydratedQuoteState] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
   const [shareTemplate, setShareTemplate] = useState<QuoteShareTemplate>('calm')
+  const [shareSize, setShareSize] = useState<ShareSize>('auto')
+  const [shareSizeExpanded, setShareSizeExpanded] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
   const [imageBlob, setImageBlob] = useState<Blob | null>(null)
@@ -92,6 +107,38 @@ export function DashboardWelcome({
     { value: 'spotlight', label: dict.templateSpotlight },
     { value: 'dusk', label: dict.templateDusk },
   ], [dict.templateCalm, dict.templateSpotlight, dict.templateDusk])
+
+  const primaryShareSizeOptions = useMemo<ShareSizeOption[]>(() => [
+    { value: 'auto', label: dict.sizeAuto },
+    { value: '19.5:9', label: dict.size19_5x9 },
+    { value: '20:9', label: dict.size20x9 },
+  ], [dict.sizeAuto, dict.size19_5x9, dict.size20x9])
+
+  const classicShareSizeOption = useMemo<ShareSizeOption>(() => ({
+    value: '9:16',
+    label: dict.size9x16,
+  }), [dict.size9x16])
+
+  const shareOutput = useMemo(() => {
+    const width = 1080
+    let ratio = 16 / 9
+
+    if (shareSize === 'auto') {
+      if (typeof window !== 'undefined' && window.screen?.width && window.screen?.height) {
+        const detected = window.screen.height / window.screen.width
+        ratio = detected >= 1.6 ? detected : 16 / 9
+      }
+    } else if (shareSize === '19.5:9') {
+      ratio = 19.5 / 9
+    } else if (shareSize === '20:9') {
+      ratio = 20 / 9
+    } else {
+      ratio = 16 / 9
+    }
+
+    const height = Math.round(width * ratio)
+    return { width, height }
+  }, [shareSize, shareOpen])
 
   const quoteHistory = useMemo(() => {
     const normalized = ensureState(quoteState, dailyQuotes.length, defaultQuoteIndex)
@@ -188,6 +235,7 @@ export function DashboardWelcome({
       avatarUrl,
       avatarFallback,
       template: shareTemplate,
+      output: { width: shareOutput.width, height: shareOutput.height, type: 'image/png' },
     })
       .then((res) => {
         if (cancelled) return
@@ -209,7 +257,7 @@ export function DashboardWelcome({
       cancelled = true
       clearTimeout(timer)
     }
-  }, [shareOpen, selectedQuote, quoteDateISO, name, locale, avatarUrl, avatarFallback, shareTemplate, dict.shareFailed])
+  }, [shareOpen, selectedQuote, quoteDateISO, name, locale, avatarUrl, avatarFallback, shareTemplate, shareOutput.width, shareOutput.height, dict.shareFailed])
 
   const handleDownload = () => {
     if (!imageBlob) return
@@ -275,6 +323,12 @@ export function DashboardWelcome({
   }, [dict.refreshRemaining, dict.refreshUsedUp, quoteState.refreshUsed])
 
   const isRefreshDisabled = dailyQuotes.length <= 1 || quoteState.refreshUsed >= DAILY_REFRESH_LIMIT
+  const isClassicSizeVisible = shareSizeExpanded || shareSize === '9:16'
+
+  const handleShareOpenChange = (nextOpen: boolean) => {
+    setShareOpen(nextOpen)
+    if (!nextOpen && shareSize !== '9:16') setShareSizeExpanded(false)
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -338,7 +392,7 @@ export function DashboardWelcome({
         </div>
       </div>
 
-      <Dialog open={shareOpen} onOpenChange={setShareOpen}>
+      <Dialog open={shareOpen} onOpenChange={handleShareOpenChange}>
         <DialogContent className="max-h-[92vh] w-[min(100vw-2.5rem,860px)] md:w-[min(100vw-8rem,760px)] max-w-none border-border/60 bg-background p-0">
           <DialogHeader className="border-b border-border/50 px-6 py-3 pr-14">
             <DialogTitle className="flex items-center gap-2">
@@ -422,11 +476,57 @@ export function DashboardWelcome({
                   </div>
                 </div>
 
-                <p className="text-xs text-muted-foreground">{dict.wallpaperHint}</p>
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                    <Smartphone className="h-4 w-4 text-primary" />
+                    {dict.shareSizeLabel}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {primaryShareSizeOptions.map((option) => (
+                      <Button
+                        key={option.value}
+                        type="button"
+                        variant={shareSize === option.value ? 'default' : 'outline'}
+                        shape="default"
+                        className="h-9 px-3"
+                        onClick={() => setShareSize(option.value)}
+                      >
+                        {option.label}
+                      </Button>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      shape="default"
+                      className="h-9 px-2 text-muted-foreground"
+                      onClick={() => setShareSizeExpanded((current) => !current)}
+                    >
+                      {dict.shareSizeMore}
+                      <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${isClassicSizeVisible ? 'rotate-180' : ''}`} />
+                    </Button>
+                  </div>
+
+                  {isClassicSizeVisible ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        variant={shareSize === classicShareSizeOption.value ? 'default' : 'outline'}
+                        shape="default"
+                        className="h-9 px-3"
+                        onClick={() => setShareSize(classicShareSizeOption.value)}
+                      >
+                        {classicShareSizeOption.label}
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               <div className="flex justify-center md:justify-end">
-                <div className="relative h-[min(58vh,640px)] md:h-[min(62vh,720px)] w-auto overflow-hidden rounded-xl border border-border/50 bg-muted/10 aspect-[9/16]">
+                <div
+                  className="relative h-[min(58vh,640px)] md:h-[min(62vh,720px)] w-auto overflow-hidden rounded-xl border border-border/50 bg-muted/10"
+                  style={{ aspectRatio: `${shareOutput.width} / ${shareOutput.height}` }}
+                >
                   {imageDataUrl ? (
                     <Image
                       src={imageDataUrl}
@@ -459,7 +559,7 @@ export function DashboardWelcome({
             <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
               <Button
                 type="button"
-                variant="outline"
+                variant={canUseSystemShare ? 'outline' : 'default'}
                 shape="default"
                 className="gap-2"
                 disabled={!imageBlob || isGenerating}
@@ -471,7 +571,7 @@ export function DashboardWelcome({
 
               <Button
                 type="button"
-                variant="outline"
+                variant={canUseSystemShare ? 'default' : 'outline'}
                 shape="default"
                 className="gap-2"
                 disabled={!imageBlob || isGenerating || !canUseSystemShare}
@@ -483,7 +583,7 @@ export function DashboardWelcome({
 
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 shape="default"
                 className="gap-2"
                 disabled={isGenerating}

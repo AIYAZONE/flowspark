@@ -17,6 +17,7 @@ test('今天已完成时，连续天数从今天开始连续回溯', () => {
   assert.equal(snapshot.currentStreak, 3)
   assert.equal(snapshot.longestStreak, 3)
   assert.equal(snapshot.recoverableMissDate, null)
+  assert.equal(snapshot.completedToday, true)
   assert.equal(snapshot.shieldBalance, 1)
 })
 
@@ -91,16 +92,46 @@ test('达到 7 天连续且当前无护盾时补充护盾', () => {
   })
 })
 
-test('已有护盾时不重复发放，并返回下一次发放门槛', () => {
+test('达到 7 天连续且库存未满时允许在已有护盾基础上继续累积', () => {
   const grant = getShieldGrantDecision({
-    currentStreak: 9,
+    currentStreak: 7,
     shieldBalance: 1,
+    lastShieldGrantedForStreak: 3,
+  })
+
+  assert.deepEqual(grant, {
+    shouldGrant: true,
+    nextBalance: 2,
+    grantedRule: 'refill_7_day',
+    nextGrantAtStreak: 14,
+  })
+})
+
+test('达到 14 天连续且库存接近上限时会补满到 3', () => {
+  const grant = getShieldGrantDecision({
+    currentStreak: 14,
+    shieldBalance: 2,
+    lastShieldGrantedForStreak: 7,
+  })
+
+  assert.deepEqual(grant, {
+    shouldGrant: true,
+    nextBalance: 3,
+    grantedRule: 'refill_7_day',
+    nextGrantAtStreak: 21,
+  })
+})
+
+test('库存达到上限 3 时，即使满足门槛也不再发放', () => {
+  const grant = getShieldGrantDecision({
+    currentStreak: 14,
+    shieldBalance: 3,
     lastShieldGrantedForStreak: 7,
   })
 
   assert.deepEqual(grant, {
     shouldGrant: false,
-    nextBalance: 1,
+    nextBalance: 3,
     grantedRule: null,
     nextGrantAtStreak: 14,
   })

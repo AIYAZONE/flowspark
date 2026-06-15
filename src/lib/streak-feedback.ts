@@ -6,6 +6,12 @@ export type StreakFeedback =
       shieldBalanceAfter: number
     }
   | {
+      kind: 'milestone_reached'
+      createdAt: number
+      milestone: number
+      phaseKey: 'starter' | 'steady' | 'deepening' | 'resilient' | 'longrun' | 'identity'
+    }
+  | {
       kind: 'recovery_success'
       createdAt: number
       targetDate: string
@@ -20,6 +26,7 @@ export type StreakFeedback =
 
 type BuildParams =
   | Omit<Extract<StreakFeedback, { kind: 'shield_granted' }>, 'createdAt'>
+  | Omit<Extract<StreakFeedback, { kind: 'milestone_reached' }>, 'createdAt'>
   | Omit<Extract<StreakFeedback, { kind: 'recovery_success' }>, 'createdAt'>
   | Omit<Extract<StreakFeedback, { kind: 'rescue_adopted' }>, 'createdAt'>
 
@@ -70,6 +77,34 @@ export function formatStreakFeedbackCopy(
     }
   }
 
+  if (feedback.kind === 'milestone_reached') {
+    const phaseName = isZh
+      ? {
+          starter: '启动期',
+          steady: '稳定期',
+          deepening: '深耕期',
+          resilient: '韧性期',
+          longrun: '长跑期',
+          identity: '身份期',
+        }[feedback.phaseKey]
+      : {
+          starter: 'Starter',
+          steady: 'Steady',
+          deepening: 'Deepening',
+          resilient: 'Resilient',
+          longrun: 'Long Run',
+          identity: 'Identity',
+        }[feedback.phaseKey]
+
+    return {
+      tone: 'success',
+      title: isZh ? `已达成 ${feedback.milestone} 天里程碑` : `${feedback.milestone}-day milestone reached`,
+      body: isZh
+        ? `你已进入${phaseName}，说明连续行动正在从短期坚持升级成更稳定的节奏。`
+        : `You have entered the ${phaseName} phase. Your consistency is becoming a more stable rhythm.`,
+    }
+  }
+
   return {
     tone: 'info',
     title: isZh ? '保连续优先' : 'Streak-safe mode',
@@ -78,4 +113,3 @@ export function formatStreakFeedbackCopy(
       : `Adopted the ${feedback.minutes}-minute minimum version to preserve your streak first, then ramp up.`,
   }
 }
-

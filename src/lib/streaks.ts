@@ -21,6 +21,7 @@ export type StreakSnapshot = {
   currentStreak: number
   longestStreak: number
   recoverableMissDate: string | null
+  completedToday: boolean
   shieldBalance: number
   usedRepairYesterday: boolean
 }
@@ -104,7 +105,7 @@ export function getShieldGrantDecision(input: {
         ? 7
         : lastGranted + 7
 
-  if (shieldBalance > 0 || currentStreak < nextGrantAtStreak) {
+  if (shieldBalance >= 3 || currentStreak < nextGrantAtStreak) {
     return {
       shouldGrant: false,
       nextBalance: shieldBalance,
@@ -115,7 +116,7 @@ export function getShieldGrantDecision(input: {
 
   return {
     shouldGrant: true,
-    nextBalance: shieldBalance + 1,
+    nextBalance: Math.min(shieldBalance + 1, 3),
     grantedRule: nextGrantAtStreak === 3 ? 'first_3_day' : 'refill_7_day',
     nextGrantAtStreak: nextGrantAtStreak === 3 ? 7 : nextGrantAtStreak + 7,
   }
@@ -127,9 +128,10 @@ export function computeStreakSnapshot(input: ComputeStreakSnapshotInput): Streak
   const today = input.today
   const yesterday = shiftDate(today, 1)
   const dayBeforeYesterday = shiftDate(today, 2)
+  const completedToday = activeDates.has(today)
   const usedRepairYesterday = input.repairDates.includes(yesterday)
 
-  const currentStreak = activeDates.has(today)
+  const currentStreak = completedToday
     ? countTrailingStreak(activeDates, today)
     : activeDates.has(yesterday)
       ? countTrailingStreak(activeDates, yesterday)
@@ -145,6 +147,7 @@ export function computeStreakSnapshot(input: ComputeStreakSnapshotInput): Streak
     currentStreak,
     longestStreak,
     recoverableMissDate,
+    completedToday,
     shieldBalance,
     usedRepairYesterday,
   }

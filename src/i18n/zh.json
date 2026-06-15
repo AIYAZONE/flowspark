@@ -246,7 +246,37 @@
 		"activeGoals": "进行中的目标",
 		"currentStreak": "行动连续天数",
 		"days": "天",
-		"streakRule": "按你的时区计算：当天完成任意一个行动就会记为 1 天连续；如果今天还没完成，则会保留到昨天为止的连续天数。昨天漏掉 1 天时，可用护盾补回，但不会额外获得 XP。",
+		"streakRule": "当天完成任意行动即可保连续；昨天漏 1 天时，可用护盾补回。",
+		"streakMilestones": {
+			"currentPhase": "当前阶段",
+			"nextPhase": "下一阶段",
+			"phaseProgress": "阶段进度",
+			"learnMore": "查看阶段说明",
+			"dialogTitle": "连续里程碑说明",
+			"dialogDesc": "连续天数不只是一个数字。它既用来给你节奏感，也用来承接功能奖励与长期身份感。",
+			"phasesTitle": "阶段路线",
+			"rewardsTitle": "达到后会得到什么",
+			"rewardsShield": "3 / 7 / 14 / 21... 等节点继续按现有规则发放护盾，提供实用回报。",
+			"rewardsIdentity": "30 / 60 / 90 / 180 / 365 等阶段更强调高光反馈与身份认同，让坚持有“正在升级”的感觉。",
+			"phaseNames": {
+				"starter": "启动期",
+				"steady": "稳定期",
+				"deepening": "深耕期",
+				"resilient": "韧性期",
+				"longrun": "长跑期",
+				"identity": "身份期"
+			},
+			"phaseDescriptions": {
+				"starter": "先把行动从“偶尔想起”变成“能连续开始”。",
+				"steady": "开始形成稳定节奏，重点是减少中断与掉线。",
+				"deepening": "从短期坚持进入稳定系统，开始看到方法与成果累积。",
+				"resilient": "面对波动仍能回来，连续性开始体现出韧性。",
+				"longrun": "坚持已经变成长周期投入，开始像一种生活方式。",
+				"identity": "连续行动成为身份的一部分，你不是在完成任务，而是在活成这样的人。"
+			},
+			"phaseGoal": "距离 {days} 天的{phase}还差 {remaining} 天",
+			"phaseGoalShort": "下一里程碑 {days} 天，还差 {remaining} 天"
+		},
 		"recentTrend": "近 30 天自评趋势",
 		"recentTrendDesc": "看见波动与改善，让行动更有方向。",
 		"noCoreAction": "今日未设置核心行动。",
@@ -272,6 +302,12 @@
 			"templateCalm": "清透",
 			"templateSpotlight": "聚光",
 			"templateDusk": "暮色",
+			"shareSizeLabel": "壁纸尺寸",
+			"sizeAuto": "自动（推荐）",
+			"size9x16": "经典（9:16）",
+			"size19_5x9": "iPhone 全面屏",
+			"size20x9": "安卓 全面屏",
+			"shareSizeMore": "更多",
 			"quoteSelectLabel": "选择金句",
 			"quoteHistoryLabel": "已刷到的金句",
 			"quoteHistoryUndoCta": "后悔了？找回上一句",
@@ -279,7 +315,7 @@
 			"quoteHistoryEmpty": "暂无历史记录",
 			"refreshUsedUp": "今日刷新已用完（{used}/{total}）",
 			"refreshRemaining": "今日剩余 {n} 次刷新",
-			"wallpaperHint": "图片为 9:16 壁纸尺寸，保存后可直接设为手机壁纸。"
+			"wallpaperHint": "默认自动适配当前设备比例；如果在电脑端下载，可手动选一个更接近你手机的比例。"
 		},
 		"onboarding": {
 			"heroTitle": "伟大的旅程始于足下。",

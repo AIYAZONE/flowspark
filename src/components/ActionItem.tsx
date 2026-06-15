@@ -59,7 +59,10 @@ import { deleteAction, toggleActionSubItem } from '@/app/(authenticated)/goals/a
 import type { Dictionary, TodayDictionary } from '@/i18n/types'
 import { ActionSubItemsSection } from '@/components/ActionSubItemsSection'
 import { RichTextContentView } from '@/components/RichTextContentView'
+import { pushStreakFeedback } from '@/components/StreakFeedbackBanner'
 import { pushXpFeedback } from '@/components/XpFeedbackToast'
+import { buildStreakFeedback } from '@/lib/streak-feedback'
+import { getCelebrationMilestone, getPhaseKeyForStreak } from '@/lib/streak-milestones'
 import {
     parseActionRecurrenceDescription,
     type ActionRecurrenceRule,
@@ -398,9 +401,24 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                             formData.append('completed', action.completed ? 'true' : 'false')
                                             const result = await toggleActionWithReward(formData) as unknown as {
                                                 xpEarned?: number | null
+                                                streak?: {
+                                                    currentStreak?: number
+                                                }
                                             }
                                             if (!action.completed && typeof result?.xpEarned === 'number') {
                                                 pushXpFeedback({ amount: result.xpEarned })
+                                            }
+                                            if (!action.completed && typeof result?.streak?.currentStreak === 'number') {
+                                                const milestone = getCelebrationMilestone(result.streak.currentStreak)
+                                                if (milestone) {
+                                                    pushStreakFeedback(
+                                                        buildStreakFeedback({
+                                                            kind: 'milestone_reached',
+                                                            milestone,
+                                                            phaseKey: getPhaseKeyForStreak(result.streak.currentStreak),
+                                                        })
+                                                    )
+                                                }
                                             }
                                         })()
                                     })

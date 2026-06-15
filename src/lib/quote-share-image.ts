@@ -2,6 +2,13 @@ import type { QuoteLocale } from '@/lib/daily-quote'
 
 export type QuoteShareTemplate = 'calm' | 'spotlight' | 'dusk'
 
+export type QuoteShareImageOutput = {
+  width: number
+  height: number
+  type: 'image/png' | 'image/jpeg'
+  quality?: number
+}
+
 export type QuoteShareImageParams = {
   quote: string
   dateISO: string
@@ -10,6 +17,7 @@ export type QuoteShareImageParams = {
   avatarUrl?: string | null
   avatarFallback: string
   template: QuoteShareTemplate
+  output?: QuoteShareImageOutput
 }
 
 type RenderResult = {
@@ -134,8 +142,15 @@ function getTemplateStyle(template: QuoteShareTemplate) {
 }
 
 export async function renderQuoteSharePng(params: QuoteShareImageParams): Promise<RenderResult> {
-  const width = 1080
-  const height = 1920
+  const baseWidth = 1080
+  const baseHeight = 1920
+
+  const width = params.output?.width ?? baseWidth
+  const height = params.output?.height ?? baseHeight
+  const outputType = params.output?.type ?? 'image/png'
+  const outputQuality = params.output?.quality
+  const scale = width / baseWidth
+  const px = (value: number) => value * scale
 
   const canvas = document.createElement('canvas')
   canvas.width = width
@@ -149,9 +164,9 @@ export async function renderQuoteSharePng(params: QuoteShareImageParams): Promis
   const brand = 'FlowSpark'
   const template = getTemplateStyle(params.template)
 
-  const padX = 96
-  const safeTop = 210
-  const safeBottom = 160
+  const padX = px(96)
+  const safeTop = px(210)
+  const safeBottom = px(160)
   const padTop = safeTop
   const padBottom = safeBottom
   const contentW = width - padX * 2
@@ -166,35 +181,35 @@ export async function renderQuoteSharePng(params: QuoteShareImageParams): Promis
   ctx.fillRect(0, 0, width, height)
 
   const orbAlpha = params.template === 'calm' ? 0.22 : 0.18
-  const orbBlur = params.template === 'calm' ? 18 : 22
+  const orbBlur = params.template === 'calm' ? px(18) : px(22)
 
   ctx.save()
   ctx.globalAlpha = orbAlpha
   ctx.filter = `blur(${orbBlur}px)`
   ctx.fillStyle = template.accentA
   ctx.beginPath()
-  ctx.arc(width * 0.92, height * 0.12, 260, 0, Math.PI * 2)
+  ctx.arc(width * 0.92, height * 0.12, px(260), 0, Math.PI * 2)
   ctx.fill()
   ctx.fillStyle = template.accentB
   ctx.beginPath()
-  ctx.arc(width * 0.12, height * 0.86, 340, 0, Math.PI * 2)
+  ctx.arc(width * 0.12, height * 0.86, px(340), 0, Math.PI * 2)
   ctx.fill()
   ctx.restore()
 
   ctx.fillStyle = template.primaryText
-  ctx.font = '700 46px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'
+  ctx.font = `700 ${px(46)}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`
   ctx.textBaseline = 'top'
   ctx.fillText(`${brand} · ${title}`, padX, padTop)
 
   ctx.fillStyle = template.secondaryText
-  ctx.font = '500 32px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'
-  ctx.fillText(params.dateISO, padX, padTop + 64)
+  ctx.font = `500 ${px(32)}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`
+  ctx.fillText(params.dateISO, padX, padTop + px(64))
 
-  const quoteTop = padTop + 260
+  const quoteTop = padTop + px(260)
   ctx.fillStyle = template.primaryText
   ctx.font = isZh
-    ? '700 78px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'
-    : '700 72px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'
+    ? `700 ${px(78)}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`
+    : `700 ${px(72)}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`
 
   const maxLines = isZh ? 5 : 6
   const { lines, truncated } = wrapLines({
@@ -204,7 +219,7 @@ export async function renderQuoteSharePng(params: QuoteShareImageParams): Promis
     maxLines,
   })
 
-  const lineHeight = isZh ? 110 : 102
+  const lineHeight = isZh ? px(110) : px(102)
   let y = quoteTop
 
   for (const line of lines) {
@@ -214,24 +229,24 @@ export async function renderQuoteSharePng(params: QuoteShareImageParams): Promis
 
   if (truncated) {
     ctx.fillStyle = template.secondaryText
-    ctx.font = '600 34px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'
-    ctx.fillText('…', padX, y - 18)
+    ctx.font = `600 ${px(34)}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`
+    ctx.fillText('…', padX, y - px(18))
   }
 
   const safeName = String(params.name || '').trim() || (isZh ? '你' : 'You')
   const fallbackLetter = String(params.avatarFallback || safeName || brand).trim().charAt(0).toUpperCase() || 'F'
 
-  const footerW = 276
-  const footerH = 110
+  const footerW = px(276)
+  const footerH = px(110)
   const footerX = width - padX - footerW
   const footerY = height - padBottom - footerH
-  const avatarSize = 60
-  const avatarX = footerX + 20
-  const avatarY = footerY + 25
+  const avatarSize = px(60)
+  const avatarX = footerX + px(20)
+  const avatarY = footerY + px(25)
 
   ctx.fillStyle = template.footerFill
   ctx.beginPath()
-  ctx.roundRect(footerX, footerY, footerW, footerH, 26)
+  ctx.roundRect(footerX, footerY, footerW, footerH, px(26))
   ctx.fill()
 
   try {
@@ -253,17 +268,19 @@ export async function renderQuoteSharePng(params: QuoteShareImageParams): Promis
     ctx.fillStyle = template.badgeText
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
-    ctx.font = '700 30px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'
-    ctx.fillText(fallbackLetter, avatarX + avatarSize / 2, avatarY + avatarSize / 2 + 2)
+    ctx.font = `700 ${px(30)}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`
+    ctx.fillText(fallbackLetter, avatarX + avatarSize / 2, avatarY + avatarSize / 2 + px(2))
     ctx.textAlign = 'start'
     ctx.textBaseline = 'top'
   }
 
   ctx.fillStyle = template.primaryText
-  ctx.font = '700 32px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial'
-  ctx.fillText(safeName, avatarX + avatarSize + 16, footerY + 38)
+  ctx.font = `700 ${px(32)}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`
+  ctx.fillText(safeName, avatarX + avatarSize + px(16), footerY + px(38))
 
-  const dataUrl = canvas.toDataURL('image/png')
-  const blob = await toBlob(canvas, 'image/png')
+  const defaultQuality = 0.92
+  const dataUrl =
+    outputType === 'image/png' ? canvas.toDataURL(outputType) : canvas.toDataURL(outputType, outputQuality ?? defaultQuality)
+  const blob = await toBlob(canvas, outputType, outputType === 'image/png' ? undefined : outputQuality ?? defaultQuality)
   return { dataUrl, blob }
 }

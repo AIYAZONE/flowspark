@@ -51,3 +51,19 @@ test('Rescue 采用反馈文案可被格式化（英文）', () => {
   assert.equal(copy.tone, 'info')
   assert.ok(copy.title.toLowerCase().includes('streak'))
 })
+
+test('阶段里程碑反馈文案可被格式化（中文）', () => {
+  const feedback = buildStreakFeedback(
+    {
+      kind: 'milestone_reached',
+      milestone: 60,
+      phaseKey: 'deepening',
+    },
+    { now: 1000 }
+  )
+
+  const copy = formatStreakFeedbackCopy(feedback, { locale: 'zh' })
+  assert.equal(copy.tone, 'success')
+  assert.ok(copy.title.includes('60'))
+  assert.ok(copy.body.includes('深耕'))
+})

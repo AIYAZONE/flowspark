@@ -283,8 +283,6 @@ export default async function DashboardPage() {
     today,
   })
   const streak = streakSnapshot.currentStreak
-  const streakMilestones = [1, 3, 7, 10, 30]
-  const nextMilestone = streakMilestones.find((milestone) => streak < milestone) ?? streakMilestones[streakMilestones.length - 1]
 
   const chartData = recentScores?.map(s => ({ date: s.score_date, score: s.score })) || []
 
@@ -326,7 +324,7 @@ export default async function DashboardPage() {
             <StreakCard
               dict={dict}
               streak={streak}
-              nextMilestone={nextMilestone}
+              todayCompleted={streakSnapshot.completedToday}
               shieldBalance={streakSnapshot.shieldBalance}
               recoverableMissDate={streakSnapshot.recoverableMissDate}
               nextGrantAtStreak={streakSnapshot.nextShieldGrantRule.nextGrantAtStreak}

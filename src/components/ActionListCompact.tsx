@@ -10,6 +10,7 @@ import { RewardLootBoxDialog } from '@/components/RewardLootBoxDialog'
 import type { RewardResult } from '@/lib/rewards'
 import { logEvent } from '@/lib/analytics'
 import { buildStreakFeedback } from '@/lib/streak-feedback'
+import { getCelebrationMilestone, getPhaseKeyForStreak } from '@/lib/streak-milestones'
 import { pushStreakFeedback } from '@/components/StreakFeedbackBanner'
 import { pushXpFeedback } from '@/components/XpFeedbackToast'
 
@@ -119,7 +120,11 @@ export function ActionListCompact({
                   formData.append('completed', action.completed ? 'true' : 'false')
                   const result = await toggleActionWithReward(formData) as unknown as {
                     reward?: RewardResult | null
-                    streak?: { shieldGrantedRule?: 'first_3_day' | 'refill_7_day' | null; shieldBalance?: number }
+                    streak?: {
+                      currentStreak?: number
+                      shieldGrantedRule?: 'first_3_day' | 'refill_7_day' | null
+                      shieldBalance?: number
+                    }
                     xpEarned?: number | null
                   }
                   if (!action.completed && typeof result?.xpEarned === 'number') {
@@ -141,6 +146,18 @@ export function ActionListCompact({
                         shieldBalanceAfter: result.streak.shieldBalance ?? 0,
                       })
                     )
+                  }
+                  if (!action.completed && typeof result?.streak?.currentStreak === 'number') {
+                    const milestone = getCelebrationMilestone(result.streak.currentStreak)
+                    if (milestone) {
+                      pushStreakFeedback(
+                        buildStreakFeedback({
+                          kind: 'milestone_reached',
+                          milestone,
+                          phaseKey: getPhaseKeyForStreak(result.streak.currentStreak),
+                        })
+                      )
+                    }
                   }
                 })()
               })

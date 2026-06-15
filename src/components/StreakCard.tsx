@@ -1,11 +1,21 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { Info } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { StreakRecoverDialog } from '@/components/StreakRecoverDialog'
+import { StreakMilestoneDialog } from '@/components/StreakMilestoneDialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { logEvent } from '@/lib/analytics'
-import { getStreakStatusCopy } from '@/lib/streak-ui'
+import { getNextPhaseTarget, getStreakMilestoneSummary } from '@/lib/streak-milestones'
+import { getShieldBadgeAction, getShieldBadgeDialogCopy, getStreakStatusCopy } from '@/lib/streak-ui'
 import type en from '@/i18n/en.json'
 
 type Dict = typeof en
@@ -13,23 +23,30 @@ type Dict = typeof en
 export function StreakCard({
   dict,
   streak = 0,
-  nextMilestone = 10,
+  todayCompleted = false,
   shieldBalance = 0,
   recoverableMissDate = null,
   nextGrantAtStreak = 3,
 }: {
   dict: Dict
   streak?: number
-  nextMilestone?: number
+  todayCompleted?: boolean
   shieldBalance?: number
   recoverableMissDate?: string | null
   nextGrantAtStreak?: number
 }) {
-  const progress = Math.min(1, streak / nextMilestone)
-  const remaining = Math.max(0, nextMilestone - streak)
-  const milestones = [1, 3, 7, 10, 30]
+  const milestoneSummary = useMemo(() => getStreakMilestoneSummary(streak), [streak])
+  const progress = milestoneSummary.progressPercent / 100
+  const remaining = milestoneSummary.daysRemaining
+  const milestones = milestoneSummary.milestones
+  const currentPhaseKey = milestoneSummary.currentPhaseKey
+  const nextPhaseTarget = useMemo(() => getNextPhaseTarget(streak), [streak])
+  const nextPhaseKey = nextPhaseTarget?.phaseKey ?? currentPhaseKey
   const [recoverOpen, setRecoverOpen] = useState(false)
+  const [shieldRulesOpen, setShieldRulesOpen] = useState(false)
+  const [milestoneDialogOpen, setMilestoneDialogOpen] = useState(false)
   const isZh = String(dict.common.locale || '').toLowerCase().startsWith('zh')
+  const milestoneDict = dict.dashboard.streakMilestones
 
   useEffect(() => {
     if (!recoverableMissDate) return
@@ -44,21 +61,33 @@ export function StreakCard({
     return getStreakStatusCopy({
       locale: isZh ? 'zh' : 'en',
       streak,
+      todayCompleted,
       shieldBalance,
       recoverableMissDate,
       nextGrantAtStreak,
     })
-  }, [isZh, nextGrantAtStreak, recoverableMissDate, shieldBalance, streak])
+  }, [isZh, nextGrantAtStreak, recoverableMissDate, shieldBalance, streak, todayCompleted])
 
   const milestoneCopy = useMemo(() => {
-    if (remaining <= 0) {
-      return isZh ? '🎉 已达成当前里程碑' : '🎉 Milestone reached'
-    }
-    if (isZh) {
-      return `下一里程碑：${nextMilestone} 天（剩余 ${remaining} 天）`
-    }
-    return `Next milestone: ${nextMilestone} days (${remaining} day${remaining === 1 ? '' : 's'} left)`
-  }, [isZh, nextMilestone, remaining])
+    return milestoneDict.phaseGoalShort
+      .replace('{days}', String(milestoneSummary.nextMilestone))
+      .replace('{remaining}', String(remaining))
+  }, [milestoneDict, milestoneSummary.nextMilestone, remaining])
+
+  const shieldBadgeAction = useMemo(() => (
+    getShieldBadgeAction({
+      shieldBalance,
+      recoverableMissDate,
+    })
+  ), [recoverableMissDate, shieldBalance])
+
+  const shieldBadgeDialogCopy = useMemo(() => (
+    getShieldBadgeDialogCopy({
+      locale: isZh ? 'zh' : 'en',
+      shieldBalance,
+      nextGrantAtStreak,
+    })
+  ), [isZh, nextGrantAtStreak, shieldBalance])
 
   return (
     <div className="rounded-lg border overflow-hidden">
@@ -69,6 +98,36 @@ export function StreakCard({
         recoverableMissDate={recoverableMissDate}
         shieldBalance={shieldBalance}
       />
+      <StreakMilestoneDialog
+        dict={dict}
+        open={milestoneDialogOpen}
+        onOpenChange={setMilestoneDialogOpen}
+        currentPhaseKey={currentPhaseKey}
+        nextPhaseKey={nextPhaseKey}
+        currentStreak={streak}
+        nextMilestone={nextPhaseTarget?.atStreak ?? milestoneSummary.nextMilestone}
+        daysRemaining={Math.max(0, (nextPhaseTarget?.atStreak ?? milestoneSummary.nextMilestone) - streak)}
+      />
+      <Dialog open={shieldRulesOpen} onOpenChange={setShieldRulesOpen}>
+        <DialogContent className="sm:max-w-[420px]">
+          <DialogHeader>
+            <DialogTitle>{shieldBadgeDialogCopy.title}</DialogTitle>
+            <DialogDescription>{shieldBadgeDialogCopy.body}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 rounded-lg border bg-card/60 p-4 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">{isZh ? '当前护盾' : 'Current shields'}</span>
+              <span className="font-medium">{shieldBalance}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground">{isZh ? '下一次护盾' : 'Next shield at'}</span>
+              <span className="font-medium">
+                {isZh ? `${nextGrantAtStreak} 天连续` : `${nextGrantAtStreak}-day streak`}
+              </span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
       <div className="relative bg-linear-to-br from-orange-50 to-transparent p-4 dark:from-orange-950/30">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -79,15 +138,54 @@ export function StreakCard({
             </div>
           </div>
           <div>
-            <div className="rounded-full border border-orange-300/60 bg-white/80 px-3 py-1 text-xs font-medium text-orange-700 shadow-sm dark:border-orange-500/30 dark:bg-orange-950/40 dark:text-orange-300">
+            <button
+              type="button"
+              className="rounded-full border border-orange-300/60 bg-white/80 px-3 py-1 text-xs font-medium text-orange-700 shadow-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 dark:border-orange-500/30 dark:bg-orange-950/40 dark:text-orange-300 dark:hover:bg-orange-950/60"
+              onClick={() => {
+                logEvent('shield_badge_click', {
+                  source: 'dashboard',
+                  action: shieldBadgeAction,
+                  shield_balance: shieldBalance,
+                  recoverable_days: recoverableMissDate ? 1 : 0,
+                })
+
+                if (shieldBadgeAction === 'recover') {
+                  setRecoverOpen(true)
+                  return
+                }
+
+                setShieldRulesOpen(true)
+              }}
+              aria-label={isZh ? '打开护盾说明' : 'Open shield details'}
+            >
               {isZh ? `护盾 ${shieldBalance}` : `Shields ${shieldBalance}`}
-            </div>
+            </button>
           </div>
         </div>
       </div>
 
       <div className="p-4">
-        <div className="text-xs text-muted-foreground mb-1">
+        <div className="mb-1 flex items-center justify-between gap-3 text-xs">
+          <div className="min-w-0">
+            <div className="text-muted-foreground">
+              {milestoneDict.currentPhase}
+            </div>
+            <div className="mt-0.5 text-sm font-medium text-foreground">
+              {milestoneDict.phaseNames[currentPhaseKey]}
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 shrink-0 gap-1 px-2 text-xs text-muted-foreground"
+            onClick={() => setMilestoneDialogOpen(true)}
+          >
+            <Info className="h-3.5 w-3.5" />
+            {milestoneDict.learnMore}
+          </Button>
+        </div>
+        <div className="mb-1 text-xs text-muted-foreground">
           {milestoneCopy}
         </div>
         <div className="h-2 w-full bg-muted rounded">
@@ -122,7 +220,7 @@ export function StreakCard({
         <div className="mt-3 flex flex-wrap gap-1">
           {milestones.map(m => {
             const reached = streak >= m
-            const isTarget = m === nextMilestone
+            const isTarget = m === milestoneSummary.nextMilestone
             return (
               <span
                 key={m}

@@ -246,7 +246,37 @@
 		"activeGoals": "Active Goals",
 		"currentStreak": "Action Streak",
 		"days": "days",
-		"streakRule": "Calculated in your timezone: completing any action on a day counts for the streak. If you have not completed one yet today, the streak remains at yesterday's value. If only yesterday was missed, a shield can recover it without granting extra XP.",
+		"streakRule": "Complete any action today to keep the streak. If only yesterday was missed, a shield can recover it.",
+		"streakMilestones": {
+			"currentPhase": "Current phase",
+			"nextPhase": "Next phase",
+			"phaseProgress": "Phase progress",
+			"learnMore": "How phases work",
+			"dialogTitle": "Streak milestones explained",
+			"dialogDesc": "Your streak is not just a number. It should provide rhythm in the short term, useful rewards in the middle, and identity in the long run.",
+			"phasesTitle": "Phase roadmap",
+			"rewardsTitle": "What you get",
+			"rewardsShield": "Shield rewards continue to follow the current rule at 3 / 7 / 14 / 21... for practical payoff.",
+			"rewardsIdentity": "Milestones like 30 / 60 / 90 / 180 / 365 focus more on highlight feedback and identity-building, so consistency feels meaningful over time.",
+			"phaseNames": {
+				"starter": "Starter",
+				"steady": "Steady",
+				"deepening": "Deepening",
+				"resilient": "Resilient",
+				"longrun": "Long Run",
+				"identity": "Identity"
+			},
+			"phaseDescriptions": {
+				"starter": "Turn action from something occasional into something you can begin again consistently.",
+				"steady": "A stable rhythm starts to form. The goal is to reduce drop-offs and stay connected.",
+				"deepening": "You move from short-term effort into a more dependable system with accumulating results.",
+				"resilient": "Even when life fluctuates, you know how to come back. The streak starts to show resilience.",
+				"longrun": "Consistency becomes a long-cycle investment and starts to look like a way of life.",
+				"identity": "The streak becomes part of your identity. You are no longer just finishing tasks; you are becoming this kind of person."
+			},
+			"phaseGoal": "{remaining} days to {phase} at {days} days",
+			"phaseGoalShort": "Next milestone: {days} days, {remaining} left"
+		},
 		"recentTrend": "30-Day Check-in Trend",
 		"recentTrendDesc": "Spot patterns and keep improving with intention.",
 		"noCoreAction": "No core action set for today.",
@@ -272,6 +302,12 @@
 			"templateCalm": "Calm",
 			"templateSpotlight": "Spotlight",
 			"templateDusk": "Dusk",
+			"shareSizeLabel": "Wallpaper size",
+			"sizeAuto": "Auto (Recommended)",
+			"size9x16": "Classic (9:16)",
+			"size19_5x9": "iPhone Full Screen",
+			"size20x9": "Android Full Screen",
+			"shareSizeMore": "More",
 			"quoteSelectLabel": "Choose quote",
 			"quoteHistoryLabel": "Quote history",
 			"quoteHistoryUndoCta": "Changed your mind? Bring it back",
@@ -279,7 +315,7 @@
 			"quoteHistoryEmpty": "No history yet",
 			"refreshUsedUp": "No refresh left today ({used}/{total})",
 			"refreshRemaining": "{n} refresh left today",
-			"wallpaperHint": "Generated in 9:16 wallpaper size. Save it and set as your phone wallpaper."
+			"wallpaperHint": "Defaults to auto-fit your current device ratio. If you download on desktop, pick a preset closer to your phone."
 		},
 		"onboarding": {
 			"heroTitle": "Every great journey begins with a single step.",

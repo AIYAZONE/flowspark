@@ -108,8 +108,8 @@ export function LevelSystemDialog({ dict, open, onOpenChange, currentLevel }: Le
                 </div>
                 <div className="leading-6">
                   {isZh
-                    ? '首次达到 3 天连续可获得 1 个护盾；之后达到 7 天、14 天等门槛且当前没有护盾时，会再次补充。'
-                    : 'Earn your first shield at 3 days. After that, shields refill at 7-day intervals only when no shield is currently held.'}
+                    ? '首次达到 3 天连续可获得 1 个护盾；之后达到 7 天、14 天等门槛会补充 1 个护盾（护盾可累积，最多 3 个）。'
+                    : 'Earn your first shield at 3 days. After that, shields refill at 7-day intervals (7, 14, ...). Shields can stack up to 3.'}
                 </div>
               </div>
             </div>
