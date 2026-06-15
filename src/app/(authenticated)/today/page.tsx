@@ -4,7 +4,9 @@ import { AddActionDialog } from '@/components/AddActionDialog'
 import { AITodayPlanButton } from '@/components/AITodayPlanButton'
 import { getUserTimezone, getTodayInTZ, toLocaleDateStringTZ } from '@/lib/time'
 import { TodayActionList } from '@/components/TodayActionList'
+import { StreakFeedbackBanner } from '@/components/StreakFeedbackBanner'
 import { assignVariant, isEnvEnabled } from '@/lib/experiments'
+import { getStreakSnapshot } from '@/lib/streaks'
 
 export default async function TodayPage() {
   const supabase = await createClient()
@@ -135,9 +137,33 @@ export default async function TodayPage() {
     start_date: (action.start_date as string | null | undefined) ?? null,
     end_date: (action.end_date as string | null | undefined) ?? null,
   }))
+  const streakSnapshot = await getStreakSnapshot({
+    supabase,
+    userId: user.id,
+    timeZone: tz,
+    today,
+  })
+  const hasCompletedToday = streakSnapshot.completedDates.includes(today)
+  const showStreakRiskBanner = !hasCompletedToday && (streakSnapshot.currentStreak > 0 || Boolean(streakSnapshot.recoverableMissDate))
+  const streakBannerTitle = streakSnapshot.recoverableMissDate
+    ? (dict.common.locale.startsWith('zh') ? '先恢复昨天，再完成今天' : 'Recover yesterday, then finish today')
+    : (dict.common.locale.startsWith('zh') ? '先做 5 分钟版本，保住连续性' : 'Start with a 5-minute version to protect your streak')
+  const streakBannerBody = streakSnapshot.recoverableMissDate
+    ? (
+      streakSnapshot.shieldBalance > 0
+        ? (dict.common.locale.startsWith('zh')
+          ? `昨天漏掉了 1 天，你还有 ${streakSnapshot.shieldBalance} 个护盾可补回；处理完后再推进今天。`
+          : `Yesterday is recoverable. You still have ${streakSnapshot.shieldBalance} shield(s); recover it first, then move today forward.`)
+        : (dict.common.locale.startsWith('zh')
+          ? '昨天已经断掉，但现在没有护盾；先完成今天的 5 分钟最小行动，重新起步。'
+          : 'Yesterday was missed and no shield is available. Restart with a 5-minute minimum action today.'))
+    : (dict.common.locale.startsWith('zh')
+      ? `你当前已经连续 ${streakSnapshot.currentStreak} 天，今天优先完成一个最小行动即可继续保持。`
+      : `You are on a ${streakSnapshot.currentStreak}-day streak. Finish one minimum action today to keep it going.`)
 
   return (
     <div className="space-y-6">
+      <StreakFeedbackBanner dict={dict} />
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">{dict.today.title}</h1>
@@ -151,6 +177,32 @@ export default async function TodayPage() {
       </div>
 
       <div className="grid gap-6">
+        {showStreakRiskBanner ? (
+          <div className="rounded-xl border border-orange-200/60 bg-orange-50/80 p-4 dark:border-orange-500/20 dark:bg-orange-950/20">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <div className="text-sm font-medium">{streakBannerTitle}</div>
+                <div className="mt-1 text-sm text-muted-foreground">{streakBannerBody}</div>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                {streakSnapshot.recoverableMissDate ? (
+                  <a
+                    href="/dashboard"
+                    className="inline-flex items-center justify-center rounded-md border border-border/60 bg-background/60 px-3 py-2 text-xs font-medium hover:bg-background"
+                  >
+                    {dict.common.locale.startsWith('zh') ? '去恢复' : 'Go recover'}
+                  </a>
+                ) : null}
+                <a
+                  href="#today-actions"
+                  className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                >
+                  {dict.common.locale.startsWith('zh') ? '去做最小行动' : 'Do a minimum action'}
+                </a>
+              </div>
+            </div>
+          </div>
+        ) : null}
         {showAIPlan ? (
           <div className="rounded-xl border border-dashed bg-card/60 p-4 sm:p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -174,14 +226,16 @@ export default async function TodayPage() {
           </div>
         ) : null}
         {/* Actions List with Filter */}
-        <TodayActionList
-          actions={actions || []}
-          dict={dict}
-          showGoalTitle={true}
-          tz={tz}
-          today={today}
-          goals={activeGoals || []}
-        />
+        <div id="today-actions">
+          <TodayActionList
+            actions={actions || []}
+            dict={dict}
+            showGoalTitle={true}
+            tz={tz}
+            today={today}
+            goals={activeGoals || []}
+          />
+        </div>
       </div>
     </div>
   )

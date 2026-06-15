@@ -11,10 +11,9 @@ import { EditInboxItemDialog } from '@/components/EditInboxItemDialog'
 import { ConfirmDeleteInboxItemDialog } from '@/components/ConfirmDeleteInboxItemDialog'
 import { InboxItemDetailsSheet } from '@/components/InboxItemDetailsSheet'
 import { HoverLabel } from '@/components/HoverLabel'
-import { useMediaQuery } from '@/components/ui/use-media-query'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { cn } from '@/lib/utils'
-import { TABLET_AND_UP_MEDIA_QUERY } from '@/components/responsive-classes'
+import { shouldOpenInboxItemDetails } from '@/components/inbox-item-details-open'
 
 type Dict = typeof en
 
@@ -38,7 +37,6 @@ export function InboxItemRow({
 	const [detailsOpen, setDetailsOpen] = useState(false)
 	const [actionError, setActionError] = useState<string | null>(null)
 	const [isArchivePending, startArchiveTransition] = useTransition()
-	const isTabletAndUp = useMediaQuery(TABLET_AND_UP_MEDIA_QUERY)
 	const canConvert = mode === 'open' && activeGoals.length > 0
 	const dateText = new Intl.DateTimeFormat(dict.common.locale, { year: 'numeric', month: '2-digit', day: '2-digit' }).format(
 		new Date(item.created_at)
@@ -49,21 +47,20 @@ export function InboxItemRow({
 	const visibleTags = item.tags.slice(0, 3)
 	const remainingTagsCount = Math.max(item.tags.length - visibleTags.length, 0)
 
-	function shouldIgnoreMobileOpen(target: EventTarget | null, currentTarget: HTMLDivElement) {
+	function shouldIgnoreDetailsOpen(target: EventTarget | null, currentTarget: HTMLDivElement) {
 		if (!(target instanceof Element)) return false
 		if (target.closest('a, button, input, textarea, select')) return true
 		const nestedButton = target.closest('[role="button"]')
 		return Boolean(nestedButton && nestedButton !== currentTarget)
 	}
 
-	function openMobileDetails(event: MouseEvent<HTMLDivElement>) {
-		if (isTabletAndUp) return
-		if (shouldIgnoreMobileOpen(event.target, event.currentTarget)) return
+	function openDetails(event: MouseEvent<HTMLDivElement>) {
+		const shouldIgnoreTarget = shouldIgnoreDetailsOpen(event.target, event.currentTarget)
+		if (!shouldOpenInboxItemDetails({ shouldIgnoreTarget })) return
 		setDetailsOpen(true)
 	}
 
 	function handleItemActivate(event: KeyboardEvent<HTMLDivElement>) {
-		if (isTabletAndUp) return
 		if (event.key !== 'Enter' && event.key !== ' ') return
 		event.preventDefault()
 		setDetailsOpen(true)
@@ -104,9 +101,9 @@ export function InboxItemRow({
 							role="button"
 							tabIndex={0}
 							aria-haspopup="dialog"
-							onClick={openMobileDetails}
+							onClick={openDetails}
 							onKeyDown={handleItemActivate}
-							className="space-y-4 rounded-2xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:cursor-default"
+							className="space-y-4 rounded-2xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
 						>
 							<div className="flex items-start justify-between gap-3">
 								<div className="flex flex-wrap items-center gap-2 pr-14 md:pr-14">
@@ -259,7 +256,6 @@ export function InboxItemRow({
 				startDefault={startDefault}
 				endDefault={endDefault}
 				mode={mode}
-				enabled={!isTabletAndUp}
 				onSuccess={onMutateSuccess}
 			/>
 		</>

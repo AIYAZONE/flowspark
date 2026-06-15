@@ -1,4 +1,3 @@
-import { format, parseISO, subDays } from 'date-fns'
 import { createClient } from '@/lib/supabase/server'
 import { ScoreTrendChart } from '@/components/ScoreTrendChart'
 import { getDictionary } from '@/i18n/get-dictionary'
@@ -12,12 +11,15 @@ import { FocusDistributionChart } from '@/components/FocusDistributionChart'
 import { ActivityHeatmap } from '@/components/ActivityHeatmap'
 import { ScoreCard } from '@/components/ScoreCard'
 import { StreakCard } from '@/components/StreakCard'
+import { StreakFeedbackBanner } from '@/components/StreakFeedbackBanner'
 import { GoalProgressList } from '@/components/GoalProgressList'
 import { WeeklyInsightCard } from '@/components/WeeklyInsightCard'
 import { assignVariant, isEnvEnabled } from '@/lib/experiments'
 import { ExperimentExposureTracker } from '@/components/ExperimentExposureTracker'
 import { calcCompletionPercent, calcTimeProgressPercent, getPaceStatus } from '@/lib/progress'
 import { getOrCreateWeeklyInsight } from '@/lib/ai/insightStore'
+import { getStreakSnapshot } from '@/lib/streaks'
+import { DAILY_QUOTE_CANDIDATE_COUNT, getDailyQuoteCandidates, QUOTE_TIME_ZONE } from '@/lib/daily-quote'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -36,11 +38,17 @@ export default async function DashboardPage() {
   const reviewQuestionsCount = ab2ReviewEnabled ? (ab2ReviewVariant === 'A' ? 1 : 2) : 2
   const tz = await getUserTimezone(supabase, user.id)
   const today = getTodayInTZ(tz)
-  const yesterdayDate = new Date(today);
-  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterday = yesterdayDate.toISOString().split('T')[0];
+  const yesterdayDate = new Date(today)
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1)
+  const yesterday = yesterdayDate.toISOString().split('T')[0]
 
   const locale = String(dict.common.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'
+  const quoteDateISO = getTodayInTZ(QUOTE_TIME_ZONE)
+  const dailyQuotes = getDailyQuoteCandidates({
+    locale,
+    dateISO: quoteDateISO,
+    count: DAILY_QUOTE_CANDIDATE_COUNT,
+  })
   const weeklyInsight = await getOrCreateWeeklyInsight({
     supabase,
     userId: user.id,
@@ -50,7 +58,7 @@ export default async function DashboardPage() {
   // Fetch user profile for name and XP
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('name, xp, level')
+    .select('name, xp, level, avatar_url')
     .eq('id', user.id)
     .single()
 
@@ -268,37 +276,13 @@ export default async function DashboardPage() {
     recentScores = fallbackRecent.data ?? []
   }
 
-  const dateFormatter = new Intl.DateTimeFormat('en-CA', {
+  const streakSnapshot = await getStreakSnapshot({
+    supabase,
+    userId: user.id,
     timeZone: tz,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
+    today,
   })
-
-  const completedDateSet = new Set(
-    (completedActions || [])
-      .map(a => (a.updated_at ? dateFormatter.format(new Date(a.updated_at)) : null))
-      .filter((d): d is string => !!d)
-  )
-
-  let streak = 0
-  if (completedDateSet.size > 0) {
-    const todayDate = parseISO(today)
-    const todayStr = format(todayDate, 'yyyy-MM-dd')
-    const yesterdayStr = format(subDays(todayDate, 1), 'yyyy-MM-dd')
-
-    const startOffset = completedDateSet.has(todayStr) ? 0 : (completedDateSet.has(yesterdayStr) ? 1 : null)
-    if (startOffset != null) {
-      for (let i = startOffset; ; i++) {
-        const d = format(subDays(todayDate, i), 'yyyy-MM-dd')
-        if (completedDateSet.has(d)) {
-          streak++
-        } else {
-          break
-        }
-      }
-    }
-  }
+  const streak = streakSnapshot.currentStreak
   const streakMilestones = [1, 3, 7, 10, 30]
   const nextMilestone = streakMilestones.find((milestone) => streak < milestone) ?? streakMilestones[streakMilestones.length - 1]
 
@@ -319,12 +303,18 @@ export default async function DashboardPage() {
         ab2ReviewVariant={ab2ReviewVariant}
         showAIPlan={showAIPlan}
       />
+      <StreakFeedbackBanner dict={dict} />
       {/* 1. Header & Welcome */}
-      <div className="rounded-2xl border border-border/40 bg-gradient-to-br from-primary/5 via-background/80 to-background p-4 md:p-5 shadow-sm">
+      <div className="rounded-2xl border border-border/40 bg-linear-to-br from-primary/5 via-background/80 to-background p-4 md:p-5 shadow-sm">
         <DashboardWelcome
           dict={dict.dashboard.welcome}
           name={profile?.name || user.email?.split('@')[0] || 'Flow Seeker'}
           isNewUser={isStage0}
+          dailyQuotes={dailyQuotes}
+          defaultQuoteIndex={0}
+          quoteDateISO={quoteDateISO}
+          locale={locale}
+          avatarUrl={profile?.avatar_url ?? (user.user_metadata?.avatar_url as string) ?? null}
         />
       </div>
 
@@ -337,7 +327,9 @@ export default async function DashboardPage() {
               dict={dict}
               streak={streak}
               nextMilestone={nextMilestone}
-              recent7={chartData.slice(-7)}
+              shieldBalance={streakSnapshot.shieldBalance}
+              recoverableMissDate={streakSnapshot.recoverableMissDate}
+              nextGrantAtStreak={streakSnapshot.nextShieldGrantRule.nextGrantAtStreak}
             />
           </div>
 

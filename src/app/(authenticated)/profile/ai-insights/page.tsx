@@ -27,6 +27,9 @@ import {
   getAIFieldHelpText,
 } from '@/lib/ai/analyticsPresentation'
 import { cn } from '@/lib/utils'
+import { getUserTimezone, getTodayInTZ } from '@/lib/time'
+import { getStreakSnapshot } from '@/lib/streaks'
+import { buildContinuityInsightCopy } from '@/lib/continuity-insight'
 
 type AIAnalyticsDict = {
   aiAnalyticsTitle: string
@@ -89,6 +92,12 @@ type AIAnalyticsDict = {
 
 function formatPercent(value: number) {
   return `${Math.round(value * 100)}%`
+}
+
+function subtractDays(dateStr: string, days: number) {
+  const d = new Date(`${dateStr}T00:00:00.000Z`)
+  d.setDate(d.getDate() - days)
+  return d.toISOString().slice(0, 10)
 }
 
 function buildAdjustmentNote(
@@ -176,6 +185,10 @@ export default async function AIInsightsPage(props: {
 
   if (!user) return null
 
+  const tz = await getUserTimezone(supabase, user.id)
+  const today = getTodayInTZ(tz)
+  const since30 = subtractDays(today, 30)
+
   const rangeParam = Array.isArray(searchParams?.range) ? searchParams?.range[0] : searchParams?.range
   const sortParam = Array.isArray(searchParams?.sort) ? searchParams?.sort[0] : searchParams?.sort
   const days =
@@ -187,11 +200,25 @@ export default async function AIInsightsPage(props: {
     ? sortParam
     : 'recommendations'
 
-  const [sceneMetrics, strategyMetrics, modelMetrics, recentRecommendations] = await Promise.all([
+  const [
+    sceneMetrics,
+    strategyMetrics,
+    modelMetrics,
+    recentRecommendations,
+    streakSnapshot,
+    streakRepairCount30,
+  ] = await Promise.all([
     getAISceneMetrics({ supabase, userId: user.id, options: { days } }),
     getAIStrategyMetrics({ supabase, userId: user.id, options: { days } }),
     getAIModelMetrics({ supabase, userId: user.id, options: { days } }),
     getRecentRecommendations({ supabase, userId: user.id, limit: 80, days }),
+    getStreakSnapshot({ supabase, userId: user.id, timeZone: tz, today }),
+    supabase
+      .from('streak_repairs')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('target_date', since30)
+      .then(r => r.count ?? 0),
   ])
 
   const profileDict = dict.profile as unknown as AIAnalyticsDict
@@ -201,6 +228,16 @@ export default async function AIInsightsPage(props: {
   const sortedStrategyMetrics = sortMetricRows(strategyMetrics, sort)
   const sortedModelMetrics = sortMetricRows(modelMetrics, sort)
   const adjustmentNote = buildAdjustmentNote(recentRecommendations, presentationLocale)
+  const optionRows = recentRecommendations.filter(r => Boolean(r.option_selected))
+  const shortOptionCount = optionRows.filter(r => r.option_selected === '5m' || r.option_selected === '10m').length
+  const shortOptionShare = optionRows.length > 0 ? shortOptionCount / optionRows.length : null
+  const continuityCopy = buildContinuityInsightCopy({
+    locale: presentationLocale,
+    currentStreak: streakSnapshot.currentStreak,
+    shieldBalance: streakSnapshot.shieldBalance,
+    repairCount30: streakRepairCount30,
+    shortOptionShare,
+  })
   const recentRowsForTable = recentRecommendations.slice(0, 20)
   const filterOptions = [
     { key: 'all', label: profileDict.aiAnalyticsRangeAll, href: '/profile/ai-insights' },
@@ -236,6 +273,27 @@ export default async function AIInsightsPage(props: {
         <Button asChild variant="outline" className="rounded-full">
           <Link href="/profile">{dict.profile.title}</Link>
         </Button>
+      </div>
+
+      <div className="rounded-2xl border bg-card p-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <div className="text-sm font-medium">{continuityCopy.title}</div>
+            <div className="mt-1 text-sm text-muted-foreground">{continuityCopy.summary}</div>
+            <div className="mt-2 text-sm">{continuityCopy.advice}</div>
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+            <span className="rounded-full border border-border/60 bg-muted/30 px-2.5 py-1">
+              {presentationLocale === 'zh' ? `连续 ${streakSnapshot.currentStreak} 天` : `${streakSnapshot.currentStreak}-day streak`}
+            </span>
+            <span className="rounded-full border border-border/60 bg-muted/30 px-2.5 py-1">
+              {presentationLocale === 'zh' ? `护盾 ${streakSnapshot.shieldBalance}` : `Shields ${streakSnapshot.shieldBalance}`}
+            </span>
+            <span className="rounded-full border border-border/60 bg-muted/30 px-2.5 py-1">
+              {presentationLocale === 'zh' ? `近 30 天恢复 ${streakRepairCount30}` : `${streakRepairCount30} recoveries (30d)`}
+            </span>
+          </div>
+        </div>
       </div>
 
       <div className="rounded-2xl border bg-card p-4">

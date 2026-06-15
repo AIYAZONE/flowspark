@@ -177,7 +177,10 @@ export function AITodayPlanButton({
   }
 
   function getVariantLabel(minutes: 5 | 10 | 20) {
-    if (minutes === 5) return planning.aiPlanVariant5 || '5 分钟起步'
+    if (minutes === 5) {
+      const base = planning.aiPlanVariant5 || '5 分钟起步'
+      return locale === 'zh' ? `${base} · 保连续优先` : `${base} · Streak-safe`
+    }
     if (minutes === 10) return planning.aiPlanVariant10 || '10 分钟推进'
     return planning.aiPlanVariant20 || '20 分钟完成一段'
   }

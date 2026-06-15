@@ -1,12 +1,19 @@
 'use client'
 
-import { useFormStatus } from 'react-dom'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import dynamic from 'next/dynamic'
 
-function CompleteButton({ completed, type }: { completed: boolean, type: string }) {
-    const { pending } = useFormStatus()
-
+function CompleteButton({
+    completed,
+    type,
+    pending,
+    onClick,
+}: {
+    completed: boolean
+    type: string
+    pending: boolean
+    onClick: () => void
+}) {
     if (pending) {
         return (
             <button disabled className="focus:outline-none flex items-center justify-center cursor-not-allowed opacity-70">
@@ -16,7 +23,11 @@ function CompleteButton({ completed, type }: { completed: boolean, type: string 
     }
 
     return (
-        <button type="submit" className="focus:outline-none transition-transform hover:scale-110 flex items-center justify-center">
+        <button
+            type="button"
+            onClick={onClick}
+            className="focus:outline-none transition-transform hover:scale-110 flex items-center justify-center"
+        >
             {completed ? (
                 <div className="rounded-full bg-primary/10 p-1">
                     <CheckCircle2 className={`h-5 w-5 ${type === 'core' ? 'text-primary' : 'text-primary'}`} />
@@ -27,7 +38,7 @@ function CompleteButton({ completed, type }: { completed: boolean, type: string 
         </button>
     )
 }
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { format } from 'date-fns'
 import { motion, useAnimationControls } from 'framer-motion'
 import { Calendar, CheckCircle2, ChevronRight, Circle, Pencil, Sparkles, Trash2 } from 'lucide-react'
@@ -43,11 +54,12 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { toggleAction } from '@/app/(authenticated)/dashboard/actions'
+import { toggleActionWithReward } from '@/app/(authenticated)/dashboard/actions'
 import { deleteAction, toggleActionSubItem } from '@/app/(authenticated)/goals/actions'
 import type { Dictionary, TodayDictionary } from '@/i18n/types'
 import { ActionSubItemsSection } from '@/components/ActionSubItemsSection'
 import { RichTextContentView } from '@/components/RichTextContentView'
+import { pushXpFeedback } from '@/components/XpFeedbackToast'
 import {
     parseActionRecurrenceDescription,
     type ActionRecurrenceRule,
@@ -147,6 +159,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const [rescueOutcomeState, setRescueOutcomeState] = useState<'idle' | 'adopted' | 'dismissed'>('idle')
     const [subItemsOpen, setSubItemsOpen] = useState(false)
     const [subItemBusyId, setSubItemBusyId] = useState<string | null>(null)
+    const [togglePending, startToggle] = useTransition()
 
     const hasDetails = true
     const subItems = [...(action.action_sub_items || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
@@ -372,11 +385,28 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             >
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1 min-w-0">
-                        <form action={toggleAction} className="mt-1">
-                            <input type="hidden" name="id" value={action.id} />
-                            <input type="hidden" name="completed" value={action.completed ? 'true' : 'false'} />
-                            <CompleteButton completed={action.completed} type={action.type} />
-                        </form>
+                        <div className="mt-1 relative">
+                            <CompleteButton
+                                completed={action.completed}
+                                type={action.type}
+                                pending={togglePending}
+                                onClick={() => {
+                                    startToggle(() => {
+                                        void (async () => {
+                                            const formData = new FormData()
+                                            formData.append('id', action.id)
+                                            formData.append('completed', action.completed ? 'true' : 'false')
+                                            const result = await toggleActionWithReward(formData) as unknown as {
+                                                xpEarned?: number | null
+                                            }
+                                            if (!action.completed && typeof result?.xpEarned === 'number') {
+                                                pushXpFeedback({ amount: result.xpEarned })
+                                            }
+                                        })()
+                                    })
+                                }}
+                            />
+                        </div>
                         <div
                             role={hasDetails ? 'button' : undefined}
                             tabIndex={hasDetails ? 0 : -1}
@@ -514,7 +544,6 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                     onPanelModeChange={setPanelMode}
                     action={action}
                     dict={dict}
-                    tz={tz}
                     goals={goals}
                     isDesktop={isDesktop}
                     onToggleSubItem={onToggleSubItem}

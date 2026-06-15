@@ -11,6 +11,8 @@ import type { RescueApiResponse } from '@/lib/ai/types'
 import type { AIBreakdownActionDraft } from '@/lib/ai/breakdown'
 import { parseAITodayPlanFromDescription } from '@/lib/aiTodayPlan'
 import { logEvent } from '@/lib/analytics'
+import { buildStreakFeedback } from '@/lib/streak-feedback'
+import { pushStreakFeedback } from '@/components/StreakFeedbackBanner'
 import { sendAIFeedback } from '@/lib/aiFeedback'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -115,7 +117,6 @@ export function ActionItemPanel({
   onPanelModeChange,
   action,
   dict,
-  tz,
   goals,
   isDesktop,
   onToggleSubItem,
@@ -129,7 +130,6 @@ export function ActionItemPanel({
   onPanelModeChange: (mode: PanelMode) => void
   action: Action
   dict: Dictionary
-  tz: string
   goals: { id: string; title: string }[]
   isDesktop: boolean
   onToggleSubItem: (id: string, currentCompleted: boolean) => Promise<void>
@@ -153,6 +153,9 @@ export function ActionItemPanel({
   const aiPlanVariantLabel = locale === 'zh' ? '推进版本' : 'Focus mode'
   const aiPlanReasonLabel = locale === 'zh' ? '建议原因' : 'Why this'
   const closeLabel = locale === 'zh' ? '关闭' : 'Close'
+  const rescueStreakHint = locale === 'zh'
+    ? '优先生成 5 分钟版本，先保住今天的连续性。'
+    : 'Start with the 5-minute version first to protect today’s streak.'
 
   const [isLoading, setIsLoading] = useState(false)
   const [dateRangeValid, setDateRangeValid] = useState(true)
@@ -203,17 +206,9 @@ export function ActionItemPanel({
     if (!open) return
     if (panelMode !== 'rescue') return
     logEvent('ai_rescue_click', { action_id: action.id })
+    logEvent('streak_rescue_exposed', { source: 'action_panel', risk_level: 'active' })
     sendAIFeedback('ai_rescue_click', { action_id: action.id, goal_id: action.goal_id })
   }, [action.goal_id, action.id, open, panelMode])
-
-  useEffect(() => {
-    if (panelMode !== 'rescue') return
-    setRescueError(null)
-    setRescueResult(null)
-    setRescueRecommendationId(null)
-    setRescueOutcomeState('idle')
-    onRescueOutcomeStateChange('idle')
-  }, [onRescueOutcomeStateChange, panelMode])
 
   function resetEditDraftFromAction() {
     setEditTitle(action.title)
@@ -598,6 +593,14 @@ export function ActionItemPanel({
       }
 
       logEvent('ai_rescue_apply', { mode: 'replace', option: '5m', action_id: action.id })
+      logEvent('streak_rescue_apply', { source: 'action_panel', option: '5m' })
+      pushStreakFeedback(
+        buildStreakFeedback({
+          kind: 'rescue_adopted',
+          minutes: 5,
+          mode: 'replace',
+        })
+      )
       sendAIFeedback('ai_rescue_apply', { mode: 'replace', option: '5m', action_id: action.id, goal_id: action.goal_id, reason: rescueReason })
       onPanelModeChange('view')
       onOpenChange(false)
@@ -646,6 +649,14 @@ export function ActionItemPanel({
       }
 
       logEvent('ai_rescue_apply', { mode: 'add', option: '5m', action_id: action.id })
+      logEvent('streak_rescue_apply', { source: 'action_panel', option: '5m' })
+      pushStreakFeedback(
+        buildStreakFeedback({
+          kind: 'rescue_adopted',
+          minutes: 5,
+          mode: 'add',
+        })
+      )
       sendAIFeedback('ai_rescue_apply', { mode: 'add', option: '5m', action_id: action.id, goal_id: action.goal_id, reason: rescueReason })
       onPanelModeChange('view')
       onOpenChange(false)
@@ -899,6 +910,9 @@ export function ActionItemPanel({
         ) : (
           <>
             <div className="space-y-2">
+              <div className="rounded-lg border border-orange-200/60 bg-orange-50/70 px-3 py-2 text-sm text-muted-foreground dark:border-orange-500/20 dark:bg-orange-950/20">
+                {rescueStreakHint}
+              </div>
               <div className="text-sm font-medium">{locale === 'zh' ? '原因' : 'Reason'}</div>
               <Select
                 value={rescueReason}
@@ -929,6 +943,11 @@ export function ActionItemPanel({
                   <div>{locale === 'zh' ? '完成定义：' : 'DoD: '}{rescueResult.minimal_variant.definition_of_done}</div>
                   <div>{locale === 'zh' ? 'If-Then：如果' : 'If-Then: if '}{rescueResult.if_then.if}{locale === 'zh' ? '那么' : ' then '}{rescueResult.if_then.then}</div>
                 </div>
+                <div className="rounded-md border border-orange-200/60 bg-orange-50/70 px-3 py-2 text-xs text-muted-foreground dark:border-orange-500/20 dark:bg-orange-950/20">
+                  {locale === 'zh'
+                    ? '这一步的目标不是做很多，而是先保住连续性。'
+                    : 'This is not about doing a lot. It is about preserving continuity first.'}
+                </div>
               </div>
             ) : null}
           </>
@@ -951,6 +970,15 @@ export function ActionItemPanel({
     )
 
   const footerClassName = isDesktop ? 'md:px-6 md:pt-4 md:pb-6' : 'px-4 md:px-4'
+
+  function enterRescueMode() {
+    setRescueError(null)
+    setRescueResult(null)
+    setRescueRecommendationId(null)
+    setRescueOutcomeState('idle')
+    onRescueOutcomeStateChange('idle')
+    onPanelModeChange('rescue')
+  }
 
   const footer =
     panelMode === 'edit' ? (
@@ -1013,7 +1041,7 @@ export function ActionItemPanel({
               variant="outline"
               size="sm"
               className={!isDesktop ? 'flex-1' : undefined}
-              onClick={() => onPanelModeChange('rescue')}
+              onClick={enterRescueMode}
               disabled={isLoading}
             >
               {rescueTitleText}

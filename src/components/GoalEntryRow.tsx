@@ -18,6 +18,7 @@ import { useMediaQuery } from '@/components/ui/use-media-query'
 import { cn } from '@/lib/utils'
 import type { GoalEntry } from '@/components/goal-entry.types'
 import { TABLET_AND_UP_MEDIA_QUERY } from '@/components/responsive-classes'
+import { shouldOpenGoalEntryDetails } from '@/components/goal-entry-details-open'
 
 type Dict = typeof en
 
@@ -47,21 +48,20 @@ export function GoalEntryRow({
 	const locale = String(dict.common.locale || '').toLowerCase()
 	const noteLabel = dict.quickCapture.noteLabel || (locale.startsWith('zh') ? '补充说明' : 'Notes')
 
-	function shouldIgnoreMobileOpen(target: EventTarget | null, currentTarget: HTMLDivElement) {
+	function shouldIgnoreDetailsOpen(target: EventTarget | null, currentTarget: HTMLDivElement) {
 		if (!(target instanceof Element)) return false
 		if (target.closest('img, a, button, input, textarea, select, [data-richtext-image="true"]')) return true
 		const nestedButton = target.closest('[role="button"]')
 		return Boolean(nestedButton && nestedButton !== currentTarget)
 	}
 
-	function openMobileDetails(event: MouseEvent<HTMLDivElement>) {
-		if (isTabletAndUp) return
-		if (shouldIgnoreMobileOpen(event.target, event.currentTarget)) return
+	function openDetails(event: MouseEvent<HTMLDivElement>) {
+		const shouldIgnoreTarget = shouldIgnoreDetailsOpen(event.target, event.currentTarget)
+		if (!shouldOpenGoalEntryDetails({ isTabletAndUp, shouldIgnoreTarget })) return
 		setDetailsOpen(true)
 	}
 
 	function handleEntryActivate(event: KeyboardEvent<HTMLDivElement>) {
-		if (isTabletAndUp) return
 		if (event.key !== 'Enter' && event.key !== ' ') return
 		event.preventDefault()
 		setDetailsOpen(true)
@@ -83,9 +83,9 @@ export function GoalEntryRow({
 						<div
 							role="button"
 							tabIndex={0}
-							onClick={openMobileDetails}
+							onClick={openDetails}
 							onKeyDown={handleEntryActivate}
-							className="space-y-4 rounded-2xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:cursor-default"
+							className="space-y-4 rounded-2xl outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 cursor-pointer"
 						>
 							<div className="flex items-start justify-between gap-3">
 								<div className="flex flex-wrap items-center gap-2 pr-14 md:pr-14">
@@ -227,7 +227,6 @@ export function GoalEntryRow({
 				dict={dict}
 				startDefault={startDefault}
 				endDefault={endDefault}
-				enabled={!isTabletAndUp}
 			/>
 
 			<RichTextImagePreviewDialog

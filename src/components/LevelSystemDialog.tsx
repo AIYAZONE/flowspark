@@ -8,7 +8,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { LEVEL_TITLES } from '@/lib/gamification'
-import { Trophy, Star, Zap, CheckCircle2 } from 'lucide-react'
+import { Trophy, Star, Zap, CheckCircle2, Shield } from 'lucide-react'
 
 interface LevelSystemDialogProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,24 +21,27 @@ interface LevelSystemDialogProps {
 export function LevelSystemDialog({ dict, open, onOpenChange, currentLevel }: LevelSystemDialogProps) {
   const titles = dict.dashboard.stats.titles
   const rules = dict.dashboard.stats.rules
+  const isZh = String(dict.common?.locale || '').toLowerCase().startsWith('zh')
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <Trophy className="h-5 w-5 text-yellow-500" />
-            {rules.title}
-          </DialogTitle>
-          <DialogDescription>
-            {rules.desc}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[500px] max-h-[92dvh] overflow-hidden p-0 sm:max-h-[85vh]">
+        <div className="flex max-h-[92dvh] flex-col sm:max-h-[85vh]">
+          <DialogHeader className="border-b border-border/60 px-6 pb-4 pt-6 text-left">
+            <DialogTitle className="flex items-center gap-2 text-xl">
+              <Trophy className="h-5 w-5 text-yellow-500" />
+              {rules.title}
+            </DialogTitle>
+            <DialogDescription>
+              {rules.desc}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-6 py-2">
+          <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6 pt-4">
+            <div className="space-y-6">
           {/* XP Rules */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">XP Rules</h4>
+            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">{rules.xpRulesTitle || 'XP Rules'}</h4>
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50">
                 <div className="flex items-center gap-2">
@@ -79,9 +82,44 @@ export function LevelSystemDialog({ dict, open, onOpenChange, currentLevel }: Le
             </div>
           </div>
 
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              {rules.continuityRulesTitle || (isZh ? '连续性规则' : 'Continuity Rules')}
+            </h4>
+            <div className="space-y-2 rounded-lg border border-border/50 bg-secondary/20 p-4 text-sm text-muted-foreground">
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded-full bg-orange-500/10 p-1.5 text-orange-600">
+                  <Shield className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="font-medium text-foreground">
+                    {isZh ? '护盾用于补昨天，不消耗 XP' : 'Shields recover yesterday without spending XP'}
+                  </div>
+                  <div className="mt-1 leading-6">
+                    {isZh
+                      ? '连续性优先靠当天真实完成来保持；如果昨天漏掉 1 天且你有护盾，可以补回昨天。'
+                      : 'Continuity is primarily kept by real completion today. If only yesterday was missed and you have a shield, you can recover that day.'}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="mt-0.5 rounded-full bg-emerald-500/10 p-1.5 text-emerald-600">
+                  <CheckCircle2 className="h-4 w-4" />
+                </div>
+                <div className="leading-6">
+                  {isZh
+                    ? '首次达到 3 天连续可获得 1 个护盾；之后达到 7 天、14 天等门槛且当前没有护盾时，会再次补充。'
+                    : 'Earn your first shield at 3 days. After that, shields refill at 7-day intervals only when no shield is currently held.'}
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Level Progression */}
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Progression Path</h4>
+            <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              {rules.progressionPathTitle || (isZh ? '升级路径' : 'Progression Path')}
+            </h4>
             <div className="space-y-2">
               {LEVEL_TITLES.map((title) => {
                 const isActive = currentLevel >= title.min && currentLevel <= title.max
@@ -110,6 +148,8 @@ export function LevelSystemDialog({ dict, open, onOpenChange, currentLevel }: Le
                   </div>
                 )
               })}
+            </div>
+          </div>
             </div>
           </div>
         </div>

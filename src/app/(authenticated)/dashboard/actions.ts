@@ -7,11 +7,31 @@ import { awardXP } from '@/lib/gamification-actions';
 import { rollCompletionReward } from '@/lib/rewards';
 import type { RewardResult } from '@/lib/rewards';
 import { upsertBehaviorSnapshot } from '@/lib/snapshots';
+import { getUserTimezone } from '@/lib/time';
+import {
+  getShieldGrantDecision,
+  getStreakSnapshot,
+  grantShieldIfEligible,
+} from '@/lib/streaks';
 import {
   getNextRecurringRange,
   isActionRecurrenceRule,
   parseActionRecurrenceDescription,
 } from '@/lib/actionRecurrence';
+
+type ToggleActionResult = {
+  ok: boolean
+  completed: boolean
+  reward: RewardResult | null
+  streak: {
+    currentStreak: number
+    shieldBalance: number
+    shieldGrantedRule: 'first_3_day' | 'refill_7_day' | null
+    nextGrantAtStreak: number
+  } | null
+  xpEarned: number | null
+  xpBreakdown: { base: number; bonus: number } | null
+}
 
 async function insertActionSubItemsForRecurring(params: {
   supabase: Awaited<ReturnType<typeof createClient>>
@@ -76,14 +96,37 @@ async function toggleActionInternal(formData: FormData) {
     .single();
 
   let reward: RewardResult | null = null
+  let streak: ToggleActionResult['streak'] = null
+  let xpEarned: ToggleActionResult['xpEarned'] = null
+  let xpBreakdown: ToggleActionResult['xpBreakdown'] = null
   if (action && nextCompleted) {
     // Award XP only on completion
     const source = action.type === 'core' ? 'core_action' : 'maintenance_action';
-    await awardXP(action.user_id, source, id);
+    const { data: existingXpLog } = await supabase
+      .from('xp_logs')
+      .select('id')
+      .eq('user_id', action.user_id)
+      .eq('action_id', id)
+      .in('source', ['core_action', 'maintenance_action', 'bonus'])
+      .limit(1)
 
-    reward = rollCompletionReward({ actionType: action.type })
-    if (reward.bonusXP > 0) {
-      await awardXP(action.user_id, 'bonus', id, reward.bonusXP)
+    const alreadyAwarded = Array.isArray(existingXpLog) && existingXpLog.length > 0
+
+    if (!alreadyAwarded) {
+      const baseAward = await awardXP(action.user_id, source, id);
+
+      reward = rollCompletionReward({ actionType: action.type })
+      const baseEarned = baseAward?.success && typeof baseAward.earned === 'number' ? baseAward.earned : null
+      let bonusEarned: number | null = 0
+      if (reward.bonusXP > 0) {
+        const bonusAward = await awardXP(action.user_id, 'bonus', id, reward.bonusXP)
+        bonusEarned = bonusAward?.success && typeof bonusAward.earned === 'number' ? bonusAward.earned : null
+      }
+
+      if (typeof baseEarned === 'number' && typeof bonusEarned === 'number') {
+        xpBreakdown = { base: baseEarned, bonus: bonusEarned }
+        xpEarned = baseEarned + bonusEarned
+      }
     }
 
     const recurrenceMeta = parseActionRecurrenceDescription(action.description)
@@ -191,6 +234,32 @@ async function toggleActionInternal(formData: FormData) {
         }
       }
     }
+
+    const timeZone = await getUserTimezone(supabase, action.user_id)
+    const snapshot = await getStreakSnapshot({
+      supabase,
+      userId: action.user_id,
+      timeZone,
+    })
+    const shieldDecision = getShieldGrantDecision({
+      currentStreak: snapshot.currentStreak,
+      shieldBalance: snapshot.shieldBalance,
+      lastShieldGrantedForStreak: snapshot.lastShieldGrantedForStreak,
+    })
+    const granted = await grantShieldIfEligible({
+      supabase,
+      userId: action.user_id,
+      currentStreak: snapshot.currentStreak,
+      shieldBalance: snapshot.shieldBalance,
+      lastShieldGrantedForStreak: snapshot.lastShieldGrantedForStreak,
+    })
+
+    streak = {
+      currentStreak: snapshot.currentStreak,
+      shieldBalance: granted.shouldGrant ? granted.nextBalance : snapshot.shieldBalance,
+      shieldGrantedRule: granted.grantedRule,
+      nextGrantAtStreak: shieldDecision.nextGrantAtStreak,
+    }
   }
 
   if (action?.ai_recommendation_id) {
@@ -213,14 +282,14 @@ async function toggleActionInternal(formData: FormData) {
   revalidatePath('/dashboard');
   revalidatePath('/today');
 
-  return { ok: true, completed: nextCompleted, reward }
+  return { ok: true, completed: nextCompleted, reward, streak, xpEarned, xpBreakdown }
 }
 
 export async function toggleAction(formData: FormData): Promise<void> {
   await toggleActionInternal(formData)
 }
 
-export async function toggleActionWithReward(formData: FormData): Promise<{ ok: boolean; completed: boolean; reward: RewardResult | null }> {
+export async function toggleActionWithReward(formData: FormData): Promise<ToggleActionResult> {
   return toggleActionInternal(formData)
 }
 

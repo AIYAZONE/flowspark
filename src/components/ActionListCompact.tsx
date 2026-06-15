@@ -8,6 +8,10 @@ import type en from '@/i18n/en.json'
 import { toggleActionWithReward } from '@/app/(authenticated)/dashboard/actions'
 import { RewardLootBoxDialog } from '@/components/RewardLootBoxDialog'
 import type { RewardResult } from '@/lib/rewards'
+import { logEvent } from '@/lib/analytics'
+import { buildStreakFeedback } from '@/lib/streak-feedback'
+import { pushStreakFeedback } from '@/components/StreakFeedbackBanner'
+import { pushXpFeedback } from '@/components/XpFeedbackToast'
 
 type Dict = typeof en
 
@@ -101,35 +105,57 @@ export function ActionListCompact({
           </div>
         </div>
 
-        <Button
-          size="icon"
-          variant={action.completed ? 'default' : 'outline'}
-          className={`${action.completed ? 'bg-primary hover:bg-primary/90' : 'border-primary text-primary hover:bg-primary/10'} h-8 w-8 shrink-0`}
-          disabled={isPending}
-          onClick={() => {
-            startTransition(() => {
-              void (async () => {
-                const formData = new FormData()
-                formData.append('id', action.id)
-                formData.append('completed', action.completed ? 'true' : 'false')
-                const result = await toggleActionWithReward(formData) as unknown as { reward?: RewardResult | null }
-                if (!action.completed && result?.reward) {
-                  setReward(result.reward)
-                  setRewardOpen(true)
-                }
-              })()
-            })
-          }}
-          aria-label={action.completed ? 'Mark incomplete' : 'Mark complete'}
-        >
-          {isPending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : action.completed ? (
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
-          ) : (
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" /></svg>
-          )}
-        </Button>
+        <div className="relative shrink-0">
+          <Button
+            size="icon"
+            variant={action.completed ? 'default' : 'outline'}
+            className={`${action.completed ? 'bg-primary hover:bg-primary/90' : 'border-primary text-primary hover:bg-primary/10'} h-8 w-8`}
+            disabled={isPending}
+            onClick={() => {
+              startTransition(() => {
+                void (async () => {
+                  const formData = new FormData()
+                  formData.append('id', action.id)
+                  formData.append('completed', action.completed ? 'true' : 'false')
+                  const result = await toggleActionWithReward(formData) as unknown as {
+                    reward?: RewardResult | null
+                    streak?: { shieldGrantedRule?: 'first_3_day' | 'refill_7_day' | null; shieldBalance?: number }
+                    xpEarned?: number | null
+                  }
+                  if (!action.completed && typeof result?.xpEarned === 'number') {
+                    pushXpFeedback({ amount: result.xpEarned })
+                  }
+                  if (!action.completed && result?.reward) {
+                    setReward(result.reward)
+                    setRewardOpen(true)
+                  }
+                  if (!action.completed && result?.streak?.shieldGrantedRule) {
+                    logEvent('streak_shield_granted', {
+                      rule: result.streak.shieldGrantedRule,
+                      shield_balance: result.streak.shieldBalance ?? null,
+                    })
+                    pushStreakFeedback(
+                      buildStreakFeedback({
+                        kind: 'shield_granted',
+                        rule: result.streak.shieldGrantedRule,
+                        shieldBalanceAfter: result.streak.shieldBalance ?? 0,
+                      })
+                    )
+                  }
+                })()
+              })
+            }}
+            aria-label={action.completed ? 'Mark incomplete' : 'Mark complete'}
+          >
+            {isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : action.completed ? (
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17 4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" /></svg>
+            ) : (
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9" /></svg>
+            )}
+          </Button>
+        </div>
       </div>
     )
   }
