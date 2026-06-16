@@ -2,6 +2,17 @@ import type { QuoteLocale } from '@/lib/daily-quote'
 
 export type QuoteShareTemplate = 'calm' | 'spotlight' | 'dusk'
 
+export type QuoteShareFooterStyle = {
+  variant: 'outlined-chip' | 'flat-inline'
+  showContainer: boolean
+  showBorder: boolean
+  containerFill: string
+  containerStroke: string
+  fallbackFill: string
+  fallbackText: string
+  nameText: string
+}
+
 export type QuoteShareImageOutput = {
   width: number
   height: number
@@ -102,6 +113,45 @@ async function loadAvatarImage(src: string): Promise<HTMLImageElement> {
   }
 }
 
+export function getQuoteShareFooterStyle(template: QuoteShareTemplate): QuoteShareFooterStyle {
+  if (template === 'spotlight') {
+    return {
+      variant: 'flat-inline',
+      showContainer: false,
+      showBorder: false,
+      containerFill: 'transparent',
+      containerStroke: 'transparent',
+      fallbackFill: 'rgba(255,255,255,0.16)',
+      fallbackText: '#e0f2fe',
+      nameText: 'rgba(248,250,252,0.96)',
+    }
+  }
+
+  if (template === 'dusk') {
+    return {
+      variant: 'flat-inline',
+      showContainer: false,
+      showBorder: false,
+      containerFill: 'transparent',
+      containerStroke: 'transparent',
+      fallbackFill: 'rgba(255,255,255,0.14)',
+      fallbackText: '#f5d0fe',
+      nameText: 'rgba(248,250,252,0.94)',
+    }
+  }
+
+  return {
+    variant: 'outlined-chip',
+    showContainer: true,
+    showBorder: true,
+    containerFill: 'rgba(255,255,255,0.58)',
+    containerStroke: 'rgba(148,163,184,0.28)',
+    fallbackFill: 'rgba(14,165,233,0.1)',
+    fallbackText: '#0369a1',
+    nameText: '#0f172a',
+  }
+}
+
 function getTemplateStyle(template: QuoteShareTemplate) {
   if (template === 'spotlight') {
     return {
@@ -110,9 +160,7 @@ function getTemplateStyle(template: QuoteShareTemplate) {
       secondaryText: 'rgba(226,232,240,0.8)',
       accentA: 'rgba(56,189,248,0.18)',
       accentB: 'rgba(250,204,21,0.14)',
-      badgeFill: 'rgba(255,255,255,0.1)',
-      badgeText: '#e0f2fe',
-      footerFill: 'rgba(255,255,255,0.1)',
+      footer: getQuoteShareFooterStyle(template),
     }
   }
 
@@ -123,9 +171,7 @@ function getTemplateStyle(template: QuoteShareTemplate) {
       secondaryText: 'rgba(226,232,240,0.78)',
       accentA: 'rgba(244,114,182,0.14)',
       accentB: 'rgba(129,140,248,0.16)',
-      badgeFill: 'rgba(255,255,255,0.09)',
-      badgeText: '#f5d0fe',
-      footerFill: 'rgba(255,255,255,0.1)',
+      footer: getQuoteShareFooterStyle(template),
     }
   }
 
@@ -135,9 +181,7 @@ function getTemplateStyle(template: QuoteShareTemplate) {
     secondaryText: 'rgba(15,23,42,0.6)',
     accentA: 'rgba(14,165,233,0.08)',
     accentB: 'rgba(99,102,241,0.08)',
-    badgeFill: 'rgba(14,165,233,0.08)',
-    badgeText: '#0369a1',
-    footerFill: 'rgba(255,255,255,0.76)',
+    footer: getQuoteShareFooterStyle(template),
   }
 }
 
@@ -244,10 +288,18 @@ export async function renderQuoteSharePng(params: QuoteShareImageParams): Promis
   const avatarX = footerX + px(20)
   const avatarY = footerY + px(25)
 
-  ctx.fillStyle = template.footerFill
-  ctx.beginPath()
-  ctx.roundRect(footerX, footerY, footerW, footerH, px(26))
-  ctx.fill()
+  if (template.footer.showContainer) {
+    ctx.fillStyle = template.footer.containerFill
+    ctx.beginPath()
+    ctx.roundRect(footerX, footerY, footerW, footerH, px(26))
+    ctx.fill()
+
+    if (template.footer.showBorder) {
+      ctx.strokeStyle = template.footer.containerStroke
+      ctx.lineWidth = Math.max(1, px(2))
+      ctx.stroke()
+    }
+  }
 
   try {
     if (!params.avatarUrl) throw new Error('Missing avatar')
@@ -260,12 +312,12 @@ export async function renderQuoteSharePng(params: QuoteShareImageParams): Promis
     ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize)
     ctx.restore()
   } catch {
-    ctx.fillStyle = template.badgeFill
+    ctx.fillStyle = template.footer.fallbackFill
     ctx.beginPath()
     ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2)
     ctx.fill()
 
-    ctx.fillStyle = template.badgeText
+    ctx.fillStyle = template.footer.fallbackText
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.font = `700 ${px(30)}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`
@@ -274,7 +326,7 @@ export async function renderQuoteSharePng(params: QuoteShareImageParams): Promis
     ctx.textBaseline = 'top'
   }
 
-  ctx.fillStyle = template.primaryText
+  ctx.fillStyle = template.footer.nameText
   ctx.font = `700 ${px(32)}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`
   ctx.fillText(safeName, avatarX + avatarSize + px(16), footerY + px(38))
 

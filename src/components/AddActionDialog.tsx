@@ -33,7 +33,7 @@ import type { AIBreakdownActionDraft } from '@/lib/ai/breakdown'
 import { useMobileInputVisible, useMobileKeyboardInset } from '@/components/ui/use-mobile-input-visible'
 import { createClient } from '@/lib/supabase/client'
 import { ActionDescriptionEditor, type ActionAttachmentDraft } from '@/components/ActionDescriptionEditor'
-import type { ActionRecurrenceRule } from '@/lib/actionRecurrence'
+import { getUpcomingRecurringDate, type ActionRecurrenceRule } from '@/lib/actionRecurrence'
 import { ModalActionFooter } from '@/components/ModalActionFooter'
 import { ModalHeaderActions } from '@/components/ModalHeaderActions'
 import { DESKTOP_MODAL_SHELL_CLASS } from '@/components/responsive-classes'
@@ -75,6 +75,8 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
     const [actionType, setActionType] = useState('core')
     const [actionPriority, setActionPriority] = useState('medium')
     const [actionRepeatRule, setActionRepeatRule] = useState<ActionRecurrenceRule>('none')
+    const [repeatWeekday, setRepeatWeekday] = useState<number>(1)
+    const [repeatMonthday, setRepeatMonthday] = useState<number>(1)
     const [actionStartDate, setActionStartDate] = useState('')
     const [actionEndDate, setActionEndDate] = useState('')
     const [aiLoading, setAiLoading] = useState(false)
@@ -101,6 +103,8 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
             setActionType('core')
             setActionPriority('medium')
             setActionRepeatRule('none')
+            setRepeatWeekday(1)
+            setRepeatMonthday(1)
             setAiLoading(false)
             setAiError(null)
             setAiDrafts([])
@@ -142,13 +146,37 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
     }
 
     const today = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+    const isZh = String(dict.common.locale || '').toLowerCase().startsWith('zh')
+    const weekdayLabels = isZh
+        ? ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+        : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    const recurringRange =
+        actionRepeatRule === 'daily'
+            ? { startDate: today, endDate: today }
+            : actionRepeatRule === 'weekly'
+                ? getUpcomingRecurringDate({ today, recurrence: 'weekly', ruleParams: { weekday: repeatWeekday } })
+                : actionRepeatRule === 'monthly'
+                    ? getUpcomingRecurringDate({ today, recurrence: 'monthly', ruleParams: { monthday: repeatMonthday, missing: 'clamp' } })
+                    : null
+    const nextDate = recurringRange?.startDate || today
 
     useEffect(() => {
         if (!open) return
         if (step !== 'action') return
+        const todayDate = new Date(`${today}T00:00:00`)
+        const jsWeekday = todayDate.getDay()
+        const isoWeekday = jsWeekday === 0 ? 7 : jsWeekday
+        const monthday = Number(today.slice(8, 10))
         setActionStartDate(today)
         setActionEndDate(today)
+        setRepeatWeekday(Number.isFinite(isoWeekday) ? isoWeekday : 1)
+        setRepeatMonthday(Number.isFinite(monthday) ? monthday : 1)
     }, [open, step, today])
+
+    useEffect(() => {
+        if (actionRepeatRule === 'none') return
+        setValid(true)
+    }, [actionRepeatRule])
 
     async function handleAISplitAction() {
         setAiError(null)
@@ -164,14 +192,30 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
 
         setAiLoading(true)
         try {
+            const scheduleRange =
+                actionRepeatRule === 'none'
+                    ? { startDate: actionStartDate || today, endDate: actionEndDate || today }
+                    : actionRepeatRule === 'daily'
+                        ? { startDate: today, endDate: today }
+                        : actionRepeatRule === 'weekly'
+                            ? getUpcomingRecurringDate({
+                                  today,
+                                  recurrence: 'weekly',
+                                  ruleParams: { weekday: repeatWeekday }
+                              })
+                            : getUpcomingRecurringDate({
+                                  today,
+                                  recurrence: 'monthly',
+                                  ruleParams: { monthday: repeatMonthday, missing: 'clamp' }
+                              })
             const res = await fetch('/api/ai/breakdown', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     goalTitle,
                     goalDescription: actionTitle.trim(),
-                    startDate: actionStartDate || today,
-                    endDate: actionEndDate || today,
+                    startDate: scheduleRange.startDate,
+                    endDate: scheduleRange.endDate,
                     locale
                 })
             })
@@ -510,17 +554,82 @@ export function AddActionDialog({ goalId, activeGoals, dict, tz = 'Asia/Shanghai
                                                 </Select>
                                             </div>
 
-                                            <DateRangeFields
-                                                key={`${actionStartDate}-${actionEndDate}`}
-                                                defaultStart={actionStartDate || today}
-                                                defaultEnd={actionEndDate || today}
-                                                labels={{
-                                                    start: dict.today.startTime,
-                                                    end: dict.today.endTime,
-                                                    error: dict.common.dateRangeInvalid
-                                                }}
-                                                onValidityChange={setValid}
-                                            />
+                                            {actionRepeatRule === 'none' ? (
+                                                <DateRangeFields
+                                                    key={`${actionStartDate}-${actionEndDate}`}
+                                                    defaultStart={actionStartDate || today}
+                                                    defaultEnd={actionEndDate || today}
+                                                    valueStart={actionStartDate || today}
+                                                    valueEnd={actionEndDate || today}
+                                                    onChange={({ start, end }) => {
+                                                        setActionStartDate(start)
+                                                        setActionEndDate(end)
+                                                    }}
+                                                    labels={{
+                                                        start: dict.today.startTime,
+                                                        end: dict.today.endTime,
+                                                        error: dict.common.dateRangeInvalid
+                                                    }}
+                                                    onValidityChange={setValid}
+                                                />
+                                            ) : (
+                                                <div className="space-y-3">
+                                                    <input type="hidden" name="start_date" value={nextDate} />
+                                                    <input type="hidden" name="end_date" value={nextDate} />
+                                                    {actionRepeatRule === 'weekly' ? (
+                                                        <input type="hidden" name="repeat_weekday" value={String(repeatWeekday)} />
+                                                    ) : null}
+                                                    {actionRepeatRule === 'monthly' ? (
+                                                        <input type="hidden" name="repeat_monthday" value={String(repeatMonthday)} />
+                                                    ) : null}
+
+                                                    {actionRepeatRule === 'weekly' ? (
+                                                        <div className="grid gap-2">
+                                                            <Label>{isZh ? '周几' : 'Weekday'}</Label>
+                                                            <Select value={String(repeatWeekday)} onValueChange={(value) => setRepeatWeekday(Number(value))}>
+                                                                <SelectTrigger className="w-full">
+                                                                    <SelectValue placeholder={isZh ? '选择周几' : 'Select weekday'} />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {weekdayLabels.map((label, idx) => (
+                                                                        <SelectItem key={label} value={String(idx + 1)}>
+                                                                            {label}
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    ) : null}
+
+                                                    {actionRepeatRule === 'monthly' ? (
+                                                        <div className="grid gap-2">
+                                                            <Label>{isZh ? '每月几号' : 'Day of month'}</Label>
+                                                            <Select value={String(repeatMonthday)} onValueChange={(value) => setRepeatMonthday(Number(value))}>
+                                                                <SelectTrigger className="w-full">
+                                                                    <SelectValue placeholder={isZh ? '选择日期' : 'Select date'} />
+                                                                </SelectTrigger>
+                                                                <SelectContent>
+                                                                    {Array.from({ length: 31 }).map((_, idx) => {
+                                                                        const value = idx + 1
+                                                                        return (
+                                                                            <SelectItem key={value} value={String(value)}>
+                                                                                {isZh ? `${value}号` : `Day ${value}`}
+                                                                            </SelectItem>
+                                                                        )
+                                                                    })}
+                                                                </SelectContent>
+                                                            </Select>
+                                                        </div>
+                                                    ) : null}
+
+                                                    <div className="grid gap-2">
+                                                        <Label>{isZh ? '下次执行日' : 'Next date'}</Label>
+                                                        <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm font-medium">
+                                                            {nextDate}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
 
                                             {aiDrafts.length > 0 ? (
                                                 <div className="space-y-2 rounded-md border border-border/60 bg-muted/20 p-3">

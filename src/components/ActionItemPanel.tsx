@@ -44,7 +44,7 @@ import { ModalHeaderActions } from '@/components/ModalHeaderActions'
 import { DESKTOP_MODAL_SHELL_CLASS } from '@/components/responsive-classes'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createActionAndReturnId, updateAction } from '@/app/(authenticated)/goals/actions'
-import { parseActionRecurrenceDescription, type ActionRecurrenceRule } from '@/lib/actionRecurrence'
+import { getUpcomingRecurringDate, parseActionRecurrenceDescription, type ActionRecurrenceRule } from '@/lib/actionRecurrence'
 
 interface Action {
   id: string
@@ -157,6 +157,27 @@ export function ActionItemPanel({
     ? '优先生成 5 分钟版本，先保住今天的连续性。'
     : 'Start with the 5-minute version first to protect today’s streak.'
 
+  const today = new Intl.DateTimeFormat('en-CA', { year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
+  const weekdayLabels = locale === 'zh'
+    ? ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
+    : ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const isoWeekdayFromYmd = (ymd: string) => {
+    const date = new Date(`${ymd}T00:00:00`)
+    const value = date.getDay()
+    return value === 0 ? 7 : value
+  }
+  const monthdayFromYmd = (ymd: string) => Number(ymd.slice(8, 10))
+  const baseWeekday = recurrenceMeta.params.weekday || isoWeekdayFromYmd(action.start_date)
+  const baseMonthday = recurrenceMeta.params.monthday || monthdayFromYmd(action.start_date)
+  const baseRecurringRange =
+    recurrenceMeta.recurrence === 'none'
+      ? { startDate: action.start_date, endDate: action.end_date || action.start_date }
+      : recurrenceMeta.recurrence === 'daily'
+        ? { startDate: today, endDate: today }
+        : recurrenceMeta.recurrence === 'weekly'
+          ? getUpcomingRecurringDate({ today, recurrence: 'weekly', ruleParams: { weekday: baseWeekday } })
+          : getUpcomingRecurringDate({ today, recurrence: 'monthly', ruleParams: { monthday: baseMonthday, missing: 'clamp' } })
+
   const [isLoading, setIsLoading] = useState(false)
   const [dateRangeValid, setDateRangeValid] = useState(true)
   const [uploadUserId, setUploadUserId] = useState<string>('')
@@ -166,8 +187,10 @@ export function ActionItemPanel({
   const [editType, setEditType] = useState(action.type || 'core')
   const [editPriority, setEditPriority] = useState(action.priority || 'medium')
   const [editRepeatRule, setEditRepeatRule] = useState<ActionRecurrenceRule>(recurrenceMeta.recurrence)
-  const [editStartDate, setEditStartDate] = useState(action.start_date)
-  const [editEndDate, setEditEndDate] = useState(action.end_date || action.start_date)
+  const [editRepeatWeekday, setEditRepeatWeekday] = useState<number>(baseWeekday)
+  const [editRepeatMonthday, setEditRepeatMonthday] = useState<number>(baseMonthday)
+  const [editStartDate, setEditStartDate] = useState(baseRecurringRange.startDate)
+  const [editEndDate, setEditEndDate] = useState(baseRecurringRange.endDate)
   const [editSubItems, setEditSubItems] = useState<EditSubItemDraft[]>(
     (action.action_sub_items || []).map((item) => ({
       id: item.id,
@@ -186,6 +209,24 @@ export function ActionItemPanel({
   const [isPanelFullscreen, setIsPanelFullscreen] = useState(false)
   const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null)
   const unsavedConfirmText = goalNewText.confirmDiscardChanges || '你有未保存的修改，确认放弃吗？'
+
+  const editRecurringRange =
+    editRepeatRule === 'none'
+      ? null
+      : editRepeatRule === 'daily'
+        ? { startDate: today, endDate: today }
+        : editRepeatRule === 'weekly'
+          ? getUpcomingRecurringDate({ today, recurrence: 'weekly', ruleParams: { weekday: editRepeatWeekday } })
+          : getUpcomingRecurringDate({ today, recurrence: 'monthly', ruleParams: { monthday: editRepeatMonthday, missing: 'clamp' } })
+  const editNextDate = editRecurringRange?.startDate || editStartDate
+
+  useEffect(() => {
+    if (editRepeatRule === 'none') return
+    if (!editRecurringRange?.startDate) return
+    setEditStartDate(editRecurringRange.startDate)
+    setEditEndDate(editRecurringRange.endDate)
+    setDateRangeValid(true)
+  }, [editRepeatRule, editRepeatWeekday, editRepeatMonthday, today])
 
   const [rescueReason, setRescueReason] = useState<RescueOutput['reason_tag']>('too_hard')
   const [rescueLoading, setRescueLoading] = useState(false)
@@ -211,14 +252,27 @@ export function ActionItemPanel({
   }, [action.goal_id, action.id, open, panelMode])
 
   function resetEditDraftFromAction() {
+    const meta = parseActionRecurrenceDescription(action.description || '')
+    const baseWeekday = meta.params.weekday || isoWeekdayFromYmd(action.start_date)
+    const baseMonthday = meta.params.monthday || monthdayFromYmd(action.start_date)
+    const baseRange =
+      meta.recurrence === 'none'
+        ? { startDate: action.start_date, endDate: action.end_date || action.start_date }
+        : meta.recurrence === 'daily'
+          ? { startDate: today, endDate: today }
+          : meta.recurrence === 'weekly'
+            ? getUpcomingRecurringDate({ today, recurrence: 'weekly', ruleParams: { weekday: baseWeekday } })
+            : getUpcomingRecurringDate({ today, recurrence: 'monthly', ruleParams: { monthday: baseMonthday, missing: 'clamp' } })
     setEditTitle(action.title)
     setEditDescription(action.description || '')
     setEditGoalId(action.goal_id)
     setEditType(action.type || 'core')
     setEditPriority(action.priority || 'medium')
-    setEditRepeatRule(parseActionRecurrenceDescription(action.description || '').recurrence)
-    setEditStartDate(action.start_date)
-    setEditEndDate(action.end_date || action.start_date)
+    setEditRepeatRule(meta.recurrence)
+    setEditRepeatWeekday(baseWeekday)
+    setEditRepeatMonthday(baseMonthday)
+    setEditStartDate(baseRange.startDate)
+    setEditEndDate(baseRange.endDate)
     setEditSubItems(
       (action.action_sub_items || []).map((item) => ({
         id: item.id,
@@ -237,17 +291,28 @@ export function ActionItemPanel({
   }
 
   const isEditDirty = (() => {
-    const baseStart = action.start_date || ''
-    const baseEnd = action.end_date || action.start_date || ''
+    const baseMeta = parseActionRecurrenceDescription(action.description || '')
+    const baseWeekday = baseMeta.params.weekday || isoWeekdayFromYmd(action.start_date)
+    const baseMonthday = baseMeta.params.monthday || monthdayFromYmd(action.start_date)
+    const baseRange =
+      baseMeta.recurrence === 'none'
+        ? { startDate: action.start_date || '', endDate: action.end_date || action.start_date || '' }
+        : baseMeta.recurrence === 'daily'
+          ? { startDate: today, endDate: today }
+          : baseMeta.recurrence === 'weekly'
+            ? getUpcomingRecurringDate({ today, recurrence: 'weekly', ruleParams: { weekday: baseWeekday } })
+            : getUpcomingRecurringDate({ today, recurrence: 'monthly', ruleParams: { monthday: baseMonthday, missing: 'clamp' } })
     return (
       editTitle !== action.title ||
       editDescription !== (action.description || '') ||
       editGoalId !== action.goal_id ||
       editType !== (action.type || 'core') ||
       editPriority !== (action.priority || 'medium') ||
-      editRepeatRule !== parseActionRecurrenceDescription(action.description || '').recurrence ||
-      editStartDate !== baseStart ||
-      editEndDate !== baseEnd ||
+      editRepeatRule !== baseMeta.recurrence ||
+      (editRepeatRule === 'weekly' && editRepeatWeekday !== baseWeekday) ||
+      (editRepeatRule === 'monthly' && editRepeatMonthday !== baseMonthday) ||
+      editStartDate !== baseRange.startDate ||
+      editEndDate !== baseRange.endDate ||
       JSON.stringify(editSubItems) !==
         JSON.stringify(
           (action.action_sub_items || []).map((item) => ({
@@ -465,14 +530,22 @@ export function ActionItemPanel({
     }
     setEditAiLoading(true)
     try {
+      const scheduleRange =
+        editRepeatRule === 'none'
+          ? { startDate: editStartDate, endDate: editEndDate }
+          : editRepeatRule === 'daily'
+            ? { startDate: today, endDate: today }
+            : editRepeatRule === 'weekly'
+              ? getUpcomingRecurringDate({ today, recurrence: 'weekly', ruleParams: { weekday: editRepeatWeekday } })
+              : getUpcomingRecurringDate({ today, recurrence: 'monthly', ruleParams: { monthday: editRepeatMonthday, missing: 'clamp' } })
       const res = await fetch('/api/ai/breakdown', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           goalTitle: computedGoalTitle,
           goalDescription: editTitle.trim(),
-          startDate: editStartDate,
-          endDate: editEndDate,
+          startDate: scheduleRange.startDate,
+          endDate: scheduleRange.endDate,
           locale
         })
       })
@@ -768,7 +841,15 @@ export function ActionItemPanel({
 
       <div className="space-y-2">
         <Label htmlFor={`repeat-rule-${action.id}`}>{todayText.repeatLabel || '重复规则'}</Label>
-        <Select value={editRepeatRule} onValueChange={(value) => setEditRepeatRule(value as ActionRecurrenceRule)}>
+        <Select
+          value={editRepeatRule}
+          onValueChange={(value) => {
+            const next = value as ActionRecurrenceRule
+            setEditRepeatRule(next)
+            if (next === 'weekly') setEditRepeatWeekday(isoWeekdayFromYmd(today))
+            if (next === 'monthly') setEditRepeatMonthday(monthdayFromYmd(today))
+          }}
+        >
           <SelectTrigger id={`repeat-rule-${action.id}`} className="w-full">
             <SelectValue placeholder={todayText.repeatLabel || '重复规则'} />
           </SelectTrigger>
@@ -782,19 +863,72 @@ export function ActionItemPanel({
       </div>
 
       <div className="space-y-1">
-        <DateRangeFields
-          defaultStart={editStartDate}
-          defaultEnd={editEndDate}
-          valueStart={editStartDate}
-          valueEnd={editEndDate}
-          onChange={({ start, end }) => {
-            setEditStartDate(start)
-            setEditEndDate(end)
-          }}
-          labels={{ start: dict.today.startTime, end: dict.today.endTime, error: dict.common.dateRangeInvalid }}
-          onValidityChange={setDateRangeValid}
-          className="grid-cols-2"
-        />
+        {editRepeatRule === 'none' ? (
+          <DateRangeFields
+            defaultStart={editStartDate}
+            defaultEnd={editEndDate}
+            valueStart={editStartDate}
+            valueEnd={editEndDate}
+            onChange={({ start, end }) => {
+              setEditStartDate(start)
+              setEditEndDate(end)
+            }}
+            labels={{ start: dict.today.startTime, end: dict.today.endTime, error: dict.common.dateRangeInvalid }}
+            onValidityChange={setDateRangeValid}
+            className="grid-cols-2"
+          />
+        ) : (
+          <div className="space-y-3">
+            <input type="hidden" name="start_date" value={editNextDate} />
+            <input type="hidden" name="end_date" value={editNextDate} />
+            {editRepeatRule === 'weekly' ? <input type="hidden" name="repeat_weekday" value={String(editRepeatWeekday)} /> : null}
+            {editRepeatRule === 'monthly' ? <input type="hidden" name="repeat_monthday" value={String(editRepeatMonthday)} /> : null}
+
+            {editRepeatRule === 'weekly' ? (
+              <div className="grid gap-2">
+                <Label>{locale === 'zh' ? '周几' : 'Weekday'}</Label>
+                <Select value={String(editRepeatWeekday)} onValueChange={(value) => setEditRepeatWeekday(Number(value))}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={locale === 'zh' ? '选择周几' : 'Select weekday'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {weekdayLabels.map((label, idx) => (
+                      <SelectItem key={label} value={String(idx + 1)}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+
+            {editRepeatRule === 'monthly' ? (
+              <div className="grid gap-2">
+                <Label>{locale === 'zh' ? '每月几号' : 'Day of month'}</Label>
+                <Select value={String(editRepeatMonthday)} onValueChange={(value) => setEditRepeatMonthday(Number(value))}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={locale === 'zh' ? '选择日期' : 'Select date'} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 31 }).map((_, idx) => {
+                      const value = idx + 1
+                      return (
+                        <SelectItem key={value} value={String(value)}>
+                          {locale === 'zh' ? `${value}号` : `Day ${value}`}
+                        </SelectItem>
+                      )
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : null}
+
+            <div className="grid gap-2">
+              <Label>{locale === 'zh' ? '下次执行日' : 'Next date'}</Label>
+              <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-sm font-medium">{editNextDate}</div>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="space-y-2">

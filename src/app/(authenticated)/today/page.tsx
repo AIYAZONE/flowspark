@@ -7,6 +7,7 @@ import { TodayActionList } from '@/components/TodayActionList'
 import { StreakFeedbackBanner } from '@/components/StreakFeedbackBanner'
 import { assignVariant, isEnvEnabled } from '@/lib/experiments'
 import { getStreakSnapshot } from '@/lib/streaks'
+import { ensureUpcomingRecurringActions } from '@/app/(authenticated)/dashboard/recurring'
 
 export default async function TodayPage() {
   const supabase = await createClient()
@@ -43,6 +44,7 @@ export default async function TodayPage() {
   const tz = await getUserTimezone(supabase, user.id)
   // Get today's actions by timezone
   const today = getTodayInTZ(tz)
+  await ensureUpcomingRecurringActions({ supabase, userId: ownerId, today })
   // Calculate yesterday to ensure we cover timezones where 'today' starts earlier than UTC
   const yesterdayDate = new Date(today);
   yesterdayDate.setDate(yesterdayDate.getDate() - 1);

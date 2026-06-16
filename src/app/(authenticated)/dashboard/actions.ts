@@ -133,8 +133,8 @@ async function toggleActionInternal(formData: FormData) {
     if (isActionRecurrenceRule(recurrenceMeta.recurrence)) {
       const nextRange = getNextRecurringRange({
         startDate: action.start_date,
-        endDate: action.end_date || action.start_date,
         recurrence: recurrenceMeta.recurrence,
+        ruleParams: recurrenceMeta.params,
       })
 
       let { data: existingNext } = await supabase

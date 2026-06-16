@@ -2,13 +2,15 @@
 
 import Image from 'next/image'
 import { useEffect, useMemo, useState } from 'react'
-import { Check, ChevronDown, Copy, Download, Palette, RefreshCw, Send, Share2, Smartphone, Sparkles } from 'lucide-react'
+import { Check, ChevronDown, Copy, Download, Palette, RefreshCw, Send, Share2, Smartphone, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogClose, DialogFormContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import type { DailyQuote, QuoteLocale } from '@/lib/daily-quote'
 import { renderQuoteSharePng, type QuoteShareTemplate } from '@/lib/quote-share-image'
 import { applyRefresh, ensureState, shouldPersistQuoteState, type DailyQuoteUiState } from '@/lib/daily-quote-state'
+import { ModalActionFooter } from '@/components/ModalActionFooter'
+import { canOpenSharePreviewFullscreen, getSharePreviewHeightClass } from '@/lib/share-image-dialog-layout'
 
 const QUOTE_STORAGE_PREFIX = 'flowspark:daily-quote-choice'
 const QUOTE_STATE_STORAGE_PREFIX = 'flowspark:daily-quote-state'
@@ -53,6 +55,9 @@ interface WelcomeDict {
   size19_5x9: string
   size20x9: string
   shareSizeMore: string
+  shareSizeOptionalLabel: string
+  shareFlowHint: string
+  sharePreviewFullscreen: string
   quoteHistoryUndoCta: string
   quoteHistoryTitle: string
   quoteHistoryEmpty: string
@@ -88,9 +93,11 @@ export function DashboardWelcome({
   }))
   const [hasHydratedQuoteState, setHasHydratedQuoteState] = useState(false)
   const [shareOpen, setShareOpen] = useState(false)
+  const [sharePreviewFullscreenOpen, setSharePreviewFullscreenOpen] = useState(false)
   const [shareTemplate, setShareTemplate] = useState<QuoteShareTemplate>('calm')
   const [shareSize, setShareSize] = useState<ShareSize>('auto')
   const [shareSizeExpanded, setShareSizeExpanded] = useState(false)
+  const [shareMobileSizeOpen, setShareMobileSizeOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null)
   const [imageBlob, setImageBlob] = useState<Blob | null>(null)
@@ -139,6 +146,7 @@ export function DashboardWelcome({
     const height = Math.round(width * ratio)
     return { width, height }
   }, [shareSize, shareOpen])
+  const sharePreviewHeightClass = useMemo(() => getSharePreviewHeightClass(), [])
 
   const quoteHistory = useMemo(() => {
     const normalized = ensureState(quoteState, dailyQuotes.length, defaultQuoteIndex)
@@ -324,9 +332,11 @@ export function DashboardWelcome({
 
   const isRefreshDisabled = dailyQuotes.length <= 1 || quoteState.refreshUsed >= DAILY_REFRESH_LIMIT
   const isClassicSizeVisible = shareSizeExpanded || shareSize === '9:16'
+  const canOpenFullscreenPreview = canOpenSharePreviewFullscreen({ imageDataUrl, isGenerating })
 
   const handleShareOpenChange = (nextOpen: boolean) => {
     setShareOpen(nextOpen)
+    if (!nextOpen) setSharePreviewFullscreenOpen(false)
     if (!nextOpen && shareSize !== '9:16') setShareSizeExpanded(false)
   }
 
@@ -393,208 +403,335 @@ export function DashboardWelcome({
       </div>
 
       <Dialog open={shareOpen} onOpenChange={handleShareOpenChange}>
-        <DialogContent className="max-h-[92vh] w-[min(100vw-2.5rem,860px)] md:w-[min(100vw-8rem,760px)] max-w-none border-border/60 bg-background p-0">
-          <DialogHeader className="border-b border-border/50 px-6 py-3 pr-14">
-            <DialogTitle className="flex items-center gap-2">
-              <Send className="h-4 w-4 text-primary" />
-              {dict.shareImage}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogFormContent
+          mobileMode="fullscreen"
+          hideCloseButton
+          className="p-0 md:left-[50%]! md:right-auto! md:top-[50%]! md:bottom-auto! md:h-auto! md:w-full! md:max-w-[860px]! md:max-h-[92vh]! md:translate-x-[-50%]! md:translate-y-[-50%]! md:rounded-lg! md:border! md:p-0 md:gap-0"
+        >
+          <div className="flex h-dvh flex-col md:h-auto md:max-h-[92vh]">
+            <div className="sticky top-0 z-10 border-b border-border/60 bg-background/85 px-4 py-3 backdrop-blur md:px-6">
+              <DialogHeader className="space-y-0 text-left">
+                <div className="flex items-center justify-between gap-4">
+                  <DialogTitle className="flex items-center gap-2 text-base md:text-lg">
+                    <Send className="h-4 w-4 text-primary" />
+                    {dict.shareImage}
+                  </DialogTitle>
+                  <DialogClose asChild>
+                    <Button type="button" size="icon" variant="ghost" className="h-9 w-9 rounded-full">
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </DialogClose>
+                </div>
+              </DialogHeader>
+            </div>
 
-          <div className="flex max-h-[calc(92vh-4.5rem)] flex-col gap-5 overflow-auto px-6 pb-6 pt-5">
-            <div className="grid gap-5 md:grid-cols-[minmax(320px,360px)_minmax(0,1fr)] md:items-start">
-              <div className="flex flex-col gap-4">
-                {hasQuoteHistory ? (
-                  <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
-                    <div className="flex items-center justify-between">
-                      <CollapsibleTrigger asChild>
+            <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3 md:px-6 md:py-5">
+              <div className="flex flex-col gap-4 md:grid md:grid-cols-[minmax(320px,360px)_minmax(0,1fr)] md:items-start md:gap-5">
+                <div className="flex flex-col gap-4">
+                  {hasQuoteHistory ? (
+                    <Collapsible open={historyOpen} onOpenChange={setHistoryOpen}>
+                      <div className="flex items-center justify-between">
+                        <CollapsibleTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="link"
+                            shape="default"
+                            size="sm"
+                            className="h-auto px-0 py-0 text-xs font-medium"
+                          >
+                            {dict.quoteHistoryUndoCta}
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
+                      <CollapsibleContent className="mt-2">
+                        <div className="rounded-lg border border-border/50 bg-muted/10 p-2">
+                          <div className="px-2 pb-1 text-xs text-muted-foreground">{dict.quoteHistoryTitle}</div>
+                          <div className="flex max-h-44 flex-col gap-1 overflow-auto pr-1">
+                            {quoteHistory.length > 0 ? (
+                              quoteHistory.map((item) => (
+                                <Button
+                                  key={item.idx}
+                                  type="button"
+                                  variant="ghost"
+                                  shape="default"
+                                  title={item.text}
+                                  className={`h-auto items-start justify-start gap-2 px-2 py-2 text-left text-sm ${
+                                    item.idx === quoteState.selectedIndex ? 'text-foreground' : 'text-muted-foreground'
+                                  }`}
+                                  onClick={() => handleSelectQuoteIndex(item.idx)}
+                                >
+                                  {item.idx === quoteState.selectedIndex ? (
+                                    <Check className="mt-0.5 h-4 w-4 text-primary" />
+                                  ) : (
+                                    <span className="mt-0.5 h-4 w-4" />
+                                  )}
+                                  <span className="min-w-0 flex-1 whitespace-normal break-words line-clamp-2">
+                                    {item.text}
+                                  </span>
+                                </Button>
+                              ))
+                            ) : (
+                              <div className="px-2 py-2 text-sm text-muted-foreground">{dict.quoteHistoryEmpty}</div>
+                            )}
+                          </div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  ) : null}
+
+                  <div className="flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Palette className="h-4 w-4 text-primary" />
+                      {dict.shareTemplateLabel}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {templateOptions.map((option) => (
+                        <Button
+                          key={option.value}
+                          type="button"
+                          variant={shareTemplate === option.value ? 'default' : 'outline'}
+                          shape="default"
+                          className="h-9 px-3"
+                          onClick={() => setShareTemplate(option.value)}
+                        >
+                          {option.label}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="text-xs text-muted-foreground">{dict.shareFlowHint}</div>
+                  </div>
+
+                  <div className="hidden md:flex flex-col gap-2">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                      <Smartphone className="h-4 w-4 text-primary" />
+                      {dict.shareSizeLabel}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {primaryShareSizeOptions.map((option) => (
+                        <Button
+                          key={option.value}
+                          type="button"
+                          variant={shareSize === option.value ? 'default' : 'outline'}
+                          shape="default"
+                          className="h-9 px-3"
+                          onClick={() => setShareSize(option.value)}
+                        >
+                          {option.label}
+                        </Button>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        shape="default"
+                        className="h-9 px-2 text-muted-foreground"
+                        onClick={() => setShareSizeExpanded((current) => !current)}
+                      >
+                        {dict.shareSizeMore}
+                        <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${isClassicSizeVisible ? 'rotate-180' : ''}`} />
+                      </Button>
+                    </div>
+
+                    {isClassicSizeVisible ? (
+                      <div className="flex flex-wrap items-center gap-2">
                         <Button
                           type="button"
-                          variant="link"
+                          variant={shareSize === classicShareSizeOption.value ? 'default' : 'outline'}
                           shape="default"
-                          size="sm"
-                          className="h-auto px-0 py-0 text-xs font-medium"
+                          className="h-9 px-3"
+                          onClick={() => setShareSize(classicShareSizeOption.value)}
                         >
-                          {dict.quoteHistoryUndoCta}
+                          {classicShareSizeOption.label}
                         </Button>
-                      </CollapsibleTrigger>
-                    </div>
-                    <CollapsibleContent className="mt-2">
-                      <div className="rounded-lg border border-border/50 bg-muted/10 p-2">
-                        <div className="px-2 pb-1 text-xs text-muted-foreground">{dict.quoteHistoryTitle}</div>
-                        <div className="flex max-h-44 flex-col gap-1 overflow-auto pr-1">
-                          {quoteHistory.length > 0 ? (
-                            quoteHistory.map((item) => (
-                              <Button
-                                key={item.idx}
-                                type="button"
-                                variant="ghost"
-                                shape="default"
-                                title={item.text}
-                                className={`h-auto items-start justify-start gap-2 px-2 py-2 text-left text-sm ${
-                                  item.idx === quoteState.selectedIndex ? 'text-foreground' : 'text-muted-foreground'
-                                }`}
-                                onClick={() => handleSelectQuoteIndex(item.idx)}
-                              >
-                                {item.idx === quoteState.selectedIndex ? (
-                                  <Check className="mt-0.5 h-4 w-4 text-primary" />
-                                ) : (
-                                  <span className="mt-0.5 h-4 w-4" />
-                                )}
-                                <span className="min-w-0 flex-1 whitespace-normal break-words line-clamp-2">
-                                  {item.text}
-                                </span>
-                              </Button>
-                            ))
-                          ) : (
-                            <div className="px-2 py-2 text-sm text-muted-foreground">{dict.quoteHistoryEmpty}</div>
-                          )}
-                        </div>
                       </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                ) : null}
-
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <Palette className="h-4 w-4 text-primary" />
-                    {dict.shareTemplateLabel}
+                    ) : null}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    {templateOptions.map((option) => (
-                      <Button
-                        key={option.value}
-                        type="button"
-                        variant={shareTemplate === option.value ? 'default' : 'outline'}
-                        shape="default"
-                        className="h-9 px-3"
-                        onClick={() => setShareTemplate(option.value)}
-                      >
-                        {option.label}
-                      </Button>
-                    ))}
+
+                  <div className="md:hidden">
+                    <Collapsible open={shareMobileSizeOpen} onOpenChange={setShareMobileSizeOpen}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                          <Smartphone className="h-4 w-4 text-primary" />
+                          {dict.shareSizeOptionalLabel}
+                        </div>
+                        <CollapsibleTrigger asChild>
+                          <Button type="button" variant="ghost" shape="default" className="h-9 px-2 text-muted-foreground">
+                            {dict.shareSizeMore}
+                            <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${shareMobileSizeOpen ? 'rotate-180' : ''}`} />
+                          </Button>
+                        </CollapsibleTrigger>
+                      </div>
+                      <CollapsibleContent className="mt-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {primaryShareSizeOptions.map((option) => (
+                            <Button
+                              key={option.value}
+                              type="button"
+                              variant={shareSize === option.value ? 'default' : 'outline'}
+                              shape="default"
+                              className="h-9 px-3"
+                              onClick={() => setShareSize(option.value)}
+                            >
+                              {option.label}
+                            </Button>
+                          ))}
+                          <Button
+                            type="button"
+                            variant={shareSize === classicShareSizeOption.value ? 'default' : 'outline'}
+                            shape="default"
+                            className="h-9 px-3"
+                            onClick={() => setShareSize(classicShareSizeOption.value)}
+                          >
+                            {classicShareSizeOption.label}
+                          </Button>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <Smartphone className="h-4 w-4 text-primary" />
-                    {dict.shareSizeLabel}
+                <div className="flex justify-center md:justify-end">
+                  <div
+                    className={`relative ${sharePreviewHeightClass} w-auto overflow-hidden rounded-xl border border-border/50 bg-muted/10 ${
+                      canOpenFullscreenPreview ? 'cursor-zoom-in' : ''
+                    }`}
+                    style={{ aspectRatio: `${shareOutput.width} / ${shareOutput.height}` }}
+                    role="button"
+                    tabIndex={canOpenFullscreenPreview ? 0 : -1}
+                    aria-label={dict.sharePreviewFullscreen}
+                    aria-disabled={!canOpenFullscreenPreview}
+                    onClick={() => {
+                      if (!canOpenFullscreenPreview) return
+                      setSharePreviewFullscreenOpen(true)
+                    }}
+                    onKeyDown={(event) => {
+                      if (!canOpenFullscreenPreview) return
+                      if (event.key !== 'Enter' && event.key !== ' ') return
+                      event.preventDefault()
+                      setSharePreviewFullscreenOpen(true)
+                    }}
+                  >
+                    {imageDataUrl ? (
+                      <Image
+                        src={imageDataUrl}
+                        alt={dict.shareImage}
+                        fill
+                        unoptimized
+                        sizes="(max-width: 768px) 92vw, 520px"
+                        className="object-contain"
+                      />
+                    ) : (
+                      <div className="h-full w-full animate-pulse bg-muted/20" />
+                    )}
+
+                    {isGenerating ? (
+                      <div className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full bg-background/80 px-3 py-1 text-xs text-muted-foreground shadow-sm">
+                        <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                        {dict.generating}
+                      </div>
+                    ) : null}
+
+                    {shareError ? (
+                      <div className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full bg-background/80 px-3 py-1 text-xs text-destructive shadow-sm">
+                        {shareError}
+                      </div>
+                    ) : null}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {primaryShareSizeOptions.map((option) => (
-                      <Button
-                        key={option.value}
-                        type="button"
-                        variant={shareSize === option.value ? 'default' : 'outline'}
-                        shape="default"
-                        className="h-9 px-3"
-                        onClick={() => setShareSize(option.value)}
-                      >
-                        {option.label}
+                </div>
+              </div>
+            </div>
+
+            <Dialog open={sharePreviewFullscreenOpen} onOpenChange={setSharePreviewFullscreenOpen}>
+              <DialogFormContent mobileMode="fullscreen" hideCloseButton className="p-0 bg-black/95 text-white">
+                <div className="relative h-dvh">
+                  <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 px-4 py-3">
+                    <DialogTitle className="text-sm font-medium text-white/80">{dict.sharePreviewFullscreen}</DialogTitle>
+                    <DialogClose asChild>
+                      <Button type="button" size="icon" variant="ghost" className="h-9 w-9 rounded-full text-white/80">
+                        <X className="h-4 w-4" />
                       </Button>
-                    ))}
+                    </DialogClose>
+                  </div>
+
+                  <div className="flex h-dvh items-center justify-center px-4 py-6" onClick={() => setSharePreviewFullscreenOpen(false)}>
+                    <div
+                      className="relative flex max-h-[calc(100dvh-3rem)] max-w-[calc(100vw-2rem)] items-center justify-center md:max-h-[82vh] md:max-w-[360px]"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {imageDataUrl ? (
+                        <Image
+                          src={imageDataUrl}
+                          alt={dict.shareImage}
+                          unoptimized
+                          width={shareOutput.width}
+                          height={shareOutput.height}
+                          sizes="100vw"
+                          className="h-auto max-h-full w-auto max-w-full object-contain"
+                        />
+                      ) : (
+                        <div className="h-full w-full animate-pulse rounded-xl bg-white/10" />
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </DialogFormContent>
+            </Dialog>
+
+            <ModalActionFooter>
+              <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                {canUseSystemShare ? (
+                  <>
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="default"
                       shape="default"
-                      className="h-9 px-2 text-muted-foreground"
-                      onClick={() => setShareSizeExpanded((current) => !current)}
+                      className="gap-2"
+                      disabled={!imageBlob || isGenerating}
+                      onClick={handleSystemShare}
                     >
-                      {dict.shareSizeMore}
-                      <ChevronDown className={`ml-1 h-4 w-4 transition-transform ${isClassicSizeVisible ? 'rotate-180' : ''}`} />
+                      <Send className="h-4 w-4" />
+                      {dict.systemShare}
                     </Button>
-                  </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      shape="default"
+                      className="gap-2"
+                      disabled={!imageBlob || isGenerating}
+                      onClick={handleDownload}
+                    >
+                      <Download className="h-4 w-4" />
+                      {dict.downloadImage}
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="default"
+                    shape="default"
+                    className="gap-2"
+                    disabled={!imageBlob || isGenerating}
+                    onClick={handleDownload}
+                  >
+                    <Download className="h-4 w-4" />
+                    {dict.downloadImage}
+                  </Button>
+                )}
 
-                  {isClassicSizeVisible ? (
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        type="button"
-                        variant={shareSize === classicShareSizeOption.value ? 'default' : 'outline'}
-                        shape="default"
-                        className="h-9 px-3"
-                        onClick={() => setShareSize(classicShareSizeOption.value)}
-                      >
-                        {classicShareSizeOption.label}
-                      </Button>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-
-              <div className="flex justify-center md:justify-end">
-                <div
-                  className="relative h-[min(58vh,640px)] md:h-[min(62vh,720px)] w-auto overflow-hidden rounded-xl border border-border/50 bg-muted/10"
-                  style={{ aspectRatio: `${shareOutput.width} / ${shareOutput.height}` }}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  shape="default"
+                  className="gap-2"
+                  disabled={isGenerating}
+                  onClick={handleCopy}
                 >
-                  {imageDataUrl ? (
-                    <Image
-                      src={imageDataUrl}
-                      alt={dict.shareImage}
-                      fill
-                      unoptimized
-                      sizes="(max-width: 768px) 90vw, 420px"
-                      className="object-contain"
-                    />
-                  ) : (
-                    <div className="h-full w-full animate-pulse bg-muted/20" />
-                  )}
-
-                  {isGenerating ? (
-                    <div className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full bg-background/80 px-3 py-1 text-xs text-muted-foreground shadow-sm">
-                      <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
-                      {dict.generating}
-                    </div>
-                  ) : null}
-
-                  {shareError ? (
-                    <div className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full bg-background/80 px-3 py-1 text-xs text-destructive shadow-sm">
-                      {shareError}
-                    </div>
-                  ) : null}
-                </div>
+                  <Copy className="h-4 w-4" />
+                  {copied ? dict.copied : dict.copyText}
+                </Button>
               </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-2 sm:justify-end">
-              <Button
-                type="button"
-                variant={canUseSystemShare ? 'outline' : 'default'}
-                shape="default"
-                className="gap-2"
-                disabled={!imageBlob || isGenerating}
-                onClick={handleDownload}
-              >
-                <Download className="h-4 w-4" />
-                {dict.downloadImage}
-              </Button>
-
-              <Button
-                type="button"
-                variant={canUseSystemShare ? 'default' : 'outline'}
-                shape="default"
-                className="gap-2"
-                disabled={!imageBlob || isGenerating || !canUseSystemShare}
-                onClick={handleSystemShare}
-              >
-                <Send className="h-4 w-4" />
-                {dict.systemShare}
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                shape="default"
-                className="gap-2"
-                disabled={isGenerating}
-                onClick={handleCopy}
-              >
-                <Copy className="h-4 w-4" />
-                {copied ? dict.copied : dict.copyText}
-              </Button>
-            </div>
+            </ModalActionFooter>
           </div>
-        </DialogContent>
+        </DialogFormContent>
       </Dialog>
     </div>
   )

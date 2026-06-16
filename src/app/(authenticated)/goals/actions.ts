@@ -11,9 +11,12 @@ import { createClient } from '@/lib/supabase/server';
 import { normalizeCategoryInput } from '@/lib/goalCategories';
 import { upsertBehaviorSnapshot } from '@/lib/snapshots';
 import {
+	getUpcomingRecurringDate,
 	isActionRecurrenceRule,
-	serializeActionRecurrenceDescription
+	serializeActionRecurrenceDescription,
+	type ActionRecurrenceParams
 } from '@/lib/actionRecurrence';
+import { getTodayInTZ, getUserTimezone } from '@/lib/time';
 
 const ACTIVE_GOAL_LIMIT = 5;
 
@@ -777,9 +780,30 @@ export async function createActionWithSubItems(formData: FormData) {
 	const priority = (formData.get('priority') as string) || 'medium';
 	const description = (formData.get('description') as string) || '';
 	const repeat_rule = (formData.get('repeat_rule') as string | null) || 'none';
-	const start_date = formData.get('start_date') as string;
-	const end_date = formData.get('end_date') as string;
-	if (!goal_id || !title || !start_date || !end_date) {
+	const recurrence = isActionRecurrenceRule(repeat_rule) ? repeat_rule : 'none';
+	let start_date = (formData.get('start_date') as string) || '';
+	let end_date = (formData.get('end_date') as string) || '';
+	let ruleParams: ActionRecurrenceParams | undefined = undefined;
+	if (recurrence !== 'none') {
+		const tz = await getUserTimezone(supabase, user.id);
+		const today = getTodayInTZ(tz);
+		if (recurrence === 'weekly') {
+			const weekdayRaw = formData.get('repeat_weekday');
+			const weekday = Number(weekdayRaw);
+			ruleParams = Number.isFinite(weekday) && weekday >= 1 && weekday <= 7 ? { weekday } : undefined;
+		}
+		if (recurrence === 'monthly') {
+			const monthdayRaw = formData.get('repeat_monthday');
+			const monthday = Number(monthdayRaw);
+			const params: ActionRecurrenceParams = { missing: 'clamp' };
+			if (Number.isFinite(monthday) && monthday >= 1 && monthday <= 31) params.monthday = monthday;
+			ruleParams = params;
+		}
+		const upcoming = getUpcomingRecurringDate({ today, recurrence, ruleParams });
+		start_date = upcoming.startDate;
+		end_date = upcoming.endDate;
+	}
+	if (!goal_id || !title || (recurrence === 'none' && (!start_date || !end_date))) {
 		throw new Error('Missing required fields');
 	}
 
@@ -800,7 +824,8 @@ export async function createActionWithSubItems(formData: FormData) {
 				priority,
 				description: serializeActionRecurrenceDescription(
 					description,
-					isActionRecurrenceRule(repeat_rule) ? repeat_rule : 'none'
+					recurrence,
+					ruleParams
 				),
 				start_date,
 				end_date,
@@ -1075,14 +1100,35 @@ export async function updateAction(formData: FormData) {
 	const priority = formData.get('priority') as string;
 	const description = formData.get('description') as string;
 	const repeat_rule = (formData.get('repeat_rule') as string | null) || 'none';
-	const start_date = formData.get('start_date') as string;
-	const end_date = formData.get('end_date') as string;
+	const recurrence = isActionRecurrenceRule(repeat_rule) ? repeat_rule : 'none';
+	let start_date = (formData.get('start_date') as string) || '';
+	let end_date = (formData.get('end_date') as string) || '';
+	let ruleParams: ActionRecurrenceParams | undefined = undefined;
+	if (recurrence !== 'none') {
+		const tz = await getUserTimezone(supabase, user.id);
+		const today = getTodayInTZ(tz);
+		if (recurrence === 'weekly') {
+			const weekdayRaw = formData.get('repeat_weekday');
+			const weekday = Number(weekdayRaw);
+			ruleParams = Number.isFinite(weekday) && weekday >= 1 && weekday <= 7 ? { weekday } : undefined;
+		}
+		if (recurrence === 'monthly') {
+			const monthdayRaw = formData.get('repeat_monthday');
+			const monthday = Number(monthdayRaw);
+			const params: ActionRecurrenceParams = { missing: 'clamp' };
+			if (Number.isFinite(monthday) && monthday >= 1 && monthday <= 31) params.monthday = monthday;
+			ruleParams = params;
+		}
+		const upcoming = getUpcomingRecurringDate({ today, recurrence, ruleParams });
+		start_date = upcoming.startDate;
+		end_date = upcoming.endDate;
+	}
 	const ai_recommendation_id =
 		(formData.get('ai_recommendation_id') as string | null) || null;
 	const subItemsUpdate = parseSubItemsForUpdate(formData.get('sub_items'));
 
 	if (!goal_id) throw new Error('Missing required fields');
-	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
+	if (recurrence === 'none' && end_date && start_date && new Date(end_date) < new Date(start_date)) {
 		throw new Error('invalid_date_range');
 	}
 
@@ -1116,7 +1162,8 @@ export async function updateAction(formData: FormData) {
 		priority,
 		description: serializeActionRecurrenceDescription(
 			description,
-			isActionRecurrenceRule(repeat_rule) ? repeat_rule : 'none'
+			recurrence,
+			ruleParams
 		),
 		start_date,
 		end_date,
