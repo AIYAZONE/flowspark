@@ -369,7 +369,7 @@ export function DashboardWelcome({
           <div className="text-sm sm:text-base leading-relaxed text-foreground/90 line-clamp-3 sm:line-clamp-2">
             {selectedQuote?.text}
           </div>
-          <p className="mt-2 text-xs text-muted-foreground hidden sm:block">
+          <p className="mt-2 text-[11px] leading-snug text-muted-foreground sm:text-xs">
             {dict.quoteChoicesHint} {refreshHint}
           </p>
         </div>
