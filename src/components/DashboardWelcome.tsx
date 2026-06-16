@@ -644,9 +644,16 @@ export function DashboardWelcome({
               <DialogFormContent mobileMode="fullscreen" hideCloseButton className="p-0 bg-black/95 text-white">
                 <div className="relative h-dvh">
                   <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 px-4 py-3">
-                    <DialogTitle className="text-sm font-medium text-white/80">{dict.sharePreviewFullscreen}</DialogTitle>
+                    <DialogTitle className="rounded-full bg-black/55 px-3 py-1 text-xs font-medium text-white/90 shadow-sm backdrop-blur-sm">
+                      {dict.sharePreviewFullscreen}
+                    </DialogTitle>
                     <DialogClose asChild>
-                      <Button type="button" size="icon" variant="ghost" className="h-9 w-9 rounded-full text-white/80">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        className="h-9 w-9 rounded-full bg-black/55 text-white/90 shadow-sm backdrop-blur-sm hover:bg-black/65 hover:text-white/95"
+                      >
                         <X className="h-4 w-4" />
                       </Button>
                     </DialogClose>
