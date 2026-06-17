@@ -40,7 +40,6 @@ function CompleteButton({
 }
 import { useEffect, useState, useTransition } from 'react'
 import { format } from 'date-fns'
-import { motion, useAnimationControls } from 'framer-motion'
 import { Calendar, CheckCircle2, ChevronRight, Circle, Pencil, Sparkles, Trash2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -67,6 +66,7 @@ import {
     parseActionRecurrenceDescription,
     type ActionRecurrenceRule,
 } from '@/lib/actionRecurrence'
+import { isActionItemSwipeEnabled } from '@/components/action-item-swipe-policy'
 
 const loadActionItemPanel = () => import('@/components/ActionItemPanel')
 
@@ -150,15 +150,13 @@ type EditSubItemDraft = {
 export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Shanghai', goals = [], isNew = false }: ActionItemProps) {
     const recurrenceMeta = parseActionRecurrenceDescription(action.description || '')
     const todayText: TodayDictionary = dict.today
-    const [isLoading, setIsLoading] = useState(false)
+    const isLoading = false
     const [isDeleting, setIsDeleting] = useState(false)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [detailsOpen, setDetailsOpen] = useState(false)
     const [panelMode, setPanelMode] = useState<'view' | 'edit' | 'rescue'>('view')
-    const [swipeEnabled, setSwipeEnabled] = useState(false)
+    const swipeEnabled = isActionItemSwipeEnabled()
     const [isDesktop, setIsDesktop] = useState(false)
-    const [draggedRecently, setDraggedRecently] = useState(false)
-    const controls = useAnimationControls()
     const [rescueOutcomeState, setRescueOutcomeState] = useState<'idle' | 'adopted' | 'dismissed'>('idle')
     const [subItemsOpen, setSubItemsOpen] = useState(false)
     const [subItemBusyId, setSubItemBusyId] = useState<string | null>(null)
@@ -167,46 +165,6 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const hasDetails = true
     const subItems = [...(action.action_sub_items || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
     const subItemsCompletedCount = subItems.filter((item) => item.completed).length
-
-    const closeSwipe = () => {
-        controls.start({ x: 0, transition: { type: 'spring', stiffness: 420, damping: 34 } })
-    }
-
-    const openSwipe = () => {
-        controls.start({ x: -128, transition: { type: 'spring', stiffness: 420, damping: 34 } })
-    }
-
-    const handleDragEnd = (_: unknown, info: { offset: { x: number }; velocity: { x: number } }) => {
-        const shouldOpen = info.offset.x < -40 || info.velocity.x < -500
-        if (shouldOpen) openSwipe()
-        else closeSwipe()
-        setDraggedRecently(true)
-        setTimeout(() => setDraggedRecently(false), 180)
-    }
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return
-
-        const mediaQueryList = window.matchMedia('(hover: none) and (pointer: coarse)')
-
-        const sync = () => {
-            const enabled = mediaQueryList.matches
-            setSwipeEnabled(enabled)
-            if (!enabled) {
-                controls.start({ x: 0, transition: { type: 'spring', stiffness: 420, damping: 34 } })
-            }
-        }
-
-        sync()
-
-        if (typeof mediaQueryList.addEventListener === 'function') {
-            mediaQueryList.addEventListener('change', sync)
-            return () => mediaQueryList.removeEventListener('change', sync)
-        }
-
-        mediaQueryList.addListener(sync)
-        return () => mediaQueryList.removeListener(sync)
-    }, [controls])
 
     useEffect(() => {
         if (typeof window === 'undefined') return
@@ -231,7 +189,6 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             setDeleteDialogOpen(false)
             setDetailsOpen(false)
             setPanelMode('view')
-            closeSwipe()
         } catch (error) {
             console.error(error)
         } finally {
@@ -240,22 +197,18 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     }
 
     async function openDetails() {
-        if (draggedRecently) return
-        closeSwipe()
         setPanelMode('view')
         await loadActionItemPanel()
         setDetailsOpen(true)
     }
 
     async function openEditPanel() {
-        closeSwipe()
         setPanelMode('edit')
         await loadActionItemPanel()
         setDetailsOpen(true)
     }
 
     async function openRescuePanel() {
-        closeSwipe()
         setPanelMode('rescue')
         setRescueOutcomeState('idle')
         await loadActionItemPanel()
@@ -350,42 +303,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             "group relative overflow-hidden rounded-xl border border-border/40 bg-card transition-all duration-300 md:hover:shadow-sm md:hover:border-primary/20 md:hover:bg-muted/10",
             isNew && "border-primary/40 bg-primary/4"
         )}>
-            <div className={cn(
-                "absolute inset-y-0 right-0 z-0 w-32",
-                swipeEnabled ? "block" : "hidden"
-            )}>
-                <div className="flex h-full w-full items-stretch">
-                    <button
-                        type="button"
-                        onClick={openEditPanel}
-                        className="w-1/2 bg-primary/10 text-primary flex items-center justify-center"
-                    >
-                        <Pencil className="h-5 w-5" />
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => { closeSwipe(); setDeleteDialogOpen(true) }}
-                        className="w-1/2 bg-destructive/10 text-destructive flex items-center justify-center"
-                    >
-                        <Trash2 className="h-5 w-5" />
-                    </button>
-                </div>
-            </div>
-
-            <motion.div
-                initial={{ x: 0 }}
-                animate={controls}
-                drag={swipeEnabled ? 'x' : false}
-                dragConstraints={{ left: -128, right: 0 }}
-                dragElastic={0.06}
-                dragMomentum={false}
-                onDragEnd={swipeEnabled ? handleDragEnd : undefined}
-                style={swipeEnabled ? { touchAction: 'pan-y' } : undefined}
-                className={cn(
-                    "relative z-10 flex flex-col bg-card p-4",
-                    swipeEnabled && "cursor-grab active:cursor-grabbing"
-                )}
-            >
+            <div className="relative z-10 flex flex-col bg-card p-4">
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1 min-w-0">
                         <div className="mt-1 relative">
@@ -528,7 +446,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                             type="button"
                             variant="ghost"
                             size="icon"
-                            onClick={() => { closeSwipe(); setDeleteDialogOpen(true) }}
+                            onClick={() => { setDeleteDialogOpen(true) }}
                             className="h-9 w-9 lg:h-8 lg:w-8 rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
                             disabled={isLoading || isDeleting}
                         >
@@ -553,7 +471,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                         className="mt-2 ml-11"
                     />
                 ) : null}
-            </motion.div>
+            </div>
             {detailsOpen ? (
                 <ActionItemPanel
                     open={detailsOpen}
@@ -575,7 +493,6 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                 open={deleteDialogOpen}
                 onOpenChange={(open) => {
                     setDeleteDialogOpen(open)
-                    if (!open) closeSwipe()
                 }}
             >
                 <AlertDialogContent>
