@@ -39,6 +39,9 @@ export type SystemNotificationCopy = {
   body: string
 }
 
+// Node's bare test runner needs the explicit extension here, while Next build
+// rejects it unless the type checker suppression is local to this import.
+// @ts-ignore
 import { formatStreakFeedbackCopy } from './streak-feedback.ts'
 
 export function formatSystemNotificationCopy(

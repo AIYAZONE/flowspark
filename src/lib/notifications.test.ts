@@ -1,7 +1,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { formatSystemNotificationCopy } from './notifications.ts'
+const { formatSystemNotificationCopy } = await import(
+  new URL('./notifications.ts', import.meta.url).href
+)
 
 test('系统通知：护盾发放文案可格式化（中文）', () => {
   const copy = formatSystemNotificationCopy(
