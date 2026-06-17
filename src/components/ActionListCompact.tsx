@@ -10,7 +10,6 @@ import { RewardLootBoxDialog } from '@/components/RewardLootBoxDialog'
 import type { RewardResult } from '@/lib/rewards'
 import { logEvent } from '@/lib/analytics'
 import { buildStreakFeedback } from '@/lib/streak-feedback'
-import { getCelebrationMilestone, getPhaseKeyForStreak } from '@/lib/streak-milestones'
 import { pushStreakFeedback } from '@/components/StreakFeedbackBanner'
 import { pushXpFeedback } from '@/components/XpFeedbackToast'
 
@@ -123,7 +122,9 @@ export function ActionListCompact({
                     streak?: {
                       currentStreak?: number
                       shieldGrantedRule?: 'first_3_day' | 'refill_7_day' | null
+                      shieldGrantedAtStreak?: number | null
                       shieldBalance?: number
+                      milestoneReached?: { milestone: number; phaseKey: 'starter' | 'steady' | 'deepening' | 'resilient' | 'longrun' | 'identity' } | null
                     }
                     xpEarned?: number | null
                   }
@@ -134,30 +135,33 @@ export function ActionListCompact({
                     setReward(result.reward)
                     setRewardOpen(true)
                   }
-                  if (!action.completed && result?.streak?.shieldGrantedRule) {
+                  if (
+                    !action.completed &&
+                    result?.streak?.shieldGrantedRule &&
+                    typeof result?.streak?.shieldGrantedAtStreak === 'number'
+                  ) {
                     logEvent('streak_shield_granted', {
                       rule: result.streak.shieldGrantedRule,
+                      granted_at_streak: result.streak.shieldGrantedAtStreak,
                       shield_balance: result.streak.shieldBalance ?? null,
                     })
                     pushStreakFeedback(
                       buildStreakFeedback({
                         kind: 'shield_granted',
                         rule: result.streak.shieldGrantedRule,
+                        grantedAtStreak: result.streak.shieldGrantedAtStreak,
                         shieldBalanceAfter: result.streak.shieldBalance ?? 0,
                       })
                     )
                   }
-                  if (!action.completed && typeof result?.streak?.currentStreak === 'number') {
-                    const milestone = getCelebrationMilestone(result.streak.currentStreak)
-                    if (milestone) {
-                      pushStreakFeedback(
-                        buildStreakFeedback({
-                          kind: 'milestone_reached',
-                          milestone,
-                          phaseKey: getPhaseKeyForStreak(result.streak.currentStreak),
-                        })
-                      )
-                    }
+                  if (!action.completed && result?.streak?.milestoneReached) {
+                    pushStreakFeedback(
+                      buildStreakFeedback({
+                        kind: 'milestone_reached',
+                        milestone: result.streak.milestoneReached.milestone,
+                        phaseKey: result.streak.milestoneReached.phaseKey,
+                      })
+                    )
                   }
                 })()
               })

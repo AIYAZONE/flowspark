@@ -3,6 +3,7 @@ export type StreakFeedback =
       kind: 'shield_granted'
       createdAt: number
       rule: 'first_3_day' | 'refill_7_day'
+      grantedAtStreak: number
       shieldBalanceAfter: number
     }
   | {
@@ -58,12 +59,20 @@ export function formatStreakFeedbackCopy(
   const isZh = opts.locale === 'zh'
 
   if (feedback.kind === 'shield_granted') {
+    const ruleLabel = isZh
+      ? feedback.rule === 'first_3_day'
+        ? '首次达成'
+        : '连续达成'
+      : feedback.rule === 'first_3_day'
+        ? 'First reached'
+        : 'Streak reached'
+
     return {
       tone: 'success',
       title: isZh ? '护盾已到账' : 'Shield unlocked',
       body: isZh
-        ? `你获得了 1 个护盾（当前 ${feedback.shieldBalanceAfter} 个）。护盾可用于补回昨天的连续，不会额外获得 XP。`
-        : `You earned 1 shield (now ${feedback.shieldBalanceAfter}). Shields can recover a missed yesterday and do not grant extra XP.`,
+        ? `${ruleLabel} ${feedback.grantedAtStreak} 天，获得 1 个护盾（当前 ${feedback.shieldBalanceAfter} 个）。护盾可用于补回昨天的连续，不会额外获得 XP。`
+        : `${ruleLabel} ${feedback.grantedAtStreak} days. You earned 1 shield (now ${feedback.shieldBalanceAfter}). Shields can recover a missed yesterday and do not grant extra XP.`,
     }
   }
 

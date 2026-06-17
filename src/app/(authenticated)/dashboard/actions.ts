@@ -8,11 +8,13 @@ import { rollCompletionReward } from '@/lib/rewards';
 import type { RewardResult } from '@/lib/rewards';
 import { upsertBehaviorSnapshot } from '@/lib/snapshots';
 import { getUserTimezone } from '@/lib/time';
+import { insertUserNotification } from '@/lib/notifications/commands';
 import {
   getShieldGrantDecision,
   getStreakSnapshot,
   grantShieldIfEligible,
 } from '@/lib/streaks';
+import { getCelebrationMilestone, getPhaseKeyForStreak } from '@/lib/streak-milestones';
 import {
   getNextRecurringRange,
   isActionRecurrenceRule,
@@ -27,7 +29,9 @@ type ToggleActionResult = {
     currentStreak: number
     shieldBalance: number
     shieldGrantedRule: 'first_3_day' | 'refill_7_day' | null
+    shieldGrantedAtStreak: number | null
     nextGrantAtStreak: number
+    milestoneReached: { milestone: number; phaseKey: 'starter' | 'steady' | 'deepening' | 'resilient' | 'longrun' | 'identity' } | null
   } | null
   xpEarned: number | null
   xpBreakdown: { base: number; bonus: number } | null
@@ -241,11 +245,6 @@ async function toggleActionInternal(formData: FormData) {
       userId: action.user_id,
       timeZone,
     })
-    const shieldDecision = getShieldGrantDecision({
-      currentStreak: snapshot.currentStreak,
-      shieldBalance: snapshot.shieldBalance,
-      lastShieldGrantedForStreak: snapshot.lastShieldGrantedForStreak,
-    })
     const granted = await grantShieldIfEligible({
       supabase,
       userId: action.user_id,
@@ -254,11 +253,41 @@ async function toggleActionInternal(formData: FormData) {
       lastShieldGrantedForStreak: snapshot.lastShieldGrantedForStreak,
     })
 
+    let milestoneReached: { milestone: number; phaseKey: 'starter' | 'steady' | 'deepening' | 'resilient' | 'longrun' | 'identity' } | null = null
+    const milestone = getCelebrationMilestone(snapshot.currentStreak)
+    if (milestone) {
+      const phaseKey = getPhaseKeyForStreak(snapshot.currentStreak)
+      const inserted = await insertUserNotification({
+        supabase,
+        userId: action.user_id,
+        kind: 'milestone_reached',
+        payload: { milestone, phaseKey },
+      })
+      if (inserted.inserted) {
+        milestoneReached = { milestone, phaseKey }
+      }
+    }
+
+    if (granted.shouldGrant && granted.grantedRule && typeof granted.grantedAtStreak === 'number') {
+      await insertUserNotification({
+        supabase,
+        userId: action.user_id,
+        kind: 'shield_granted',
+        payload: {
+          rule: granted.grantedRule,
+          grantedAtStreak: granted.grantedAtStreak,
+          shieldBalanceAfter: granted.nextBalance,
+        },
+      })
+    }
+
     streak = {
       currentStreak: snapshot.currentStreak,
       shieldBalance: granted.shouldGrant ? granted.nextBalance : snapshot.shieldBalance,
       shieldGrantedRule: granted.grantedRule,
-      nextGrantAtStreak: shieldDecision.nextGrantAtStreak,
+      shieldGrantedAtStreak: granted.grantedAtStreak,
+      nextGrantAtStreak: granted.nextGrantAtStreak,
+      milestoneReached,
     }
   }
 
@@ -281,6 +310,7 @@ async function toggleActionInternal(formData: FormData) {
 
   revalidatePath('/dashboard');
   revalidatePath('/today');
+  revalidatePath('/notifications');
 
   return { ok: true, completed: nextCompleted, reward, streak, xpEarned, xpBreakdown }
 }

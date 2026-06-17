@@ -23,6 +23,7 @@ import {
 interface Dict {
   profile: {
     title: string
+    statusOnline: string
     email: string
     name: string
     timezone: string
@@ -204,7 +205,7 @@ export function ProfileCard({
                   <div className="text-2xl md:text-3xl font-bold tracking-tight">{name || userEmail?.split('@')[0] || '-'}</div>
                   <div className="text-muted-foreground flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    在线
+                    {dict.profile.statusOnline}
                   </div>
                 </div>
               </div>
@@ -246,7 +247,7 @@ export function ProfileCard({
               </div>
             </div>
 
-            <div className="md:hidden mt-8 pt-6 border-t border-border/50">
+            <div className="mt-8 pt-6 border-t border-border/50">
               <AlertDialog open={signOutOpen} onOpenChange={setSignOutOpen}>
                 <AlertDialogTrigger asChild>
                   <Button

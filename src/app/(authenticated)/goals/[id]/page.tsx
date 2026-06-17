@@ -67,6 +67,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
 		{ data: activeGoals },
 		{ data: actions },
 		{ data: shareData },
+		{ data: calendarFeedData },
 		tz,
 		goalEntries
 	] = await Promise.all([
@@ -104,6 +105,15 @@ export default async function GoalDetailPage({ params }: PageProps) {
 			.eq('goal_id', id)
 			.eq('owner_id', user.id)
 			.maybeSingle(),
+		supabase
+			.from('calendar_feeds')
+			.select('token, expires_at, revoked_at')
+			.eq('owner_id', user.id)
+			.eq('scope', 'goal')
+			.eq('goal_id', id)
+			.order('created_at', { ascending: false })
+			.limit(1)
+			.maybeSingle(),
 		getUserTimezone(supabase, user.id),
 		goalEntriesPromise
 	])
@@ -132,6 +142,13 @@ export default async function GoalDetailPage({ params }: PageProps) {
 			shareInfo={{
 				token: (shareData?.revoked_at ? null : (shareData?.token as string | null)) || null,
 				expiresAt: (shareData?.expires_at as string | null) || null
+			}}
+			calendarFeedInfo={{
+				token:
+					(calendarFeedData?.revoked_at
+						? null
+						: (calendarFeedData?.token as string | null)) || null,
+				expiresAt: (calendarFeedData?.expires_at as string | null) || null
 			}}
 			tzDefaults={{ startDefault, endDefault }}
 		/>

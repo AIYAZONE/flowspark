@@ -134,3 +134,116 @@ export async function updateAvatarUrl(formData: FormData) {
 	}
 	revalidatePath('/profile');
 }
+
+function isExpired(expiresAt?: string | null) {
+	return Boolean(expiresAt && new Date(expiresAt).getTime() <= Date.now());
+}
+
+export async function createUserCalendarFeed() {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+
+	if (!user) throw new Error('User not authenticated');
+
+	const token = crypto.randomUUID();
+	const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+
+	const { data: existing, error: findError } = await supabase
+		.from('calendar_feeds')
+		.select('id')
+		.eq('owner_id', user.id)
+		.eq('scope', 'user')
+		.is('goal_id', null)
+		.maybeSingle();
+
+	if (findError) throw new Error('operation_failed');
+
+	if (existing?.id) {
+		const { error } = await supabase
+			.from('calendar_feeds')
+			.update({
+				token,
+				expires_at: expiresAt,
+				revoked_at: null
+			})
+			.eq('id', existing.id as string);
+		if (error) throw new Error('operation_failed');
+	} else {
+		const { error } = await supabase.from('calendar_feeds').insert({
+			owner_id: user.id,
+			scope: 'user',
+			goal_id: null,
+			token,
+			expires_at: expiresAt,
+			revoked_at: null
+		});
+		if (error) throw new Error('operation_failed');
+	}
+
+	revalidatePath('/profile');
+	return { token, expiresAt };
+}
+
+export async function refreshUserCalendarFeed() {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+
+	if (!user) throw new Error('User not authenticated');
+
+	const { data: existing, error: findError } = await supabase
+		.from('calendar_feeds')
+		.select('id, token, expires_at, revoked_at')
+		.eq('owner_id', user.id)
+		.eq('scope', 'user')
+		.is('goal_id', null)
+		.maybeSingle();
+
+	if (findError) throw new Error('operation_failed');
+	if (!existing?.id || existing.revoked_at) throw new Error('operation_failed');
+
+	const expired =
+		Boolean(existing.expires_at) &&
+		isExpired(existing.expires_at as string | null);
+	const nextToken = expired ? crypto.randomUUID() : (existing.token as string);
+	const nextExpiresAt = expired
+		? new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString()
+		: ((existing.expires_at as string | null) || null);
+
+	const { error } = await supabase
+		.from('calendar_feeds')
+		.update({
+			token: nextToken,
+			expires_at: nextExpiresAt,
+			revoked_at: null
+		})
+		.eq('id', existing.id as string);
+	if (error) throw new Error('operation_failed');
+
+	revalidatePath('/profile');
+	return { token: nextToken, expiresAt: nextExpiresAt };
+}
+
+export async function revokeUserCalendarFeed() {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+
+	if (!user) throw new Error('User not authenticated');
+
+	const { error } = await supabase
+		.from('calendar_feeds')
+		.update({ revoked_at: new Date().toISOString() })
+		.eq('owner_id', user.id)
+		.eq('scope', 'user')
+		.is('goal_id', null);
+
+	if (error) throw new Error('operation_failed');
+
+	revalidatePath('/profile');
+	return { success: true as const };
+}

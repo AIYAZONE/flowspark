@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getUserTimezone, getTodayInTZ } from '@/lib/time'
 import { getStreakSnapshot } from '@/lib/streaks'
+import { UserCalendarFeedCard } from '@/components/UserCalendarFeedCard'
+import { getUnreadNotificationCount } from '@/lib/notifications/queries'
 
 export default async function ProfilePage() {
   const supabase = await createClient()
@@ -32,6 +34,18 @@ export default async function ProfilePage() {
     .select('*')
     .eq('id', user.id)
     .single()
+
+  const { data: calendarFeedData } = await supabase
+    .from('calendar_feeds')
+    .select('token, expires_at, revoked_at')
+    .eq('owner_id', user.id)
+    .eq('scope', 'user')
+    .is('goal_id', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const unreadNotifications = await getUnreadNotificationCount({ supabase, userId: user.id })
 
   // 无头像时不写入默认图片，交由 UI 首字母头像渲染
 
@@ -58,6 +72,25 @@ export default async function ProfilePage() {
           lastSignIn={lastSignIn}
           updateAction={updateProfile}
         />
+
+        <Card className="shadow-none">
+          <CardHeader>
+            <CardTitle className="text-base">{dict.profile.notificationsTitle}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <div>{dict.profile.notificationsDesc}</div>
+              {unreadNotifications > 0 ? (
+                <div className="text-xs">
+                  {dict.profile.notificationsUnread.replace('{count}', String(unreadNotifications))}
+                </div>
+              ) : null}
+            </div>
+            <Button asChild variant="outline" className="rounded-full">
+              <Link href="/notifications">{dict.profile.notificationsCta}</Link>
+            </Button>
+          </CardContent>
+        </Card>
 
         <Card className="shadow-none">
           <CardHeader>
@@ -121,6 +154,12 @@ export default async function ProfilePage() {
             </Button>
           </CardContent>
         </Card>
+
+        <UserCalendarFeedCard
+          dict={dict}
+          initialToken={(calendarFeedData?.revoked_at ? null : (calendarFeedData?.token as string | null)) || null}
+          initialExpiresAt={(calendarFeedData?.expires_at as string | null) || null}
+        />
       </div>
     </div>
   )

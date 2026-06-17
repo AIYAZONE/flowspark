@@ -77,3 +77,57 @@ export function buildGoalCalendarICS(params: {
     content: `${lines.join('\r\n')}\r\n`,
   }
 }
+
+export function buildUserCalendarICS(params: {
+  calendarTitle: string
+  events: Array<{
+    id: string
+    title: string
+    goalTitle?: string | null
+    startDate: string
+    endDate?: string | null
+    description?: string | null
+    priority?: string | null
+    type?: string | null
+  }>
+}) {
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//FlowSpark//User Calendar Export//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    `X-WR-CALNAME:${escapeICSText(params.calendarTitle)}`,
+  ]
+
+  for (const event of params.events) {
+    const startDate = event.startDate
+    const endDate = event.endDate || event.startDate
+    const summary = event.goalTitle ? `[${event.goalTitle}] ${event.title}` : event.title
+    const descriptionParts = [
+      event.goalTitle ? `Goal: ${event.goalTitle}` : null,
+      event.type ? `Type: ${event.type}` : null,
+      event.priority ? `Priority: ${event.priority}` : null,
+      stripHtmlToPlainText(event.description, { preserveLineBreaks: true }) || null,
+    ].filter(Boolean)
+
+    lines.push(
+      'BEGIN:VEVENT',
+      `UID:${event.id}@flowspark.user`,
+      `DTSTAMP:${stamp}`,
+      `SUMMARY:${escapeICSText(summary)}`,
+      `DTSTART;VALUE=DATE:${toICSDate(startDate)}`,
+      `DTEND;VALUE=DATE:${toICSDate(addOneDay(endDate))}`,
+      `DESCRIPTION:${escapeICSText(descriptionParts.join('\n'))}`,
+      'END:VEVENT'
+    )
+  }
+
+  lines.push('END:VCALENDAR')
+
+  return {
+    filename: `${slugifyFilename(params.calendarTitle)}.ics`,
+    content: `${lines.join('\r\n')}\r\n`,
+  }
+}

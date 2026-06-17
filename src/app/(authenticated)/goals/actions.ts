@@ -1625,3 +1625,116 @@ export async function revokeGoalShareLink(goalId: string) {
 	revalidatePath(`/goals/${goalId}`);
 	return { success: true as const };
 }
+
+function isExpired(expiresAt?: string | null) {
+	return Boolean(expiresAt && new Date(expiresAt).getTime() <= Date.now());
+}
+
+export async function createGoalCalendarFeed(goalId: string) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) throw new Error('unauthenticated');
+	if (!goalId) throw new Error('missing_fields');
+
+	const token = crypto.randomUUID();
+	const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString();
+
+	const { data: existing, error: findError } = await supabase
+		.from('calendar_feeds')
+		.select('id')
+		.eq('owner_id', user.id)
+		.eq('scope', 'goal')
+		.eq('goal_id', goalId)
+		.maybeSingle();
+
+	if (findError) throw new Error('operation_failed');
+
+	if (existing?.id) {
+		const { error } = await supabase
+			.from('calendar_feeds')
+			.update({
+				token,
+				expires_at: expiresAt,
+				revoked_at: null
+			})
+			.eq('id', existing.id as string);
+		if (error) throw new Error('operation_failed');
+	} else {
+		const { error } = await supabase.from('calendar_feeds').insert({
+			owner_id: user.id,
+			scope: 'goal',
+			goal_id: goalId,
+			token,
+			expires_at: expiresAt,
+			revoked_at: null
+		});
+		if (error) throw new Error('operation_failed');
+	}
+
+	revalidatePath(`/goals/${goalId}`);
+	return { token, expiresAt };
+}
+
+export async function refreshGoalCalendarFeed(goalId: string) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) throw new Error('unauthenticated');
+	if (!goalId) throw new Error('missing_fields');
+
+	const { data: existing, error: findError } = await supabase
+		.from('calendar_feeds')
+		.select('id, token, expires_at, revoked_at')
+		.eq('owner_id', user.id)
+		.eq('scope', 'goal')
+		.eq('goal_id', goalId)
+		.maybeSingle();
+
+	if (findError) throw new Error('operation_failed');
+	if (!existing?.id || existing.revoked_at) throw new Error('operation_failed');
+
+	const expired =
+		Boolean(existing.expires_at) &&
+		isExpired(existing.expires_at as string | null);
+	const nextToken = expired ? crypto.randomUUID() : (existing.token as string);
+	const nextExpiresAt = expired
+		? new Date(Date.now() + 1000 * 60 * 60 * 24 * 30).toISOString()
+		: ((existing.expires_at as string | null) || null);
+
+	const { error } = await supabase
+		.from('calendar_feeds')
+		.update({
+			token: nextToken,
+			expires_at: nextExpiresAt,
+			revoked_at: null
+		})
+		.eq('id', existing.id as string);
+	if (error) throw new Error('operation_failed');
+
+	revalidatePath(`/goals/${goalId}`);
+	return { token: nextToken, expiresAt: nextExpiresAt };
+}
+
+export async function revokeGoalCalendarFeed(goalId: string) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) throw new Error('unauthenticated');
+	if (!goalId) throw new Error('missing_fields');
+
+	const { error } = await supabase
+		.from('calendar_feeds')
+		.update({ revoked_at: new Date().toISOString() })
+		.eq('owner_id', user.id)
+		.eq('scope', 'goal')
+		.eq('goal_id', goalId);
+
+	if (error) throw new Error('operation_failed');
+
+	revalidatePath(`/goals/${goalId}`);
+	return { success: true as const };
+}

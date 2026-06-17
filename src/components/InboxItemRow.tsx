@@ -14,6 +14,7 @@ import { HoverLabel } from '@/components/HoverLabel'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { cn } from '@/lib/utils'
 import { shouldOpenInboxItemDetails } from '@/components/inbox-item-details-open'
+import { shouldIgnoreDetailsOpenInteraction } from '@/components/details-open-ignore'
 
 type Dict = typeof en
 
@@ -49,9 +50,12 @@ export function InboxItemRow({
 
 	function shouldIgnoreDetailsOpen(target: EventTarget | null, currentTarget: HTMLDivElement) {
 		if (!(target instanceof Element)) return false
-		if (target.closest('a, button, input, textarea, select')) return true
+		const isNativeInteractive = Boolean(target.closest('a, button, input, textarea, select'))
+		const isRadixSelectOverlay = Boolean(target.closest('[role="listbox"], [role="option"], [data-radix-collection-item]'))
+		const isDialogLayer = Boolean(target.closest('[data-dialog-layer]'))
 		const nestedButton = target.closest('[role="button"]')
-		return Boolean(nestedButton && nestedButton !== currentTarget)
+		const isNestedButton = Boolean(nestedButton && nestedButton !== currentTarget)
+		return shouldIgnoreDetailsOpenInteraction({ isNativeInteractive, isRadixSelectOverlay, isDialogLayer, isNestedButton })
 	}
 
 	function openDetails(event: MouseEvent<HTMLDivElement>) {

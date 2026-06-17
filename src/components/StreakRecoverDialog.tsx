@@ -86,6 +86,15 @@ export function StreakRecoverDialog(props: {
                         currentStreak: result.currentStreak,
                       })
                     )
+                    if (result.milestoneReached) {
+                      pushStreakFeedback(
+                        buildStreakFeedback({
+                          kind: 'milestone_reached',
+                          milestone: result.milestoneReached.milestone,
+                          phaseKey: result.milestoneReached.phaseKey,
+                        })
+                      )
+                    }
                     onOpenChange(false)
                     router.refresh()
                   } catch (error) {

@@ -61,7 +61,6 @@ import { RichTextContentView } from '@/components/RichTextContentView'
 import { pushStreakFeedback } from '@/components/StreakFeedbackBanner'
 import { pushXpFeedback } from '@/components/XpFeedbackToast'
 import { buildStreakFeedback } from '@/lib/streak-feedback'
-import { getCelebrationMilestone, getPhaseKeyForStreak } from '@/lib/streak-milestones'
 import {
     parseActionRecurrenceDescription,
     type ActionRecurrenceRule,
@@ -321,22 +320,37 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                                 xpEarned?: number | null
                                                 streak?: {
                                                     currentStreak?: number
+                                                    shieldGrantedRule?: 'first_3_day' | 'refill_7_day' | null
+                                                    shieldGrantedAtStreak?: number | null
+                                                    shieldBalance?: number
+                                                    milestoneReached?: { milestone: number; phaseKey: 'starter' | 'steady' | 'deepening' | 'resilient' | 'longrun' | 'identity' } | null
                                                 }
                                             }
                                             if (!action.completed && typeof result?.xpEarned === 'number') {
                                                 pushXpFeedback({ amount: result.xpEarned })
                                             }
-                                            if (!action.completed && typeof result?.streak?.currentStreak === 'number') {
-                                                const milestone = getCelebrationMilestone(result.streak.currentStreak)
-                                                if (milestone) {
-                                                    pushStreakFeedback(
-                                                        buildStreakFeedback({
-                                                            kind: 'milestone_reached',
-                                                            milestone,
-                                                            phaseKey: getPhaseKeyForStreak(result.streak.currentStreak),
-                                                        })
-                                                    )
-                                                }
+                                            if (
+                                                !action.completed &&
+                                                result?.streak?.shieldGrantedRule &&
+                                                typeof result?.streak?.shieldGrantedAtStreak === 'number'
+                                            ) {
+                                                pushStreakFeedback(
+                                                    buildStreakFeedback({
+                                                        kind: 'shield_granted',
+                                                        rule: result.streak.shieldGrantedRule,
+                                                        grantedAtStreak: result.streak.shieldGrantedAtStreak,
+                                                        shieldBalanceAfter: result.streak.shieldBalance ?? 0,
+                                                    })
+                                                )
+                                            }
+                                            if (!action.completed && result?.streak?.milestoneReached) {
+                                                pushStreakFeedback(
+                                                    buildStreakFeedback({
+                                                        kind: 'milestone_reached',
+                                                        milestone: result.streak.milestoneReached.milestone,
+                                                        phaseKey: result.streak.milestoneReached.phaseKey,
+                                                    })
+                                                )
                                             }
                                         })()
                                     })

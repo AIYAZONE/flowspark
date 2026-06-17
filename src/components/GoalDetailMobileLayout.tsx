@@ -50,10 +50,11 @@ interface GoalDetailMobileLayoutProps {
     goalsForEdit?: { id: string, title: string }[]
     goalsForSwitch?: { id: string, title: string }[]
 	shareInfo?: { token: string | null; expiresAt: string | null }
+	calendarFeedInfo?: { token: string | null; expiresAt: string | null }
 	tzDefaults: { startDefault: string; endDefault: string }
 }
 
-export function GoalDetailMobileLayout({ goal, actions, entries, dict, initialTab = 'actions', goalsForEdit, goalsForSwitch, shareInfo, tzDefaults }: GoalDetailMobileLayoutProps) {
+export function GoalDetailMobileLayout({ goal, actions, entries, dict, initialTab = 'actions', goalsForEdit, goalsForSwitch, shareInfo, calendarFeedInfo, tzDefaults }: GoalDetailMobileLayoutProps) {
     const [activeTab, setActiveTab] = useState<TabKey>(initialTab)
 
     const { totalActions, completedActions, journeyCount } = useMemo(() => {
@@ -170,6 +171,8 @@ export function GoalDetailMobileLayout({ goal, actions, entries, dict, initialTa
 						dict={dict}
 						initialShareToken={shareInfo?.token || null}
 						initialShareExpiresAt={shareInfo?.expiresAt || null}
+						initialCalendarFeedToken={calendarFeedInfo?.token || null}
+						initialCalendarFeedExpiresAt={calendarFeedInfo?.expiresAt || null}
 					/>
                 }
                 activeTab={activeTab}

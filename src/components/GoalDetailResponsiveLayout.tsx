@@ -13,6 +13,7 @@ import { GoalDetailMobileLayout } from '@/components/GoalDetailMobileLayout'
 import { GoalQuickSwitch } from '@/components/GoalQuickSwitch'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import { GoalSubItemsTabs } from '@/components/GoalSubItemsTabs'
+import { StreakFeedbackBanner } from '@/components/StreakFeedbackBanner'
 import { DESKTOP_AND_UP_MEDIA_QUERY } from '@/components/responsive-classes'
 
 type Dict = typeof en
@@ -80,6 +81,7 @@ export function GoalDetailResponsiveLayout({
   dict,
   activeGoals,
   shareInfo,
+  calendarFeedInfo,
   tzDefaults
 }: {
   goal: Goal
@@ -88,6 +90,7 @@ export function GoalDetailResponsiveLayout({
   dict: Dict
   activeGoals: Array<{ id: string; title: string }>
   shareInfo: { token: string | null; expiresAt: string | null }
+  calendarFeedInfo: { token: string | null; expiresAt: string | null }
   tzDefaults: { startDefault: string; endDefault: string }
 }) {
   const isDesktop = useMediaQuery(DESKTOP_AND_UP_MEDIA_QUERY)
@@ -108,6 +111,7 @@ export function GoalDetailResponsiveLayout({
 
   return (
     <div className="space-y-5 lg:space-y-6">
+      <StreakFeedbackBanner dict={dict} />
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-start gap-3 lg:flex-1 lg:gap-4">
           <Button
@@ -161,6 +165,8 @@ export function GoalDetailResponsiveLayout({
               dict={dict}
               initialShareToken={shareInfo.token}
               initialShareExpiresAt={shareInfo.expiresAt}
+              initialCalendarFeedToken={calendarFeedInfo.token}
+              initialCalendarFeedExpiresAt={calendarFeedInfo.expiresAt}
             />
           }
         />
@@ -173,6 +179,7 @@ export function GoalDetailResponsiveLayout({
           goalsForEdit={activeGoals}
           goalsForSwitch={activeGoals}
           shareInfo={shareInfo}
+          calendarFeedInfo={calendarFeedInfo}
           tzDefaults={tzDefaults}
         />
       )}

@@ -7,6 +7,7 @@ export type ShieldGrantDecision = {
   shouldGrant: boolean
   nextBalance: number
   grantedRule: ShieldGrantRule | null
+  grantedAtStreak: number | null
   nextGrantAtStreak: number
 }
 
@@ -105,11 +106,12 @@ export function getShieldGrantDecision(input: {
         ? 7
         : lastGranted + 7
 
-  if (shieldBalance >= 3 || currentStreak < nextGrantAtStreak) {
+  if (shieldBalance >= 3 || currentStreak !== nextGrantAtStreak) {
     return {
       shouldGrant: false,
       nextBalance: shieldBalance,
       grantedRule: null,
+      grantedAtStreak: null,
       nextGrantAtStreak,
     }
   }
@@ -118,6 +120,7 @@ export function getShieldGrantDecision(input: {
     shouldGrant: true,
     nextBalance: Math.min(shieldBalance + 1, 3),
     grantedRule: nextGrantAtStreak === 3 ? 'first_3_day' : 'refill_7_day',
+    grantedAtStreak: nextGrantAtStreak,
     nextGrantAtStreak: nextGrantAtStreak === 3 ? 7 : nextGrantAtStreak + 7,
   }
 }
@@ -321,15 +324,9 @@ export async function grantShieldIfEligible(params: {
     lastShieldGrantedForStreak: params.lastShieldGrantedForStreak,
   })
 
-  if (!decision.shouldGrant || !decision.grantedRule) {
+  if (!decision.shouldGrant || !decision.grantedRule || !decision.grantedAtStreak) {
     return decision
   }
-
-  const grantedAtStreak = decision.grantedRule === 'first_3_day'
-    ? 3
-    : params.lastShieldGrantedForStreak && params.lastShieldGrantedForStreak >= 7
-      ? params.lastShieldGrantedForStreak + 7
-      : 7
 
   const { error } = await params.supabase
     .from('user_streak_benefits')
@@ -337,7 +334,7 @@ export async function grantShieldIfEligible(params: {
       {
         user_id: params.userId,
         available_shields: decision.nextBalance,
-        last_shield_granted_for_streak: grantedAtStreak,
+        last_shield_granted_for_streak: decision.grantedAtStreak,
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'user_id' }

@@ -18,7 +18,7 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { updateGoal, toggleGoalStar, createGoalShareLink, refreshGoalShareSnapshot, revokeGoalShareLink } from '@/app/(authenticated)/goals/actions'
+import { updateGoal, toggleGoalStar, createGoalShareLink, refreshGoalShareSnapshot, revokeGoalShareLink, createGoalCalendarFeed, refreshGoalCalendarFeed, revokeGoalCalendarFeed } from '@/app/(authenticated)/goals/actions'
 import { DeleteGoalButton } from '@/components/DeleteGoalButton'
 import { ArchiveGoalButton } from '@/components/ArchiveGoalButton'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
@@ -45,9 +45,11 @@ interface GoalDetailsCardProps {
     dict: typeof en
     initialShareToken?: string | null
     initialShareExpiresAt?: string | null
+    initialCalendarFeedToken?: string | null
+    initialCalendarFeedExpiresAt?: string | null
 }
 
-export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialShareExpiresAt = null }: GoalDetailsCardProps) {
+export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialShareExpiresAt = null, initialCalendarFeedToken = null, initialCalendarFeedExpiresAt = null }: GoalDetailsCardProps) {
     const [isEditing, setIsEditing] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
     const [isExpanded, setIsExpanded] = useState(false)
@@ -59,6 +61,12 @@ export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialS
     const [shareToken, setShareToken] = useState<string | null>(initialShareToken)
     const [shareExpiresAt, setShareExpiresAt] = useState<string | null>(initialShareExpiresAt)
     const [copied, setCopied] = useState(false)
+    const [calendarOpen, setCalendarOpen] = useState(false)
+    const [calendarLoading, setCalendarLoading] = useState(false)
+    const [calendarSyncing, setCalendarSyncing] = useState(false)
+    const [calendarToken, setCalendarToken] = useState<string | null>(initialCalendarFeedToken)
+    const [calendarExpiresAt, setCalendarExpiresAt] = useState<string | null>(initialCalendarFeedExpiresAt)
+    const [calendarCopied, setCalendarCopied] = useState(false)
 
     useEffect(() => {
         if (!shareOpen || !shareToken) return
@@ -80,6 +88,27 @@ export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialS
             active = false
         }
     }, [goal.id, shareOpen, shareToken])
+
+    useEffect(() => {
+        if (!calendarOpen || !calendarToken) return
+        let active = true
+        void (async () => {
+            setCalendarSyncing(true)
+            try {
+                const refreshed = await refreshGoalCalendarFeed(goal.id)
+                if (!active) return
+                setCalendarToken(refreshed.token)
+                setCalendarExpiresAt(refreshed.expiresAt)
+            } catch (error) {
+                console.error(error)
+            } finally {
+                if (active) setCalendarSyncing(false)
+            }
+        })()
+        return () => {
+            active = false
+        }
+    }, [calendarOpen, calendarToken, goal.id])
 
     async function handleSubmit(formData: FormData) {
         setIsLoading(true)
@@ -108,6 +137,11 @@ export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialS
     const shareUrl =
         shareToken && typeof window !== 'undefined'
             ? `${window.location.origin}/share/goals/${shareToken}`
+            : ''
+
+    const calendarUrl =
+        calendarToken && typeof window !== 'undefined'
+            ? `${window.location.origin}/api/calendar/feeds/${calendarToken}`
             : ''
 
     async function handleCreateShare() {
@@ -144,6 +178,45 @@ export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialS
             await navigator.clipboard.writeText(shareUrl)
             setCopied(true)
             setTimeout(() => setCopied(false), 1200)
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    async function handleCreateCalendarFeed() {
+        setCalendarLoading(true)
+        try {
+            const result = await createGoalCalendarFeed(goal.id)
+            setCalendarToken(result.token)
+            setCalendarExpiresAt(result.expiresAt)
+            setCalendarCopied(false)
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setCalendarLoading(false)
+        }
+    }
+
+    async function handleRevokeCalendarFeed() {
+        setCalendarLoading(true)
+        try {
+            await revokeGoalCalendarFeed(goal.id)
+            setCalendarToken(null)
+            setCalendarExpiresAt(null)
+            setCalendarCopied(false)
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setCalendarLoading(false)
+        }
+    }
+
+    async function handleCopyCalendarFeed() {
+        if (!calendarUrl) return
+        try {
+            await navigator.clipboard.writeText(calendarUrl)
+            setCalendarCopied(true)
+            setTimeout(() => setCalendarCopied(false), 1200)
         } catch (error) {
             console.error(error)
         }
@@ -487,6 +560,52 @@ export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialS
                                     <Button type="button" onClick={handleCreateShare} disabled={shareLoading}>
                                         {shareLoading ? <LoadingSpinner size={14} className="mr-1 text-current" /> : null}
                                         {dict.share.createLink}
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+                <Dialog open={calendarOpen} onOpenChange={setCalendarOpen}>
+                    <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="w-full justify-center gap-1 sm:w-auto">
+                            <Calendar className="h-4 w-4" />
+                            {dict.share.subscribeCalendar}
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>{dict.share.subscribeCalendar}</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3">
+                            <p className="text-sm text-muted-foreground">{dict.share.calendarFeedHint}</p>
+                            {calendarSyncing ? (
+                                <div className="text-xs text-muted-foreground">{dict.common.loading}</div>
+                            ) : null}
+                            {calendarToken && calendarUrl ? (
+                                <div className="space-y-2 rounded-md border border-border/50 bg-muted/20 p-3">
+                                    <div className="break-all text-xs text-foreground/80">{calendarUrl}</div>
+                                    <div className="text-xs text-muted-foreground">
+                                        {calendarExpiresAt ? `${dict.share.expiresLabel || 'Expires'}: ${format(new Date(calendarExpiresAt), 'yyyy-MM-dd')}` : ''}
+                                    </div>
+                                </div>
+                            ) : null}
+                            <div className="flex items-center justify-end gap-2">
+                                {calendarToken ? (
+                                    <>
+                                        <Button type="button" variant="outline" onClick={handleCopyCalendarFeed} disabled={calendarLoading}>
+                                            {calendarCopied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+                                            {calendarCopied ? dict.share.copied : dict.share.copySubscribeLink}
+                                        </Button>
+                                        <Button type="button" variant="destructive" onClick={handleRevokeCalendarFeed} disabled={calendarLoading}>
+                                            {calendarLoading ? <LoadingSpinner size={14} className="mr-1 text-current" /> : null}
+                                            {dict.share.revokeCalendarFeed}
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <Button type="button" onClick={handleCreateCalendarFeed} disabled={calendarLoading}>
+                                        {calendarLoading ? <LoadingSpinner size={14} className="mr-1 text-current" /> : null}
+                                        {dict.share.subscribeCalendar}
                                     </Button>
                                 )}
                             </div>

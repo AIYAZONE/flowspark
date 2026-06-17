@@ -12,6 +12,7 @@ test('护盾到账反馈在有效期内可展示', () => {
     {
       kind: 'shield_granted',
       rule: 'first_3_day',
+      grantedAtStreak: 3,
       shieldBalanceAfter: 1,
     },
     { now: 1000 }
@@ -19,6 +20,23 @@ test('护盾到账反馈在有效期内可展示', () => {
 
   assert.equal(isStreakFeedbackFresh(feedback, { now: 1000, maxAgeMs: 60_000 }), true)
   assert.equal(isStreakFeedbackFresh(feedback, { now: 61_001, maxAgeMs: 60_000 }), false)
+})
+
+test('护盾到账反馈文案包含门槛与库存（中文）', () => {
+  const feedback = buildStreakFeedback(
+    {
+      kind: 'shield_granted',
+      rule: 'refill_7_day',
+      grantedAtStreak: 7,
+      shieldBalanceAfter: 2,
+    },
+    { now: 1000 }
+  )
+
+  const copy = formatStreakFeedbackCopy(feedback, { locale: 'zh' })
+  assert.equal(copy.tone, 'success')
+  assert.ok(copy.body.includes('7'))
+  assert.ok(copy.body.includes('2'))
 })
 
 test('恢复成功反馈文案可被格式化（中文）', () => {

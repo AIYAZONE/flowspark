@@ -22,12 +22,44 @@ interface MobileNavBarProps {
 export function MobileNavBar({ dict }: MobileNavBarProps) {
   const pathname = usePathname()
   const [epoch, setEpoch] = useState(0)
+  const [notificationUnread, setNotificationUnread] = useState<number>(0)
 
   useEffect(() => {
     const onResume = () => setEpoch((v) => v + 1)
     window.addEventListener('app:resume', onResume)
     return () => window.removeEventListener('app:resume', onResume)
   }, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    function isRecord(value: unknown): value is Record<string, unknown> {
+      return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+    }
+
+    async function refreshCounts() {
+      try {
+        const res = await fetch('/api/notifications/counts', { cache: 'no-store' })
+        const data = (await res.json()) as unknown
+        if (!mounted) return
+        if (!res.ok) {
+          setNotificationUnread(0)
+          return
+        }
+        if (isRecord(data) && typeof data.unread === 'number') {
+          setNotificationUnread(Math.max(0, Math.trunc(data.unread)))
+        }
+      } catch {
+        if (!mounted) return
+        setNotificationUnread(0)
+      }
+    }
+
+    void refreshCounts()
+    return () => {
+      mounted = false
+    }
+  }, [epoch])
 
   const isDebugNav = () => {
     try {
@@ -86,6 +118,7 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
       >
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href)
+          const showUnreadDot = item.href === '/profile' && notificationUnread > 0
           return (
             <Link
               key={item.href}
@@ -101,12 +134,17 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <item.icon
-                className={cn(
-                  "h-6 w-6 transition-all duration-200",
-                  isActive ? "scale-110 stroke-[2.5px]" : "stroke-[1.5px]"
-                )}
-              />
+              <span className="relative">
+                <item.icon
+                  className={cn(
+                    "h-6 w-6 transition-all duration-200",
+                    isActive ? "scale-110 stroke-[2.5px]" : "stroke-[1.5px]"
+                  )}
+                />
+                {showUnreadDot ? (
+                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+                ) : null}
+              </span>
               <span className="text-[10px] font-medium">{item.title}</span>
             </Link>
           )

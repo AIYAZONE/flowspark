@@ -19,6 +19,7 @@ import { cn } from '@/lib/utils'
 import type { GoalEntry } from '@/components/goal-entry.types'
 import { TABLET_AND_UP_MEDIA_QUERY } from '@/components/responsive-classes'
 import { shouldOpenGoalEntryDetails } from '@/components/goal-entry-details-open'
+import { shouldIgnoreDetailsOpenInteraction } from '@/components/details-open-ignore'
 
 type Dict = typeof en
 
@@ -50,9 +51,12 @@ export function GoalEntryRow({
 
 	function shouldIgnoreDetailsOpen(target: EventTarget | null, currentTarget: HTMLDivElement) {
 		if (!(target instanceof Element)) return false
-		if (target.closest('img, a, button, input, textarea, select, [data-richtext-image="true"]')) return true
+		const isNativeInteractive = Boolean(target.closest('img, a, button, input, textarea, select, [data-richtext-image="true"]'))
+		const isRadixSelectOverlay = Boolean(target.closest('[role="listbox"], [role="option"], [data-radix-collection-item]'))
+		const isDialogLayer = Boolean(target.closest('[data-dialog-layer]'))
 		const nestedButton = target.closest('[role="button"]')
-		return Boolean(nestedButton && nestedButton !== currentTarget)
+		const isNestedButton = Boolean(nestedButton && nestedButton !== currentTarget)
+		return shouldIgnoreDetailsOpenInteraction({ isNativeInteractive, isRadixSelectOverlay, isDialogLayer, isNestedButton })
 	}
 
 	function openDetails(event: MouseEvent<HTMLDivElement>) {

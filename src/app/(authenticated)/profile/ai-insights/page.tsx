@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getCurrentLocale, getDictionary } from '@/i18n/get-dictionary'
 import Link from 'next/link'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AIAnalyticsOverview } from '@/components/AIAnalyticsOverview'
 import { AIAnalyticsFrictionTop } from '@/components/AIAnalyticsFrictionTop'
@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils'
 import { getUserTimezone, getTodayInTZ } from '@/lib/time'
 import { getStreakSnapshot } from '@/lib/streaks'
 import { buildContinuityInsightCopy } from '@/lib/continuity-insight'
+import { ProfileSubPageHeader } from '@/components/profile/ProfileSubPageHeader'
 
 type AIAnalyticsDict = {
   aiAnalyticsTitle: string
@@ -265,15 +266,14 @@ export default async function AIInsightsPage(props: {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-3xl font-bold tracking-tight">{profileDict.aiAnalyticsTitle}</h1>
-          <div className="text-sm text-muted-foreground">{profileDict.aiAnalyticsDesc}</div>
-        </div>
-        <Button asChild variant="outline" className="rounded-full">
-          <Link href="/profile">{dict.profile.title}</Link>
-        </Button>
-      </div>
+      <ProfileSubPageHeader
+        title={profileDict.aiAnalyticsTitle}
+        description={profileDict.aiAnalyticsDesc}
+        backHref="/profile"
+        backLabel={dict.common.back}
+        breadcrumbs={[{ label: dict.profile.title, href: '/profile' }]}
+        icon={<Sparkles className="h-4 w-4" />}
+      />
 
       <div className="rounded-2xl border bg-card p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

@@ -13,6 +13,7 @@ import {
 } from '@/components/AIAnalyticsTable'
 import { AISceneHeader } from '@/components/AISceneHeader'
 import { AIRecommendationDetail } from '@/components/AIRecommendationDetail'
+import { ProfileSubPageHeader } from '@/components/profile/ProfileSubPageHeader'
 import {
   getAISceneDetail,
   getRecommendationDetail,
@@ -26,6 +27,7 @@ import {
   formatAIPromptLabel,
   getAIFieldHelpText,
 } from '@/lib/ai/analyticsPresentation'
+import { Sparkles } from 'lucide-react'
 
 const VALID_SCENES = ['today_plan', 'rescue', 'review', 'weekly_insight'] as const
 
@@ -233,6 +235,16 @@ export default async function AISceneInsightsPage(props: {
 
   return (
     <div className="space-y-6">
+      <ProfileSubPageHeader
+        title={profileDict.aiAnalyticsTitle}
+        backHref="/profile/ai-insights"
+        backLabel={dict.common.back}
+        breadcrumbs={[
+          { label: dict.profile.title, href: '/profile' },
+          { label: profileDict.aiAnalyticsTitle, href: '/profile/ai-insights' },
+        ]}
+        icon={<Sparkles className="h-4 w-4" />}
+      />
       <AISceneHeader
         scene={scene}
         locale={currentLocale}
