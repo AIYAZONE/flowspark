@@ -14,12 +14,13 @@ import { StreakCard } from '@/components/StreakCard'
 import { StreakFeedbackBanner } from '@/components/StreakFeedbackBanner'
 import { GoalProgressList } from '@/components/GoalProgressList'
 import { WeeklyInsightCard } from '@/components/WeeklyInsightCard'
-import { assignVariant, isEnvEnabled } from '@/lib/experiments'
+import { isEnvEnabled } from '@/lib/experiments'
 import { ExperimentExposureTracker } from '@/components/ExperimentExposureTracker'
 import { calcCompletionPercent, calcTimeProgressPercent, getPaceStatus } from '@/lib/progress'
 import { getOrCreateWeeklyInsight } from '@/lib/ai/insightStore'
 import { getStreakSnapshot } from '@/lib/streaks'
 import { DAILY_QUOTE_CANDIDATE_COUNT, getDailyQuoteCandidates, QUOTE_TIME_ZONE } from '@/lib/daily-quote'
+import { getExperimentDecision } from '@/lib/featureFlags'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -29,12 +30,26 @@ export default async function DashboardPage() {
   const todayPlanEnabledEnv =
     process.env.NEXT_PUBLIC_AI_TODAY_PLAN_ENABLED ?? process.env.AI_TODAY_PLAN_ENABLED
   const todayPlanEnabled = todayPlanEnabledEnv ? isEnvEnabled(todayPlanEnabledEnv) : true
-  const ab1TodayPlanEnabled = isEnvEnabled(process.env.AI_EXPERIMENT_AB1_TODAY_PLAN)
-  const ab1TodayPlanVariant = ab1TodayPlanEnabled ? assignVariant(user.id, 'ab1_today_plan') : null
+  const ab1TodayPlanDecision = await getExperimentDecision({
+    supabase,
+    userId: user.id,
+    experimentKey: 'ab1_today_plan',
+    envEnabled: process.env.AI_EXPERIMENT_AB1_TODAY_PLAN,
+    defaultEnabled: false,
+  })
+  const ab1TodayPlanEnabled = ab1TodayPlanDecision.enabled
+  const ab1TodayPlanVariant = ab1TodayPlanDecision.variant
   const showAIPlan = todayPlanEnabled && (!ab1TodayPlanEnabled || ab1TodayPlanVariant === 'B')
 
-  const ab2ReviewEnabled = isEnvEnabled(process.env.AI_EXPERIMENT_AB2_REVIEW_Q)
-  const ab2ReviewVariant = ab2ReviewEnabled ? assignVariant(user.id, 'ab2_review_q') : null
+  const ab2ReviewDecision = await getExperimentDecision({
+    supabase,
+    userId: user.id,
+    experimentKey: 'ab2_review_q',
+    envEnabled: process.env.AI_EXPERIMENT_AB2_REVIEW_Q,
+    defaultEnabled: false,
+  })
+  const ab2ReviewEnabled = ab2ReviewDecision.enabled
+  const ab2ReviewVariant = ab2ReviewDecision.variant
   const reviewQuestionsCount = ab2ReviewEnabled ? (ab2ReviewVariant === 'A' ? 1 : 2) : 2
   const tz = await getUserTimezone(supabase, user.id)
   const today = getTodayInTZ(tz)
@@ -300,6 +315,8 @@ export default async function DashboardPage() {
         ab1TodayPlanVariant={ab1TodayPlanVariant}
         ab2ReviewVariant={ab2ReviewVariant}
         showAIPlan={showAIPlan}
+        showAIReview={!isStage0}
+        dateBucket={today}
       />
       <StreakFeedbackBanner dict={dict} />
       {/* 1. Header & Welcome */}

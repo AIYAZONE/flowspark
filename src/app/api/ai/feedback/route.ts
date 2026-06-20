@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { sanitizeEventPayload } from '@/lib/eventPayload'
 
 export const runtime = 'nodejs'
 
@@ -21,32 +22,15 @@ const ALLOWED_EVENT_NAMES = new Set([
   'ai_weekly_insight_view',
   'ai_weekly_insight_generate',
   'ai_weekly_insight_open_report',
+  'dashboard_viewed',
+  'today_viewed',
+  'ai_today_plan_exposed',
+  'ai_review_exposed',
+  'streak_risk_banner_exposed',
 ])
-
-type JSONValue = string | number | boolean | null
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value)
-}
-
-function toJSONValue(value: unknown): JSONValue | undefined {
-  if (value == null) return null
-  if (typeof value === 'string') return value.slice(0, 200)
-  if (typeof value === 'number') return Number.isFinite(value) ? value : undefined
-  if (typeof value === 'boolean') return value
-  return undefined
-}
-
-function sanitizeMeta(meta: unknown): Record<string, JSONValue> | null {
-  if (!isRecord(meta)) return null
-  const out: Record<string, JSONValue> = {}
-  for (const [k, v] of Object.entries(meta)) {
-    if (!k || k.length > 60) continue
-    const val = toJSONValue(v)
-    if (val === undefined) continue
-    out[k] = val
-  }
-  return Object.keys(out).length ? out : null
 }
 
 export async function POST(req: Request) {
@@ -67,7 +51,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid_event' }, { status: 400 })
   }
 
-  const meta = sanitizeMeta(body.meta)
+  const meta = sanitizeEventPayload(body.meta, { maxStringLen: 200 }) ?? null
   const event = {
     name,
     ts: new Date().toISOString(),

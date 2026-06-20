@@ -5,9 +5,11 @@ import { AITodayPlanButton } from '@/components/AITodayPlanButton'
 import { getUserTimezone, getTodayInTZ, toLocaleDateStringTZ } from '@/lib/time'
 import { TodayActionList } from '@/components/TodayActionList'
 import { StreakFeedbackBanner } from '@/components/StreakFeedbackBanner'
-import { assignVariant, isEnvEnabled } from '@/lib/experiments'
+import { isEnvEnabled } from '@/lib/experiments'
 import { getStreakSnapshot } from '@/lib/streaks'
 import { ensureUpcomingRecurringActions } from '@/app/(authenticated)/dashboard/recurring'
+import { ExperimentExposureTracker } from '@/components/ExperimentExposureTracker'
+import { getExperimentDecision } from '@/lib/featureFlags'
 
 export default async function TodayPage() {
   const supabase = await createClient()
@@ -18,8 +20,15 @@ export default async function TodayPage() {
   const todayPlanEnabledEnv =
     process.env.NEXT_PUBLIC_AI_TODAY_PLAN_ENABLED ?? process.env.AI_TODAY_PLAN_ENABLED
   const todayPlanEnabled = todayPlanEnabledEnv ? isEnvEnabled(todayPlanEnabledEnv) : true
-  const ab1TodayPlanEnabled = isEnvEnabled(process.env.AI_EXPERIMENT_AB1_TODAY_PLAN)
-  const ab1TodayPlanVariant = ab1TodayPlanEnabled ? assignVariant(user.id, 'ab1_today_plan') : null
+  const ab1TodayPlanDecision = await getExperimentDecision({
+    supabase,
+    userId: user.id,
+    experimentKey: 'ab1_today_plan',
+    envEnabled: process.env.AI_EXPERIMENT_AB1_TODAY_PLAN,
+    defaultEnabled: false,
+  })
+  const ab1TodayPlanEnabled = ab1TodayPlanDecision.enabled
+  const ab1TodayPlanVariant = ab1TodayPlanDecision.variant
   const showAIPlan = todayPlanEnabled && (!ab1TodayPlanEnabled || ab1TodayPlanVariant === 'B')
 
   // Get active goals for the dropdown
@@ -165,6 +174,14 @@ export default async function TodayPage() {
 
   return (
     <div className="space-y-6">
+      <ExperimentExposureTracker
+        source="today"
+        ab1TodayPlanVariant={ab1TodayPlanVariant}
+        showAIPlan={showAIPlan}
+        showAIReview={false}
+        showStreakRiskBanner={showStreakRiskBanner}
+        dateBucket={today}
+      />
       <StreakFeedbackBanner dict={dict} />
       <div className="flex items-center justify-between">
         <div>
