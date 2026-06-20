@@ -61,6 +61,7 @@ import { ActionSubItemsSection } from '@/components/ActionSubItemsSection'
 import { RichTextContentView } from '@/components/RichTextContentView'
 import { pushStreakFeedback } from '@/components/StreakFeedbackBanner'
 import { pushXpFeedback } from '@/components/XpFeedbackToast'
+import { pushAICompletionFeedback } from '@/lib/ai-completion-feedback'
 import { buildStreakFeedback } from '@/lib/streak-feedback'
 import type { RewardResult } from '@/lib/rewards'
 import {
@@ -308,6 +309,9 @@ export function ActionItem({
     const hasAIAdopted = Boolean(action.ai_recommendation_id || rescueOutcomeState === 'adopted')
     const aiAdoptedLabel = todayText.aiAdoptedLabel || 'AI 已采纳'
     const aiAdoptedHint = todayText.aiAdoptedHint || '该行动来自 AI 建议并已被采纳'
+    const aiFocusPrompt = todayText.aiFocusPrompt || '优先完成这条 AI 建议，点左侧圆圈即可收口今天的核心行动。'
+    const aiFocusPromptHelp = todayText.aiFocusPromptHelp || '完成后会计入今日 AI 建议效果，方便后续判断哪类建议最值得继续放大。'
+    const showAICompletionFocus = hasAIAdopted && !action.completed
 
     const stripImageUrlLines = (raw: string) => {
         const lines = (raw || '').split('\n')
@@ -331,9 +335,12 @@ export function ActionItem({
     )
 
     return (
-        <div className={cn(
+        <div
+            data-action-id={action.id}
+            className={cn(
             "group relative overflow-hidden rounded-xl border border-border/40 bg-card transition-all duration-300 md:hover:shadow-sm md:hover:border-primary/20 md:hover:bg-muted/10",
-            isNew && "border-primary/40 bg-primary/4"
+            isNew && "border-primary/40 bg-primary/4",
+            showAICompletionFocus && "border-primary/35 bg-primary/[0.035] shadow-sm shadow-primary/5"
         )}>
             <RewardLootBoxDialog open={rewardOpen} onOpenChange={setRewardOpen} reward={reward} dict={dict} />
             <div className="relative z-10 flex flex-col bg-card p-4">
@@ -363,6 +370,9 @@ export function ActionItem({
                                             }
                                             if (!action.completed && typeof result?.xpEarned === 'number') {
                                                 pushXpFeedback({ amount: result.xpEarned })
+                                            }
+                                            if (!action.completed && action.ai_recommendation_id) {
+                                                pushAICompletionFeedback({ title: action.title })
                                             }
                                             if (!action.completed && result?.reward) {
                                                 setReward(result.reward)
@@ -472,6 +482,17 @@ export function ActionItem({
                                     <div className="mb-1 font-medium opacity-70">{dict.today.descriptionLabel}</div>
                                     <div className="max-h-28 overflow-hidden [&_img]:max-h-24">
                                         <RichTextContentView html={descriptionPreviewSource} compact />
+                                    </div>
+                                </div>
+                            ) : null}
+                            {showAICompletionFocus ? (
+                                <div className="mt-3 rounded-md border border-primary/15 bg-primary/6 px-3 py-2 text-xs">
+                                    <div className="flex items-start gap-2 text-primary">
+                                        <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                        <div className="space-y-1">
+                                            <div className="font-medium leading-5">{aiFocusPrompt}</div>
+                                            <div className="text-muted-foreground">{aiFocusPromptHelp}</div>
+                                        </div>
                                     </div>
                                 </div>
                             ) : null}

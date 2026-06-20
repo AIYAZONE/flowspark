@@ -9,6 +9,7 @@ import { toggleActionWithReward } from '@/app/(authenticated)/dashboard/actions'
 import { RewardLootBoxDialog } from '@/components/RewardLootBoxDialog'
 import type { RewardResult } from '@/lib/rewards'
 import { logEvent } from '@/lib/analytics'
+import { pushAICompletionFeedback } from '@/lib/ai-completion-feedback'
 import { buildStreakFeedback } from '@/lib/streak-feedback'
 import { pushStreakFeedback } from '@/components/StreakFeedbackBanner'
 import { pushXpFeedback } from '@/components/XpFeedbackToast'
@@ -19,6 +20,7 @@ interface Action {
   id: string
   title: string
   completed: boolean
+  ai_recommendation_id?: string | null
   type?: string
   priority?: string
   start_date?: string | null
@@ -130,6 +132,9 @@ export function ActionListCompact({
                   }
                   if (!action.completed && typeof result?.xpEarned === 'number') {
                     pushXpFeedback({ amount: result.xpEarned })
+                  }
+                  if (!action.completed && action.ai_recommendation_id) {
+                    pushAICompletionFeedback({ title: action.title })
                   }
                   if (!action.completed && result?.reward) {
                     setReward(result.reward)

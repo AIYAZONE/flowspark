@@ -19,6 +19,9 @@ const ALLOWED_EVENT_NAMES = new Set([
   'ai_review_click',
   'ai_review_generated',
   'ai_review_dismiss',
+  'ai_tomorrow_handoff_exposed',
+  'ai_tomorrow_handoff_click',
+  'ai_tomorrow_handoff_dismiss',
   'ai_weekly_insight_view',
   'ai_weekly_insight_generate',
   'ai_weekly_insight_open_report',
@@ -59,6 +62,18 @@ const EVENT_META_DEFAULTS: Partial<Record<string, Record<string, string>>> = {
   ai_review_dismiss: {
     source: 'dashboard',
     scene: 'review',
+  },
+  ai_tomorrow_handoff_exposed: {
+    source: 'today',
+    scene: 'tomorrow_handoff',
+  },
+  ai_tomorrow_handoff_click: {
+    source: 'today',
+    scene: 'tomorrow_handoff',
+  },
+  ai_tomorrow_handoff_dismiss: {
+    source: 'today',
+    scene: 'tomorrow_handoff',
   },
   ai_review_exposed: {
     source: 'dashboard',

@@ -26,6 +26,8 @@ function createRow(overrides: Partial<AIFunnelDailyRow>): AIFunnelDailyRow {
     review_click_count: 0,
     review_generated_count: 0,
     streak_risk_banner_exposed_count: 0,
+    core_action_set_count: 0,
+    core_action_completed_count: 0,
     returned_next_day: false,
     ...overrides,
   }
@@ -40,6 +42,8 @@ test('buildAIFunnelOverview 按 user-day 去重并合并次日回访', () => {
       event_date: '2026-06-20',
       today_plan_apply_count: 1,
       today_plan_exposed_count: 1,
+      core_action_set_count: 1,
+      core_action_completed_count: 1,
       returned_next_day: false,
     }),
   ]
@@ -50,9 +54,12 @@ test('buildAIFunnelOverview 按 user-day 去重并合并次日回访', () => {
   assert.equal(overview.today_plan_exposed_user_days, 2)
   assert.equal(overview.today_plan_apply_user_days, 1)
   assert.equal(overview.review_exposed_user_days, 1)
+  assert.equal(overview.core_action_set_user_days, 1)
+  assert.equal(overview.core_action_completed_user_days, 1)
   assert.equal(overview.returned_next_day_user_days, 1)
   assert.equal(overview.today_plan_exposure_rate, 1)
   assert.equal(overview.today_plan_apply_rate, 0.5)
+  assert.equal(overview.core_action_completion_rate, 1)
   assert.equal(overview.returned_next_day_rate, 0.5)
 })
 
@@ -70,6 +77,15 @@ test('buildAIFunnelBreakdown 只统计有链路信号的 user-day 并按 source/
       rescue_click_count: 1,
     }),
     createRow({
+      user_id: 'user-4',
+      event_date: '2026-06-20',
+      source: 'today',
+      scene: 'rescue',
+      variant: 'A',
+      core_action_set_count: 1,
+      core_action_completed_count: 1,
+    }),
+    createRow({
       user_id: 'user-3',
       event_date: '2026-06-20',
       source: 'unknown',
@@ -83,7 +99,7 @@ test('buildAIFunnelBreakdown 只统计有链路信号的 user-day 并按 source/
 
   const breakdown = buildAIFunnelBreakdown(rows)
 
-  assert.equal(breakdown.length, 2)
+  assert.equal(breakdown.length, 3)
   assert.deepEqual(breakdown[0], {
     source: 'today',
     scene: 'today_plan',
@@ -92,6 +108,8 @@ test('buildAIFunnelBreakdown 只统计有链路信号的 user-day 并按 source/
     today_plan_apply_user_days: 1,
     review_exposed_user_days: 1,
     rescue_click_user_days: 0,
+    core_action_set_user_days: 0,
+    core_action_completed_user_days: 0,
     returned_next_day_user_days: 1,
   })
   assert.deepEqual(breakdown[1], {
@@ -102,6 +120,20 @@ test('buildAIFunnelBreakdown 只统计有链路信号的 user-day 并按 source/
     today_plan_apply_user_days: 0,
     review_exposed_user_days: 1,
     rescue_click_user_days: 1,
+    core_action_set_user_days: 0,
+    core_action_completed_user_days: 0,
+    returned_next_day_user_days: 0,
+  })
+  assert.deepEqual(breakdown[2], {
+    source: 'today',
+    scene: 'rescue',
+    variant: 'A',
+    today_plan_exposed_user_days: 0,
+    today_plan_apply_user_days: 0,
+    review_exposed_user_days: 0,
+    rescue_click_user_days: 0,
+    core_action_set_user_days: 1,
+    core_action_completed_user_days: 1,
     returned_next_day_user_days: 0,
   })
 })

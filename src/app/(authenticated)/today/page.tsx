@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { AddActionDialog } from '@/components/AddActionDialog'
 import { AITodayPlanButton } from '@/components/AITodayPlanButton'
-import { getUserTimezone, getTodayInTZ, toLocaleDateStringTZ } from '@/lib/time'
+import { getDateBucketInTZ, getUserTimezone, getTodayInTZ, shiftDateBucket, toLocaleDateStringTZ } from '@/lib/time'
 import { TodayActionList } from '@/components/TodayActionList'
 import { StreakFeedbackBanner } from '@/components/StreakFeedbackBanner'
 import { isEnvEnabled } from '@/lib/experiments'
@@ -13,6 +13,31 @@ import { ExperimentExposureTracker } from '@/components/ExperimentExposureTracke
 import { getExperimentDecision } from '@/lib/featureFlags'
 import { TrackedEventLink } from '@/components/TrackedEventLink'
 import { RescueEntryTracker } from '@/components/RescueEntryTracker'
+import { TomorrowHandoffCard } from '@/components/TomorrowHandoffCard'
+import {
+  pickTargetActionId,
+  pickYesterdayHandoffCandidate,
+  type TomorrowHandoffCandidateInput,
+} from '@/lib/tomorrow-handoff'
+import {
+  resolveInitialOpenAction,
+  resolveInitialPanelMode,
+} from '@/lib/today-action-open-state'
+
+type RecommendationOutcomeRow = {
+  id: string
+  recommendation_id: string
+  action_id: string | null
+  updated_at: string
+}
+
+type HandoffActionRow = {
+  id: string
+  title: string
+  goal_id: string | null
+  ai_recommendation_id: string | null
+  type: string | null
+}
 
 export default async function TodayPage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
@@ -51,10 +76,7 @@ export default async function TodayPage(props: {
   // Get today's actions by timezone
   const today = getTodayInTZ(tz)
   await ensureUpcomingRecurringActions({ supabase, userId: ownerId, today })
-  // Calculate yesterday to ensure we cover timezones where 'today' starts earlier than UTC
-  const yesterdayDate = new Date(today);
-  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterday = yesterdayDate.toISOString().split('T')[0];
+  const yesterday = shiftDateBucket(today, -1)
 
   const datePredicate = [
     `and(start_date.lte.${today},end_date.gte.${today})`,
@@ -110,6 +132,97 @@ export default async function TodayPage(props: {
     return false;
   });
 
+  const handoffRecentCutoffIso = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+  const { data: recentCompletedOutcomes } = await supabase
+    .from('ai_recommendation_outcomes')
+    .select('id, recommendation_id, action_id, updated_at')
+    .eq('user_id', ownerId)
+    .eq('completed', true)
+    .gte('updated_at', handoffRecentCutoffIso)
+    .order('updated_at', { ascending: false })
+    .limit(20)
+
+  const yesterdayOutcomeRows = ((recentCompletedOutcomes || []) as RecommendationOutcomeRow[])
+    .filter((outcome) => (
+      Boolean(outcome.recommendation_id) &&
+      Boolean(outcome.updated_at) &&
+      getDateBucketInTZ(outcome.updated_at, tz) === yesterday
+    ))
+
+  const outcomeActionIds = [...new Set(
+    yesterdayOutcomeRows
+      .map((outcome) => outcome.action_id)
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+  )]
+  const fallbackRecommendationIds = [...new Set(
+    yesterdayOutcomeRows
+      .filter((outcome) => !outcome.action_id)
+      .map((outcome) => outcome.recommendation_id)
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+  )]
+
+  const { data: handoffActionsById } = outcomeActionIds.length > 0
+    ? await queryWithOwnershipFallback({
+      execute: (ownershipColumn) => supabase
+        .from('actions')
+        .select('id, title, goal_id, ai_recommendation_id, type')
+        .eq(ownershipColumn, ownerId)
+        .eq('type', 'core')
+        .in('id', outcomeActionIds)
+    })
+    : { data: [] as HandoffActionRow[] }
+
+  const { data: handoffActionsByRecommendation } = fallbackRecommendationIds.length > 0
+    ? await queryWithOwnershipFallback({
+      execute: (ownershipColumn) => supabase
+        .from('actions')
+        .select('id, title, goal_id, ai_recommendation_id, type')
+        .eq(ownershipColumn, ownerId)
+        .eq('type', 'core')
+        .in('ai_recommendation_id', fallbackRecommendationIds)
+        .order('id', { ascending: true })
+    })
+    : { data: [] as HandoffActionRow[] }
+
+  const handoffActionById = new Map(
+    ((handoffActionsById || []) as HandoffActionRow[]).map((action) => [action.id, action])
+  )
+  const handoffActionByRecommendationId = new Map<string, HandoffActionRow>()
+  for (const action of (handoffActionsByRecommendation || []) as HandoffActionRow[]) {
+    if (!action.ai_recommendation_id || handoffActionByRecommendationId.has(action.ai_recommendation_id)) continue
+    handoffActionByRecommendationId.set(action.ai_recommendation_id, action)
+  }
+
+  const yesterdayCandidates: TomorrowHandoffCandidateInput[] = yesterdayOutcomeRows.flatMap((outcome) => {
+    const matchedAction = outcome.action_id
+      ? handoffActionById.get(outcome.action_id) ?? null
+      : handoffActionByRecommendationId.get(outcome.recommendation_id) ?? null
+
+    if (!matchedAction || !matchedAction.title) return []
+    return [{
+      outcomeId: outcome.id,
+      recommendationId: outcome.recommendation_id,
+      actionId: matchedAction.id,
+      title: matchedAction.title,
+      goalId: matchedAction.goal_id ?? null,
+      completedAt: outcome.updated_at,
+    }]
+  })
+  const tomorrowHandoffCandidate = pickYesterdayHandoffCandidate(yesterdayCandidates)
+  const hasCompletedCoreToday = (actions || []).some((action) => action.completed && action.type === 'core')
+  const tomorrowHandoffTargetActionId = pickTargetActionId({
+    actions: (actions || []).map((action) => ({
+      id: action.id as string,
+      goal_id: (action.goal_id as string | null | undefined) ?? null,
+      priority: (action.priority as string | null | undefined) ?? null,
+      start_date: (action.start_date as string | null | undefined) ?? null,
+      end_date: (action.end_date as string | null | undefined) ?? null,
+      completed: Boolean(action.completed),
+      type: (action.type as string | null | undefined) ?? null,
+    })),
+    goalId: tomorrowHandoffCandidate?.goalId ?? null,
+  })
+
   const aiActionContext = (actions || []).map(action => ({
     id: action.id as string,
     title: action.title as string,
@@ -131,8 +244,16 @@ export default async function TodayPage(props: {
   const hasCompletedToday = streakSnapshot.completedDates.includes(today)
   const showStreakRiskBanner = !hasCompletedToday && (streakSnapshot.currentStreak > 0 || Boolean(streakSnapshot.recoverableMissDate))
   const rescueAction = (actions || []).find(action => !action.completed && action.type === 'core') || null
+  const actionIdParam = Array.isArray(searchParams?.action) ? searchParams?.action[0] : searchParams?.action
   const rescueActionIdParam = Array.isArray(searchParams?.rescue) ? searchParams?.rescue[0] : searchParams?.rescue
-  const initialOpenActionId = typeof rescueActionIdParam === 'string' && rescueActionIdParam.trim() ? rescueActionIdParam.trim() : null
+  const initialOpenActionId = resolveInitialOpenAction({
+    actionIdParam: typeof actionIdParam === 'string' ? actionIdParam : null,
+    rescueParam: typeof rescueActionIdParam === 'string' ? rescueActionIdParam : null,
+  })
+  const initialPanelMode = resolveInitialPanelMode({
+    actionIdParam: typeof actionIdParam === 'string' ? actionIdParam : null,
+    rescueParam: typeof rescueActionIdParam === 'string' ? rescueActionIdParam : null,
+  })
   const streakBannerTitle = streakSnapshot.recoverableMissDate
     ? (dict.common.locale.startsWith('zh') ? '先恢复昨天，再完成今天' : 'Recover yesterday, then finish today')
     : (dict.common.locale.startsWith('zh') ? '先做 5 分钟版本，保住连续性' : 'Start with a 5-minute version to protect your streak')
@@ -163,7 +284,7 @@ export default async function TodayPage(props: {
         showStreakRiskBanner={showStreakRiskBanner}
         dateBucket={today}
       />
-      {initialOpenActionId ? (
+      {initialOpenActionId && initialPanelMode === 'rescue' ? (
         <RescueEntryTracker
           actionId={initialOpenActionId}
           source="today"
@@ -182,6 +303,17 @@ export default async function TodayPage(props: {
           <AddActionDialog activeGoals={activeGoals || []} dict={dict} />
         </div>
       </div>
+
+      {tomorrowHandoffCandidate && !hasCompletedCoreToday && (tomorrowHandoffTargetActionId || showAIPlan) ? (
+        <TomorrowHandoffCard
+          dict={dict}
+          userId={user.id}
+          todayDateBucket={today}
+          candidate={tomorrowHandoffCandidate}
+          targetActionId={tomorrowHandoffTargetActionId}
+          canFallbackToTodayPlan={showAIPlan}
+        />
+      ) : null}
 
       <div className="grid gap-6">
         {showStreakRiskBanner ? (
@@ -249,7 +381,7 @@ export default async function TodayPage(props: {
             today={today}
             goals={activeGoals || []}
             initialOpenActionId={initialOpenActionId}
-            initialPanelMode={initialOpenActionId ? 'rescue' : 'view'}
+            initialPanelMode={initialPanelMode}
           />
         </div>
       </div>

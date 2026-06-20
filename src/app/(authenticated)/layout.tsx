@@ -8,6 +8,7 @@ import { getTodayInTZ, getUserTimezone } from '@/lib/time'
 import { QuickCaptureSpeedDial } from '@/components/QuickCaptureSpeedDial'
 import { DesktopQuickAccess } from '@/components/DesktopQuickAccess'
 import { XpFeedbackToast } from '@/components/XpFeedbackToast'
+import { AICompletionToast } from '@/components/AICompletionToast'
 
 export default async function AuthenticatedLayout({
   children,
@@ -48,6 +49,7 @@ export default async function AuthenticatedLayout({
         </main>
         <AppResumeGuards />
         <XpFeedbackToast dict={dict} />
+        <AICompletionToast dict={dict} />
         <MobileNavBar dict={dict} />
       </div>
       <QuickCaptureSpeedDial dict={dict} tz={tz} activeGoals={(activeGoals || []).map(g => ({ id: g.id as string, title: g.title as string }))} />

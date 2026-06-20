@@ -59,6 +59,12 @@ const EVENTS_ALLOW_MISSING_SCENE = new Set([
   'today_viewed',
 ])
 
+const TOMORROW_HANDOFF_EVENTS = new Set([
+  'ai_tomorrow_handoff_exposed',
+  'ai_tomorrow_handoff_click',
+  'ai_tomorrow_handoff_dismiss',
+])
+
 function buildOverview(rows) {
   const userDayMap = new Map()
   for (const row of rows) {
@@ -69,12 +75,16 @@ function buildOverview(rows) {
       todayPlanApplyUserDays: 0,
       reviewExposedUserDays: 0,
       rescueClickUserDays: 0,
+      coreActionSetUserDays: 0,
+      coreActionCompletedUserDays: 0,
       returnedNextDayUserDays: 0,
     }
     if (toNumber(row.today_plan_exposed_count) > 0) current.todayPlanExposedUserDays = 1
     if (toNumber(row.today_plan_apply_count) > 0) current.todayPlanApplyUserDays = 1
     if (toNumber(row.review_exposed_count) > 0) current.reviewExposedUserDays = 1
     if (toNumber(row.rescue_click_count) > 0) current.rescueClickUserDays = 1
+    if (toNumber(row.core_action_set_count) > 0) current.coreActionSetUserDays = 1
+    if (toNumber(row.core_action_completed_count) > 0) current.coreActionCompletedUserDays = 1
     if (row.returned_next_day) current.returnedNextDayUserDays = 1
     userDayMap.set(key, current)
   }
@@ -86,6 +96,8 @@ function buildOverview(rows) {
       todayPlanApplyUserDays: acc.todayPlanApplyUserDays + row.todayPlanApplyUserDays,
       reviewExposedUserDays: acc.reviewExposedUserDays + row.reviewExposedUserDays,
       rescueClickUserDays: acc.rescueClickUserDays + row.rescueClickUserDays,
+      coreActionSetUserDays: acc.coreActionSetUserDays + row.coreActionSetUserDays,
+      coreActionCompletedUserDays: acc.coreActionCompletedUserDays + row.coreActionCompletedUserDays,
       returnedNextDayUserDays: acc.returnedNextDayUserDays + row.returnedNextDayUserDays,
     }),
     {
@@ -94,6 +106,8 @@ function buildOverview(rows) {
       todayPlanApplyUserDays: 0,
       reviewExposedUserDays: 0,
       rescueClickUserDays: 0,
+      coreActionSetUserDays: 0,
+      coreActionCompletedUserDays: 0,
       returnedNextDayUserDays: 0,
     }
   )
@@ -105,6 +119,10 @@ function buildOverview(rows) {
     todayPlanApplyRate:
       total.todayPlanExposedUserDays > 0
         ? total.todayPlanApplyUserDays / total.todayPlanExposedUserDays
+        : 0,
+    coreActionCompletionRate:
+      total.coreActionSetUserDays > 0
+        ? total.coreActionCompletedUserDays / total.coreActionSetUserDays
         : 0,
     returnedNextDayRate:
       total.pageViewDays > 0 ? total.returnedNextDayUserDays / total.pageViewDays : 0,
@@ -118,7 +136,9 @@ function buildBreakdown(rows) {
       toNumber(row.today_plan_exposed_count) > 0 ||
       toNumber(row.today_plan_apply_count) > 0 ||
       toNumber(row.review_exposed_count) > 0 ||
-      toNumber(row.rescue_click_count) > 0
+      toNumber(row.rescue_click_count) > 0 ||
+      toNumber(row.core_action_set_count) > 0 ||
+      toNumber(row.core_action_completed_count) > 0
     if (!hasSignal) continue
 
     const key = `${row.source}:${row.scene}:${row.variant}:${row.user_id}:${row.event_date}`
@@ -130,12 +150,16 @@ function buildBreakdown(rows) {
       todayPlanApplyUserDays: 0,
       reviewExposedUserDays: 0,
       rescueClickUserDays: 0,
+      coreActionSetUserDays: 0,
+      coreActionCompletedUserDays: 0,
       returnedNextDayUserDays: 0,
     }
     if (toNumber(row.today_plan_exposed_count) > 0) current.todayPlanExposedUserDays = 1
     if (toNumber(row.today_plan_apply_count) > 0) current.todayPlanApplyUserDays = 1
     if (toNumber(row.review_exposed_count) > 0) current.reviewExposedUserDays = 1
     if (toNumber(row.rescue_click_count) > 0) current.rescueClickUserDays = 1
+    if (toNumber(row.core_action_set_count) > 0) current.coreActionSetUserDays = 1
+    if (toNumber(row.core_action_completed_count) > 0) current.coreActionCompletedUserDays = 1
     if (row.returned_next_day) current.returnedNextDayUserDays = 1
     groupedUserDays.set(key, current)
   }
@@ -151,21 +175,25 @@ function buildBreakdown(rows) {
       todayPlanApplyUserDays: 0,
       reviewExposedUserDays: 0,
       rescueClickUserDays: 0,
+      coreActionSetUserDays: 0,
+      coreActionCompletedUserDays: 0,
       returnedNextDayUserDays: 0,
     }
     current.todayPlanExposedUserDays += row.todayPlanExposedUserDays
     current.todayPlanApplyUserDays += row.todayPlanApplyUserDays
     current.reviewExposedUserDays += row.reviewExposedUserDays
     current.rescueClickUserDays += row.rescueClickUserDays
+    current.coreActionSetUserDays += row.coreActionSetUserDays
+    current.coreActionCompletedUserDays += row.coreActionCompletedUserDays
     current.returnedNextDayUserDays += row.returnedNextDayUserDays
     merged.set(key, current)
   }
 
   return [...merged.values()].sort((a, b) => {
     const scoreA =
-      a.todayPlanExposedUserDays + a.reviewExposedUserDays + a.rescueClickUserDays
+      a.todayPlanExposedUserDays + a.reviewExposedUserDays + a.rescueClickUserDays + a.coreActionSetUserDays
     const scoreB =
-      b.todayPlanExposedUserDays + b.reviewExposedUserDays + b.rescueClickUserDays
+      b.todayPlanExposedUserDays + b.reviewExposedUserDays + b.rescueClickUserDays + b.coreActionSetUserDays
     return scoreB - scoreA
   })
 }
@@ -264,6 +292,41 @@ function buildRecentIssueSummary(issues) {
   return [...grouped.values()].sort((a, b) => b.count - a.count || (a.event_name > b.event_name ? 1 : -1))
 }
 
+function buildRecentNamedEvents(profiles, recentSinceMs, names) {
+  const events = []
+
+  for (const profile of profiles) {
+    const recentEvents = Array.isArray(profile.ai_recent_events) ? profile.ai_recent_events : []
+    for (const event of recentEvents) {
+      if (!event || typeof event !== 'object' || Array.isArray(event)) continue
+      const name = typeof event.name === 'string' ? event.name : ''
+      const ts = typeof event.ts === 'string' ? event.ts : ''
+      const meta = event.meta && typeof event.meta === 'object' && !Array.isArray(event.meta)
+        ? event.meta
+        : null
+
+      if (!names.has(name) || !ts) continue
+      const eventTsMs = Date.parse(ts)
+      if (!Number.isFinite(eventTsMs) || eventTsMs < recentSinceMs) continue
+
+      events.push({
+        user_id: profile.id,
+        name,
+        ts,
+        source: meta?.source ?? null,
+        scene: meta?.scene ?? null,
+        entry: meta?.entry ?? null,
+        recommendation_id: meta?.recommendation_id ?? null,
+        goal_id: meta?.goal_id ?? null,
+        target: meta?.target ?? null,
+        target_action_id: meta?.target_action_id ?? null,
+      })
+    }
+  }
+
+  return events.sort((a, b) => Date.parse(b.ts) - Date.parse(a.ts))
+}
+
 async function main() {
   const days = Number(getArgValue('--days', '30'))
   const rawLimit = Number(getArgValue('--raw-limit', '20'))
@@ -275,9 +338,7 @@ async function main() {
   const supabase = createClient(supabaseUrl, serviceRoleKey)
   const { data, error } = await supabase
     .from('ai_funnel_daily')
-    .select(
-      'user_id,event_date,source,scene,variant,dashboard_view_count,today_view_count,today_plan_exposed_count,today_plan_click_count,today_plan_apply_count,review_exposed_count,rescue_click_count,returned_next_day'
-    )
+    .select('*')
     .gte('event_date', since)
     .order('event_date', { ascending: false })
     .limit(5000)
@@ -305,6 +366,11 @@ async function main() {
 
   const recentIssues = buildRecentEventIssues(profiles || [], recentSinceMs)
   const recentIssueSummary = buildRecentIssueSummary(recentIssues)
+  const recentTomorrowHandoffEvents = buildRecentNamedEvents(
+    profiles || [],
+    recentSinceMs,
+    TOMORROW_HANDOFF_EVENTS
+  )
 
   console.log(`AI Funnel 检查窗口: 最近 ${days} 天`)
   console.log(`近期新漏标窗口: 最近 ${recentMinutes} 分钟`)
@@ -318,9 +384,12 @@ async function main() {
       plan_apply_user_days: overview.todayPlanApplyUserDays,
       review_exposed_user_days: overview.reviewExposedUserDays,
       rescue_click_user_days: overview.rescueClickUserDays,
+      core_action_set_user_days: overview.coreActionSetUserDays,
+      core_action_completed_user_days: overview.coreActionCompletedUserDays,
       returned_next_day_user_days: overview.returnedNextDayUserDays,
       plan_exposure_rate: formatPercent(overview.todayPlanExposureRate),
       plan_apply_rate: formatPercent(overview.todayPlanApplyRate),
+      core_action_completion_rate: formatPercent(overview.coreActionCompletionRate),
       returned_next_day_rate: formatPercent(overview.returnedNextDayRate),
     },
   ])
@@ -336,6 +405,9 @@ async function main() {
 
   console.log(`近期新漏标明细（最近 ${Math.min(rawLimit, recentIssues.length)} 条）:`)
   console.table(recentIssues.slice(0, rawLimit))
+
+  console.log(`Tomorrow handoff 原始事件（最近 ${Math.min(rawLimit, recentTomorrowHandoffEvents.length)} 条）:`)
+  console.table(recentTomorrowHandoffEvents.slice(0, rawLimit))
 
   console.log(`最近 ${Math.min(rawLimit, rows.length)} 行原始 view 数据:`)
   console.table(rows.slice(0, rawLimit))

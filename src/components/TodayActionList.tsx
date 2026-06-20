@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
 import type en from '@/i18n/en.json'
@@ -10,6 +10,10 @@ import { Progress } from '@/components/ui/progress'
 import { ActionItem } from '@/components/ActionItem'
 import { ActionListFilter } from '@/components/ActionListFilter'
 import { calcCompletionPercent } from '@/lib/progress'
+import {
+  resolveInitialRevealState,
+  resolveInitialView,
+} from '@/lib/today-action-open-state'
 
 type Dict = typeof en
 
@@ -106,7 +110,6 @@ export function TodayActionList({
   }, [actions, today])
 
   const shouldFocusByDefault = summary.incompleteCount > 12
-  const [view, setView] = useState<'focus' | 'all'>(shouldFocusByDefault ? 'focus' : 'all')
 
   const focusModel = useMemo(() => {
     const incomplete = actions.filter(a => !a.completed)
@@ -170,11 +173,49 @@ export function TodayActionList({
   const maxOverdue = 8
   const maxPerGroup = 6
 
-  const [showAllMust, setShowAllMust] = useState(false)
-  const [showAllOverdue, setShowAllOverdue] = useState(false)
-  const [expandedGoalIds, setExpandedGoalIds] = useState<Record<string, boolean>>({})
-  const [openGoalIds, setOpenGoalIds] = useState<Record<string, boolean>>({})
-  const [completedOpen, setCompletedOpen] = useState(false)
+  const initialView = resolveInitialView({ initialOpenActionId, shouldFocusByDefault })
+  const initialRevealState = useMemo(() => resolveInitialRevealState({
+    initialOpenActionId,
+    mustIds: focusModel.must.map((action) => action.id),
+    overdueIds: focusModel.overdue.map((action) => action.id),
+    completedIds: focusModel.completed.map((action) => action.id),
+    groupEntries: focusModel.groups.map((group) => ({
+      goalId: group.goalId,
+      actionIds: group.items.map((action) => action.id),
+    })),
+    maxMust,
+    maxOverdue,
+    maxPerGroup,
+  }), [
+    focusModel.completed,
+    focusModel.groups,
+    focusModel.must,
+    focusModel.overdue,
+    initialOpenActionId,
+  ])
+
+  const [view, setView] = useState<'focus' | 'all'>(initialView)
+  const [showAllMust, setShowAllMust] = useState(initialRevealState.showAllMust)
+  const [showAllOverdue, setShowAllOverdue] = useState(initialRevealState.showAllOverdue)
+  const [expandedGoalIds, setExpandedGoalIds] = useState<Record<string, boolean>>(initialRevealState.expandedGoalIds)
+  const [openGoalIds, setOpenGoalIds] = useState<Record<string, boolean>>(initialRevealState.openGoalIds)
+  const [completedOpen, setCompletedOpen] = useState(initialRevealState.completedOpen)
+  const hasScrolledToTargetRef = useRef(false)
+
+  useEffect(() => {
+    const targetId = initialRevealState.scrollTargetId
+    if (!targetId || hasScrolledToTargetRef.current) return
+
+    hasScrolledToTargetRef.current = true
+    const scroll = () => {
+      const element = document.querySelector<HTMLElement>(`[data-action-id="${targetId}"]`)
+      element?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(scroll)
+    })
+  }, [initialRevealState.scrollTargetId])
 
   const overloadTip =
     summary.incompleteCount > maxMust

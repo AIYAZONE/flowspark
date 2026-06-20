@@ -42,6 +42,16 @@ export function AIFunnelOverview({ dict, overview }: Props) {
       value: String(overview.rescue_click_user_days),
       helpText: dict.aiFunnelRescueClicksHelp || '至少点击一次 Rescue 的 user-day 数。',
     },
+    {
+      title: dict.aiFunnelCoreActionSet || '核心行动设定人天',
+      value: String(overview.core_action_set_user_days),
+      helpText: dict.aiFunnelCoreActionSetHelp || '至少有一个 AI 关联核心行动被设定的 user-day 数。',
+    },
+    {
+      title: dict.aiFunnelCoreActionCompletionRate || '核心行动完成率',
+      value: formatPercent(overview.core_action_completion_rate),
+      helpText: dict.aiFunnelCoreActionCompletionRateHelp || '已设定 AI 关联核心行动的 user-day 中，当天至少完成一次的占比。',
+    },
   ]
 
   return (

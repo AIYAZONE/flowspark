@@ -1,4 +1,5 @@
--- 36_ai_funnel_daily_views.sql
+-- 38_ai_funnel_core_action_metrics.sql
+-- Extend ai_funnel_daily with AI-attributed core action set/completed metrics.
 
 create or replace view public.ai_funnel_daily
 with (security_invoker = true) as
@@ -139,4 +140,4 @@ left join core_action_outcomes c
  and c.variant = e.variant
  and c.source = e.source;
 
-comment on view public.ai_funnel_daily is 'Daily AI funnel view derived from recent AI events stored on user_profiles.';
+comment on view public.ai_funnel_daily is 'Daily AI funnel view derived from recent AI events and AI-attributed core action outcomes.';

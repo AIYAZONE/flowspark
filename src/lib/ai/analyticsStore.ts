@@ -64,6 +64,8 @@ export type AIFunnelDailyRow = {
   review_click_count: number
   review_generated_count: number
   streak_risk_banner_exposed_count: number
+  core_action_set_count: number
+  core_action_completed_count: number
   returned_next_day: boolean
 }
 
@@ -73,9 +75,12 @@ export type AIFunnelOverviewRow = {
   today_plan_apply_user_days: number
   review_exposed_user_days: number
   rescue_click_user_days: number
+  core_action_set_user_days: number
+  core_action_completed_user_days: number
   returned_next_day_user_days: number
   today_plan_exposure_rate: number
   today_plan_apply_rate: number
+  core_action_completion_rate: number
   returned_next_day_rate: number
 }
 
@@ -87,6 +92,8 @@ export type AIFunnelBreakdownRow = {
   today_plan_apply_user_days: number
   review_exposed_user_days: number
   rescue_click_user_days: number
+  core_action_set_user_days: number
+  core_action_completed_user_days: number
   returned_next_day_user_days: number
 }
 
@@ -215,6 +222,8 @@ function mapFunnelDailyRow(row: Record<string, unknown>): AIFunnelDailyRow {
     review_click_count: toNumber(row.review_click_count),
     review_generated_count: toNumber(row.review_generated_count),
     streak_risk_banner_exposed_count: toNumber(row.streak_risk_banner_exposed_count),
+    core_action_set_count: toNumber(row.core_action_set_count),
+    core_action_completed_count: toNumber(row.core_action_completed_count),
     returned_next_day: Boolean(row.returned_next_day),
   }
 }
@@ -228,7 +237,9 @@ function hasFunnelChainSignal(row: AIFunnelDailyRow) {
     row.today_plan_exposed_count > 0 ||
     row.today_plan_apply_count > 0 ||
     row.review_exposed_count > 0 ||
-    row.rescue_click_count > 0
+    row.rescue_click_count > 0 ||
+    row.core_action_set_count > 0 ||
+    row.core_action_completed_count > 0
   )
 }
 
@@ -243,9 +254,12 @@ export function buildAIFunnelOverview(rows: AIFunnelDailyRow[]): AIFunnelOvervie
       today_plan_apply_user_days: 0,
       review_exposed_user_days: 0,
       rescue_click_user_days: 0,
+      core_action_set_user_days: 0,
+      core_action_completed_user_days: 0,
       returned_next_day_user_days: 0,
       today_plan_exposure_rate: 0,
       today_plan_apply_rate: 0,
+      core_action_completion_rate: 0,
       returned_next_day_rate: 0,
     }
 
@@ -253,6 +267,8 @@ export function buildAIFunnelOverview(rows: AIFunnelDailyRow[]): AIFunnelOvervie
     if (row.today_plan_apply_count > 0) current.today_plan_apply_user_days = 1
     if (row.review_exposed_count > 0) current.review_exposed_user_days = 1
     if (row.rescue_click_count > 0) current.rescue_click_user_days = 1
+    if (row.core_action_set_count > 0) current.core_action_set_user_days = 1
+    if (row.core_action_completed_count > 0) current.core_action_completed_user_days = 1
     if (row.returned_next_day) current.returned_next_day_user_days = 1
     userDayMap.set(key, current)
   }
@@ -263,9 +279,12 @@ export function buildAIFunnelOverview(rows: AIFunnelDailyRow[]): AIFunnelOvervie
     today_plan_apply_user_days: acc.today_plan_apply_user_days + row.today_plan_apply_user_days,
     review_exposed_user_days: acc.review_exposed_user_days + row.review_exposed_user_days,
     rescue_click_user_days: acc.rescue_click_user_days + row.rescue_click_user_days,
+    core_action_set_user_days: acc.core_action_set_user_days + row.core_action_set_user_days,
+    core_action_completed_user_days: acc.core_action_completed_user_days + row.core_action_completed_user_days,
     returned_next_day_user_days: acc.returned_next_day_user_days + row.returned_next_day_user_days,
     today_plan_exposure_rate: 0,
     today_plan_apply_rate: 0,
+    core_action_completion_rate: 0,
     returned_next_day_rate: 0,
   }), {
     page_view_days: 0,
@@ -273,9 +292,12 @@ export function buildAIFunnelOverview(rows: AIFunnelDailyRow[]): AIFunnelOvervie
     today_plan_apply_user_days: 0,
     review_exposed_user_days: 0,
     rescue_click_user_days: 0,
+    core_action_set_user_days: 0,
+    core_action_completed_user_days: 0,
     returned_next_day_user_days: 0,
     today_plan_exposure_rate: 0,
     today_plan_apply_rate: 0,
+    core_action_completion_rate: 0,
     returned_next_day_rate: 0,
   })
 
@@ -285,6 +307,10 @@ export function buildAIFunnelOverview(rows: AIFunnelDailyRow[]): AIFunnelOvervie
       totals.page_view_days > 0 ? totals.today_plan_exposed_user_days / totals.page_view_days : 0,
     today_plan_apply_rate:
       totals.today_plan_exposed_user_days > 0 ? totals.today_plan_apply_user_days / totals.today_plan_exposed_user_days : 0,
+    core_action_completion_rate:
+      totals.core_action_set_user_days > 0
+        ? totals.core_action_completed_user_days / totals.core_action_set_user_days
+        : 0,
     returned_next_day_rate:
       totals.page_view_days > 0 ? totals.returned_next_day_user_days / totals.page_view_days : 0,
   }
@@ -305,12 +331,16 @@ export function buildAIFunnelBreakdown(rows: AIFunnelDailyRow[]): AIFunnelBreakd
       today_plan_apply_user_days: 0,
       review_exposed_user_days: 0,
       rescue_click_user_days: 0,
+      core_action_set_user_days: 0,
+      core_action_completed_user_days: 0,
       returned_next_day_user_days: 0,
     }
     if (row.today_plan_exposed_count > 0) current.today_plan_exposed_user_days = 1
     if (row.today_plan_apply_count > 0) current.today_plan_apply_user_days = 1
     if (row.review_exposed_count > 0) current.review_exposed_user_days = 1
     if (row.rescue_click_count > 0) current.rescue_click_user_days = 1
+    if (row.core_action_set_count > 0) current.core_action_set_user_days = 1
+    if (row.core_action_completed_count > 0) current.core_action_completed_user_days = 1
     if (row.returned_next_day) current.returned_next_day_user_days = 1
     grouped.set(userDayKey, current)
   }
@@ -327,12 +357,16 @@ export function buildAIFunnelBreakdown(rows: AIFunnelDailyRow[]): AIFunnelBreakd
       today_plan_apply_user_days: 0,
       review_exposed_user_days: 0,
       rescue_click_user_days: 0,
+      core_action_set_user_days: 0,
+      core_action_completed_user_days: 0,
       returned_next_day_user_days: 0,
     }
     current.today_plan_exposed_user_days += row.today_plan_exposed_user_days
     current.today_plan_apply_user_days += row.today_plan_apply_user_days
     current.review_exposed_user_days += row.review_exposed_user_days
     current.rescue_click_user_days += row.rescue_click_user_days
+    current.core_action_set_user_days += row.core_action_set_user_days
+    current.core_action_completed_user_days += row.core_action_completed_user_days
     current.returned_next_day_user_days += row.returned_next_day_user_days
     merged.set(key, current)
   }

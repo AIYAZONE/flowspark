@@ -107,6 +107,10 @@ type AIAnalyticsDict = {
   aiFunnelReviewExposedHelp: string
   aiFunnelRescueClicks: string
   aiFunnelRescueClicksHelp: string
+  aiFunnelCoreActionSet: string
+  aiFunnelCoreActionSetHelp: string
+  aiFunnelCoreActionCompletionRate: string
+  aiFunnelCoreActionCompletionRateHelp: string
   aiFunnelBreakdownTitle: string
   aiFunnelBreakdownDesc: string
   aiFunnelColumnSource: string
@@ -115,6 +119,8 @@ type AIAnalyticsDict = {
   aiFunnelColumnPlanApplyDays: string
   aiFunnelColumnReviewExposedDays: string
   aiFunnelColumnRescueClickDays: string
+  aiFunnelColumnCoreActionSetDays: string
+  aiFunnelColumnCoreActionCompletedDays: string
   aiFunnelColumnReturnedNextDayDays: string
 }
 
@@ -406,6 +412,8 @@ export default async function AIInsightsPage(props: {
                     profileDict.aiFunnelColumnPlanApplyDays,
                     profileDict.aiFunnelColumnReviewExposedDays,
                     profileDict.aiFunnelColumnRescueClickDays,
+                    profileDict.aiFunnelColumnCoreActionSetDays,
+                    profileDict.aiFunnelColumnCoreActionCompletedDays,
                     profileDict.aiFunnelColumnReturnedNextDayDays,
                   ]}
                   rows={funnelBreakdown.map(row => [
@@ -416,6 +424,8 @@ export default async function AIInsightsPage(props: {
                     String(row.today_plan_apply_user_days),
                     String(row.review_exposed_user_days),
                     String(row.rescue_click_user_days),
+                    String(row.core_action_set_user_days),
+                    String(row.core_action_completed_user_days),
                     String(row.returned_next_day_user_days),
                   ])}
                 />
