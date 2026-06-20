@@ -43,6 +43,8 @@ export type CoachApiResponse<T> = {
   strategyVersion?: string
   promptVersion?: string
   model?: string
+  difficultyMode?: CoachDifficultyMode
+  riskLevel?: CoachRiskLevel
   data?: T
   confidence?: CoachConfidence
   fallbackUsed?: boolean

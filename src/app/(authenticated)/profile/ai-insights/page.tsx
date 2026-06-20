@@ -5,12 +5,15 @@ import { ChevronDown, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AIAnalyticsOverview } from '@/components/AIAnalyticsOverview'
 import { AIAnalyticsFrictionTop } from '@/components/AIAnalyticsFrictionTop'
+import { AIFunnelOverview } from '@/components/AIFunnelOverview'
 import {
   AIAnalyticsTable,
   formatMetricRows,
   formatRecentRows,
 } from '@/components/AIAnalyticsTable'
 import {
+  getAIFunnelBreakdown,
+  getAIFunnelOverview,
   getAIModelMetrics,
   getAISceneMetrics,
   getAIStrategyMetrics,
@@ -89,6 +92,30 @@ type AIAnalyticsDict = {
   aiAnalyticsFrictionSuggestionNotFit: string
   aiAnalyticsFrictionSuggestionAlreadyPlanned: string
   aiAnalyticsFrictionSuggestionOther: string
+  aiFunnelTitle: string
+  aiFunnelDesc: string
+  aiFunnelEmpty: string
+  aiFunnelPageViewDays: string
+  aiFunnelPageViewDaysHelp: string
+  aiFunnelPlanExposureRate: string
+  aiFunnelPlanExposureRateHelp: string
+  aiFunnelPlanApplyRate: string
+  aiFunnelPlanApplyRateHelp: string
+  aiFunnelNextDayReturnRate: string
+  aiFunnelNextDayReturnRateHelp: string
+  aiFunnelReviewExposed: string
+  aiFunnelReviewExposedHelp: string
+  aiFunnelRescueClicks: string
+  aiFunnelRescueClicksHelp: string
+  aiFunnelBreakdownTitle: string
+  aiFunnelBreakdownDesc: string
+  aiFunnelColumnSource: string
+  aiFunnelColumnVariant: string
+  aiFunnelColumnPlanExposedDays: string
+  aiFunnelColumnPlanApplyDays: string
+  aiFunnelColumnReviewExposedDays: string
+  aiFunnelColumnRescueClickDays: string
+  aiFunnelColumnReturnedNextDayDays: string
 }
 
 function formatPercent(value: number) {
@@ -208,6 +235,8 @@ export default async function AIInsightsPage(props: {
     recentRecommendations,
     streakSnapshot,
     streakRepairCount30,
+    funnelOverview,
+    funnelBreakdown,
   ] = await Promise.all([
     getAISceneMetrics({ supabase, userId: user.id, options: { days } }),
     getAIStrategyMetrics({ supabase, userId: user.id, options: { days } }),
@@ -220,6 +249,8 @@ export default async function AIInsightsPage(props: {
       .eq('user_id', user.id)
       .gte('target_date', since30)
       .then(r => r.count ?? 0),
+    getAIFunnelOverview({ supabase, userId: user.id, options: { days } }),
+    getAIFunnelBreakdown({ supabase, userId: user.id, options: { days } }),
   ])
 
   const profileDict = dict.profile as unknown as AIAnalyticsDict
@@ -228,6 +259,8 @@ export default async function AIInsightsPage(props: {
   const sortedSceneMetrics = sortMetricRows(sceneMetrics, sort)
   const sortedStrategyMetrics = sortMetricRows(strategyMetrics, sort)
   const sortedModelMetrics = sortMetricRows(modelMetrics, sort)
+  const hasFunnelData = funnelOverview.page_view_days > 0 || funnelBreakdown.length > 0
+  const hasRecommendationData = sceneMetrics.length > 0 || recentRecommendations.length > 0
   const adjustmentNote = buildAdjustmentNote(recentRecommendations, presentationLocale)
   const optionRows = recentRecommendations.filter(r => Boolean(r.option_selected))
   const shortOptionCount = optionRows.filter(r => r.option_selected === '5m' || r.option_selected === '10m').length
@@ -348,12 +381,54 @@ export default async function AIInsightsPage(props: {
         ) : null}
       </div>
 
-      {sceneMetrics.length === 0 && recentRecommendations.length === 0 ? (
+      {!hasRecommendationData && !hasFunnelData ? (
         <div className="rounded-xl border border-dashed bg-card/50 p-6 text-sm text-muted-foreground">
           {profileDict.aiAnalyticsEmpty}
         </div>
       ) : (
         <>
+          {hasFunnelData ? (
+            <>
+              <div className="space-y-2">
+                <div className="text-base font-semibold">{profileDict.aiFunnelTitle}</div>
+                <div className="text-sm text-muted-foreground">{profileDict.aiFunnelDesc}</div>
+              </div>
+              <AIFunnelOverview dict={profileDict} overview={funnelOverview} />
+              {funnelBreakdown.length > 0 ? (
+                <AIAnalyticsTable
+                  title={profileDict.aiFunnelBreakdownTitle}
+                  description={profileDict.aiFunnelBreakdownDesc}
+                  columns={[
+                    profileDict.aiFunnelColumnSource,
+                    profileDict.aiAnalyticsColumnScene,
+                    profileDict.aiFunnelColumnVariant,
+                    profileDict.aiFunnelColumnPlanExposedDays,
+                    profileDict.aiFunnelColumnPlanApplyDays,
+                    profileDict.aiFunnelColumnReviewExposedDays,
+                    profileDict.aiFunnelColumnRescueClickDays,
+                    profileDict.aiFunnelColumnReturnedNextDayDays,
+                  ]}
+                  rows={funnelBreakdown.map(row => [
+                    row.source,
+                    formatAISceneLabel(row.scene, presentationLocale),
+                    row.variant,
+                    String(row.today_plan_exposed_user_days),
+                    String(row.today_plan_apply_user_days),
+                    String(row.review_exposed_user_days),
+                    String(row.rescue_click_user_days),
+                    String(row.returned_next_day_user_days),
+                  ])}
+                />
+              ) : (
+                <div className="rounded-xl border border-dashed bg-card/50 p-6 text-sm text-muted-foreground">
+                  {profileDict.aiFunnelEmpty}
+                </div>
+              )}
+            </>
+          ) : null}
+
+          {hasRecommendationData ? (
+            <>
           <AIAnalyticsFrictionTop
             dict={profileDict}
             locale={presentationLocale}
@@ -495,6 +570,8 @@ export default async function AIInsightsPage(props: {
               />
             </div>
           </details>
+            </>
+          ) : null}
         </>
       )}
     </div>

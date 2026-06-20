@@ -71,20 +71,21 @@ export function WeeklyInsightCard({ dict, locale, insight, compact = false }: We
 
   useEffect(() => {
     if (!insight) return
-    logAIEvent('ai_weekly_insight_view', undefined, {
+    logAIEvent('ai_weekly_insight_view', { source: 'dashboard' }, {
       recommendation_id: insight.recommendationId,
       scene: 'weekly_insight',
     })
     sendAIFeedback('ai_weekly_insight_view', {
       recommendation_id: insight.recommendationId,
+      source: 'dashboard',
       scene: 'weekly_insight',
     })
   }, [insight])
 
   async function handleGenerate() {
     setLoading(true)
-    logAIEvent('ai_weekly_insight_generate', undefined, { scene: 'weekly_insight' })
-    sendAIFeedback('ai_weekly_insight_generate', { scene: 'weekly_insight' })
+    logAIEvent('ai_weekly_insight_generate', { source: 'dashboard' }, { scene: 'weekly_insight' })
+    sendAIFeedback('ai_weekly_insight_generate', { source: 'dashboard', scene: 'weekly_insight' })
     try {
       await fetch('/api/ai/insight', {
         method: 'POST',
@@ -176,12 +177,13 @@ export function WeeklyInsightCard({ dict, locale, insight, compact = false }: We
                 <Link
                   href="/profile/ai-insights"
                   onClick={() => {
-                    logAIEvent('ai_weekly_insight_open_report', undefined, {
+                    logAIEvent('ai_weekly_insight_open_report', { source: 'dashboard' }, {
                       recommendation_id: insight.recommendationId,
                       scene: 'weekly_insight',
                     })
                     sendAIFeedback('ai_weekly_insight_open_report', {
                       recommendation_id: insight.recommendationId,
+                      source: 'dashboard',
                       scene: 'weekly_insight',
                     })
                   }}

@@ -246,9 +246,9 @@ export function ActionItemPanel({
   useEffect(() => {
     if (!open) return
     if (panelMode !== 'rescue') return
-    logEvent('ai_rescue_click', { action_id: action.id })
+    logEvent('ai_rescue_click', { action_id: action.id, goal_id: action.goal_id, source: 'today', scene: 'rescue' })
     logEvent('streak_rescue_exposed', { source: 'action_panel', risk_level: 'active' })
-    sendAIFeedback('ai_rescue_click', { action_id: action.id, goal_id: action.goal_id })
+    sendAIFeedback('ai_rescue_click', { action_id: action.id, goal_id: action.goal_id, source: 'today', scene: 'rescue' })
   }, [action.goal_id, action.id, open, panelMode])
 
   function resetEditDraftFromAction() {
@@ -665,7 +665,7 @@ export function ActionItemPanel({
         }).catch(() => {})
       }
 
-      logEvent('ai_rescue_apply', { mode: 'replace', option: '5m', action_id: action.id })
+      logEvent('ai_rescue_apply', { mode: 'replace', option: '5m', action_id: action.id, goal_id: action.goal_id, source: 'today', scene: 'rescue' })
       logEvent('streak_rescue_apply', { source: 'action_panel', option: '5m' })
       pushStreakFeedback(
         buildStreakFeedback({
@@ -674,7 +674,7 @@ export function ActionItemPanel({
           mode: 'replace',
         })
       )
-      sendAIFeedback('ai_rescue_apply', { mode: 'replace', option: '5m', action_id: action.id, goal_id: action.goal_id, reason: rescueReason })
+      sendAIFeedback('ai_rescue_apply', { mode: 'replace', option: '5m', action_id: action.id, goal_id: action.goal_id, reason: rescueReason, source: 'today', scene: 'rescue' })
       onPanelModeChange('view')
       onOpenChange(false)
       router.refresh()
@@ -721,7 +721,7 @@ export function ActionItemPanel({
         }).catch(() => {})
       }
 
-      logEvent('ai_rescue_apply', { mode: 'add', option: '5m', action_id: action.id })
+      logEvent('ai_rescue_apply', { mode: 'add', option: '5m', action_id: action.id, goal_id: action.goal_id, source: 'today', scene: 'rescue' })
       logEvent('streak_rescue_apply', { source: 'action_panel', option: '5m' })
       pushStreakFeedback(
         buildStreakFeedback({
@@ -730,7 +730,7 @@ export function ActionItemPanel({
           mode: 'add',
         })
       )
-      sendAIFeedback('ai_rescue_apply', { mode: 'add', option: '5m', action_id: action.id, goal_id: action.goal_id, reason: rescueReason })
+      sendAIFeedback('ai_rescue_apply', { mode: 'add', option: '5m', action_id: action.id, goal_id: action.goal_id, reason: rescueReason, source: 'today', scene: 'rescue' })
       onPanelModeChange('view')
       onOpenChange(false)
       router.refresh()
@@ -1047,6 +1047,35 @@ export function ActionItemPanel({
               <div className="rounded-lg border border-orange-200/60 bg-orange-50/70 px-3 py-2 text-sm text-muted-foreground dark:border-orange-500/20 dark:bg-orange-950/20">
                 {rescueStreakHint}
               </div>
+              {rescueResult ? (
+                <div className="rounded-xl border border-primary/15 bg-primary/6 p-4">
+                  <div className="inline-flex rounded-full border border-primary/15 bg-background/80 px-2.5 py-1 text-xs font-medium text-primary">
+                    {locale === 'zh' ? '默认推荐：先保连续' : 'Recommended: protect continuity first'}
+                  </div>
+                  <div className="mt-3 text-base font-semibold">{rescueResult.minimal_variant.title}</div>
+                  <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                    <div>
+                      <span className="font-medium text-foreground">{locale === 'zh' ? '第一步：' : 'First step: '}</span>
+                      {rescueResult.minimal_variant.first_step}
+                    </div>
+                    <div>
+                      <span className="font-medium text-foreground">{locale === 'zh' ? '完成定义：' : 'DoD: '}</span>
+                      {rescueResult.minimal_variant.definition_of_done}
+                    </div>
+                    <div>
+                      <span className="font-medium text-foreground">{locale === 'zh' ? 'If-Then：如果' : 'If-Then: if '}</span>
+                      {rescueResult.if_then.if}
+                      {locale === 'zh' ? '那么' : ' then '}
+                      {rescueResult.if_then.then}
+                    </div>
+                  </div>
+                  <div className="mt-3 rounded-md border border-orange-200/60 bg-orange-50/70 px-3 py-2 text-xs text-muted-foreground dark:border-orange-500/20 dark:bg-orange-950/20">
+                    {locale === 'zh'
+                      ? '先把今天最小版本做掉，比追求做很多更重要。'
+                      : 'Finishing the minimum version today matters more than trying to do a lot.'}
+                  </div>
+                </div>
+              ) : null}
               <div className="text-sm font-medium">{locale === 'zh' ? '原因' : 'Reason'}</div>
               <Select
                 value={rescueReason}
@@ -1064,26 +1093,12 @@ export function ActionItemPanel({
               </Select>
               <Button type="button" onClick={generateRescue} disabled={rescueLoading}>
                 {rescueLoading && <LoadingSpinner size={16} className="mr-2 text-primary-foreground/80" />}
-                {locale === 'zh' ? '生成 5 分钟版本' : 'Generate 5-min version'}
+                {rescueResult
+                  ? (locale === 'zh' ? '重新生成 5 分钟版本' : 'Regenerate 5-min version')
+                  : (locale === 'zh' ? '生成 5 分钟版本' : 'Generate 5-min version')}
               </Button>
               {rescueError && <div className="text-sm text-destructive">{rescueError}</div>}
             </div>
-
-            {rescueResult ? (
-              <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
-                <div className="text-sm font-medium">{rescueResult.minimal_variant.title}</div>
-                <div className="text-sm text-muted-foreground">
-                  <div>{locale === 'zh' ? '第一步：' : 'First step: '}{rescueResult.minimal_variant.first_step}</div>
-                  <div>{locale === 'zh' ? '完成定义：' : 'DoD: '}{rescueResult.minimal_variant.definition_of_done}</div>
-                  <div>{locale === 'zh' ? 'If-Then：如果' : 'If-Then: if '}{rescueResult.if_then.if}{locale === 'zh' ? '那么' : ' then '}{rescueResult.if_then.then}</div>
-                </div>
-                <div className="rounded-md border border-orange-200/60 bg-orange-50/70 px-3 py-2 text-xs text-muted-foreground dark:border-orange-500/20 dark:bg-orange-950/20">
-                  {locale === 'zh'
-                    ? '这一步的目标不是做很多，而是先保住连续性。'
-                    : 'This is not about doing a lot. It is about preserving continuity first.'}
-                </div>
-              </div>
-            ) : null}
           </>
         )}
       </div>
@@ -1142,14 +1157,14 @@ export function ActionItemPanel({
       rescueResult ? (
         <ModalActionFooter insetBottom={!isDesktop ? 'calc(env(safe-area-inset-bottom) + 1rem)' : undefined} className={footerClassName}>
           <div className={isDesktop ? 'flex justify-end gap-2' : 'flex items-center justify-between gap-2'}>
-            <Button type="button" variant="outline" size="sm" className={!isDesktop ? 'flex-1' : undefined} onClick={() => onPanelModeChange('view')} disabled={rescueLoading}>
-              {dict.common.back || 'Back'}
+            <Button type="button" size="sm" className={!isDesktop ? 'flex-1' : undefined} onClick={applyRescueReplace} disabled={rescueLoading}>
+              {locale === 'zh' ? (isDesktop ? '替换当前行动并开做' : '替换执行') : 'Replace & Start'}
             </Button>
             <Button type="button" variant="outline" size="sm" className={!isDesktop ? 'flex-1' : undefined} onClick={applyRescueAdd} disabled={rescueLoading}>
-              {locale === 'zh' ? (isDesktop ? '新增最小行动' : '新增') : 'Add'}
+              {locale === 'zh' ? (isDesktop ? '保留原行动，另加最小版' : '新增最小版') : 'Add Minimum'}
             </Button>
-            <Button type="button" size="sm" className={!isDesktop ? 'flex-1' : undefined} onClick={applyRescueReplace} disabled={rescueLoading}>
-              {locale === 'zh' ? (isDesktop ? '替换当前行动' : '替换') : 'Replace'}
+            <Button type="button" variant="outline" size="sm" className={!isDesktop ? 'flex-1' : undefined} onClick={() => onPanelModeChange('view')} disabled={rescueLoading}>
+              {dict.common.back || 'Back'}
             </Button>
           </div>
         </ModalActionFooter>

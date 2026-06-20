@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import type { ReviewOutput } from '@/lib/ai/phase2aSchemas'
-import type { ReviewApiResponse } from '@/lib/ai/types'
+import type { CoachDifficultyMode, CoachRiskLevel, ReviewApiResponse } from '@/lib/ai/types'
 import { logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
 
@@ -65,6 +65,10 @@ export function ScoreCard({
   const [reviewResult, setReviewResult] = useState<ReviewOutput | null>(null)
   const [reviewRecommendationId, setReviewRecommendationId] = useState<string | null>(null)
   const [reviewOutcomeState, setReviewOutcomeState] = useState<'idle' | 'dismissed'>('idle')
+  const [reviewMeta, setReviewMeta] = useState<{
+    difficultyMode?: CoachDifficultyMode
+    riskLevel?: CoachRiskLevel
+  } | null>(null)
   const [friction, setFriction] = useState<string>('')
   const [tomorrowTime, setTomorrowTime] = useState<string>('')
 
@@ -83,10 +87,11 @@ export function ScoreCard({
     setReviewResult(null)
     setReviewRecommendationId(null)
     setReviewOutcomeState('idle')
+    setReviewMeta(null)
     setFriction('')
     setTomorrowTime('')
-    logEvent('ai_review_click', { source: 'dashboard', had_score: score != null, variant: ab2ReviewVariant })
-    sendAIFeedback('ai_review_click', { source: 'dashboard', had_score: score != null, variant: ab2ReviewVariant })
+    logEvent('ai_review_click', { source: 'dashboard', scene: 'review', had_score: score != null, variant: ab2ReviewVariant })
+    sendAIFeedback('ai_review_click', { source: 'dashboard', scene: 'review', had_score: score != null, variant: ab2ReviewVariant })
   }
 
   async function generateReview() {
@@ -114,11 +119,19 @@ export function ScoreCard({
       }
       setReviewResult(json.data)
       setReviewRecommendationId(json.recommendationId)
+      setReviewMeta({
+        difficultyMode: json.difficultyMode,
+        riskLevel: json.riskLevel,
+      })
       logEvent('ai_review_generated', {
+        source: 'dashboard',
+        scene: 'review',
         questions_answered: (friction ? 1 : 0) + (reviewQuestionsCount === 2 && tomorrowTime ? 1 : 0),
         variant: ab2ReviewVariant
       })
       sendAIFeedback('ai_review_generated', {
+        source: 'dashboard',
+        scene: 'review',
         questions_answered: (friction ? 1 : 0) + (reviewQuestionsCount === 2 && tomorrowTime ? 1 : 0),
         friction: friction || null,
         tomorrow_time: (reviewQuestionsCount === 2 ? (tomorrowTime || null) : null),
@@ -196,8 +209,8 @@ export function ScoreCard({
               body: JSON.stringify({ feedbackLabel: reviewResult ? 'close_result' : 'dismiss' })
             }).catch(() => {
             })
-            logEvent('ai_review_dismiss', { step: 'result', variant: ab2ReviewVariant })
-            sendAIFeedback('ai_review_dismiss', { step: 'result', variant: ab2ReviewVariant })
+            logEvent('ai_review_dismiss', { source: 'dashboard', scene: 'review', step: 'result', variant: ab2ReviewVariant })
+            sendAIFeedback('ai_review_dismiss', { source: 'dashboard', scene: 'review', step: 'result', variant: ab2ReviewVariant })
           }
           setReviewOpen(open)
         }}
@@ -264,6 +277,24 @@ export function ScoreCard({
 
             {reviewResult ? (
               <div className="space-y-3 rounded-lg border border-border/60 bg-muted/20 p-4">
+                {reviewMeta?.difficultyMode ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="inline-flex rounded-full border border-primary/15 bg-primary/6 px-2.5 py-1 text-xs font-medium text-primary">
+                      {reviewMeta.difficultyMode === 'starter'
+                        ? (locale === 'zh' ? '明天先保连续' : 'Tomorrow: recover')
+                        : reviewMeta.difficultyMode === 'push'
+                          ? (locale === 'zh' ? '明天可以适度冲一下' : 'Tomorrow: push a little')
+                          : (locale === 'zh' ? '明天稳步推进' : 'Tomorrow: maintain')}
+                    </span>
+                    {reviewMeta.riskLevel ? (
+                      <span className="text-xs text-muted-foreground">
+                        {locale === 'zh'
+                          ? `风险等级：${reviewMeta.riskLevel === 'high' ? '高' : reviewMeta.riskLevel === 'medium' ? '中' : '低'}`
+                          : `Risk: ${reviewMeta.riskLevel}`}
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
                 <div className="text-sm font-medium">{reviewResult.summary_sentence}</div>
                 <div className="text-sm text-muted-foreground space-y-1">
                   <div>{locale === 'zh' ? '风险：' : 'Risk: '}{reviewResult.tomorrow_card.risk}</div>

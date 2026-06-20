@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { logEvent } from '@/lib/analytics'
+import { sendAIFeedback } from '@/lib/aiFeedback'
 import { getNextPhaseTarget, getStreakMilestoneSummary } from '@/lib/streak-milestones'
 import { getShieldBadgeAction, getShieldBadgeDialogCopy, getStreakStatusCopy } from '@/lib/streak-ui'
 import type en from '@/i18n/en.json'
@@ -50,11 +51,14 @@ export function StreakCard({
 
   useEffect(() => {
     if (!recoverableMissDate) return
-    logEvent('streak_recovery_offer_exposed', {
+    const payload = {
       source: 'dashboard',
+      scene: 'rescue',
       shield_balance: shieldBalance,
       recoverable_days: 1,
-    })
+    }
+    logEvent('streak_recovery_offer_exposed', payload)
+    sendAIFeedback('streak_recovery_offer_exposed', payload)
   }, [recoverableMissDate, shieldBalance])
 
   const statusCopy = useMemo(() => {
@@ -142,12 +146,15 @@ export function StreakCard({
               type="button"
               className="rounded-full border border-orange-300/60 bg-white/80 px-3 py-1 text-xs font-medium text-orange-700 shadow-sm transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-300 dark:border-orange-500/30 dark:bg-orange-950/40 dark:text-orange-300 dark:hover:bg-orange-950/60"
               onClick={() => {
-                logEvent('shield_badge_click', {
+                const payload = {
                   source: 'dashboard',
+                  scene: 'rescue',
                   action: shieldBadgeAction,
                   shield_balance: shieldBalance,
                   recoverable_days: recoverableMissDate ? 1 : 0,
-                })
+                }
+                logEvent('shield_badge_click', payload)
+                sendAIFeedback('shield_badge_click', payload)
 
                 if (shieldBadgeAction === 'recover') {
                   setRecoverOpen(true)
@@ -203,10 +210,14 @@ export function StreakCard({
                 type="button"
                 size="sm"
                 onClick={() => {
-                  logEvent('streak_recovery_click', {
+                  const payload = {
                     source: 'dashboard',
+                    scene: 'rescue',
                     target_date: recoverableMissDate,
-                  })
+                    shield_balance: shieldBalance,
+                  }
+                  logEvent('streak_recovery_click', payload)
+                  sendAIFeedback('streak_recovery_click', payload)
                   setRecoverOpen(true)
                 }}
               >

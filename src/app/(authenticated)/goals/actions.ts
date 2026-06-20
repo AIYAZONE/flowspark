@@ -16,6 +16,11 @@ import {
 	serializeActionRecurrenceDescription,
 	type ActionRecurrenceParams
 } from '@/lib/actionRecurrence';
+import {
+	isOwnershipColumnMissingError,
+	queryWithOwnershipFallback,
+	type OwnershipColumn
+} from '@/lib/ownership';
 import { getTodayInTZ, getUserTimezone } from '@/lib/time';
 
 const ACTIVE_GOAL_LIMIT = 5;
@@ -54,6 +59,53 @@ type ActionAttachmentInsertPayload = {
 	size_bytes: number | null;
 	bucket: string;
 };
+
+type MutationResult<T = unknown> = {
+	data?: T | null;
+	error: { message?: string; code?: string } | null;
+};
+
+function isSchemaFallbackError(
+	error?: { message?: string; code?: string } | null
+) {
+	return Boolean(
+		error &&
+			(error.message?.includes('Could not find') ||
+				isOwnershipColumnMissingError(error))
+	);
+}
+
+async function runSchemaFallbackAttempts<T>(
+	attempts: Array<() => PromiseLike<MutationResult<T>>>
+) {
+	let lastResult: MutationResult<T> = { data: null, error: null };
+
+	for (let index = 0; index < attempts.length; index += 1) {
+		const result = await attempts[index]();
+		if (!result.error) return result;
+		lastResult = result;
+		if (!isSchemaFallbackError(result.error)) return result;
+	}
+
+	return lastResult;
+}
+
+async function runOwnershipMutationWithFallback<T>(params: {
+	primary: OwnershipColumn;
+	fallback: OwnershipColumn;
+	fallbackOnAnyError?: boolean;
+	execute: (ownershipColumn: OwnershipColumn) => PromiseLike<MutationResult<T>>;
+}) {
+	const primaryResult = await params.execute(params.primary);
+	if (!primaryResult.error) return primaryResult;
+	if (
+		!params.fallbackOnAnyError &&
+		!isOwnershipColumnMissingError(primaryResult.error)
+	) {
+		return primaryResult;
+	}
+	return params.execute(params.fallback);
+}
 
 async function assertActiveGoalLimit(
 	supabase: Awaited<ReturnType<typeof createClient>>,
@@ -191,45 +243,27 @@ async function insertActionWithFallback(params: {
 		if (selectFields) return query.select(selectFields).single();
 		return query;
 	};
+	const result = await runSchemaFallbackAttempts<Record<string, unknown>>([
+		async () =>
+			(await runInsert({
+				...payload,
+				user_id: userId,
+				owner_id: userId
+			})) as MutationResult<Record<string, unknown>>,
+		async () =>
+			(await runInsert({
+				...payload,
+				user_id: userId
+			})) as MutationResult<Record<string, unknown>>,
+		async () =>
+			(await runInsert({
+				...payload,
+				owner_id: userId
+			})) as MutationResult<Record<string, unknown>>
+	]);
 
-	let data: Record<string, unknown> | null = null;
-
-	const attempt1 = await runInsert({
-		...payload,
-		user_id: userId,
-		owner_id: userId
-	});
-	if (!attempt1.error) {
-		data =
-			(attempt1 as { data?: Record<string, unknown> | null }).data ??
-			null;
-		return { data };
-	}
-
-	const columnMissing =
-		attempt1.error.code === '42703' ||
-		attempt1.error.message?.includes('column');
-	if (!columnMissing) throw attempt1.error;
-
-	const attempt2 = await runInsert({
-		...payload,
-		user_id: userId
-	});
-	if (!attempt2.error) {
-		data =
-			(attempt2 as { data?: Record<string, unknown> | null }).data ??
-			null;
-		return { data };
-	}
-
-	const attempt3 = await runInsert({
-		...payload,
-		owner_id: userId
-	});
-	if (attempt3.error) throw attempt3.error;
-
-	data = (attempt3 as { data?: Record<string, unknown> | null }).data ?? null;
-	return { data };
+	if (result.error) throw result.error;
+	return { data: result.data ?? null };
 }
 
 async function insertActionSubItemsWithFallback(params: {
@@ -245,35 +279,30 @@ async function insertActionSubItemsWithFallback(params: {
 		user_id: userId,
 		owner_id: userId
 	}));
-
-	const { error } = await supabase.from('action_sub_items').insert(payload);
-	if (!error) return;
-
-	const columnMissing =
-		error.code === '42703' || error.message?.includes('column');
-	if (!columnMissing) throw error;
-
-	const { error: error2 } = await supabase.from('action_sub_items').insert(
-		payload.map((item) => ({
-			action_id: item.action_id,
-			title: item.title,
-			completed: item.completed,
-			sort_order: item.sort_order,
-			user_id: item.user_id
-		}))
-	);
-	if (!error2) return;
-
-	const { error: error3 } = await supabase.from('action_sub_items').insert(
-		payload.map((item) => ({
-			action_id: item.action_id,
-			title: item.title,
-			completed: item.completed,
-			sort_order: item.sort_order,
-			owner_id: item.owner_id
-		}))
-	);
-	if (error3) throw error3;
+	const result = await runSchemaFallbackAttempts([
+		async () => supabase.from('action_sub_items').insert(payload),
+		async () =>
+			supabase.from('action_sub_items').insert(
+				payload.map((item) => ({
+					action_id: item.action_id,
+					title: item.title,
+					completed: item.completed,
+					sort_order: item.sort_order,
+					user_id: item.user_id
+				}))
+			),
+		async () =>
+			supabase.from('action_sub_items').insert(
+				payload.map((item) => ({
+					action_id: item.action_id,
+					title: item.title,
+					completed: item.completed,
+					sort_order: item.sort_order,
+					owner_id: item.owner_id
+				}))
+			)
+	]);
+	if (result.error) throw result.error;
 }
 
 async function insertActionAttachmentsWithFallback(params: {
@@ -289,39 +318,34 @@ async function insertActionAttachmentsWithFallback(params: {
 		user_id: userId,
 		owner_id: userId
 	}));
-
-	const { error } = await supabase.from('action_attachments').insert(payload);
-	if (!error) return;
-
-	const columnMissing =
-		error.code === '42703' || error.message?.includes('column');
-	if (!columnMissing) throw error;
-
-	const { error: error2 } = await supabase.from('action_attachments').insert(
-		payload.map((item) => ({
-			action_id: item.action_id,
-			file_path: item.file_path,
-			public_url: item.public_url,
-			mime_type: item.mime_type,
-			size_bytes: item.size_bytes,
-			bucket: item.bucket,
-			user_id: item.user_id
-		}))
-	);
-	if (!error2) return;
-
-	const { error: error3 } = await supabase.from('action_attachments').insert(
-		payload.map((item) => ({
-			action_id: item.action_id,
-			file_path: item.file_path,
-			public_url: item.public_url,
-			mime_type: item.mime_type,
-			size_bytes: item.size_bytes,
-			bucket: item.bucket,
-			owner_id: item.owner_id
-		}))
-	);
-	if (error3) throw error3;
+	const result = await runSchemaFallbackAttempts([
+		async () => supabase.from('action_attachments').insert(payload),
+		async () =>
+			supabase.from('action_attachments').insert(
+				payload.map((item) => ({
+					action_id: item.action_id,
+					file_path: item.file_path,
+					public_url: item.public_url,
+					mime_type: item.mime_type,
+					size_bytes: item.size_bytes,
+					bucket: item.bucket,
+					user_id: item.user_id
+				}))
+			),
+		async () =>
+			supabase.from('action_attachments').insert(
+				payload.map((item) => ({
+					action_id: item.action_id,
+					file_path: item.file_path,
+					public_url: item.public_url,
+					mime_type: item.mime_type,
+					size_bytes: item.size_bytes,
+					bucket: item.bucket,
+					owner_id: item.owner_id
+				}))
+			)
+	]);
+	if (result.error) throw result.error;
 }
 
 export async function createGoal(formData: FormData) {
@@ -347,35 +371,23 @@ export async function createGoal(formData: FormData) {
 		throw new Error('invalid_date_range');
 	}
 
-	const { error } = await supabase.from('goals').insert({
-		user_id: user.id,
-		owner_id: user.id,
-		title,
-		description,
-		start_date,
-		end_date,
-		success_criteria,
-		stop_criteria,
-		status: 'active',
-		priority,
-		category
-	});
-
-	if (error) {
-		console.error('Error creating goal:', error);
-		// 临时调试：观察是否为列缺失或值问题
-		// console.log('createGoal received category:', category, 'priority:', priority)
-
-		// Fallback for missing columns (schema mismatch)
-		if (
-			error.message?.includes('Could not find') ||
-			error.code === '42703' ||
-			error.message?.includes('column')
-		) {
-			console.warn(
-				'Database schema missing columns, falling back to basic fields.'
-			);
-			const { error: legacyError } = await supabase.from('goals').insert({
+	const createGoalResult = await runSchemaFallbackAttempts([
+		async () =>
+			supabase.from('goals').insert({
+				user_id: user.id,
+				owner_id: user.id,
+				title,
+				description,
+				start_date,
+				end_date,
+				success_criteria,
+				stop_criteria,
+				status: 'active',
+				priority,
+				category
+			}),
+		async () =>
+			supabase.from('goals').insert({
 				user_id: user.id,
 				owner_id: user.id,
 				title,
@@ -385,16 +397,12 @@ export async function createGoal(formData: FormData) {
 				success_criteria,
 				stop_criteria,
 				status: 'active'
-			});
+			})
+	]);
 
-			if (legacyError) {
-				console.error('Legacy create goal failed:', legacyError);
-				throw new Error('operation_failed');
-			}
-			// Success with legacy payload - no error thrown, user continues but new fields aren't saved
-		} else {
-			throw new Error('operation_failed');
-		}
+	if (createGoalResult.error) {
+		console.error('Error creating goal:', createGoalResult.error);
+		throw new Error('operation_failed');
 	}
 
 	revalidatePath('/goals');
@@ -408,31 +416,22 @@ export async function updateGoalStatus(id: string, status: string) {
 	} = await supabase.auth.getUser();
 	if (!user) return;
 
-	const { error } = await supabase
-		.from('goals')
-		.update({ status })
-		.eq('id', id)
-		.eq('owner_id', user.id);
-
-	if (error) {
-		console.error('Error updating goal status:', error);
-		// Fallback for legacy schema
-		if (error.code === '42703' || error.message?.includes('column')) {
-			const { error: legacyError } = await supabase
+	const updateStatusResult = await runOwnershipMutationWithFallback({
+		primary: 'owner_id',
+		fallback: 'user_id',
+		execute: (ownershipColumn) =>
+			supabase
 				.from('goals')
 				.update({ status })
 				.eq('id', id)
-				.eq('user_id', user.id);
+				.eq(ownershipColumn, user.id)
+	});
 
-			if (legacyError) {
-				console.error('Legacy update failed:', legacyError);
-				throw new Error(`Update failed: ${legacyError.message}`);
-			}
-		} else {
-			throw new Error(
-				`Update failed: ${error.message} (Code: ${error.code})`
-			);
-		}
+	if (updateStatusResult.error) {
+		console.error('Error updating goal status:', updateStatusResult.error);
+		throw new Error(
+			`Update failed: ${updateStatusResult.error.message} (Code: ${updateStatusResult.error.code})`
+		);
 	}
 
 	revalidatePath('/goals');
@@ -446,29 +445,20 @@ export async function toggleGoalStar(id: string, isStarred: boolean) {
 	} = await supabase.auth.getUser();
 	if (!user) throw new Error('User not authenticated');
 
-	const { error } = await supabase
-		.from('goals')
-		.update({ is_starred: isStarred })
-		.eq('id', id)
-		.eq('owner_id', user.id); // Use owner_id as primary ownership check
-
-	if (error) {
-		console.error('Error toggling goal star:', error);
-
-		// Fallback for legacy schema (user_id) if owner_id update fails
-		if (error.code === '42703' || error.message?.includes('column')) {
-			const { error: legacyError } = await supabase
+	const toggleStarResult = await runOwnershipMutationWithFallback({
+		primary: 'owner_id',
+		fallback: 'user_id',
+		execute: (ownershipColumn) =>
+			supabase
 				.from('goals')
 				.update({ is_starred: isStarred })
 				.eq('id', id)
-				.eq('user_id', user.id);
+				.eq(ownershipColumn, user.id)
+	});
 
-			if (legacyError) {
-				throw new Error('Update failed');
-			}
-		} else {
-			throw new Error('Update failed');
-		}
+	if (toggleStarResult.error) {
+		console.error('Error toggling goal star:', toggleStarResult.error);
+		throw new Error('Update failed');
 	}
 
 	revalidatePath('/goals');
@@ -499,37 +489,29 @@ export async function createGoalModal(formData: FormData) {
 	}
 
 	// 使用 select() 以返回插入记录的 id 与标题
-	const { data, error } = await supabase
-		.from('goals')
-		.insert({
-			user_id: user.id,
-			owner_id: user.id,
-			title,
-			description,
-			start_date,
-			end_date,
-			success_criteria,
-			stop_criteria,
-			status: 'active',
-			priority,
-			category
-		})
-		.select('id,title')
-		.single();
-
-	if (error) {
-		console.error('Error creating goal:', error);
-
-		// Fallback for missing columns (schema mismatch)
-		if (
-			error.message?.includes('Could not find') ||
-			error.code === '42703' ||
-			error.message?.includes('column')
-		) {
-			console.warn(
-				'Database schema missing columns, falling back to basic fields.'
-			);
-			const { data: legacyData, error: legacyError } = await supabase
+	const createGoalResult = await runSchemaFallbackAttempts<
+		{ id?: string; title?: string }
+	>([
+		async () =>
+			(await supabase
+				.from('goals')
+				.insert({
+					user_id: user.id,
+					owner_id: user.id,
+					title,
+					description,
+					start_date,
+					end_date,
+					success_criteria,
+					stop_criteria,
+					status: 'active',
+					priority,
+					category
+				})
+				.select('id,title')
+				.single()) as MutationResult<{ id?: string; title?: string }>,
+		async () =>
+			(await supabase
 				.from('goals')
 				.insert({
 					user_id: user.id,
@@ -543,29 +525,19 @@ export async function createGoalModal(formData: FormData) {
 					status: 'active'
 				})
 				.select('id,title')
-				.single();
+				.single()) as MutationResult<{ id?: string; title?: string }>
+	]);
 
-			if (legacyError) {
-				console.error('Legacy create goal failed:', legacyError);
-				throw new Error('operation_failed');
-			}
-			// 成功（兼容旧架构）
-			revalidatePath('/goals');
-			return {
-				success: true,
-				goalId: legacyData?.id as string | undefined,
-				title: legacyData?.title as string | undefined
-			};
-		} else {
-			throw new Error('operation_failed');
-		}
+	if (createGoalResult.error) {
+		console.error('Error creating goal:', createGoalResult.error);
+		throw new Error('operation_failed');
 	}
 
 	revalidatePath('/goals');
 	return {
 		success: true,
-		goalId: data?.id as string | undefined,
-		title: data?.title as string | undefined
+		goalId: createGoalResult.data?.id as string | undefined,
+		title: createGoalResult.data?.title as string | undefined
 	};
 }
 
@@ -732,27 +704,18 @@ export async function applyAITodayPlanToExistingAction(formData: FormData) {
 		ai_recommendation_id
 	};
 
-	const updateByUser = await supabase
-		.from('actions')
-		.update(payload)
-		.eq('id', actionId)
-		.eq('user_id', user.id);
-
-	if (updateByUser.error) {
-		if (
-			updateByUser.error.code === '42703' ||
-			updateByUser.error.message?.includes('column')
-		) {
-			const fallback = await supabase
+	const updateActionResult = await runOwnershipMutationWithFallback({
+		primary: 'user_id',
+		fallback: 'owner_id',
+		execute: (ownershipColumn) =>
+			supabase
 				.from('actions')
 				.update(payload)
 				.eq('id', actionId)
-				.eq('owner_id', user.id);
-			if (fallback.error) throw new Error('operation_failed');
-		} else {
-			throw new Error('operation_failed');
-		}
-	}
+				.eq(ownershipColumn, user.id)
+	});
+
+	if (updateActionResult.error) throw new Error('operation_failed');
 
 	revalidatePath('/dashboard');
 	revalidatePath('/today');
@@ -917,27 +880,21 @@ export async function toggleActionSubItem(formData: FormData) {
 	if (fetchError || !actionId) throw new Error('operation_failed');
 
 	const nextCompleted = !currentCompleted;
-	let { error } = await supabase
-		.from('action_sub_items')
-		.update({
-			completed: nextCompleted,
-			updated_at: new Date().toISOString()
-		})
-		.eq('id', id)
-		.eq('owner_id', user.id);
-
-	if (error) {
-		const fallback = await supabase
-			.from('action_sub_items')
-			.update({
-				completed: nextCompleted,
-				updated_at: new Date().toISOString()
-			})
-			.eq('id', id)
-			.eq('user_id', user.id);
-		error = fallback.error;
-	}
-	if (error) throw new Error('operation_failed');
+	const subItemUpdateResult = await runOwnershipMutationWithFallback({
+		primary: 'owner_id',
+		fallback: 'user_id',
+		fallbackOnAnyError: true,
+		execute: (ownershipColumn) =>
+			supabase
+				.from('action_sub_items')
+				.update({
+					completed: nextCompleted,
+					updated_at: new Date().toISOString()
+				})
+				.eq('id', id)
+				.eq(ownershipColumn, user.id)
+	});
+	if (subItemUpdateResult.error) throw new Error('operation_failed');
 
 	// 双向联动：子行动全完成 => 父行动完成；存在未完成 => 父行动未完成
 	let subItems:
@@ -960,31 +917,29 @@ export async function toggleActionSubItem(formData: FormData) {
 	}
 	if (subItems && subItems.length > 0) {
 		const parentCompleted = subItems.every((item) => item.completed);
-		let parentUpdateError: { message?: string; code?: string } | null = null;
-		let parentRecommendationId: string | null = null;
-		const parentByOwner = await supabase
-			.from('actions')
-			.update({ completed: parentCompleted, updated_at: new Date().toISOString() })
-			.eq('id', actionId)
-			.eq('owner_id', user.id)
-			.select('ai_recommendation_id')
-			.maybeSingle();
-		parentUpdateError = parentByOwner.error;
-		parentRecommendationId =
-			(parentByOwner.data?.ai_recommendation_id as string | null) ?? null;
-		if (parentUpdateError) {
-			const parentByUser = await supabase
-				.from('actions')
-				.update({ completed: parentCompleted, updated_at: new Date().toISOString() })
-				.eq('id', actionId)
-				.eq('user_id', user.id)
-				.select('ai_recommendation_id')
-				.maybeSingle();
-			parentUpdateError = parentByUser.error;
-			parentRecommendationId =
-				(parentByUser.data?.ai_recommendation_id as string | null) ?? null;
-		}
-		if (parentUpdateError) throw new Error('operation_failed');
+		const parentUpdateResult = await runOwnershipMutationWithFallback<{
+			ai_recommendation_id?: string | null;
+		}>({
+			primary: 'owner_id',
+			fallback: 'user_id',
+			fallbackOnAnyError: true,
+			execute: async (ownershipColumn) =>
+				(await supabase
+					.from('actions')
+					.update({
+						completed: parentCompleted,
+						updated_at: new Date().toISOString()
+					})
+					.eq('id', actionId)
+					.eq(ownershipColumn, user.id)
+					.select('ai_recommendation_id')
+					.maybeSingle()) as MutationResult<{
+					ai_recommendation_id?: string | null;
+				}>
+		});
+		if (parentUpdateResult.error) throw new Error('operation_failed');
+		const parentRecommendationId =
+			(parentUpdateResult.data?.ai_recommendation_id as string | null) ?? null;
 		if (parentRecommendationId) {
 			await setRecommendationCompletion({
 				supabase,
@@ -1028,35 +983,25 @@ export async function updateGoal(formData: FormData) {
 		throw new Error('invalid_date_range');
 	}
 
-	const { error } = await supabase
-		.from('goals')
-		.update({
-			title,
-			description,
-			start_date,
-			end_date,
-			success_criteria,
-			stop_criteria,
-			status,
-			priority,
-			category
-		})
-		.eq('id', id)
-		.eq('owner_id', user.id);
-
-	if (error) {
-		console.error('Error updating goal:', error);
-
-		// Fallback for missing columns (schema mismatch)
-		if (
-			error.message?.includes('Could not find') ||
-			error.code === '42703' ||
-			error.message?.includes('column')
-		) {
-			console.warn(
-				'Database schema missing columns, falling back to basic fields.'
-			);
-			const { error: legacyError } = await supabase
+	const updateGoalResult = await runSchemaFallbackAttempts([
+		async () =>
+			(await supabase
+				.from('goals')
+				.update({
+					title,
+					description,
+					start_date,
+					end_date,
+					success_criteria,
+					stop_criteria,
+					status,
+					priority,
+					category
+				})
+				.eq('id', id)
+				.eq('owner_id', user.id)) as MutationResult,
+		async () =>
+			(await supabase
 				.from('goals')
 				.update({
 					title,
@@ -1068,16 +1013,12 @@ export async function updateGoal(formData: FormData) {
 					status
 				})
 				.eq('id', id)
-				.eq('user_id', user.id);
+				.eq('user_id', user.id)) as MutationResult
+	]);
 
-			if (legacyError) {
-				throw new Error(
-					`Failed to update goal: ${legacyError.message}`
-				);
-			}
-		} else {
-			throw new Error(`Failed to update goal: ${error.message}`);
-		}
+	if (updateGoalResult.error) {
+		console.error('Error updating goal:', updateGoalResult.error);
+		throw new Error(`Failed to update goal: ${updateGoalResult.error.message}`);
 	}
 
 	revalidatePath(`/goals/${id}`);
@@ -1132,26 +1073,15 @@ export async function updateAction(formData: FormData) {
 		throw new Error('invalid_date_range');
 	}
 
-	let { data: targetGoal, error: targetGoalError } = await supabase
-		.from('goals')
-		.select('id')
-		.eq('id', goal_id)
-		.eq('user_id', user.id)
-		.eq('status', 'active')
-		.maybeSingle();
-
-	// Fallback for owner_id-based schemas.
-	if (!targetGoal && !targetGoalError) {
-		const fallback = await supabase
+	const { data: targetGoal, error: targetGoalError } = await queryWithOwnershipFallback({
+		execute: (ownershipColumn) => supabase
 			.from('goals')
 			.select('id')
 			.eq('id', goal_id)
-			.eq('owner_id', user.id)
+			.eq(ownershipColumn, user.id)
 			.eq('status', 'active')
-			.maybeSingle();
-		targetGoal = fallback.data;
-		targetGoalError = fallback.error;
-	}
+			.maybeSingle()
+	});
 
 	if (targetGoalError) throw new Error(targetGoalError.message);
 	if (!targetGoal) throw new Error('operation_failed');
@@ -1171,43 +1101,33 @@ export async function updateAction(formData: FormData) {
 		ai_recommendation_id
 	};
 
-	const { error } = await supabase
-		.from('actions')
-		.update(payload)
-		.eq('id', id)
-		.eq('user_id', user.id);
-
-	if (error) {
-		if (error.code === '42703' || error.message?.includes('column')) {
-			const { error: fallbackError } = await supabase
+	const updateActionResult = await runOwnershipMutationWithFallback({
+		primary: 'user_id',
+		fallback: 'owner_id',
+		execute: (ownershipColumn) =>
+			supabase
 				.from('actions')
 				.update(payload)
 				.eq('id', id)
-				.eq('owner_id', user.id);
-			if (fallbackError) throw new Error('operation_failed');
-		} else {
-			throw new Error('operation_failed');
-		}
-	}
+				.eq(ownershipColumn, user.id)
+	});
+
+	if (updateActionResult.error) throw new Error('operation_failed');
 
 	// Replace sub-items when editor submits sub_items payload.
 	if (formData.has('sub_items')) {
-		let deleteError: { message?: string; code?: string } | null = null;
-		const removeByOwner = await supabase
-			.from('action_sub_items')
-			.delete()
-			.eq('action_id', id)
-			.eq('owner_id', user.id);
-		deleteError = removeByOwner.error;
-		if (deleteError) {
-			const removeByUser = await supabase
-				.from('action_sub_items')
-				.delete()
-				.eq('action_id', id)
-				.eq('user_id', user.id);
-			deleteError = removeByUser.error;
-		}
-		if (deleteError) throw new Error('operation_failed');
+		const removeSubItemsResult = await runOwnershipMutationWithFallback({
+			primary: 'owner_id',
+			fallback: 'user_id',
+			fallbackOnAnyError: true,
+			execute: (ownershipColumn) =>
+				supabase
+					.from('action_sub_items')
+					.delete()
+					.eq('action_id', id)
+					.eq(ownershipColumn, user.id)
+		});
+		if (removeSubItemsResult.error) throw new Error('operation_failed');
 
 		if (subItemsUpdate.length > 0) {
 			await insertActionSubItemsWithFallback({
@@ -1281,14 +1201,16 @@ export async function deleteAction(formData: FormData) {
 		}
 	}
 
-	const { error } = await supabase
-		.from('actions')
-		.delete()
-		.eq('id', id)
-		.eq('owner_id', user.id);
+	const deleteActionResult = await runOwnershipMutationWithFallback({
+		primary: 'owner_id',
+		fallback: 'user_id',
+		fallbackOnAnyError: true,
+		execute: (ownershipColumn) =>
+			supabase.from('actions').delete().eq('id', id).eq(ownershipColumn, user.id)
+	});
 
-	if (error) {
-		console.error('Error deleting action:', error);
+	if (deleteActionResult.error) {
+		console.error('Error deleting action:', deleteActionResult.error);
 		throw new Error('delete_failed');
 	}
 
@@ -1306,25 +1228,37 @@ export async function deleteGoal(formData: FormData) {
 
 	const id = formData.get('id') as string;
 
-	const { error: deleteActionsError } = await supabase
-		.from('actions')
-		.delete()
-		.eq('goal_id', id)
-		.eq('user_id', user.id);
+	const deleteActionsResult = await runOwnershipMutationWithFallback({
+		primary: 'user_id',
+		fallback: 'owner_id',
+		fallbackOnAnyError: true,
+		execute: (ownershipColumn) =>
+			supabase
+				.from('actions')
+				.delete()
+				.eq('goal_id', id)
+				.eq(ownershipColumn, user.id)
+	});
 
-	if (deleteActionsError) {
-		console.error('Error deleting goal actions:', deleteActionsError);
+	if (deleteActionsResult.error) {
+		console.error('Error deleting goal actions:', deleteActionsResult.error);
 		throw new Error('delete_failed');
 	}
 
-	const { error: deleteGoalError } = await supabase
-		.from('goals')
-		.delete()
-		.eq('id', id)
-		.eq('user_id', user.id);
+	const deleteGoalResult = await runOwnershipMutationWithFallback({
+		primary: 'user_id',
+		fallback: 'owner_id',
+		fallbackOnAnyError: true,
+		execute: (ownershipColumn) =>
+			supabase
+				.from('goals')
+				.delete()
+				.eq('id', id)
+				.eq(ownershipColumn, user.id)
+	});
 
-	if (deleteGoalError) {
-		console.error('Error deleting goal:', deleteGoalError);
+	if (deleteGoalResult.error) {
+		console.error('Error deleting goal:', deleteGoalResult.error);
 		throw new Error('delete_failed');
 	}
 

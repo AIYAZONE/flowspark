@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Trophy, Star, ChevronRight } from 'lucide-react'
+import { Trophy, Star, ChevronRight, Sparkles } from 'lucide-react'
 import { getLevelTitleKey } from '@/lib/gamification'
 import { LevelSystemDialog } from './LevelSystemDialog'
 
@@ -21,6 +21,19 @@ export function LevelCard({ dict, level, currentXP, nextLevelXP, lastLog, classN
   const progress = Math.min(100, Math.max(0, (currentXP / nextLevelXP) * 100))
   const titleKey = getLevelTitleKey(level)
   const levelTitle = dict.dashboard.stats.titles?.[titleKey] || titleKey
+  const locale = String(dict.common?.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'
+  const lastLogIsBonus = Boolean(lastLog?.source?.includes('bonus'))
+  const surpriseHint = lastLogIsBonus
+    ? (
+      locale === 'zh'
+        ? '刚刚触发了一次惊喜奖励，继续完成核心行动会更容易遇到高价值掉落。'
+        : 'A surprise reward just dropped. Completing more core actions improves your odds of better drops.'
+    )
+    : (
+      locale === 'zh'
+        ? '完成行动后会随机掉落奖励，核心行动更容易触发高价值惊喜。'
+        : 'Completed actions can trigger surprise drops. Core actions are more likely to unlock better rewards.'
+    )
 
   const getSourceName = (source: string) => {
     if (source.includes('core')) return dict.today.types.core
@@ -33,7 +46,7 @@ export function LevelCard({ dict, level, currentXP, nextLevelXP, lastLog, classN
   return (
     <>
       <Card
-        className={`overflow-hidden border-yellow-500/20 bg-gradient-to-br from-yellow-500/5 to-transparent flex flex-col justify-between cursor-pointer transition-all hover:border-yellow-500/40 active:scale-[0.99] group ${className}`}
+        className={`overflow-hidden border-yellow-500/20 bg-linear-to-br from-yellow-500/5 to-transparent flex flex-col justify-between cursor-pointer transition-all hover:border-yellow-500/40 active:scale-[0.99] group ${className}`}
         onClick={() => setShowLevelSystem(true)}
       >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -65,6 +78,13 @@ export function LevelCard({ dict, level, currentXP, nextLevelXP, lastLog, classN
               className="h-full bg-yellow-500 transition-all duration-1000 ease-out"
               style={{ width: `${progress}%` }}
             />
+          </div>
+
+          <div className="mt-3 rounded-lg border border-yellow-500/15 bg-yellow-500/8 px-3 py-2 text-xs text-muted-foreground">
+            <div className="flex items-start gap-2">
+              <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-yellow-600 dark:text-yellow-400" />
+              <span>{surpriseHint}</span>
+            </div>
           </div>
 
           <div className="mt-2 flex items-center justify-between">

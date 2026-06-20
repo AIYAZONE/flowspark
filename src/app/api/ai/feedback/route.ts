@@ -27,10 +27,76 @@ const ALLOWED_EVENT_NAMES = new Set([
   'ai_today_plan_exposed',
   'ai_review_exposed',
   'streak_risk_banner_exposed',
+  'streak_recovery_offer_exposed',
+  'streak_recovery_click',
+  'streak_recovery_success',
+  'streak_recovery_blocked',
+  'shield_badge_click',
+  'continuity_priority_cta_click',
 ])
+
+const EVENT_META_DEFAULTS: Partial<Record<string, Record<string, string>>> = {
+  ai_today_plan_click: {
+    scene: 'today_plan',
+  },
+  ai_today_plan_suggested: {
+    scene: 'today_plan',
+  },
+  ai_today_plan_apply: {
+    scene: 'today_plan',
+  },
+  ai_today_plan_dismiss: {
+    scene: 'today_plan',
+  },
+  ai_review_click: {
+    source: 'dashboard',
+    scene: 'review',
+  },
+  ai_review_generated: {
+    source: 'dashboard',
+    scene: 'review',
+  },
+  ai_review_dismiss: {
+    source: 'dashboard',
+    scene: 'review',
+  },
+  ai_review_exposed: {
+    source: 'dashboard',
+    scene: 'review',
+  },
+  ai_weekly_insight_view: {
+    source: 'dashboard',
+    scene: 'weekly_insight',
+  },
+  ai_weekly_insight_generate: {
+    source: 'dashboard',
+    scene: 'weekly_insight',
+  },
+  ai_weekly_insight_open_report: {
+    source: 'dashboard',
+    scene: 'weekly_insight',
+  },
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === 'object' && !Array.isArray(value)
+}
+
+function withEventMetaDefaults(name: string, meta: ReturnType<typeof sanitizeEventPayload>) {
+  const defaults = EVENT_META_DEFAULTS[name]
+  if (!defaults) return meta ?? null
+
+  const nextMeta: Record<string, string | number | boolean | null> = {
+    ...(meta ?? {}),
+  }
+
+  for (const [key, value] of Object.entries(defaults)) {
+    const current = nextMeta[key]
+    if (typeof current === 'string' && current.trim()) continue
+    nextMeta[key] = value
+  }
+
+  return Object.keys(nextMeta).length > 0 ? nextMeta : null
 }
 
 export async function POST(req: Request) {
@@ -51,29 +117,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid_event' }, { status: 400 })
   }
 
-  const meta = sanitizeEventPayload(body.meta, { maxStringLen: 200 }) ?? null
-  const event = {
+  const meta = withEventMetaDefaults(
     name,
-    ts: new Date().toISOString(),
-    meta
-  }
-
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('ai_recent_events')
-    .eq('id', user.id)
-    .maybeSingle()
-
-  const current = Array.isArray((profile as unknown as { ai_recent_events?: unknown })?.ai_recent_events)
-    ? ((profile as unknown as { ai_recent_events: unknown[] }).ai_recent_events)
-    : []
-
-  const next = [...current, event].slice(-60)
-
+    sanitizeEventPayload(body.meta, { maxStringLen: 200 })
+  )
   const { error } = await supabase
-    .from('user_profiles')
-    .update({ ai_recent_events: next, updated_at: new Date().toISOString() })
-    .eq('id', user.id)
+    .rpc('append_ai_feedback_event', {
+      p_name: name,
+      p_meta: meta,
+      p_ts: new Date().toISOString(),
+    })
 
   if (error) return NextResponse.json({ error: 'operation_failed' }, { status: 500 })
   return NextResponse.json({ ok: true }, { status: 200 })

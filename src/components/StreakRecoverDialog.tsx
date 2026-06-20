@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { recoverYesterdayStreakWithShield } from '@/app/(authenticated)/today/actions'
 import { logEvent } from '@/lib/analytics'
+import { sendAIFeedback } from '@/lib/aiFeedback'
 import { buildStreakFeedback } from '@/lib/streak-feedback'
 import { pushStreakFeedback } from '@/components/StreakFeedbackBanner'
 import type en from '@/i18n/en.json'
@@ -74,11 +75,14 @@ export function StreakRecoverDialog(props: {
                 void (async () => {
                   try {
                     const result = await recoverYesterdayStreakWithShield()
-                    logEvent('streak_recovery_success', {
+                    const successPayload = {
                       source: 'dashboard',
+                      scene: 'rescue',
                       target_date: result.targetDate,
                       shield_balance_after: result.shieldBalanceAfter,
-                    })
+                    }
+                    logEvent('streak_recovery_success', successPayload)
+                    sendAIFeedback('streak_recovery_success', successPayload)
                     pushStreakFeedback(
                       buildStreakFeedback({
                         kind: 'recovery_success',
@@ -99,9 +103,13 @@ export function StreakRecoverDialog(props: {
                     router.refresh()
                   } catch (error) {
                     const message = error instanceof Error ? error.message : 'unknown_error'
-                    logEvent('streak_recovery_blocked', {
+                    const blockedPayload = {
                       reason: message,
-                    })
+                      source: 'dashboard',
+                      scene: 'rescue',
+                    }
+                    logEvent('streak_recovery_blocked', blockedPayload)
+                    sendAIFeedback('streak_recovery_blocked', blockedPayload)
                     setErrorText(
                       isZh
                         ? '恢复失败，请刷新页面后重试。'

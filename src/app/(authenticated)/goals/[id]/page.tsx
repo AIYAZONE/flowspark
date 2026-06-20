@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { getTodayInTZ, getUserTimezone } from '@/lib/time'
+import { queryWithOwnershipFallback } from '@/lib/ownership'
 
 import { GoalDetailResponsiveLayout } from '@/components/GoalDetailResponsiveLayout'
 
@@ -40,24 +41,18 @@ export default async function GoalDetailPage({ params }: PageProps) {
     if (!user) return null
 
 	const goalEntriesPromise = (async (): Promise<RawGoalEntry[]> => {
-		const { data, error } = await supabase
-			.from('goal_entries')
-			.select('id, kind, status, content, note, created_at')
-			.eq('goal_id', id)
-			.eq('kind', 'journey')
-			.eq('owner_id', user.id)
-			.order('created_at', { ascending: false })
-
-		if (error && (error.code === '42703' || error.message?.includes('column'))) {
-			const { data: legacyData } = await supabase
+		const { data } = await queryWithOwnershipFallback({
+			primary: 'owner_id',
+			fallback: 'user_id',
+			fallbackOnEmpty: false,
+			execute: (ownershipColumn) => supabase
 				.from('goal_entries')
 				.select('id, kind, status, content, note, created_at')
 				.eq('goal_id', id)
 				.eq('kind', 'journey')
-				.eq('user_id', user.id)
+				.eq(ownershipColumn, user.id)
 				.order('created_at', { ascending: false })
-			return legacyData || []
-		}
+		})
 
 		return data || []
 	})()

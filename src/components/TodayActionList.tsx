@@ -57,7 +57,9 @@ export function TodayActionList({
   dict,
   tz,
   today,
-  showGoalTitle = true
+  showGoalTitle = true,
+  initialOpenActionId = null,
+  initialPanelMode = 'view',
 }: {
   actions: Action[]
   goals: { id: string, title: string }[]
@@ -65,6 +67,8 @@ export function TodayActionList({
   tz: string
   today: string
   showGoalTitle?: boolean
+  initialOpenActionId?: string | null
+  initialPanelMode?: 'view' | 'edit' | 'rescue'
 }) {
   const isZh = String(dict.common.locale || '').toLowerCase().startsWith('zh')
   const recentSectionLabel = isZh ? '刚创建' : 'New'
@@ -264,7 +268,17 @@ export function TodayActionList({
           <div className="text-base font-semibold">{recentSectionLabel}</div>
           <div className="grid gap-3">
             {focusModel.recent.map(action => (
-              <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} isNew />
+              <ActionItem
+                key={action.id}
+                action={action}
+                dict={dict}
+                showGoalTitle={showGoalTitle}
+                tz={tz}
+                goals={goals}
+                isNew
+                initialOpen={action.id === initialOpenActionId}
+                initialPanelMode={action.id === initialOpenActionId ? initialPanelMode : 'view'}
+              />
             ))}
           </div>
         </div>
@@ -287,7 +301,16 @@ export function TodayActionList({
         </div>
         <div className="grid gap-3">
           {(showAllMust ? focusModel.must : focusModel.must.slice(0, maxMust)).map(action => (
-            <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} />
+            <ActionItem
+              key={action.id}
+              action={action}
+              dict={dict}
+              showGoalTitle={showGoalTitle}
+              tz={tz}
+              goals={goals}
+              initialOpen={action.id === initialOpenActionId}
+              initialPanelMode={action.id === initialOpenActionId ? initialPanelMode : 'view'}
+            />
           ))}
           {focusModel.must.length === 0 ? (
             <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
@@ -315,7 +338,16 @@ export function TodayActionList({
           </div>
           <div className="grid gap-3">
             {(showAllOverdue ? focusModel.overdue : focusModel.overdue.slice(0, maxOverdue)).map(action => (
-              <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} />
+              <ActionItem
+                key={action.id}
+                action={action}
+                dict={dict}
+                showGoalTitle={showGoalTitle}
+                tz={tz}
+                goals={goals}
+                initialOpen={action.id === initialOpenActionId}
+                initialPanelMode={action.id === initialOpenActionId ? initialPanelMode : 'view'}
+              />
             ))}
           </div>
         </div>
@@ -353,7 +385,16 @@ export function TodayActionList({
                     <div className="px-3 pb-3">
                       <div className="grid gap-3">
                         {visible.map(action => (
-                          <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} />
+                          <ActionItem
+                            key={action.id}
+                            action={action}
+                            dict={dict}
+                            showGoalTitle={showGoalTitle}
+                            tz={tz}
+                            goals={goals}
+                            initialOpen={action.id === initialOpenActionId}
+                            initialPanelMode={action.id === initialOpenActionId ? initialPanelMode : 'view'}
+                          />
                         ))}
                       </div>
                       {canExpand ? (
@@ -395,7 +436,16 @@ export function TodayActionList({
             <div className="px-3 pb-3">
               <div className="grid gap-3">
                 {focusModel.completed.map(action => (
-                  <ActionItem key={action.id} action={action} dict={dict} showGoalTitle={showGoalTitle} tz={tz} goals={goals} />
+                  <ActionItem
+                    key={action.id}
+                    action={action}
+                    dict={dict}
+                    showGoalTitle={showGoalTitle}
+                    tz={tz}
+                    goals={goals}
+                    initialOpen={action.id === initialOpenActionId}
+                    initialPanelMode={action.id === initialOpenActionId ? initialPanelMode : 'view'}
+                  />
                 ))}
               </div>
             </div>

@@ -12,7 +12,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import type { TodayPlanOutput } from '@/lib/ai/phase2aSchemas'
-import type { TodayPlanApiResponse } from '@/lib/ai/types'
+import type { CoachDifficultyMode, CoachRiskLevel, TodayPlanApiResponse } from '@/lib/ai/types'
 import { logAIEvent, logEvent } from '@/lib/analytics'
 import { sendAIFeedback } from '@/lib/aiFeedback'
 import type { CommonErrorDictionary, DashboardPlanningDictionary } from '@/i18n/types'
@@ -111,6 +111,8 @@ export function AITodayPlanButton({
     strategyVersion?: string
     promptVersion?: string
     model?: string
+    difficultyMode?: CoachDifficultyMode
+    riskLevel?: CoachRiskLevel
   } | null>(null)
   const [selected, setSelected] = useState<{ recIndex: number; minutes: 5 | 10 | 20 } | null>(null)
 
@@ -194,6 +196,46 @@ export function AITodayPlanButton({
     return planning.aiPlanApplyBtn || 'Apply & Create'
   }
 
+  function getDifficultyCopy() {
+    const difficultyMode = aiMeta?.difficultyMode
+    const riskLevel = aiMeta?.riskLevel
+    if (!difficultyMode) return null
+
+    const modeLabel = difficultyMode === 'starter'
+      ? (locale === 'zh' ? '今天先保连续' : 'Recover mode')
+      : difficultyMode === 'push'
+        ? (locale === 'zh' ? '今天适合冲一下' : 'Push mode')
+        : (locale === 'zh' ? '今天适合稳定推进' : 'Maintain mode')
+
+    const body = difficultyMode === 'starter'
+      ? (
+        locale === 'zh'
+          ? '系统检测到今天更适合先做最小可完成版本，优先把节奏保住。'
+          : 'Today looks better for a minimum viable step first. Protect the rhythm before pushing harder.'
+      )
+      : difficultyMode === 'push'
+        ? (
+          locale === 'zh'
+            ? '当前状态允许适度加码，建议把注意力集中到一个更有推进感的动作。'
+            : 'Your current momentum supports a slightly more ambitious action with stronger progress.'
+        )
+        : (
+          locale === 'zh'
+            ? '当前更适合稳步推进，避免过轻或过重。'
+            : 'A steady step is the better fit right now, without going too light or too hard.'
+        )
+
+    const riskLabel = riskLevel
+      ? (
+        locale === 'zh'
+          ? `风险等级：${riskLevel === 'high' ? '高' : riskLevel === 'medium' ? '中' : '低'}`
+          : `Risk: ${riskLevel}`
+      )
+      : null
+
+    return { modeLabel, body, riskLabel }
+  }
+
   async function openAIPlan() {
     setAiOpen(true)
     setAiError(null)
@@ -204,8 +246,8 @@ export function AITodayPlanButton({
     setSelected(null)
     if (candidateGoals.length === 0) return
 
-    logEvent('ai_today_plan_click', { source, variant: ab1TodayPlanVariant })
-    sendAIFeedback('ai_today_plan_click', { source, variant: ab1TodayPlanVariant })
+    logEvent('ai_today_plan_click', { source, scene: 'today_plan', variant: ab1TodayPlanVariant })
+    sendAIFeedback('ai_today_plan_click', { source, scene: 'today_plan', variant: ab1TodayPlanVariant })
 
     setAiLoading(true)
     try {
@@ -233,6 +275,8 @@ export function AITodayPlanButton({
         strategyVersion: json.strategyVersion,
         promptVersion: json.promptVersion,
         model: json.model,
+        difficultyMode: json.difficultyMode,
+        riskLevel: json.riskLevel,
       })
       const preferredIndex = json.data.recommendations.findIndex(item => item.kind === 'core')
       setSelected({
@@ -240,6 +284,7 @@ export function AITodayPlanButton({
         minutes: 10,
       })
       logAIEvent('ai_today_plan_suggested', {
+        source,
         options: json.data.recommendations.length,
         variant: ab1TodayPlanVariant,
       }, {
@@ -250,6 +295,7 @@ export function AITodayPlanButton({
         model: json.model || null,
       })
       sendAIFeedback('ai_today_plan_suggested', {
+        source,
         options: json.data.recommendations.length,
         variant: ab1TodayPlanVariant,
         recommendation_id: json.recommendationId,
@@ -361,6 +407,7 @@ export function AITodayPlanButton({
       }).catch(() => {
       })
       logAIEvent('ai_today_plan_apply', {
+        source,
         option: optionSelected,
         goal_id: goalId,
         variant: ab1TodayPlanVariant,
@@ -375,6 +422,7 @@ export function AITodayPlanButton({
         source_action_id: sourceAction?.id || null,
       })
       sendAIFeedback('ai_today_plan_apply', {
+        source,
         option: optionSelected,
         goal_id: goalId,
         variant: ab1TodayPlanVariant,
@@ -442,6 +490,21 @@ export function AITodayPlanButton({
 
             {aiResult ? (
               <div className="space-y-3 md:space-y-4">
+                {getDifficultyCopy() ? (
+                  <div className="rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex rounded-full border border-primary/15 bg-background/80 px-3 py-1 text-xs font-medium text-primary">
+                        {getDifficultyCopy()?.modeLabel}
+                      </span>
+                      {getDifficultyCopy()?.riskLabel ? (
+                        <span className="text-xs text-muted-foreground">{getDifficultyCopy()?.riskLabel}</span>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      {getDifficultyCopy()?.body}
+                    </div>
+                  </div>
+                ) : null}
                 <div className="rounded-2xl border border-dashed border-border/60 bg-muted/8 px-4 py-3 text-sm text-muted-foreground">
                   <div className="inline-flex items-start gap-2 font-medium text-foreground">
                     <Clock3 className="mt-0.5 h-4 w-4 shrink-0" />

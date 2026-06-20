@@ -10,6 +10,7 @@ import {
   serializeActionRecurrenceDescription,
   type ActionRecurrenceParams,
 } from '@/lib/actionRecurrence'
+import { queryWithOwnershipFallback } from '@/lib/ownership'
 
 type ActionRow = {
   id: string
@@ -82,28 +83,17 @@ export async function ensureUpcomingRecurringActions(params: {
 }) {
   const { supabase, userId, today } = params
 
-  let { data: actions } = await supabase
-    .from('actions')
-    .select('id,goal_id,title,description,type,priority,start_date,user_id,owner_id')
-    .eq('user_id', userId)
-    .eq('completed', false)
-    .lt('start_date', today)
-    .ilike('description', `%${RECURRENCE_MARKER_START}%`)
-    .order('start_date', { ascending: false })
-    .limit(200)
-
-  if (!actions || actions.length === 0) {
-    const fallback = await supabase
+  const { data: actions } = await queryWithOwnershipFallback({
+    execute: (ownershipColumn) => supabase
       .from('actions')
       .select('id,goal_id,title,description,type,priority,start_date,user_id,owner_id')
-      .eq('owner_id', userId)
+      .eq(ownershipColumn, userId)
       .eq('completed', false)
       .lt('start_date', today)
       .ilike('description', `%${RECURRENCE_MARKER_START}%`)
       .order('start_date', { ascending: false })
       .limit(200)
-    actions = fallback.data
-  }
+  })
 
   const seriesMap = new Map<string, ActionRow>()
   for (const row of (actions || []) as ActionRow[]) {
@@ -126,26 +116,16 @@ export async function ensureUpcomingRecurringActions(params: {
     const nextRange = getUpcomingRecurringDate({ today, recurrence, ruleParams })
     const nextDate = nextRange.startDate
 
-    let { data: existing } = await supabase
-      .from('actions')
-      .select('id')
-      .eq('goal_id', template.goal_id)
-      .eq('title', template.title)
-      .eq('start_date', nextDate)
-      .eq('user_id', userId)
-      .maybeSingle()
-
-    if (!existing) {
-      const fallbackExisting = await supabase
+    const { data: existing } = await queryWithOwnershipFallback({
+      execute: (ownershipColumn) => supabase
         .from('actions')
         .select('id')
         .eq('goal_id', template.goal_id)
         .eq('title', template.title)
         .eq('start_date', nextDate)
-        .eq('owner_id', userId)
+        .eq(ownershipColumn, userId)
         .maybeSingle()
-      existing = fallbackExisting.data
-    }
+    })
     if (existing?.id) continue
 
     const normalizedDescription = serializeActionRecurrenceDescription(template.description || '', recurrence, ruleParams)
@@ -182,22 +162,14 @@ export async function ensureUpcomingRecurringActions(params: {
     }
     if (inserted.error || !inserted.data?.id) throw new Error('operation_failed')
 
-    let { data: subItems } = await supabase
-      .from('action_sub_items')
-      .select('title,sort_order')
-      .eq('action_id', template.id)
-      .eq('user_id', userId)
-      .order('sort_order', { ascending: true })
-
-    if (!subItems || subItems.length === 0) {
-      const fallbackSubItems = await supabase
+    const { data: subItems } = await queryWithOwnershipFallback({
+      execute: (ownershipColumn) => supabase
         .from('action_sub_items')
         .select('title,sort_order')
         .eq('action_id', template.id)
-        .eq('owner_id', userId)
+        .eq(ownershipColumn, userId)
         .order('sort_order', { ascending: true })
-      subItems = fallbackSubItems.data
-    }
+    })
 
     await insertActionSubItemsWithFallback({
       supabase,
@@ -209,4 +181,3 @@ export async function ensureUpcomingRecurringActions(params: {
     })
   }
 }
-

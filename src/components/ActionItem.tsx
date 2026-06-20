@@ -54,6 +54,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toggleActionWithReward } from '@/app/(authenticated)/dashboard/actions'
+import { RewardLootBoxDialog } from '@/components/RewardLootBoxDialog'
 import { deleteAction, toggleActionSubItem } from '@/app/(authenticated)/goals/actions'
 import type { Dictionary, TodayDictionary } from '@/i18n/types'
 import { ActionSubItemsSection } from '@/components/ActionSubItemsSection'
@@ -61,6 +62,7 @@ import { RichTextContentView } from '@/components/RichTextContentView'
 import { pushStreakFeedback } from '@/components/StreakFeedbackBanner'
 import { pushXpFeedback } from '@/components/XpFeedbackToast'
 import { buildStreakFeedback } from '@/lib/streak-feedback'
+import type { RewardResult } from '@/lib/rewards'
 import {
     parseActionRecurrenceDescription,
     type ActionRecurrenceRule,
@@ -138,6 +140,8 @@ interface ActionItemProps {
     tz?: string
     goals?: { id: string, title: string }[]
     isNew?: boolean
+    initialOpen?: boolean
+    initialPanelMode?: 'view' | 'edit' | 'rescue'
 }
 
 type EditSubItemDraft = {
@@ -146,7 +150,16 @@ type EditSubItemDraft = {
     completed: boolean
 }
 
-export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Shanghai', goals = [], isNew = false }: ActionItemProps) {
+export function ActionItem({
+    action,
+    dict,
+    showGoalTitle = false,
+    tz = 'Asia/Shanghai',
+    goals = [],
+    isNew = false,
+    initialOpen = false,
+    initialPanelMode = 'view'
+}: ActionItemProps) {
     const recurrenceMeta = parseActionRecurrenceDescription(action.description || '')
     const todayText: TodayDictionary = dict.today
     const isLoading = false
@@ -160,6 +173,9 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
     const [subItemsOpen, setSubItemsOpen] = useState(false)
     const [subItemBusyId, setSubItemBusyId] = useState<string | null>(null)
     const [togglePending, startToggle] = useTransition()
+    const [hasAutoOpened, setHasAutoOpened] = useState(false)
+    const [rewardOpen, setRewardOpen] = useState(false)
+    const [reward, setReward] = useState<RewardResult | null>(null)
 
     const hasDetails = true
     const subItems = [...(action.action_sub_items || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
@@ -177,6 +193,23 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
         media.addListener(sync)
         return () => media.removeListener(sync)
     }, [])
+
+    useEffect(() => {
+        if (!initialOpen || hasAutoOpened) return
+        setHasAutoOpened(true)
+
+        if (initialPanelMode === 'edit') {
+            void openEditPanel()
+            return
+        }
+
+        if (initialPanelMode === 'rescue') {
+            void openRescuePanel()
+            return
+        }
+
+        void openDetails()
+    }, [hasAutoOpened, initialOpen, initialPanelMode])
 
     async function handleDelete() {
         setIsDeleting(true)
@@ -302,6 +335,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
             "group relative overflow-hidden rounded-xl border border-border/40 bg-card transition-all duration-300 md:hover:shadow-sm md:hover:border-primary/20 md:hover:bg-muted/10",
             isNew && "border-primary/40 bg-primary/4"
         )}>
+            <RewardLootBoxDialog open={rewardOpen} onOpenChange={setRewardOpen} reward={reward} dict={dict} />
             <div className="relative z-10 flex flex-col bg-card p-4">
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -317,6 +351,7 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                             formData.append('id', action.id)
                                             formData.append('completed', action.completed ? 'true' : 'false')
                                             const result = await toggleActionWithReward(formData) as unknown as {
+                                                reward?: RewardResult | null
                                                 xpEarned?: number | null
                                                 streak?: {
                                                     currentStreak?: number
@@ -328,6 +363,10 @@ export function ActionItem({ action, dict, showGoalTitle = false, tz = 'Asia/Sha
                                             }
                                             if (!action.completed && typeof result?.xpEarned === 'number') {
                                                 pushXpFeedback({ amount: result.xpEarned })
+                                            }
+                                            if (!action.completed && result?.reward) {
+                                                setReward(result.reward)
+                                                setRewardOpen(true)
                                             }
                                             if (
                                                 !action.completed &&

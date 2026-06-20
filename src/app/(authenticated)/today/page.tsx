@@ -7,13 +7,19 @@ import { TodayActionList } from '@/components/TodayActionList'
 import { StreakFeedbackBanner } from '@/components/StreakFeedbackBanner'
 import { isEnvEnabled } from '@/lib/experiments'
 import { getStreakSnapshot } from '@/lib/streaks'
+import { queryWithOwnershipFallback } from '@/lib/ownership'
 import { ensureUpcomingRecurringActions } from '@/app/(authenticated)/dashboard/recurring'
 import { ExperimentExposureTracker } from '@/components/ExperimentExposureTracker'
 import { getExperimentDecision } from '@/lib/featureFlags'
+import { TrackedEventLink } from '@/components/TrackedEventLink'
+import { RescueEntryTracker } from '@/components/RescueEntryTracker'
 
-export default async function TodayPage() {
+export default async function TodayPage(props: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
+}) {
   const supabase = await createClient()
   const dict = await getDictionary()
+  const searchParams = await props.searchParams
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
   const ownerId = user.id
@@ -31,24 +37,15 @@ export default async function TodayPage() {
   const ab1TodayPlanVariant = ab1TodayPlanDecision.variant
   const showAIPlan = todayPlanEnabled && (!ab1TodayPlanEnabled || ab1TodayPlanVariant === 'B')
 
-  // Get active goals for the dropdown
-  let { data: activeGoals } = await supabase
-    .from('goals')
-    .select('id, title, priority, start_date, end_date, success_criteria, stop_criteria')
-    .eq('user_id', ownerId)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-
-  // owner_id fallback for mixed-schema data
-  if (!activeGoals || activeGoals.length === 0) {
-    const fallbackGoals = await supabase
+  // Get active goals for the dropdown with mixed-schema ownership fallback.
+  const { data: activeGoals } = await queryWithOwnershipFallback({
+    execute: (ownershipColumn) => supabase
       .from('goals')
       .select('id, title, priority, start_date, end_date, success_criteria, stop_criteria')
-      .eq('owner_id', ownerId)
+      .eq(ownershipColumn, ownerId)
       .eq('status', 'active')
       .order('created_at', { ascending: false })
-    activeGoals = fallbackGoals.data
-  }
+  })
 
   const tz = await getUserTimezone(supabase, user.id)
   // Get today's actions by timezone
@@ -67,30 +64,8 @@ export default async function TodayPage() {
     `and(end_date.is.null,start_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
   ].join(',')
 
-  let { data: rawActions } = await supabase
-    .from('actions')
-    .select(`
-      *,
-      action_sub_items (
-        id,
-        title,
-        completed,
-        sort_order
-      ),
-      goals (
-        id,
-        title,
-        status
-      )
-    `)
-    .eq('user_id', ownerId)
-    .or(datePredicate)
-    .order('completed', { ascending: true })
-    .order('priority', { ascending: false })
-
-  // owner_id fallback for mixed-schema data
-  if (!rawActions || rawActions.length === 0) {
-    const fallbackActions = await supabase
+  const { data: rawActions } = await queryWithOwnershipFallback({
+    execute: (ownershipColumn) => supabase
       .from('actions')
       .select(`
         *,
@@ -106,12 +81,11 @@ export default async function TodayPage() {
           status
         )
       `)
-      .eq('owner_id', ownerId)
+      .eq(ownershipColumn, ownerId)
       .or(datePredicate)
       .order('completed', { ascending: true })
       .order('priority', { ascending: false })
-    rawActions = fallbackActions.data
-  }
+  })
 
   // Filter actions in JS to accurately handle timezone "today"
   const actions = rawActions?.filter(action => {
@@ -156,6 +130,9 @@ export default async function TodayPage() {
   })
   const hasCompletedToday = streakSnapshot.completedDates.includes(today)
   const showStreakRiskBanner = !hasCompletedToday && (streakSnapshot.currentStreak > 0 || Boolean(streakSnapshot.recoverableMissDate))
+  const rescueAction = (actions || []).find(action => !action.completed && action.type === 'core') || null
+  const rescueActionIdParam = Array.isArray(searchParams?.rescue) ? searchParams?.rescue[0] : searchParams?.rescue
+  const initialOpenActionId = typeof rescueActionIdParam === 'string' && rescueActionIdParam.trim() ? rescueActionIdParam.trim() : null
   const streakBannerTitle = streakSnapshot.recoverableMissDate
     ? (dict.common.locale.startsWith('zh') ? '先恢复昨天，再完成今天' : 'Recover yesterday, then finish today')
     : (dict.common.locale.startsWith('zh') ? '先做 5 分钟版本，保住连续性' : 'Start with a 5-minute version to protect your streak')
@@ -171,6 +148,10 @@ export default async function TodayPage() {
     : (dict.common.locale.startsWith('zh')
       ? `你当前已经连续 ${streakSnapshot.currentStreak} 天，今天优先完成一个最小行动即可继续保持。`
       : `You are on a ${streakSnapshot.currentStreak}-day streak. Finish one minimum action today to keep it going.`)
+  const rescueHref = rescueAction ? `/today?rescue=${rescueAction.id}#today-actions` : '#today-actions'
+  const rescueCtaLabel = dict.common.locale.startsWith('zh')
+    ? (rescueAction ? '打开 5 分钟救援' : '去做最小行动')
+    : (rescueAction ? 'Open 5-min rescue' : 'Do a minimum action')
 
   return (
     <div className="space-y-6">
@@ -182,6 +163,13 @@ export default async function TodayPage() {
         showStreakRiskBanner={showStreakRiskBanner}
         dateBucket={today}
       />
+      {initialOpenActionId ? (
+        <RescueEntryTracker
+          actionId={initialOpenActionId}
+          source="today"
+          entry="streak_banner"
+        />
+      ) : null}
       <StreakFeedbackBanner dict={dict} />
       <div className="flex items-center justify-between">
         <div>
@@ -212,18 +200,25 @@ export default async function TodayPage() {
                     {dict.common.locale.startsWith('zh') ? '去恢复' : 'Go recover'}
                   </a>
                 ) : null}
-                <a
-                  href="#today-actions"
+                <TrackedEventLink
+                  href={rescueHref}
+                  eventName="ai_rescue_click"
+                  payload={{
+                    source: 'today',
+                    scene: 'rescue',
+                    entry: 'streak_banner',
+                    target_action_id: rescueAction?.id || null,
+                  }}
                   className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-2 text-xs font-medium text-primary-foreground hover:bg-primary/90"
                 >
-                  {dict.common.locale.startsWith('zh') ? '去做最小行动' : 'Do a minimum action'}
-                </a>
+                  {rescueCtaLabel}
+                </TrackedEventLink>
               </div>
             </div>
           </div>
         ) : null}
         {showAIPlan ? (
-          <div className="rounded-xl border border-dashed bg-card/60 p-4 sm:p-5">
+          <div id="today-ai-plan" className="rounded-xl border border-dashed bg-card/60 p-4 sm:p-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">
                 <div className="text-sm font-medium">
@@ -253,6 +248,8 @@ export default async function TodayPage() {
             tz={tz}
             today={today}
             goals={activeGoals || []}
+            initialOpenActionId={initialOpenActionId}
+            initialPanelMode={initialOpenActionId ? 'rescue' : 'view'}
           />
         </div>
       </div>

@@ -46,6 +46,50 @@ export type AIRecommendationDetailRow = AIRecentRecommendationRow & {
   strategy_summary: unknown
 }
 
+export type AIFunnelDailyRow = {
+  user_id: string
+  event_date: string
+  scene: string
+  variant: string
+  source: string
+  dashboard_view_count: number
+  today_view_count: number
+  today_plan_exposed_count: number
+  today_plan_click_count: number
+  today_plan_suggested_count: number
+  today_plan_apply_count: number
+  rescue_click_count: number
+  rescue_apply_count: number
+  review_exposed_count: number
+  review_click_count: number
+  review_generated_count: number
+  streak_risk_banner_exposed_count: number
+  returned_next_day: boolean
+}
+
+export type AIFunnelOverviewRow = {
+  page_view_days: number
+  today_plan_exposed_user_days: number
+  today_plan_apply_user_days: number
+  review_exposed_user_days: number
+  rescue_click_user_days: number
+  returned_next_day_user_days: number
+  today_plan_exposure_rate: number
+  today_plan_apply_rate: number
+  returned_next_day_rate: number
+}
+
+export type AIFunnelBreakdownRow = {
+  source: string
+  scene: string
+  variant: string
+  today_plan_exposed_user_days: number
+  today_plan_apply_user_days: number
+  review_exposed_user_days: number
+  rescue_click_user_days: number
+  returned_next_day_user_days: number
+}
+
 type RecommendationDetailRecord = Record<string, unknown> & {
   ai_recommendation_outcomes?: unknown
   quality_labels?: unknown
@@ -150,6 +194,153 @@ function mapRecentRow(row: Record<string, unknown>): AIRecentRecommendationRow {
     feedback_label: typeof row.feedback_label === 'string' ? row.feedback_label : null,
     created_at: String(row.created_at || ''),
   }
+}
+
+function mapFunnelDailyRow(row: Record<string, unknown>): AIFunnelDailyRow {
+  return {
+    user_id: String(row.user_id || ''),
+    event_date: String(row.event_date || ''),
+    scene: typeof row.scene === 'string' && row.scene ? row.scene : 'unknown',
+    variant: typeof row.variant === 'string' && row.variant ? row.variant : '-',
+    source: typeof row.source === 'string' && row.source ? row.source : 'unknown',
+    dashboard_view_count: toNumber(row.dashboard_view_count),
+    today_view_count: toNumber(row.today_view_count),
+    today_plan_exposed_count: toNumber(row.today_plan_exposed_count),
+    today_plan_click_count: toNumber(row.today_plan_click_count),
+    today_plan_suggested_count: toNumber(row.today_plan_suggested_count),
+    today_plan_apply_count: toNumber(row.today_plan_apply_count),
+    rescue_click_count: toNumber(row.rescue_click_count),
+    rescue_apply_count: toNumber(row.rescue_apply_count),
+    review_exposed_count: toNumber(row.review_exposed_count),
+    review_click_count: toNumber(row.review_click_count),
+    review_generated_count: toNumber(row.review_generated_count),
+    streak_risk_banner_exposed_count: toNumber(row.streak_risk_banner_exposed_count),
+    returned_next_day: Boolean(row.returned_next_day),
+  }
+}
+
+function buildFunnelUserDayKey(row: Pick<AIFunnelDailyRow, 'user_id' | 'event_date'>) {
+  return `${row.user_id}:${row.event_date}`
+}
+
+function hasFunnelChainSignal(row: AIFunnelDailyRow) {
+  return (
+    row.today_plan_exposed_count > 0 ||
+    row.today_plan_apply_count > 0 ||
+    row.review_exposed_count > 0 ||
+    row.rescue_click_count > 0
+  )
+}
+
+export function buildAIFunnelOverview(rows: AIFunnelDailyRow[]): AIFunnelOverviewRow {
+  const userDayMap = new Map<string, AIFunnelOverviewRow>()
+
+  for (const row of rows) {
+    const key = buildFunnelUserDayKey(row)
+    const current = userDayMap.get(key) || {
+      page_view_days: 1,
+      today_plan_exposed_user_days: 0,
+      today_plan_apply_user_days: 0,
+      review_exposed_user_days: 0,
+      rescue_click_user_days: 0,
+      returned_next_day_user_days: 0,
+      today_plan_exposure_rate: 0,
+      today_plan_apply_rate: 0,
+      returned_next_day_rate: 0,
+    }
+
+    if (row.today_plan_exposed_count > 0) current.today_plan_exposed_user_days = 1
+    if (row.today_plan_apply_count > 0) current.today_plan_apply_user_days = 1
+    if (row.review_exposed_count > 0) current.review_exposed_user_days = 1
+    if (row.rescue_click_count > 0) current.rescue_click_user_days = 1
+    if (row.returned_next_day) current.returned_next_day_user_days = 1
+    userDayMap.set(key, current)
+  }
+
+  const totals = [...userDayMap.values()].reduce<AIFunnelOverviewRow>((acc, row) => ({
+    page_view_days: acc.page_view_days + row.page_view_days,
+    today_plan_exposed_user_days: acc.today_plan_exposed_user_days + row.today_plan_exposed_user_days,
+    today_plan_apply_user_days: acc.today_plan_apply_user_days + row.today_plan_apply_user_days,
+    review_exposed_user_days: acc.review_exposed_user_days + row.review_exposed_user_days,
+    rescue_click_user_days: acc.rescue_click_user_days + row.rescue_click_user_days,
+    returned_next_day_user_days: acc.returned_next_day_user_days + row.returned_next_day_user_days,
+    today_plan_exposure_rate: 0,
+    today_plan_apply_rate: 0,
+    returned_next_day_rate: 0,
+  }), {
+    page_view_days: 0,
+    today_plan_exposed_user_days: 0,
+    today_plan_apply_user_days: 0,
+    review_exposed_user_days: 0,
+    rescue_click_user_days: 0,
+    returned_next_day_user_days: 0,
+    today_plan_exposure_rate: 0,
+    today_plan_apply_rate: 0,
+    returned_next_day_rate: 0,
+  })
+
+  return {
+    ...totals,
+    today_plan_exposure_rate:
+      totals.page_view_days > 0 ? totals.today_plan_exposed_user_days / totals.page_view_days : 0,
+    today_plan_apply_rate:
+      totals.today_plan_exposed_user_days > 0 ? totals.today_plan_apply_user_days / totals.today_plan_exposed_user_days : 0,
+    returned_next_day_rate:
+      totals.page_view_days > 0 ? totals.returned_next_day_user_days / totals.page_view_days : 0,
+  }
+}
+
+export function buildAIFunnelBreakdown(rows: AIFunnelDailyRow[]): AIFunnelBreakdownRow[] {
+  const grouped = new Map<string, AIFunnelBreakdownRow>()
+
+  for (const row of rows) {
+    if (!hasFunnelChainSignal(row)) continue
+    const breakdownKey = `${row.source}:${row.scene}:${row.variant}`
+    const userDayKey = `${breakdownKey}:${buildFunnelUserDayKey(row)}`
+    const current = grouped.get(userDayKey) || {
+      source: row.source,
+      scene: row.scene,
+      variant: row.variant,
+      today_plan_exposed_user_days: 0,
+      today_plan_apply_user_days: 0,
+      review_exposed_user_days: 0,
+      rescue_click_user_days: 0,
+      returned_next_day_user_days: 0,
+    }
+    if (row.today_plan_exposed_count > 0) current.today_plan_exposed_user_days = 1
+    if (row.today_plan_apply_count > 0) current.today_plan_apply_user_days = 1
+    if (row.review_exposed_count > 0) current.review_exposed_user_days = 1
+    if (row.rescue_click_count > 0) current.rescue_click_user_days = 1
+    if (row.returned_next_day) current.returned_next_day_user_days = 1
+    grouped.set(userDayKey, current)
+  }
+
+  const deduped = [...grouped.values()]
+  const merged = new Map<string, AIFunnelBreakdownRow>()
+  for (const row of deduped) {
+    const key = `${row.source}:${row.scene}:${row.variant}`
+    const current = merged.get(key) || {
+      source: row.source,
+      scene: row.scene,
+      variant: row.variant,
+      today_plan_exposed_user_days: 0,
+      today_plan_apply_user_days: 0,
+      review_exposed_user_days: 0,
+      rescue_click_user_days: 0,
+      returned_next_day_user_days: 0,
+    }
+    current.today_plan_exposed_user_days += row.today_plan_exposed_user_days
+    current.today_plan_apply_user_days += row.today_plan_apply_user_days
+    current.review_exposed_user_days += row.review_exposed_user_days
+    current.rescue_click_user_days += row.rescue_click_user_days
+    current.returned_next_day_user_days += row.returned_next_day_user_days
+    merged.set(key, current)
+  }
+
+  return [...merged.values()].sort((a, b) =>
+    (b.today_plan_exposed_user_days + b.review_exposed_user_days + b.rescue_click_user_days) -
+    (a.today_plan_exposed_user_days + a.review_exposed_user_days + a.rescue_click_user_days)
+  )
 }
 
 export async function getRecentRecommendations(params: {
@@ -401,4 +592,58 @@ export async function getAISceneDetail(params: {
     modelMetrics,
     recentRecommendations,
   }
+}
+
+export async function getAIFunnelDailyRows(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  options?: MetricsQueryOptions & { source?: string }
+}): Promise<AIFunnelDailyRow[]> {
+  const { supabase, userId, options } = params
+  let query = supabase
+    .from('ai_funnel_daily')
+    .select('*')
+    .eq('user_id', userId)
+    .order('event_date', { ascending: false })
+    .limit(1000)
+
+  if (typeof options?.days === 'number' && options.days > 0) {
+    query = query.gte('event_date', isoDaysAgo(options.days).slice(0, 10))
+  }
+  if (options?.scene) {
+    query = query.eq('scene', options.scene)
+  }
+  if (options?.source) {
+    query = query.eq('source', options.source)
+  }
+
+  const { data, error } = await query
+
+  if (!error && data) {
+    return (data as Record<string, unknown>[]).map(mapFunnelDailyRow)
+  }
+
+  if (error && !isMissingRelationError(error.message) && !isMissingColumnError(error)) {
+    throw error
+  }
+
+  return []
+}
+
+export async function getAIFunnelOverview(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  options?: MetricsQueryOptions
+}): Promise<AIFunnelOverviewRow> {
+  const rows = await getAIFunnelDailyRows(params)
+  return buildAIFunnelOverview(rows)
+}
+
+export async function getAIFunnelBreakdown(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  options?: MetricsQueryOptions & { source?: string }
+}): Promise<AIFunnelBreakdownRow[]> {
+  const rows = await getAIFunnelDailyRows(params)
+  return buildAIFunnelBreakdown(rows)
 }

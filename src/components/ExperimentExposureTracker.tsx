@@ -15,6 +15,7 @@ export function ExperimentExposureTracker(props: {
 }) {
   useEffect(() => {
     const pageViewPayload = {
+      source: props.source,
       show_ai_plan: props.showAIPlan ?? null,
       show_ai_review: props.showAIReview ?? null,
       show_streak_risk_banner: props.showStreakRiskBanner ?? null,
@@ -27,6 +28,7 @@ export function ExperimentExposureTracker(props: {
 
     if (props.source === 'dashboard' && props.showAIPlan) {
       const planExposurePayload = {
+        scene: 'today_plan',
         source: props.source,
         variant: props.ab1TodayPlanVariant ?? null,
         date_bucket: props.dateBucket ?? null,
@@ -37,6 +39,7 @@ export function ExperimentExposureTracker(props: {
 
     if (props.source === 'dashboard' && props.showAIReview) {
       const reviewExposurePayload = {
+        scene: 'review',
         source: props.source,
         variant: props.ab2ReviewVariant ?? null,
         date_bucket: props.dateBucket ?? null,
@@ -47,6 +50,7 @@ export function ExperimentExposureTracker(props: {
 
     if (props.showStreakRiskBanner) {
       const streakExposurePayload = {
+        scene: 'rescue',
         source: props.source,
         date_bucket: props.dateBucket ?? null,
       }

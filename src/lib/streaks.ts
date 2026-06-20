@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { subDays } from 'date-fns'
+import { queryWithOwnershipFallback } from '@/lib/ownership'
 
 export type ShieldGrantRule = 'first_3_day' | 'refill_7_day'
 
@@ -167,23 +168,16 @@ async function selectCompletedActions(params: {
   sinceIso: string
 }) {
   const { supabase, userId, sinceIso } = params
-  const { data } = await supabase
-    .from('actions')
-    .select('updated_at')
-    .eq('user_id', userId)
-    .eq('completed', true)
-    .gte('updated_at', sinceIso)
+  const { data } = await queryWithOwnershipFallback({
+    execute: (ownershipColumn) => supabase
+      .from('actions')
+      .select('updated_at')
+      .eq(ownershipColumn, userId)
+      .eq('completed', true)
+      .gte('updated_at', sinceIso),
+  })
 
-  if (data && data.length > 0) return data
-
-  const fallback = await supabase
-    .from('actions')
-    .select('updated_at')
-    .eq('owner_id', userId)
-    .eq('completed', true)
-    .gte('updated_at', sinceIso)
-
-  return fallback.data ?? []
+  return data ?? []
 }
 
 export async function listCompletedActionDates(params: {

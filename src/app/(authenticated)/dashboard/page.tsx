@@ -21,6 +21,7 @@ import { getOrCreateWeeklyInsight } from '@/lib/ai/insightStore'
 import { getStreakSnapshot } from '@/lib/streaks'
 import { DAILY_QUOTE_CANDIDATE_COUNT, getDailyQuoteCandidates, QUOTE_TIME_ZONE } from '@/lib/daily-quote'
 import { getExperimentDecision } from '@/lib/featureFlags'
+import { queryWithOwnershipFallback } from '@/lib/ownership'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -91,33 +92,37 @@ export default async function DashboardPage() {
     .maybeSingle()
 
   // Fetch today's core action
-  const { data: rawActions } = await supabase
-    .from('actions')
-    .select(`
-      *,
-      goals (
-        status
+  const { data: rawActions } = await queryWithOwnershipFallback({
+    execute: (ownershipColumn) => supabase
+      .from('actions')
+      .select(`
+        *,
+        goals (
+          status
+        )
+      `)
+      .eq('type', 'core')
+      .eq(ownershipColumn, user.id)
+      .or(
+        [
+          `and(start_date.lte.${today},end_date.gte.${today})`,
+          `and(end_date.lt.${today},completed.eq.false)`,
+          `and(end_date.is.null,start_date.lt.${today},completed.eq.false)`,
+          `and(end_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
+          `and(end_date.is.null,start_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
+        ].join(',')
       )
-    `)
-    .eq('type', 'core')
-    .eq('user_id', user.id)
-    .or(
-      [
-        `and(start_date.lte.${today},end_date.gte.${today})`,
-        `and(end_date.lt.${today},completed.eq.false)`,
-        `and(end_date.is.null,start_date.lt.${today},completed.eq.false)`,
-        `and(end_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
-        `and(end_date.is.null,start_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
-      ].join(',')
-    )
-    .order('completed', { ascending: true })
-    .order('start_date', { ascending: true })
+      .order('completed', { ascending: true })
+      .order('start_date', { ascending: true }),
+  })
 
-  const { data: archivedGoals } = await supabase
-    .from('goals')
-    .select('id')
-    .eq('user_id', user.id)
-    .eq('status', 'archived')
+  const { data: archivedGoals } = await queryWithOwnershipFallback({
+    execute: (ownershipColumn) => supabase
+      .from('goals')
+      .select('id')
+      .eq(ownershipColumn, user.id)
+      .eq('status', 'archived'),
+  })
 
   const archivedGoalIdSet = new Set((archivedGoals || []).map(g => g.id))
 
@@ -125,12 +130,14 @@ export default async function DashboardPage() {
   const oneYearAgo = new Date()
   oneYearAgo.setDate(oneYearAgo.getDate() - 365)
 
-  const { data: completedActions } = await supabase
-    .from('actions')
-    .select('updated_at')
-    .eq('user_id', user.id)
-    .eq('completed', true)
-    .gte('updated_at', oneYearAgo.toISOString())
+  const { data: completedActions } = await queryWithOwnershipFallback({
+    execute: (ownershipColumn) => supabase
+      .from('actions')
+      .select('updated_at')
+      .eq(ownershipColumn, user.id)
+      .eq('completed', true)
+      .gte('updated_at', oneYearAgo.toISOString()),
+  })
 
   // Prepare Heatmap Data
   const heatmapData = completedActions?.reduce((acc, curr) => {
@@ -146,10 +153,12 @@ export default async function DashboardPage() {
   }, [] as { date: string; count: number }[]) || []
 
   // Fetch actions type distribution
-  const { data: actionsType } = await supabase
-    .from('actions')
-    .select('type')
-    .eq('user_id', user.id)
+  const { data: actionsType } = await queryWithOwnershipFallback({
+    execute: (ownershipColumn) => supabase
+      .from('actions')
+      .select('type')
+      .eq(ownershipColumn, user.id),
+  })
 
   const typeCount = actionsType?.reduce((acc, curr) => {
     const type = curr.type || 'other'
@@ -193,39 +202,40 @@ export default async function DashboardPage() {
   }) || [];
 
   // Fetch daily score
-  let { data: scores } = await supabase
-    .from('daily_scores')
-    .select('score')
-    .eq('score_date', today)
-    .eq('owner_id', user.id)
-    .maybeSingle()
-
-  if (!scores) {
-    const fallback = await supabase
+  const { data: scores } = await queryWithOwnershipFallback({
+    primary: 'owner_id',
+    fallback: 'user_id',
+    execute: (ownershipColumn) => supabase
       .from('daily_scores')
       .select('score')
+      .eq(ownershipColumn, user.id)
       .eq('score_date', today)
-      .eq('user_id', user.id)
       .maybeSingle()
-    scores = fallback.data ?? null
-  }
+  })
 
   const dailyScore = scores?.score
 
   // Fetch yesterday score for planning card
-  const { data: yesterdayScores } = await supabase
-    .from('daily_scores')
-    .select('score')
-    .eq('score_date', yesterday)
-    .eq('owner_id', user.id)
-    .maybeSingle()
+  const { data: yesterdayScores } = await queryWithOwnershipFallback({
+    primary: 'owner_id',
+    fallback: 'user_id',
+    execute: (ownershipColumn) => supabase
+      .from('daily_scores')
+      .select('score')
+      .eq(ownershipColumn, user.id)
+      .eq('score_date', yesterday)
+      .maybeSingle(),
+    fallbackOnEmpty: false,
+  })
 
   // Fetch active goals WITH actions count
-  const { data: goalsData } = await supabase
-    .from('goals')
-    .select('id, title, status, priority, start_date, end_date, success_criteria, stop_criteria, actions(id, completed)')
-    .eq('status', 'active')
-    .eq('user_id', user.id)
+  const { data: goalsData } = await queryWithOwnershipFallback({
+    execute: (ownershipColumn) => supabase
+      .from('goals')
+      .select('id, title, status, priority, start_date, end_date, success_criteria, stop_criteria, actions(id, completed)')
+      .eq('status', 'active')
+      .eq(ownershipColumn, user.id),
+  })
 
   const activeGoalsCount = goalsData?.length || 0
 
@@ -274,22 +284,16 @@ export default async function DashboardPage() {
     }) || []
 
   // Fetch recent scores for trend and streak
-  let { data: recentScores } = await supabase
-    .from('daily_scores')
-    .select('score_date, score')
-    .eq('owner_id', user.id)
-    .order('score_date', { ascending: false })
-    .limit(30)
-
-  if (!recentScores || recentScores.length === 0) {
-    const fallbackRecent = await supabase
+  const { data: recentScores } = await queryWithOwnershipFallback({
+    primary: 'owner_id',
+    fallback: 'user_id',
+    execute: (ownershipColumn) => supabase
       .from('daily_scores')
       .select('score_date, score')
-      .eq('user_id', user.id)
+      .eq(ownershipColumn, user.id)
       .order('score_date', { ascending: false })
       .limit(30)
-    recentScores = fallbackRecent.data ?? []
-  }
+  })
 
   const streakSnapshot = await getStreakSnapshot({
     supabase,
@@ -298,6 +302,8 @@ export default async function DashboardPage() {
     today,
   })
   const streak = streakSnapshot.currentStreak
+  const continuityPriorityAction = actions.find(action => !action.completed && action.type === 'core') || null
+  const showContinuityPriority = !streakSnapshot.completedToday && Boolean(continuityPriorityAction)
 
   const chartData = recentScores?.map(s => ({ date: s.score_date, score: s.score })) || []
 
@@ -399,6 +405,12 @@ export default async function DashboardPage() {
                 totalActions={actions.length}
                 completedActions={actions.filter(a => a.completed).length}
                 nextActionTitle={actions.find(a => !a.completed)?.title}
+                locale={locale}
+                continuityPriority={{
+                  enabled: showContinuityPriority,
+                  href: continuityPriorityAction ? `/today?rescue=${continuityPriorityAction.id}#today-actions` : '/today',
+                  actionTitle: continuityPriorityAction?.title,
+                }}
                 className="h-full"
               />
             )}
