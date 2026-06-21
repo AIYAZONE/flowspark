@@ -3,7 +3,7 @@
 import { useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Sparkles, Trophy, Star } from 'lucide-react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import type { RewardResult, RewardRarity } from '@/lib/rewards'
 import type en from '@/i18n/en.json'
@@ -44,14 +44,20 @@ export function RewardLootBoxDialog(props: {
 
   const accent = getAccent(props.reward?.rarity || 'common')
   const rarity = props.reward?.rarity || 'common'
+  const title = props.dict.today.rewardDialogTitle || (locale === 'zh' ? '解锁奖励！' : 'Reward Unlocked!')
+  const description =
+    props.dict.today.rewardDialogDescription ||
+    (locale === 'zh'
+      ? '这是一次高价值完成反馈，请手动收下奖励。'
+      : 'This is a high-value completion reward. Claim it explicitly when you are ready.')
+  const cta = props.dict.today.rewardDialogCTA || (locale === 'zh' ? '收下奖励' : 'Claim reward')
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>
-            {locale === 'zh' ? '解锁奖励！' : 'Reward Unlocked!'}
-          </DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         {props.reward ? (
@@ -119,7 +125,7 @@ export function RewardLootBoxDialog(props: {
 
             <div className="flex justify-end">
               <Button type="button" onClick={() => props.onOpenChange(false)}>
-                {locale === 'zh' ? '收下' : 'Claim'}
+                {cta}
               </Button>
             </div>
           </div>

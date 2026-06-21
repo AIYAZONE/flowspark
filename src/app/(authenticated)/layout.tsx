@@ -9,6 +9,7 @@ import { QuickCaptureSpeedDial } from '@/components/QuickCaptureSpeedDial'
 import { DesktopQuickAccess } from '@/components/DesktopQuickAccess'
 import { XpFeedbackToast } from '@/components/XpFeedbackToast'
 import { AICompletionToast } from '@/components/AICompletionToast'
+import { CompletionFeedbackHost } from '@/components/CompletionFeedbackHost'
 
 export default async function AuthenticatedLayout({
   children,
@@ -48,6 +49,7 @@ export default async function AuthenticatedLayout({
           </div>
         </main>
         <AppResumeGuards />
+        <CompletionFeedbackHost dict={dict} />
         <XpFeedbackToast dict={dict} />
         <AICompletionToast dict={dict} />
         <MobileNavBar dict={dict} />

@@ -172,7 +172,7 @@ export function Sidebar({ dict }: SidebarProps) {
                   strokeWidth={isActive ? 2.1 : 1.85}
                 />
                 {showUnreadDot ? (
-                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-background" />
                 ) : null}
               </span>
               <span

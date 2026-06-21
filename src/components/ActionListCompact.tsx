@@ -6,13 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import type en from '@/i18n/en.json'
 import { toggleActionWithReward } from '@/app/(authenticated)/dashboard/actions'
-import { RewardLootBoxDialog } from '@/components/RewardLootBoxDialog'
 import type { RewardResult } from '@/lib/rewards'
 import { logEvent } from '@/lib/analytics'
-import { pushAICompletionFeedback } from '@/lib/ai-completion-feedback'
-import { buildStreakFeedback } from '@/lib/streak-feedback'
-import { pushStreakFeedback } from '@/components/StreakFeedbackBanner'
-import { pushXpFeedback } from '@/components/XpFeedbackToast'
+import { dispatchCompletionFeedback } from '@/lib/completion-feedback'
 
 type Dict = typeof en
 
@@ -41,8 +37,6 @@ export function ActionListCompact({
   showInProgressBadge?: boolean
 }) {
   const [completedCollapsed, setCompletedCollapsed] = useState(true)
-  const [rewardOpen, setRewardOpen] = useState(false)
-  const [reward, setReward] = useState<RewardResult | null>(null)
 
   const groups = useMemo(() => {
     const incomplete = actions.filter(a => !a.completed)
@@ -130,16 +124,6 @@ export function ActionListCompact({
                     }
                     xpEarned?: number | null
                   }
-                  if (!action.completed && typeof result?.xpEarned === 'number') {
-                    pushXpFeedback({ amount: result.xpEarned })
-                  }
-                  if (!action.completed && action.ai_recommendation_id) {
-                    pushAICompletionFeedback({ title: action.title })
-                  }
-                  if (!action.completed && result?.reward) {
-                    setReward(result.reward)
-                    setRewardOpen(true)
-                  }
                   if (
                     !action.completed &&
                     result?.streak?.shieldGrantedRule &&
@@ -150,23 +134,15 @@ export function ActionListCompact({
                       granted_at_streak: result.streak.shieldGrantedAtStreak,
                       shield_balance: result.streak.shieldBalance ?? null,
                     })
-                    pushStreakFeedback(
-                      buildStreakFeedback({
-                        kind: 'shield_granted',
-                        rule: result.streak.shieldGrantedRule,
-                        grantedAtStreak: result.streak.shieldGrantedAtStreak,
-                        shieldBalanceAfter: result.streak.shieldBalance ?? 0,
-                      })
-                    )
                   }
-                  if (!action.completed && result?.streak?.milestoneReached) {
-                    pushStreakFeedback(
-                      buildStreakFeedback({
-                        kind: 'milestone_reached',
-                        milestone: result.streak.milestoneReached.milestone,
-                        phaseKey: result.streak.milestoneReached.phaseKey,
-                      })
-                    )
+                  if (!action.completed) {
+                    dispatchCompletionFeedback({
+                      actionTitle: action.title,
+                      aiCompleted: Boolean(action.ai_recommendation_id),
+                      xpEarned: result?.xpEarned ?? null,
+                      reward: result?.reward ?? null,
+                      streak: result?.streak ?? null,
+                    })
                   }
                 })()
               })
@@ -188,7 +164,6 @@ export function ActionListCompact({
 
   return (
     <div className="rounded-lg border bg-card/50 backdrop-blur-sm">
-      <RewardLootBoxDialog open={rewardOpen} onOpenChange={setRewardOpen} reward={reward} dict={dict} />
       <div style={{ maxHeight }} className="overflow-y-auto px-2 py-2">
         {/* Incomplete */}
         <div className="mb-2">

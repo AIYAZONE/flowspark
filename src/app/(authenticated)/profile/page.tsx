@@ -87,7 +87,15 @@ export default async function ProfilePage() {
               ) : null}
             </div>
             <Button asChild variant="outline" className="rounded-full">
-              <Link href="/notifications">{dict.profile.notificationsCta}</Link>
+              <Link href="/notifications" className="inline-flex items-center gap-2">
+                <span>{dict.profile.notificationsCta}</span>
+                {unreadNotifications > 0 ? (
+                  <span
+                    aria-hidden="true"
+                    className="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-background"
+                  />
+                ) : null}
+              </Link>
             </Button>
           </CardContent>
         </Card>

@@ -54,15 +54,13 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toggleActionWithReward } from '@/app/(authenticated)/dashboard/actions'
-import { RewardLootBoxDialog } from '@/components/RewardLootBoxDialog'
 import { deleteAction, toggleActionSubItem } from '@/app/(authenticated)/goals/actions'
 import type { Dictionary, TodayDictionary } from '@/i18n/types'
 import { ActionSubItemsSection } from '@/components/ActionSubItemsSection'
 import { RichTextContentView } from '@/components/RichTextContentView'
 import { pushStreakFeedback } from '@/components/StreakFeedbackBanner'
-import { pushXpFeedback } from '@/components/XpFeedbackToast'
-import { pushAICompletionFeedback } from '@/lib/ai-completion-feedback'
 import { buildStreakFeedback } from '@/lib/streak-feedback'
+import { dispatchCompletionFeedback } from '@/lib/completion-feedback'
 import type { RewardResult } from '@/lib/rewards'
 import {
     parseActionRecurrenceDescription,
@@ -175,8 +173,6 @@ export function ActionItem({
     const [subItemBusyId, setSubItemBusyId] = useState<string | null>(null)
     const [togglePending, startToggle] = useTransition()
     const [hasAutoOpened, setHasAutoOpened] = useState(false)
-    const [rewardOpen, setRewardOpen] = useState(false)
-    const [reward, setReward] = useState<RewardResult | null>(null)
 
     const hasDetails = true
     const subItems = [...(action.action_sub_items || [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
@@ -342,7 +338,6 @@ export function ActionItem({
             isNew && "border-primary/40 bg-primary/4",
             showAICompletionFocus && "border-primary/35 bg-primary/[0.035] shadow-sm shadow-primary/5"
         )}>
-            <RewardLootBoxDialog open={rewardOpen} onOpenChange={setRewardOpen} reward={reward} dict={dict} />
             <div className="relative z-10 flex flex-col bg-card p-4">
                 <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -368,38 +363,14 @@ export function ActionItem({
                                                     milestoneReached?: { milestone: number; phaseKey: 'starter' | 'steady' | 'deepening' | 'resilient' | 'longrun' | 'identity' } | null
                                                 }
                                             }
-                                            if (!action.completed && typeof result?.xpEarned === 'number') {
-                                                pushXpFeedback({ amount: result.xpEarned })
-                                            }
-                                            if (!action.completed && action.ai_recommendation_id) {
-                                                pushAICompletionFeedback({ title: action.title })
-                                            }
-                                            if (!action.completed && result?.reward) {
-                                                setReward(result.reward)
-                                                setRewardOpen(true)
-                                            }
-                                            if (
-                                                !action.completed &&
-                                                result?.streak?.shieldGrantedRule &&
-                                                typeof result?.streak?.shieldGrantedAtStreak === 'number'
-                                            ) {
-                                                pushStreakFeedback(
-                                                    buildStreakFeedback({
-                                                        kind: 'shield_granted',
-                                                        rule: result.streak.shieldGrantedRule,
-                                                        grantedAtStreak: result.streak.shieldGrantedAtStreak,
-                                                        shieldBalanceAfter: result.streak.shieldBalance ?? 0,
-                                                    })
-                                                )
-                                            }
-                                            if (!action.completed && result?.streak?.milestoneReached) {
-                                                pushStreakFeedback(
-                                                    buildStreakFeedback({
-                                                        kind: 'milestone_reached',
-                                                        milestone: result.streak.milestoneReached.milestone,
-                                                        phaseKey: result.streak.milestoneReached.phaseKey,
-                                                    })
-                                                )
+                                            if (!action.completed) {
+                                                dispatchCompletionFeedback({
+                                                    actionTitle: action.title,
+                                                    aiCompleted: Boolean(action.ai_recommendation_id),
+                                                    xpEarned: result?.xpEarned ?? null,
+                                                    reward: result?.reward ?? null,
+                                                    streak: result?.streak ?? null,
+                                                })
                                             }
                                         })()
                                     })

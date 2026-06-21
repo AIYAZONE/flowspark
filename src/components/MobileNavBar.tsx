@@ -142,7 +142,7 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
                   )}
                 />
                 {showUnreadDot ? (
-                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-background" />
                 ) : null}
               </span>
               <span className="text-[10px] font-medium">{item.title}</span>
