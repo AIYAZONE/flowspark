@@ -95,22 +95,33 @@ export function Sidebar({ dict }: SidebarProps) {
   return (
     <div
       className={cn(
-        'hidden h-full shrink-0 flex-col border-r border-border/60 bg-background/95 text-foreground backdrop-blur-xl md:flex md:w-[94px] xl:w-[102px] 2xl:w-[112px] [@media(min-width:1920px)]:w-[120px] [@media(min-width:2560px)]:w-[128px]'
+        'hidden h-full shrink-0 flex-col border-r border-border/40 bg-linear-to-b from-background via-background/95 to-muted/20 text-foreground backdrop-blur-xl md:flex md:w-[108px] xl:w-[118px] 2xl:w-[126px] [@media(min-width:1920px)]:w-[134px] [@media(min-width:2560px)]:w-[142px]'
       )}
     >
-      <div className="flex h-16 items-center justify-center border-b border-border/50 px-1.5 xl:h-[68px] xl:px-2 2xl:h-[72px] [@media(min-width:1920px)]:h-[76px] [@media(min-width:2560px)]:h-20">
+      <div className="flex h-[92px] flex-col items-center justify-center gap-2 border-b border-border/40 px-2 xl:h-[104px] 2xl:h-[112px]">
         <Link
           href="/"
-          className="flex items-center justify-center rounded-xl p-1 text-primary transition-transform duration-200 hover:scale-[1.02] xl:p-1.5"
+          className="flex items-center justify-center rounded-2xl border border-primary/15 bg-primary/6 p-2 text-primary transition-transform duration-200 hover:scale-[1.02] xl:p-2.5"
         >
-          <span className="inline-flex scale-[1.18] items-center justify-center xl:scale-[1.22] 2xl:scale-[1.26] [@media(min-width:1920px)]:scale-[1.3] [@media(min-width:2560px)]:scale-[1.34]">
+          <span className="inline-flex scale-[1.05] items-center justify-center xl:scale-[1.12] 2xl:scale-[1.18]">
             <BrandMark />
           </span>
         </Link>
+        <div className="text-center">
+          <div className="text-[9px] font-semibold uppercase tracking-[0.22em] text-primary/80 xl:text-[10px]">
+            Life OS
+          </div>
+          <div className="mt-0.5 text-[10px] text-muted-foreground xl:text-[11px]">
+            FlowSpark
+          </div>
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-1 py-3 xl:px-1.5 xl:py-3.5 2xl:px-2 2xl:py-4 [@media(min-width:1920px)]:px-2.5">
-        <nav className="flex flex-col items-center gap-2 xl:gap-2.5 2xl:gap-3">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-4 xl:px-2.5 xl:py-4.5 2xl:px-3 [@media(min-width:1920px)]:px-3.5">
+        <div className="mb-3 text-center text-[9px] font-medium uppercase tracking-[0.22em] text-muted-foreground xl:text-[10px]">
+          Core
+        </div>
+        <nav className="flex flex-col items-center gap-2.5 xl:gap-3 2xl:gap-3.5">
           {sidebarItems.map((item) => {
             const isActive = pathname.startsWith(item.href)
             return (
@@ -119,10 +130,10 @@ export function Sidebar({ dict }: SidebarProps) {
                 href={item.href}
                 prefetch={false}
                 className={cn(
-                  'group flex w-full max-w-[66px] flex-col items-center justify-center gap-1.5 rounded-lg px-1 py-2 text-center transition-all duration-200 xl:max-w-[72px] xl:gap-2 xl:rounded-xl xl:px-1.5 xl:py-2.5 2xl:max-w-[78px] 2xl:gap-2.5 2xl:px-2 2xl:py-3 [@media(min-width:1920px)]:max-w-[84px] [@media(min-width:1920px)]:py-3.5 [@media(min-width:2560px)]:max-w-[88px]',
+                  'group flex w-full max-w-[78px] flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 py-3 text-center transition-all duration-200 xl:max-w-[84px] xl:gap-2 xl:px-2 xl:py-3 2xl:max-w-[90px] 2xl:gap-2.5 2xl:px-2.5 2xl:py-3.5 [@media(min-width:1920px)]:max-w-[96px]',
                   isActive
-                    ? 'bg-primary/8 text-primary ring-1 ring-primary/12'
-                    : 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
+                    ? 'bg-linear-to-b from-primary/12 to-primary/5 text-primary ring-1 ring-primary/15 shadow-sm shadow-primary/10'
+                    : 'text-muted-foreground hover:bg-muted/55 hover:text-foreground hover:ring-1 hover:ring-border/40'
                 )}
                 aria-current={isActive ? 'page' : undefined}
               >
@@ -147,7 +158,10 @@ export function Sidebar({ dict }: SidebarProps) {
         </nav>
       </div>
 
-      <div className="border-t border-border/50 px-1 py-3 xl:px-1.5 xl:py-3.5 2xl:px-2 2xl:py-4 [@media(min-width:1920px)]:px-2.5">
+      <div className="border-t border-border/40 px-2 py-4 xl:px-2.5 xl:py-4.5 2xl:px-3 [@media(min-width:1920px)]:px-3.5">
+        <div className="mb-3 text-center text-[9px] font-medium uppercase tracking-[0.22em] text-muted-foreground xl:text-[10px]">
+          Identity
+        </div>
         {(() => {
           const isActive = pathname.startsWith('/profile')
           const showUnreadDot = notificationUnread > 0
@@ -156,10 +170,10 @@ export function Sidebar({ dict }: SidebarProps) {
               href="/profile"
               prefetch={false}
               className={cn(
-                'group mx-auto flex h-[54px] w-full max-w-[66px] flex-col items-center justify-center gap-1.5 rounded-lg px-1 text-center transition-all duration-200 xl:h-[60px] xl:max-w-[72px] xl:gap-2 xl:rounded-xl xl:px-1.5 2xl:h-[66px] 2xl:max-w-[78px] 2xl:gap-2.5 2xl:px-2 [@media(min-width:1920px)]:h-[72px] [@media(min-width:1920px)]:max-w-[84px] [@media(min-width:2560px)]:h-[76px] [@media(min-width:2560px)]:max-w-[88px]',
+                'group mx-auto flex h-[62px] w-full max-w-[78px] flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 text-center transition-all duration-200 xl:h-[68px] xl:max-w-[84px] xl:gap-2 xl:px-2 2xl:h-[74px] 2xl:max-w-[90px] 2xl:gap-2.5 2xl:px-2.5 [@media(min-width:1920px)]:h-[80px] [@media(min-width:1920px)]:max-w-[96px]',
                 isActive
-                  ? 'bg-primary/8 text-primary ring-1 ring-primary/12'
-                  : 'text-muted-foreground hover:bg-muted/55 hover:text-foreground'
+                  ? 'bg-linear-to-b from-primary/12 to-primary/5 text-primary ring-1 ring-primary/15 shadow-sm shadow-primary/10'
+                  : 'text-muted-foreground hover:bg-muted/55 hover:text-foreground hover:ring-1 hover:ring-border/40'
               )}
               aria-current={isActive ? 'page' : undefined}
             >

@@ -34,6 +34,7 @@ import { getUserTimezone, getTodayInTZ } from '@/lib/time'
 import { getStreakSnapshot } from '@/lib/streaks'
 import { buildContinuityInsightCopy } from '@/lib/continuity-insight'
 import { ProfileSubPageHeader } from '@/components/profile/ProfileSubPageHeader'
+import { buildSelfModelCards, summarizeRecommendationSignals } from '@/lib/self-model'
 
 type AIAnalyticsDict = {
   aiAnalyticsTitle: string
@@ -268,6 +269,13 @@ export default async function AIInsightsPage(props: {
   const hasFunnelData = funnelOverview.page_view_days > 0 || funnelBreakdown.length > 0
   const hasRecommendationData = sceneMetrics.length > 0 || recentRecommendations.length > 0
   const adjustmentNote = buildAdjustmentNote(recentRecommendations, presentationLocale)
+  const recommendationSignals = summarizeRecommendationSignals(recentRecommendations)
+  const selfModelCards = buildSelfModelCards({
+    locale: presentationLocale,
+    currentStreak: streakSnapshot.currentStreak,
+    completedToday: streakSnapshot.completedToday,
+    signals: recommendationSignals,
+  })
   const optionRows = recentRecommendations.filter(r => Boolean(r.option_selected))
   const shortOptionCount = optionRows.filter(r => r.option_selected === '5m' || r.option_selected === '10m').length
   const shortOptionShare = optionRows.length > 0 ? shortOptionCount / optionRows.length : null
@@ -332,6 +340,59 @@ export default async function AIInsightsPage(props: {
               {presentationLocale === 'zh' ? `近 30 天恢复 ${streakRepairCount30}` : `${streakRepairCount30} recoveries (30d)`}
             </span>
           </div>
+        </div>
+      </div>
+
+      <div id="system-read-explained" className="rounded-3xl border border-primary/12 bg-linear-to-br from-primary/6 via-card to-card p-5 scroll-mt-24">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">
+              {presentationLocale === 'zh' ? 'System Read Explained' : 'System Read Explained'}
+            </div>
+            <div className="mt-2 text-xl font-semibold tracking-tight">
+              {presentationLocale === 'zh' ? '系统如何理解你，以及这种理解怎样进入今天的判断。' : 'How the system reads you, and how that read enters today’s judgment.'}
+            </div>
+            <div className="mt-2 text-sm leading-6 text-muted-foreground">
+              {presentationLocale === 'zh'
+                ? '这里把 You 页的当前判断拆成“依据”与“对 Today 的影响”，避免它只是好看的描述卡片。'
+                : 'This breaks the current read from You into evidence and Today impact so it is not just decorative copy.'}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" className="rounded-full">
+              <Link href="/profile#current-system-read">
+                {presentationLocale === 'zh' ? '回到当前理解' : 'Back to current read'}
+              </Link>
+            </Button>
+            <Button asChild className="rounded-full">
+              <Link href="/today#today-system-read">
+                {presentationLocale === 'zh' ? '看今天如何执行' : 'See how Today applies it'}
+              </Link>
+            </Button>
+          </div>
+        </div>
+        <div className="mt-5 grid gap-4 xl:grid-cols-3">
+          {selfModelCards.map(card => (
+            <div key={card.key} className="rounded-2xl border border-border/50 bg-background/85 p-4 shadow-sm">
+              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">
+                {card.label}
+              </div>
+              <div className="mt-3 text-base font-semibold leading-7">{card.title}</div>
+              <div className="mt-2 text-sm leading-6 text-muted-foreground">{card.body}</div>
+              <div className="mt-4 rounded-2xl border border-border/50 bg-card/90 p-3">
+                <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                  {presentationLocale === 'zh' ? 'Why The System Thinks This' : 'Why The System Thinks This'}
+                </div>
+                <div className="mt-2 text-sm leading-6 text-foreground/90">{card.evidence}</div>
+              </div>
+              <div className="mt-3 rounded-2xl border border-primary/12 bg-primary/5 p-3">
+                <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">
+                  {presentationLocale === 'zh' ? 'How Today Changes' : 'How Today Changes'}
+                </div>
+                <div className="mt-2 text-sm leading-6 text-muted-foreground">{card.todayEffect}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

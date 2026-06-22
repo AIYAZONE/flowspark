@@ -1,7 +1,7 @@
 {
 	"common": {
 		"metaTitle": "FlowSpark",
-		"metaDescription": "一个帮助你实现梦想的个人目标管理系统。",
+		"metaDescription": "一个帮助你把长期人生方向收敛成今天最重要一步的个人操作系统。",
 		"loading": "加载中...",
 		"saving": "保存中...",
 		"save": "保存",
@@ -52,18 +52,18 @@
 	},
 	"sidebar": {
 		"brand": "FlowSpark",
-		"dashboard": "仪表盘",
-		"today": "今日行动",
-		"goals": "目标管理",
+		"dashboard": "系统",
+		"today": "今日",
+		"goals": "路径",
 		"notifications": "通知",
-		"inbox": "我的灵感",
+		"inbox": "信号",
 		"potential": "潜力发掘",
-		"profile": "个人中心",
+		"profile": "自我",
 		"signOut": "退出登录"
 	},
 	"inbox": {
-		"title": "灵感收件箱",
-		"subtitle": "先收集，后处理。",
+		"title": "信号",
+		"subtitle": "系统先为你收集输入，再在合适的时候提醒处理。",
 		"cardTitle": "灵感收件箱",
 		"viewAll": "打开收件箱",
 		"summaryHint": "摘要预览，仅展示最近灵感。下方列表可直接操作。",
@@ -112,13 +112,13 @@
 	},
 	"landing": {
 		"hero": {
-			"badge": "FlowSpark OS v1.0",
-			"title": "别只是设定目标\n点燃心流",
-			"subtitle": "AI 驱动的微挑战拆解，盲盒式变量奖励，沉浸式专注体验。让坚持上瘾的个人成长操作系统。",
-			"start": "开启第一次心流",
+			"badge": "Premium Life OS",
+			"title": "不是多做一点\n而是推进你的人生主线",
+			"subtitle": "FlowSpark 是一个更懂你的个人操作系统。它把长期方向、今日推进与 AI 判断收拢成一个安静但强大的系统。",
+			"start": "进入我的 Life OS",
 			"login": "登录账号",
-			"socialProof": "已被 1,000+ 位心流探索者信赖",
-			"ctaTitle": "准备好寻找你的心流了吗？"
+			"socialProof": "为想长期进化的人而设计",
+			"ctaTitle": "准备好进入你的人生系统了吗？"
 		},
 		"visual": {
 			"userLabel": "用户",
@@ -133,16 +133,16 @@
 		},
 		"features": {
 			"focus": {
-				"title": "AI 逆向工程",
-				"desc": "不知道第一步怎么走？告诉 AI 你的模糊愿景，它会自动拆解为有趣的、5分钟即可完成的“微挑战”。"
+				"title": "方向系统",
+				"desc": "把长期愿景压缩成今天最重要的一步，让你始终知道现在应该把生命推进到哪里。"
 			},
 			"growth": {
-				"title": "变量奖励系统",
-				"desc": "告别枯燥的打钩。完成任务解锁惊喜盲盒，收集稀有徽章，看着你的“目标生物”进化成长。"
+				"title": "执行系统",
+				"desc": "把执行、复盘与连续性保护收进同一个节奏系统，让开始变轻、推进更稳、回归更快。"
 			},
 			"insight": {
-				"title": "Zen 专注模式",
-				"desc": "全屏沉浸式执行界面，配合环境白噪音。让每一个行动都成为一次深度的心流体验。"
+				"title": "智能系统",
+				"desc": "AI 在幕后理解你的模式、阻力与节奏，用系统判断替代零散建议。"
 			}
 		},
 		"footer": "© 2025 FlowSpark. 保留所有权利。"
@@ -235,13 +235,14 @@
 		}
 	},
 	"dashboard": {
-		"title": "仪表盘",
+		"title": "系统",
+		"subtitle": "查看你的人生系统最近如何运转，以及下一步应该把重心放在哪里。",
 		"todayCoreAction": "今日核心行动",
 		"setCoreAction": "设置核心行动",
 		"dailyScore": "今日自评",
 		"dailyScoreDesc": "用 10 秒记录状态，形成反馈闭环。",
-		"aiReviewBtn": "AI 帮我总结今天 & 给明天策略（草案）",
-		"aiReviewTitle": "AI 夜间复盘（草案）",
+		"aiReviewBtn": "系统帮我收口今天，并给出明日策略（草案）",
+		"aiReviewTitle": "系统夜间复盘（草案）",
 		"scorePlaceholder": "选择评分 (0-5)",
 		"submitScore": "评分",
 		"activeGoals": "进行中的目标",
@@ -331,8 +332,8 @@
 			"title": "准备好开始今天了吗？",
 			"desc": "你正在追踪 {count} 个活跃目标。今天的核心聚焦点是什么？",
 			"planBtn": "规划今日行动",
-			"aiPlanBtn": "AI 给我一个今日核心行动（草案）",
-			"aiPlanTitle": "AI 今日核心行动（草案）",
+			"aiPlanBtn": "系统给我一个今日核心行动（草案）",
+			"aiPlanTitle": "系统今日核心行动（草案）",
 			"aiPlanCoreLabel": "核心",
 			"aiPlanAltLabel": "备选",
 			"aiPlanRecommendedLabel": "推荐",
@@ -353,11 +354,11 @@
 			"aiPlanLoading": "正在生成...",
 			"aiPlanHint": "点击生成今日建议",
 			"yesterdayReview": "昨日评分：{score}",
-			"weeklyInsightTitle": "本周 AI 洞察",
+			"weeklyInsightTitle": "本周系统洞察",
 			"weeklyInsightEmpty": "系统还没有为你生成本周洞察。",
-			"weeklyInsightGenerate": "生成本周洞察",
-			"weeklyInsightRegenerate": "重新生成",
-			"weeklyInsightOpenReport": "查看 AI 分析",
+			"weeklyInsightGenerate": "生成本周系统洞察",
+			"weeklyInsightRegenerate": "更新系统洞察",
+			"weeklyInsightOpenReport": "查看系统分析",
 			"weeklyInsightLastUpdated": "上次生成",
 			"weeklyInsightRefreshHint": "7 天内默认复用上次生成的结果；如果你最近新增或完成了行动，请点击「重新生成」以纳入最新数据。动量统计口径：最近 7 天完成的行动（含所有类型）。",
 			"weeklyInsightMomentum": "本周动量",
@@ -425,7 +426,8 @@
 		}
 	},
 	"today": {
-		"title": "今日行动",
+		"title": "今日",
+		"subtitle": "把今天最重要的一步放到中心，其余都为它让路。",
 		"focusView": "聚焦",
 		"allView": "全部",
 		"mustSection": "必须完成",
@@ -483,25 +485,26 @@
 		"aiAdoptedHint": "该行动来自 AI 建议并已被采纳",
 		"aiFocusPrompt": "优先完成这条 AI 建议，点左侧圆圈即可收口今天的核心行动。",
 		"aiFocusPromptHelp": "完成后会计入今日 AI 建议效果，方便后续判断哪类建议最值得继续放大。",
-		"aiCompletionToastTitle": "已完成 AI 核心行动",
-		"aiCompletionToastBody": "“{title}” 已计入 AI 建议效果，系统会据此继续优化推荐。",
-		"completionToastXPTitle": "行动已完成",
-		"completionToastXPBody": "获得 {xp} XP，继续保持节奏。",
-		"completionToastAIAndXPTitle": "已完成 AI 核心行动",
-		"completionToastAIAndXPBody": "“{title}” 已完成，并获得 {xp} XP。",
-		"rewardDialogTitle": "解锁奖励！",
-		"rewardDialogDescription": "这是一次高价值完成反馈，请手动收下奖励。",
-		"rewardDialogCTA": "收下奖励",
+		"aiCompletionToastTitle": "系统已记录 AI 推进",
+		"aiCompletionToastBody": "“{title}” 已被记为一次高价值推进，系统会据此继续优化后续建议。",
+		"completionToastXPTitle": "系统已记录这次推进",
+		"completionToastXPBody": "这次完成获得 {xp} XP，系统已把它计入你的连续成长。",
+		"completionToastAIAndXPTitle": "系统已记录一次关键推进",
+		"completionToastAIAndXPBody": "“{title}” 已完成，并获得 {xp} XP；系统会把这次推进纳入后续判断。",
+		"rewardDialogTitle": "系统奖励已解锁",
+		"rewardDialogDescription": "这次完成被系统识别为高价值推进。收下奖励，让这次进步被正式记住。",
+		"rewardDialogCTA": "收下并继续",
 		"tomorrowHandoffTitle": "昨天你完成了 AI 核心行动",
 		"tomorrowHandoffBody": "今天继续下一步，会更容易保持节奏。",
 		"tomorrowHandoffCTA": "继续明日第一步",
 		"tomorrowHandoffDismiss": "先不显示"
 	},
 	"goals": {
-		"title": "目标列表",
-		"newGoal": "新建目标",
-		"noGoals": "您还没有设定任何目标。",
-		"createFirst": "创建您的第一个目标",
+		"title": "路径",
+		"subtitle": "定义你正在走向哪里，以及哪些长期方向值得被持续推进。",
+		"newGoal": "新建路径",
+		"noGoals": "你还没有定义任何路径。",
+		"createFirst": "创建你的第一条路径",
 		"filter": {
 			"searchPlaceholder": "搜索目标...",
 			"searchActionsPlaceholder": "搜索行动...",
@@ -554,8 +557,8 @@
 		"start": "开始",
 		"end": "结束",
 		"new": {
-			"title": "创建新目标",
-			"details": "目标详情",
+			"title": "创建新路径",
+			"details": "路径详情",
 			"manualCreate": "手动创建",
 			"aiSplitCreate": "AI 拆解创建",
 			"titleLabel": "目标标题",
@@ -637,7 +640,8 @@
 		}
 	},
 	"profile": {
-		"title": "个人中心",
+		"title": "自我",
+		"subtitle": "让系统更懂你，看清你的模式、节奏与长期变化。",
 		"statusOnline": "在线",
 		"notificationsTitle": "系统通知",
 		"notificationsDesc": "可追溯的护盾发放、里程碑达成与补回成功记录。",

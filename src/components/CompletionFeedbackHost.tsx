@@ -95,13 +95,16 @@ export function CompletionFeedbackHost(props: { dict: Dict }) {
 
       {feedback?.kind === 'toast' && toastCopy ? (
         <div className="pointer-events-none fixed left-1/2 top-3 z-50 -translate-x-1/2">
-          <div className="min-w-[280px] max-w-[92vw] rounded-2xl border border-primary/20 bg-linear-to-br from-primary/10 via-background/95 to-background/95 px-4 py-3 text-sm shadow-lg backdrop-blur-md animate-in fade-in slide-in-from-top-3 duration-250">
+          <div className="min-w-[300px] max-w-[92vw] rounded-3xl border border-primary/15 bg-linear-to-br from-primary/12 via-background/95 to-background/95 px-4 py-3 text-sm shadow-lg shadow-primary/10 backdrop-blur-md animate-in fade-in slide-in-from-top-3 duration-250">
             <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/12 text-primary">
+              <div className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-primary/15 bg-primary/12 text-primary">
                 <Sparkles className="h-4 w-4" />
               </div>
               <div className="min-w-0">
-                <div className="font-semibold text-foreground">{toastCopy.title}</div>
+                <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">
+                  {locale === 'zh' ? 'System Registered' : 'System Registered'}
+                </div>
+                <div className="mt-1 font-semibold text-foreground">{toastCopy.title}</div>
                 <div className="mt-1 text-muted-foreground">{toastCopy.body}</div>
               </div>
             </div>

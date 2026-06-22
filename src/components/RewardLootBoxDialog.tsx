@@ -56,6 +56,10 @@ export function RewardLootBoxDialog(props: {
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-primary/15 bg-primary/6 px-3 py-1 text-xs font-medium text-primary">
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>{locale === 'zh' ? 'System Reward' : 'System Reward'}</span>
+          </div>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
@@ -106,8 +110,8 @@ export function RewardLootBoxDialog(props: {
                   className="mt-4 text-sm text-muted-foreground"
                 >
                   {locale === 'zh'
-                    ? '继续保持，下一次可能更惊喜。'
-                    : 'Keep going—next one might be even better.'}
+                    ? '系统已把这次完成记为一次高价值推进，后续奖励和建议会因此更贴合。'
+                    : 'The system has registered this completion as a high-value move, which helps shape future rewards and guidance.'}
                 </motion.div>
               </motion.div>
 

@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
@@ -9,7 +10,9 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Progress } from '@/components/ui/progress'
 import { ActionItem } from '@/components/ActionItem'
 import { ActionListFilter } from '@/components/ActionListFilter'
+import type { MainPathDensityContext } from '@/lib/main-path-density'
 import { calcCompletionPercent } from '@/lib/progress'
+import type { PrimaryPathContext } from '@/lib/path-context'
 import {
   resolveInitialRevealState,
   resolveInitialView,
@@ -61,6 +64,9 @@ export function TodayActionList({
   dict,
   tz,
   today,
+  primaryGoalId = null,
+  primaryPathContext = null,
+  mainPathDensityContext = null,
   showGoalTitle = true,
   initialOpenActionId = null,
   initialPanelMode = 'view',
@@ -70,6 +76,9 @@ export function TodayActionList({
   dict: Dict
   tz: string
   today: string
+  primaryGoalId?: string | null
+  primaryPathContext?: PrimaryPathContext | null
+  mainPathDensityContext?: MainPathDensityContext | null
   showGoalTitle?: boolean
   initialOpenActionId?: string | null
   initialPanelMode?: 'view' | 'edit' | 'rescue'
@@ -77,6 +86,13 @@ export function TodayActionList({
   const isZh = String(dict.common.locale || '').toLowerCase().startsWith('zh')
   const recentSectionLabel = isZh ? '刚创建' : 'New'
   const recentSummaryLabel = isZh ? '刚创建' : 'new'
+  const mainPathLabel = isZh ? '主线路径' : 'Main Path'
+  const viewAllPathsLabel = isZh ? '查看全部路径' : 'View All Paths'
+  const recentMetricLabel = isZh ? '最近推进' : 'Recent'
+  const densityMetricLabel = isZh ? '当前密度' : 'Density'
+  const mainPathFallbackLabel = isZh
+    ? '今天这条主线没有落在 residual 动作区，说明它当前更多体现在 must / overdue / recent 或已接近收口。'
+    : 'This main path does not currently sit inside the residual action area, which usually means it is showing up in must / overdue / recent or is already near closure.'
 
   const allViewActions = useMemo(() => {
     return actions
@@ -128,6 +144,10 @@ export function TodayActionList({
       const tb = b.type === 'core' ? 1 : 0
       if (ta !== tb) return tb - ta
 
+      const primaryA = primaryGoalId && a.goal_id === primaryGoalId ? 1 : 0
+      const primaryB = primaryGoalId && b.goal_id === primaryGoalId ? 1 : 0
+      if (primaryA !== primaryB) return primaryB - primaryA
+
       const da = getBaseDate(a)
       const db = getBaseDate(b)
       if (da !== db) return da < db ? -1 : 1
@@ -157,7 +177,12 @@ export function TodayActionList({
         const goalTitle = items[0]?.goals?.title || goals.find(g => g.id === goalId)?.title || dict.today.ungrouped
         return { goalId, goalTitle, items }
       })
-      .sort((a, b) => (b.items.length - a.items.length) || a.goalId.localeCompare(b.goalId))
+      .sort((a, b) => {
+        const primaryGroupA = primaryGoalId && a.goalId === primaryGoalId ? 1 : 0
+        const primaryGroupB = primaryGoalId && b.goalId === primaryGoalId ? 1 : 0
+        if (primaryGroupA !== primaryGroupB) return primaryGroupB - primaryGroupA
+        return (b.items.length - a.items.length) || a.goalId.localeCompare(b.goalId)
+      })
 
     return {
       sortedIncomplete,
@@ -167,7 +192,7 @@ export function TodayActionList({
       completed,
       groups
     }
-  }, [actions, dict.today.ungrouped, goals, today])
+  }, [actions, dict.today.ungrouped, goals, primaryGoalId, today])
 
   const maxMust = 8
   const maxOverdue = 8
@@ -222,6 +247,22 @@ export function TodayActionList({
       ? dict.today.overloadTip.replace('{max}', String(maxMust))
       : ''
 
+  const mainPathGroup = useMemo(() => {
+    if (!primaryGoalId) return null
+    return focusModel.groups.find((group) => group.goalId === primaryGoalId) ?? null
+  }, [focusModel.groups, primaryGoalId])
+
+  const secondaryGroups = useMemo(() => {
+    if (!mainPathGroup) return focusModel.groups
+    return focusModel.groups.filter((group) => group.goalId !== mainPathGroup.goalId)
+  }, [focusModel.groups, mainPathGroup])
+
+  const shouldShowMainPathCard =
+    Boolean(primaryPathContext)
+  const shouldShowMainPathActions =
+    Boolean(mainPathGroup?.items.length) &&
+    primaryPathContext?.goalId === mainPathGroup?.goalId
+
   if (view === 'all') {
     return (
       <div className="space-y-4 md:space-y-6">
@@ -274,6 +315,11 @@ export function TodayActionList({
             <div className="text-sm text-muted-foreground">
               {dict.goals.filter.incomplete} {summary.incompleteCount} · {recentSummaryLabel} {summary.recentCount} · {dict.today.focusView} {Math.min(maxMust, focusModel.must.length)} · {dict.today.delayed} {summary.overdueCount}
             </div>
+            {primaryGoalId ? (
+              <div className="text-xs text-muted-foreground">
+                {isZh ? '已优先围绕当前主线路径排序' : 'Prioritized around your current main path'}
+              </div>
+            ) : null}
             {overloadTip ? (
               <div className="text-sm font-medium">{overloadTip}</div>
             ) : null}
@@ -394,11 +440,89 @@ export function TodayActionList({
         </div>
       ) : null}
 
-      {focusModel.groups.length > 0 ? (
+      {shouldShowMainPathCard ? (
+        <div className="rounded-3xl border border-primary/20 bg-linear-to-br from-primary/8 via-primary/5 to-card p-4 shadow-sm shadow-primary/10 md:p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">
+                {mainPathLabel}
+              </div>
+              <div className="text-lg font-semibold text-foreground">
+                {primaryPathContext?.title}
+              </div>
+              <div className="text-sm font-medium text-foreground/90">
+                {primaryPathContext?.titleText}
+              </div>
+              <div className="text-sm leading-6 text-muted-foreground">
+                {primaryPathContext?.body}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 sm:justify-end">
+              <Button asChild size="sm" className="rounded-full">
+                <Link href={`/goals/${primaryPathContext?.goalId}`}>{primaryPathContext?.ctaLabel || mainPathLabel}</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="rounded-full">
+                <Link href="/goals">{viewAllPathsLabel}</Link>
+              </Button>
+            </div>
+          </div>
+          {mainPathDensityContext ? (
+            <div className="mt-4 space-y-3">
+              <div className={`grid gap-3 ${mainPathDensityContext.recentMetricStatus === 'hidden' ? '' : 'sm:grid-cols-2'}`}>
+                {mainPathDensityContext.recentMetricStatus !== 'hidden' ? (
+                  <div className="rounded-2xl border border-border/50 bg-background/70 p-3">
+                    <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{recentMetricLabel}</div>
+                    <div className="mt-2 text-base font-semibold text-foreground">
+                      {mainPathDensityContext.recentCompletedCount7d ?? mainPathDensityContext.recentActiveCount7d ?? 0}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {mainPathDensityContext.recentSummary}
+                    </div>
+                  </div>
+                ) : null}
+                <div className="rounded-2xl border border-border/50 bg-background/70 p-3">
+                  <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{densityMetricLabel}</div>
+                  <div className="mt-2 text-base font-semibold text-foreground">
+                    {mainPathDensityContext.remainingCount}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {mainPathDensityContext.progressSummary}
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-primary/12 bg-primary/6 px-4 py-3 text-sm leading-6 text-foreground/90">
+                {mainPathDensityContext.meaningSummary}
+              </div>
+            </div>
+          ) : null}
+          {shouldShowMainPathActions ? (
+            <div className="mt-4 grid gap-3">
+              {mainPathGroup?.items.map((action) => (
+                <ActionItem
+                  key={action.id}
+                  action={action}
+                  dict={dict}
+                  showGoalTitle={showGoalTitle}
+                  tz={tz}
+                  goals={goals}
+                  initialOpen={action.id === initialOpenActionId}
+                  initialPanelMode={action.id === initialOpenActionId ? initialPanelMode : 'view'}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4 rounded-2xl border border-dashed border-border/60 px-4 py-3 text-sm text-muted-foreground">
+              {mainPathFallbackLabel}
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {secondaryGroups.length > 0 ? (
         <div className="space-y-3">
           <div className="text-base font-semibold">{dict.today.otherSection}</div>
           <div className="space-y-2">
-            {focusModel.groups.map(group => {
+            {secondaryGroups.map(group => {
               const open = openGoalIds[group.goalId] ?? false
               const expanded = expandedGoalIds[group.goalId] ?? false
               const visible = expanded ? group.items : group.items.slice(0, maxPerGroup)

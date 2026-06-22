@@ -79,6 +79,7 @@ interface Props {
   defaultDate: string
   ab1TodayPlanVariant?: 'A' | 'B' | null
   source?: 'dashboard' | 'today'
+  preferredGoalId?: string | null
   triggerLabel?: string
   triggerVariant?: 'default' | 'outline' | 'secondary' | 'ghost'
   triggerClassName?: string
@@ -93,6 +94,7 @@ export function AITodayPlanButton({
   defaultDate,
   ab1TodayPlanVariant = null,
   source = 'today',
+  preferredGoalId = null,
   triggerLabel,
   triggerVariant = 'outline',
   triggerClassName,
@@ -163,6 +165,9 @@ export function AITodayPlanButton({
   )
 
   function pickFallbackGoalId() {
+    if (preferredGoalId && candidateGoals.some(goal => goal.id === preferredGoalId)) {
+      return preferredGoalId
+    }
     const pMap: Record<string, number> = { high: 3, medium: 2, low: 1 }
     return (
       [...candidateGoals]
@@ -478,10 +483,10 @@ export function AITodayPlanButton({
           <DialogHeader className="shrink-0 border-b border-border/40 bg-linear-to-b from-primary/5 to-transparent px-4 pb-4 pt-4 md:px-6 md:pb-4 md:pt-5">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-primary/6 px-3 py-1 text-sm font-medium text-primary">
               <Sparkles className="h-3.5 w-3.5" />
-              AI Coach
+              {locale === 'zh' ? 'System Intelligence' : 'System Intelligence'}
             </div>
             <DialogTitle className="max-w-none text-[1.8rem] leading-tight tracking-[-0.02em] md:text-[2rem]">
-              {planning?.aiPlanTitle || 'AI Core Action (Draft)'}
+              {planning?.aiPlanTitle || 'System core action (draft)'}
             </DialogTitle>
           </DialogHeader>
 

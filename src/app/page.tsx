@@ -29,13 +29,25 @@ export default async function Home() {
   }
 
   const avatarLetter = (displayName?.[0] || user?.email?.[0] || 'U').toUpperCase();
+  const isZh = currentLocale.startsWith('zh')
+  const heroSignals = isZh
+    ? [
+        { label: 'Direction', value: '长期方向', detail: '把长期人生方向收敛成今天最值得推进的一步。' },
+        { label: 'Execution', value: '今日推进', detail: '让你先推进主线，而不是继续被信息和待办拖散。' },
+        { label: 'Intelligence', value: '系统判断', detail: 'AI 在幕后吸收你的节奏、阻力与偏好，持续修正建议。' },
+      ]
+    : [
+        { label: 'Direction', value: 'Long-term direction', detail: 'Compress long-range ambition into the single step that matters today.' },
+        { label: 'Execution', value: 'Daily traction', detail: 'Keep you moving your main thread instead of getting scattered by inputs and tasks.' },
+        { label: 'Intelligence', value: 'System judgment', detail: 'AI learns your rhythm, friction, and preferences in the background.' },
+      ]
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary/20 overflow-x-hidden">
       <Analytics />
 
       {/* Header */}
-      <header className="fixed top-0 z-50 w-full border-b border-border/10 bg-background/60 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <header className="fixed top-0 z-50 w-full border-b border-border/20 bg-background/70 backdrop-blur-xl supports-backdrop-filter:bg-background/65" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="container mx-auto flex h-16 items-center justify-between px-6 lg:px-8">
           <BrandLogo />
           <div className="flex items-center gap-2">
@@ -82,16 +94,17 @@ export default async function Home() {
 
       <main className="flex-1 pt-[calc(env(safe-area-inset-top)+4rem)]">
         {/* Hero Section */}
-        <section className="relative flex items-center min-h-[calc(100svh-4rem)] py-[clamp(1.25rem,6vh,3rem)] lg:min-h-[clamp(560px,70vh,760px)] lg:py-[clamp(0.75rem,4vh,2rem)]">
+        <section className="relative flex items-center min-h-[calc(100svh-4rem)] py-[clamp(1.25rem,6vh,3rem)] lg:min-h-[clamp(620px,78vh,840px)] lg:py-[clamp(1.5rem,6vh,3.5rem)]">
           {/* Ambient Background */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[min(560px,40vh)] bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-background to-background pointer-events-none" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[min(620px,46vh)] w-full bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-primary/20 via-background to-background pointer-events-none" />
+          <div className="pointer-events-none absolute inset-x-0 top-[18%] h-64 bg-[radial-gradient(circle,rgba(16,185,129,0.12),transparent_60%)] blur-3xl" />
 
           <div className="container mx-auto px-6 lg:px-8">
-            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
 
               {/* Left Column: Text */}
               <div className="flex-1 text-center lg:text-left max-w-2xl mx-auto lg:mx-0">
-                <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-sm font-medium text-primary mb-6">
+                <div className="mb-6 inline-flex items-center rounded-full border border-primary/20 bg-primary/5 px-3 py-1 text-sm font-medium text-primary">
                   <Sparkles className="mr-2 h-3.5 w-3.5" />
                   {dict.landing.hero.badge}
                 </div>
@@ -100,9 +113,19 @@ export default async function Home() {
                   {dict.landing.hero.title}
                 </h1>
 
-                <p className="text-lg text-muted-foreground mb-6 lg:mb-6 leading-relaxed max-w-xl mx-auto lg:mx-0">
+                <p className="mb-6 max-w-xl mx-auto text-lg leading-relaxed text-muted-foreground lg:mx-0 lg:mb-7">
                   {dict.landing.hero.subtitle}
                 </p>
+
+                <div className="mb-7 grid gap-3 text-left sm:grid-cols-3">
+                  {heroSignals.map((item) => (
+                    <div key={item.label} className="rounded-2xl border border-border/50 bg-background/75 p-4 backdrop-blur-sm">
+                      <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">{item.label}</div>
+                      <div className="mt-2 text-sm font-semibold text-foreground">{item.value}</div>
+                      <div className="mt-2 text-xs leading-5 text-muted-foreground">{item.detail}</div>
+                    </div>
+                  ))}
+                </div>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 lg:gap-3">
                   {user ? (
@@ -128,8 +151,7 @@ export default async function Home() {
                   )}
                 </div>
 
-                {/* Social Proof (Mock) */}
-                <div className="mt-10 flex items-center justify-center lg:justify-start gap-4 text-sm text-muted-foreground">
+                <div className="mt-10 flex items-center justify-center gap-4 text-sm text-muted-foreground lg:justify-start">
                   <div className="flex -space-x-3">
                     {[
                       "bg-blue-500",
@@ -148,8 +170,10 @@ export default async function Home() {
               </div>
 
               {/* Right Column: Visual */}
-              <div className="flex-1 w-full max-w-[500px] lg:max-w-none lg:max-h-[calc(100vh-var(--header-h))] lg:self-center">
-                <HeroVisual dict={dict.landing.visual} />
+              <div className="flex-1 w-full max-w-[560px] lg:max-w-none lg:max-h-[calc(100vh-var(--header-h))] lg:self-center">
+                <div className="rounded-4xl border border-border/40 bg-background/70 p-3 shadow-2xl shadow-primary/10 backdrop-blur-xl">
+                  <HeroVisual dict={dict.landing.visual} />
+                </div>
               </div>
             </div>
           </div>
@@ -160,6 +184,19 @@ export default async function Home() {
           <div className="absolute inset-0 bg-muted/30 -skew-y-3 transform origin-top-left scale-110" />
 
           <div className="container relative mx-auto px-6 lg:px-8">
+            <div className="mx-auto mb-12 max-w-2xl text-center">
+              <div className="text-xs font-medium uppercase tracking-[0.22em] text-primary/80">
+                {isZh ? 'System Capabilities' : 'System Capabilities'}
+              </div>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
+                {isZh ? '不是更多功能，而是一个更强的个人系统。' : 'Not more features. A stronger personal system.'}
+              </h2>
+              <p className="mt-4 text-base leading-7 text-muted-foreground">
+                {isZh
+                  ? 'FlowSpark 把方向、执行和系统判断收在一起，让产品看起来像一个高级系统，而不是一组分散功能。'
+                  : 'FlowSpark brings direction, execution, and system judgment into one place so the product feels like a system, not a loose set of tools.'}
+              </p>
+            </div>
             <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
 
               {/* Feature 1 */}
@@ -205,6 +242,11 @@ export default async function Home() {
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">
               {dict.landing.hero.ctaTitle}
             </h2>
+            <p className="mx-auto mb-8 max-w-2xl text-base leading-7 text-muted-foreground">
+              {isZh
+                ? '如果你想做的不是多记一点任务，而是更稳地推进自己的人生主线，这里就是那个入口。'
+                : 'If you want more than better task capture, and want steadier movement on your life’s main thread, this is the place to start.'}
+            </p>
             <Link href="/login">
               <Button size="lg" className="rounded-full px-10 text-lg h-14 shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:scale-105 transition-all duration-300">
                 {dict.landing.hero.start}

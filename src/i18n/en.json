@@ -1,7 +1,7 @@
 {
 	"common": {
 		"metaTitle": "FlowSpark",
-		"metaDescription": "A personal goal management system to help you achieve your dreams.",
+		"metaDescription": "A personal operating system that turns long-term direction into the most important step for today.",
 		"loading": "Loading...",
 		"saving": "Saving...",
 		"save": "Save",
@@ -52,18 +52,18 @@
 	},
 	"sidebar": {
 		"brand": "FlowSpark",
-		"dashboard": "Dashboard",
+		"dashboard": "System",
 		"today": "Today",
-		"goals": "Goals",
+		"goals": "Paths",
 		"notifications": "Notifications",
-		"inbox": "My Ideas",
+		"inbox": "Signals",
 		"potential": "Potential",
-		"profile": "Profile",
+		"profile": "You",
 		"signOut": "Sign Out"
 	},
 	"inbox": {
-		"title": "Inbox",
-		"subtitle": "Capture now, process later.",
+		"title": "Signals",
+		"subtitle": "Let the system collect inputs first, then surface them when it matters.",
 		"cardTitle": "Inbox",
 		"viewAll": "Open Inbox",
 		"summaryHint": "Summary preview of recent ideas. The actionable list is below.",
@@ -112,13 +112,13 @@
 	},
 	"landing": {
 		"hero": {
-			"badge": "FlowSpark OS v1.0",
-			"title": "Don't just set goals. Spark a flow.",
-			"subtitle": "AI-powered micro-quests, variable rewards, and immersive focus. The personal growth OS that makes consistency addictive.",
-			"start": "Spark Your First Flow",
+			"badge": "Premium Life OS",
+			"title": "Don't just do more.\nAdvance your life's main thread.",
+			"subtitle": "FlowSpark is a personal operating system that brings long-term direction, today's execution, and AI judgment into one calm but powerful system.",
+			"start": "Enter My Life OS",
 			"login": "Login",
-			"socialProof": "Trusted by 1,000+ flow seekers",
-			"ctaTitle": "Ready to find your flow?"
+			"socialProof": "Designed for people building themselves for the long run",
+			"ctaTitle": "Ready to enter your Life OS?"
 		},
 		"visual": {
 			"userLabel": "User",
@@ -133,16 +133,16 @@
 		},
 		"features": {
 			"focus": {
-				"title": "AI Reverse Engineering",
-				"desc": "Don't know where to start? Tell AI your vague ambition, and it breaks it down into fun, 5-minute micro-quests."
+				"title": "Direction System",
+				"desc": "Compress long-term ambition into the single most important step for today, so you always know where life should move next."
 			},
 			"growth": {
-				"title": "Variable Rewards",
-				"desc": "Forget boring checkboxes. Unlock surprise loot boxes, rare badges, and watch your 'Goal Creature' evolve."
+				"title": "Execution System",
+				"desc": "Bring execution, review, and continuity protection into one rhythm system so starting feels lighter and momentum lasts longer."
 			},
 			"insight": {
-				"title": "Zen Mode Focus",
-				"desc": "Immersive full-screen execution with ambient soundscapes. Turn every action into a deep flow state experience."
+				"title": "Intelligence System",
+				"desc": "AI works in the background to understand your patterns, friction, and rhythm, replacing scattered tips with system judgment."
 			}
 		},
 		"footer": "© 2025 FlowSpark. All rights reserved."
@@ -235,13 +235,14 @@
 		}
 	},
 	"dashboard": {
-		"title": "Dashboard",
+		"title": "System",
+		"subtitle": "See how your life system is operating lately, and where your attention should move next.",
 		"todayCoreAction": "Today's Core Action",
 		"setCoreAction": "Set Core Action",
 		"dailyScore": "Daily Check-in",
 		"dailyScoreDesc": "Take 10 seconds to reflect and close the feedback loop.",
-		"aiReviewBtn": "AI Review & Tomorrow Plan (Draft)",
-		"aiReviewTitle": "AI Review (Draft)",
+		"aiReviewBtn": "System review today & shape tomorrow (draft)",
+		"aiReviewTitle": "System review (draft)",
 		"scorePlaceholder": "Select score (0-5)",
 		"submitScore": "Score",
 		"activeGoals": "Active Goals",
@@ -331,8 +332,8 @@
 			"title": "Ready for today?",
 			"desc": "You are tracking {count} active goals. What's your main focus today?",
 			"planBtn": "Plan Today's Actions",
-			"aiPlanBtn": "AI Suggest a Core Action (Draft)",
-			"aiPlanTitle": "AI Core Action (Draft)",
+			"aiPlanBtn": "Let the system suggest today’s core action (draft)",
+			"aiPlanTitle": "System core action (draft)",
 			"aiPlanCoreLabel": "Core",
 			"aiPlanAltLabel": "Alternative",
 			"aiPlanRecommendedLabel": "Recommended",
@@ -353,11 +354,11 @@
 			"aiPlanLoading": "Generating...",
 			"aiPlanHint": "Click to generate suggestions",
 			"yesterdayReview": "Yesterday's Score: {score}",
-			"weeklyInsightTitle": "Weekly AI Insight",
+			"weeklyInsightTitle": "Weekly system insight",
 			"weeklyInsightEmpty": "No weekly insight has been generated yet.",
-			"weeklyInsightGenerate": "Generate weekly insight",
-			"weeklyInsightRegenerate": "Regenerate",
-			"weeklyInsightOpenReport": "Open AI analytics",
+			"weeklyInsightGenerate": "Generate weekly system insight",
+			"weeklyInsightRegenerate": "Refresh system insight",
+			"weeklyInsightOpenReport": "Open system analysis",
 			"weeklyInsightLastUpdated": "Last generated",
 			"weeklyInsightRefreshHint": "Results are reused for 7 days. If you recently created or completed actions, click Regenerate to include the latest data. Momentum is based on actions completed in the last 7 days (all types).",
 			"weeklyInsightMomentum": "Momentum",
@@ -425,7 +426,8 @@
 		}
 	},
 	"today": {
-		"title": "Today's Actions",
+		"title": "Today",
+		"subtitle": "Put the single most important step for today at the center. Everything else supports it.",
 		"focusView": "Focus",
 		"allView": "All",
 		"mustSection": "Must Do",
@@ -483,25 +485,26 @@
 		"aiAdoptedHint": "This action comes from an AI recommendation that has been adopted",
 		"aiFocusPrompt": "Prioritize this AI-guided action. Use the circle on the left to close out today's core move.",
 		"aiFocusPromptHelp": "Completing it counts toward today's AI outcome, which helps identify which recommendation patterns deserve to scale.",
-		"aiCompletionToastTitle": "AI core action completed",
-		"aiCompletionToastBody": "\"{title}\" now counts toward AI recommendation outcomes, so the system can keep improving what it suggests next.",
-		"completionToastXPTitle": "Action completed",
-		"completionToastXPBody": "You earned {xp} XP. Keep the momentum going.",
-		"completionToastAIAndXPTitle": "AI core action completed",
-		"completionToastAIAndXPBody": "\"{title}\" is done, and you earned {xp} XP.",
-		"rewardDialogTitle": "Reward unlocked!",
-		"rewardDialogDescription": "This is a high-value completion reward. Claim it explicitly when you are ready.",
-		"rewardDialogCTA": "Claim reward",
+		"aiCompletionToastTitle": "The system logged an AI-driven win",
+		"aiCompletionToastBody": "\"{title}\" is now recorded as a high-value move, and the system will use it to improve future guidance.",
+		"completionToastXPTitle": "The system logged this move",
+		"completionToastXPBody": "You earned {xp} XP, and the system has folded this completion into your growth rhythm.",
+		"completionToastAIAndXPTitle": "The system logged a key move",
+		"completionToastAIAndXPBody": "\"{title}\" is done, you earned {xp} XP, and the system will use this move in future judgment.",
+		"rewardDialogTitle": "A system reward is unlocked",
+		"rewardDialogDescription": "This completion was recognized as a high-value move. Claim the reward so the progress is formally registered.",
+		"rewardDialogCTA": "Claim and continue",
 		"tomorrowHandoffTitle": "Yesterday you completed an AI core action",
 		"tomorrowHandoffBody": "Keeping the next step alive today makes the rhythm easier to maintain.",
 		"tomorrowHandoffCTA": "Continue tomorrow's first step",
 		"tomorrowHandoffDismiss": "Hide for today"
 	},
 	"goals": {
-		"title": "Goals",
-		"newGoal": "New Goal",
-		"noGoals": "You haven't set any goals yet.",
-		"createFirst": "Create your first goal",
+		"title": "Paths",
+		"subtitle": "Define where you are headed, and which long-term directions deserve steady progress.",
+		"newGoal": "New Path",
+		"noGoals": "You have not defined any paths yet.",
+		"createFirst": "Create your first path",
 		"filter": {
 			"searchPlaceholder": "Search goals...",
 			"searchActionsPlaceholder": "Search actions...",
@@ -554,8 +557,8 @@
 		"start": "Start",
 		"end": "End",
 		"new": {
-			"title": "Create New Goal",
-			"details": "Goal Details",
+			"title": "Create New Path",
+			"details": "Path Details",
 			"manualCreate": "Manual Create",
 			"aiSplitCreate": "AI-guided Create",
 			"titleLabel": "Goal Title",
@@ -637,7 +640,8 @@
 		}
 	},
 	"profile": {
-		"title": "Profile",
+		"title": "You",
+		"subtitle": "Help the system understand you better by making your patterns, rhythm, and long-term shifts visible.",
 		"statusOnline": "Online",
 		"notificationsTitle": "Notifications",
 		"notificationsDesc": "Durable records of shields, milestones, and streak recoveries.",

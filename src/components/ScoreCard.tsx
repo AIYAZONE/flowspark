@@ -145,10 +145,13 @@ export function ScoreCard({
   }
 
   return (
-    <div className={`rounded-lg border bg-card/50 backdrop-blur-sm p-4 flex flex-col justify-between ${className}`}>
+    <div className={`rounded-3xl border border-border/50 bg-linear-to-br from-card via-card to-muted/15 p-5 shadow-sm shadow-black/4 backdrop-blur-sm flex flex-col justify-between ${className}`}>
       <div className="flex items-center justify-between mb-2">
         <div className="min-w-0">
-          <div className="text-sm font-medium">{dict.dashboard.dailyScore}</div>
+          <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">
+            {locale === 'zh' ? 'System Review' : 'System Review'}
+          </div>
+          <div className="mt-2 text-sm font-medium">{dict.dashboard.dailyScore}</div>
           {dict.dashboard.dailyScoreDesc && (
             <div className="text-xs text-muted-foreground mt-0.5">
               {dict.dashboard.dailyScoreDesc}
@@ -174,7 +177,7 @@ export function ScoreCard({
               key={n}
               type="button"
               onClick={() => setScore(n)}
-              className={`rounded-md px-1 py-1.5 text-sm transition-all ${active ? 'bg-primary text-primary-foreground scale-[1.03]' : 'bg-muted hover:bg-muted/70'}`}
+              className={`rounded-xl px-1 py-2 text-sm transition-all ${active ? 'bg-primary text-primary-foreground scale-[1.03] shadow-sm shadow-primary/20' : 'bg-muted/70 hover:bg-muted'}`}
             >
               <div className="font-medium text-sm">{n}</div>
               <div className="text-[9px] mt-0.5 opacity-70 truncate">{labels[i]}</div>
@@ -194,7 +197,7 @@ export function ScoreCard({
 
       <div className="mt-3">
         <Button type="button" variant="outline" className="w-full" onClick={openReview}>
-          {dashboardText.aiReviewBtn || (locale === 'zh' ? 'AI 帮我总结今天 & 给明天策略（草案）' : 'AI Review & Tomorrow Plan (draft)')}
+          {dashboardText.aiReviewBtn || (locale === 'zh' ? '系统帮我收口今天，并给出明日策略（草案）' : 'System review today & shape tomorrow (draft)')}
         </Button>
       </div>
 
@@ -218,7 +221,7 @@ export function ScoreCard({
         <DialogFormContent mobileMode="fullscreen" className="sm:max-w-lg p-4 sm:p-6">
           <DialogHeader className="pr-10 text-left sm:text-left">
             <DialogTitle>
-              {dashboardText.aiReviewTitle || (locale === 'zh' ? 'AI 夜间复盘（草案）' : 'AI Review (draft)')}
+              {dashboardText.aiReviewTitle || (locale === 'zh' ? '系统夜间复盘（草案）' : 'System review (draft)')}
             </DialogTitle>
             <div className="text-xs text-muted-foreground">
               {locale === 'zh' ? '回答 0-2 个问题后生成简洁建议' : 'Answer 0-2 questions and generate concise suggestions'}

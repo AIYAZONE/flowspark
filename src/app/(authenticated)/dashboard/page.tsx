@@ -22,6 +22,8 @@ import { getStreakSnapshot } from '@/lib/streaks'
 import { DAILY_QUOTE_CANDIDATE_COUNT, getDailyQuoteCandidates, QUOTE_TIME_ZONE } from '@/lib/daily-quote'
 import { getExperimentDecision } from '@/lib/featureFlags'
 import { queryWithOwnershipFallback } from '@/lib/ownership'
+import Link from 'next/link'
+import { ArrowRight, BrainCircuit, Route, Shield, Sparkles } from 'lucide-react'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -313,6 +315,34 @@ export default async function DashboardPage() {
   // Stage 2: Flow (Has Actions)
   const isStage0 = activeGoalsCount === 0
   const isStage1 = !isStage0 && actions.length === 0
+  const incompleteActionsCount = actions.filter(action => !action.completed).length
+  const nextActionTitle = actions.find(action => !action.completed)?.title || null
+  const systemJudgmentTitle = isStage0
+    ? (locale === 'zh' ? '先定义你的第一条长期路径' : 'Define your first long-term path')
+    : showContinuityPriority
+      ? (locale === 'zh' ? '今天先保连续，再谈冲刺' : 'Protect continuity first, then push harder')
+      : nextActionTitle
+        ? (locale === 'zh' ? `今天先推进「${nextActionTitle}」` : `Push "${nextActionTitle}" first today`)
+        : (locale === 'zh' ? '今天的主线已完成，适合收口复盘' : 'Today’s main thread is complete. Close the loop with a review.')
+  const systemJudgmentBody = isStage0
+    ? (locale === 'zh'
+        ? '系统还缺少一条足够清晰的长期路径。先定义你要走向哪里，后面的 AI 判断才会越来越准。'
+        : 'The system still needs one clear long-term path. Define where you are headed first so AI judgment can become sharper over time.')
+    : showContinuityPriority
+      ? (locale === 'zh'
+          ? '你现在更需要保住节奏，而不是做更多。先完成一个最小版本，系统会帮你把连续性留住。'
+          : 'You need rhythm more than volume right now. Finish a minimum version first and let the system preserve continuity.')
+      : nextActionTitle
+        ? (locale === 'zh'
+            ? '系统判断你现在最应该做的不是看更多信息，而是把下一步推进到发生。'
+            : 'The system believes your next step matters more than consuming more information right now.')
+        : (locale === 'zh'
+            ? '执行层已经收口，下一步更适合做今日复盘，让系统更新对你的理解。'
+            : 'Execution is closed for today. The next best move is a daily review so the system can update its model of you.')
+  const systemJudgmentHref = isStage0 ? '/goals' : '/today'
+  const systemJudgmentCta = isStage0
+    ? (locale === 'zh' ? '定义一条路径' : 'Define a path')
+    : (locale === 'zh' ? '进入今日主线' : 'Open today')
 
   return (
     <div className="space-y-8 pb-12">
@@ -325,6 +355,79 @@ export default async function DashboardPage() {
         dateBucket={today}
       />
       <StreakFeedbackBanner dict={dict} />
+      <div className="grid gap-4 lg:grid-cols-[1.5fr_0.9fr]">
+        <div className="rounded-3xl border border-primary/15 bg-linear-to-br from-primary/10 via-background to-background p-5 shadow-sm md:p-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/80 px-3 py-1 text-xs font-medium text-primary">
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>Premium Life OS</span>
+          </div>
+          <div className="mt-4 space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{dict.dashboard.title}</h1>
+            <div className="max-w-2xl text-sm text-muted-foreground md:text-base">{dict.dashboard.subtitle}</div>
+          </div>
+          <div className="mt-5 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-border/50 bg-background/70 p-4">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                <Route className="h-3.5 w-3.5" />
+                <span>{locale === 'zh' ? '活跃路径' : 'Active paths'}</span>
+              </div>
+              <div className="mt-3 text-2xl font-semibold tracking-tight">{activeGoalsCount}</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {locale === 'zh' ? '你当前真正持续推进的长期方向。' : 'The long arcs you are actively moving forward.'}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-border/50 bg-background/70 p-4">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                <Shield className="h-3.5 w-3.5" />
+                <span>{locale === 'zh' ? '连续系统' : 'Continuity'}</span>
+              </div>
+              <div className="mt-3 text-2xl font-semibold tracking-tight">{streak}</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {locale === 'zh'
+                  ? `连续 ${streak} 天，护盾 ${streakSnapshot.shieldBalance} 个。`
+                  : `${streak}-day streak, ${streakSnapshot.shieldBalance} shield(s).`}
+              </div>
+            </div>
+            <div className="rounded-2xl border border-border/50 bg-background/70 p-4">
+              <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+                <BrainCircuit className="h-3.5 w-3.5" />
+                <span>{locale === 'zh' ? '今日执行' : 'Today state'}</span>
+              </div>
+              <div className="mt-3 text-2xl font-semibold tracking-tight">
+                {dailyScore ?? incompleteActionsCount}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {dailyScore != null
+                  ? (locale === 'zh' ? `今日评分已记录，剩余 ${incompleteActionsCount} 个行动待推进。` : `Score submitted. ${incompleteActionsCount} action(s) still open.`)
+                  : (locale === 'zh' ? `${incompleteActionsCount} 个行动待推进，系统仍在等待今日输入。` : `${incompleteActionsCount} action(s) still open. The system is still waiting for today’s input.`)}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-3xl border border-border/50 bg-background/90 p-5 shadow-sm md:p-6">
+          <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            {locale === 'zh' ? '系统判断' : 'System judgment'}
+          </div>
+          <div className="mt-3 text-2xl font-semibold tracking-tight">{systemJudgmentTitle}</div>
+          <div className="mt-3 text-sm leading-6 text-muted-foreground">{systemJudgmentBody}</div>
+          <Link
+            href={systemJudgmentHref}
+            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+          >
+            <span>{systemJudgmentCta}</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+          <div className="mt-6 rounded-2xl border border-border/50 bg-muted/30 p-4">
+            <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              {locale === 'zh' ? '本周信号' : 'Weekly signal'}
+            </div>
+            <div className="mt-2 text-sm text-foreground">
+              {weeklyInsight?.output.summary || (locale === 'zh' ? '系统会在本周复盘中继续提炼你的执行模式。' : 'The system will keep refining your execution pattern in this week’s review.')}
+            </div>
+          </div>
+        </div>
+      </div>
       {/* 1. Header & Welcome */}
       <div className="rounded-2xl border border-border/40 bg-linear-to-br from-primary/5 via-background/80 to-background p-4 md:p-5 shadow-sm">
         <DashboardWelcome

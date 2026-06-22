@@ -18,7 +18,10 @@ export default async function GoalsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">{dict.goals.title}</h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">{dict.goals.title}</h1>
+          <div className="mt-1 text-sm text-muted-foreground">{dict.goals.subtitle}</div>
+        </div>
         <div className="hidden md:block">
           <AddGoalDialog dict={dict} />
         </div>
