@@ -8,18 +8,21 @@ import { Label } from "@/components/ui/label"
 import { Eye, EyeOff } from 'lucide-react'
 import { signup } from '@/app/(auth)/login/actions'
 import { SubmitButton } from '@/components/SubmitButton'
+import { getNicknameUnits, NICKNAME_MAX_UNITS, truncateNicknameToUnits } from '@/lib/nickname'
 
 interface Dict {
   common: {
     error: string
     showPassword: string
     hidePassword: string
+    errors?: Record<string, string>
   }
   signup: {
     title: string
     description: string
     nameLabel: string
     namePlaceholder: string
+    nameHint: string
     emailLabel: string
     emailPlaceholder: string
     passwordLabel: string
@@ -57,6 +60,7 @@ interface Dict {
 }
 
 export function SignupForm({ dict, error: initialError, message: initialMessage }: { dict: Dict, error?: string, message?: string }) {
+  const [name, setName] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
 
@@ -65,6 +69,7 @@ export function SignupForm({ dict, error: initialError, message: initialMessage 
     if (!err) return null
     if (err === 'missing_credentials') return dict.signup.errors?.missing_credentials || err
     if (err === 'user_already_registered') return dict.signup.errors?.user_already_registered || err
+    if (err === 'name_too_long') return dict.common.errors?.name_too_long || err
     if (err === 'unexpected_error') return dict.signup.errors?.unexpected_error || err
     return err
   }
@@ -77,6 +82,7 @@ export function SignupForm({ dict, error: initialError, message: initialMessage 
   }
 
   const [error, setError] = useState<string | null>(getErrorMessage(initialError || '') || null)
+  const nameUnits = getNicknameUnits(name)
 
   // Password validation logic derived from ResetPasswordForm
   const lenOK = password.length >= 8
@@ -143,8 +149,14 @@ export function SignupForm({ dict, error: initialError, message: initialMessage 
           name="name"
           type="text"
           placeholder={dict.signup.namePlaceholder}
+          value={name}
+          onChange={(e) => setName(truncateNicknameToUnits(e.target.value, NICKNAME_MAX_UNITS))}
           required
         />
+        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+          <span>{dict.signup.nameHint}</span>
+          <span>{nameUnits}/{NICKNAME_MAX_UNITS}</span>
+        </div>
       </div>
 
       <div className="grid gap-2">

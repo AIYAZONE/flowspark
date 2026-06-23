@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createServerClient } from '@supabase/ssr';
 import { redirect } from 'next/navigation';
+import { getNicknameUnits, NICKNAME_MAX_UNITS } from '@/lib/nickname';
 
 export async function deleteAccount() {
 	const supabase = await createClient();
@@ -51,7 +52,7 @@ export async function updateProfile(formData: FormData) {
 	const locale = ((formData.get('locale') as string) || '').trim();
 	const avatar_url = ((formData.get('avatar_url') as string) || '').trim();
 
-	if (name && name.length > 64) {
+	if (name && getNicknameUnits(name) > NICKNAME_MAX_UNITS) {
 		throw new Error('name_too_long');
 	}
 	const allowedLocales = ['en', 'zh'];

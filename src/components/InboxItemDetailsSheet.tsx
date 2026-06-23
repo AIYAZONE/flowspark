@@ -160,7 +160,9 @@ function InboxItemDetailsSheetInner({
 							<div className="min-h-0 flex-1 overflow-y-auto px-4 pt-4 pb-4 sm:px-6 sm:pb-6">
 								<div className="space-y-4">
 									<div className="rounded-2xl border border-border/60 bg-background/85 px-4 py-3">
-										<div className="text-sm font-medium whitespace-pre-wrap wrap-break-word">{item.content}</div>
+										<div className="text-sm font-medium whitespace-pre-wrap" style={{ overflowWrap: 'anywhere' }}>
+											{item.content}
+										</div>
 										{visibleTags.length > 0 ? (
 											<div className="mt-3 flex flex-wrap gap-1.5">
 												{visibleTags.map((tag) => (
@@ -181,7 +183,9 @@ function InboxItemDetailsSheetInner({
 									{item.note ? (
 										<div className="rounded-2xl border border-amber-500/12 bg-amber-500/4 px-4 py-3">
 											<div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{noteLabel}</div>
-											<div className="whitespace-pre-wrap wrap-break-word text-sm leading-7 text-muted-foreground">{item.note}</div>
+											<div className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground" style={{ overflowWrap: 'anywhere' }}>
+												{item.note}
+											</div>
 										</div>
 									) : null}
 
@@ -317,7 +321,9 @@ function InboxItemDetailsSheetInner({
 							<div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4">
 								<div className="space-y-4">
 									<div className="rounded-2xl border border-border/60 bg-background/85 px-4 py-3">
-										<div className="text-sm font-medium whitespace-pre-wrap wrap-break-word">{item.content}</div>
+										<div className="text-sm font-medium whitespace-pre-wrap" style={{ overflowWrap: 'anywhere' }}>
+											{item.content}
+										</div>
 										{visibleTags.length > 0 ? (
 											<div className="mt-3 flex flex-wrap gap-1.5">
 												{visibleTags.map((tag) => (
@@ -338,7 +344,9 @@ function InboxItemDetailsSheetInner({
 									{item.note ? (
 										<div className="rounded-2xl border border-amber-500/12 bg-amber-500/4 px-4 py-3">
 											<div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{noteLabel}</div>
-											<div className="whitespace-pre-wrap wrap-break-word text-sm leading-7 text-muted-foreground">{item.note}</div>
+											<div className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground" style={{ overflowWrap: 'anywhere' }}>
+												{item.note}
+											</div>
 										</div>
 									) : null}
 

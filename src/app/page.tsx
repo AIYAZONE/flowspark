@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
-import { ArrowRight, TrendingUp, Zap, Target, Sparkles, Brain, Trophy } from "lucide-react";
+import { ArrowRight, Zap, Sparkles, Brain, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDictionary, getCurrentLocale } from "@/i18n/get-dictionary";
 import { createClient } from "@/lib/supabase/server";
 import { AvatarMenu } from "@/components/AvatarMenu";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { Analytics } from "@vercel/analytics/react"
+import { Analytics } from "@vercel/analytics/react";
 import { HeroVisual } from "@/components/HeroVisual";
 
 export default async function Home() {
@@ -171,8 +171,10 @@ export default async function Home() {
 
               {/* Right Column: Visual */}
               <div className="flex-1 w-full max-w-[560px] lg:max-w-none lg:max-h-[calc(100vh-var(--header-h))] lg:self-center">
-                <div className="rounded-4xl border border-border/40 bg-background/70 p-3 shadow-2xl shadow-primary/10 backdrop-blur-xl">
-                  <HeroVisual dict={dict.landing.visual} />
+                <div className="rounded-3xl sm:rounded-4xl bg-gradient-to-br from-primary/25 via-purple-500/15 to-blue-500/25 p-px shadow-2xl shadow-primary/10">
+                  <div className="rounded-3xl sm:rounded-4xl bg-background/70 backdrop-blur-xl p-2 sm:p-3 ring-1 ring-border/30">
+                    <HeroVisual dict={dict.landing.visual} />
+                  </div>
                 </div>
               </div>
             </div>
@@ -186,15 +188,13 @@ export default async function Home() {
           <div className="container relative mx-auto px-6 lg:px-8">
             <div className="mx-auto mb-12 max-w-2xl text-center">
               <div className="text-xs font-medium uppercase tracking-[0.22em] text-primary/80">
-                {isZh ? 'System Capabilities' : 'System Capabilities'}
+                {dict.landing.capabilities.label}
               </div>
               <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                {isZh ? '不是更多功能，而是一个更强的个人系统。' : 'Not more features. A stronger personal system.'}
+                {dict.landing.capabilities.title}
               </h2>
               <p className="mt-4 text-base leading-7 text-muted-foreground">
-                {isZh
-                  ? 'FlowSpark 把方向、执行和系统判断收在一起，让产品看起来像一个高级系统，而不是一组分散功能。'
-                  : 'FlowSpark brings direction, execution, and system judgment into one place so the product feels like a system, not a loose set of tools.'}
+                {dict.landing.capabilities.subtitle}
               </p>
             </div>
             <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
@@ -243,9 +243,7 @@ export default async function Home() {
               {dict.landing.hero.ctaTitle}
             </h2>
             <p className="mx-auto mb-8 max-w-2xl text-base leading-7 text-muted-foreground">
-              {isZh
-                ? '如果你想做的不是多记一点任务，而是更稳地推进自己的人生主线，这里就是那个入口。'
-                : 'If you want more than better task capture, and want steadier movement on your life’s main thread, this is the place to start.'}
+              {dict.landing.cta.subtitle}
             </p>
             <Link href="/login">
               <Button size="lg" className="rounded-full px-10 text-lg h-14 shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:scale-105 transition-all duration-300">

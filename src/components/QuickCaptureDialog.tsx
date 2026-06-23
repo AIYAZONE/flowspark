@@ -29,7 +29,7 @@ export function QuickCaptureDialog({
 	const [expanded, setExpanded] = useState(false)
 	const [isPending, startTransition] = useTransition()
 	const [error, setError] = useState<string | null>(null)
-	const contentRef = useRef<HTMLInputElement | null>(null)
+	const contentRef = useRef<HTMLTextAreaElement | null>(null)
 
 	function handleOpenChange(nextOpen: boolean) {
 		setOpen(nextOpen)
@@ -90,11 +90,13 @@ export function QuickCaptureDialog({
 								<Label htmlFor="content" required>
 									{dict.quickCapture.contentLabel}
 								</Label>
-								<Input
+								<Textarea
 									ref={contentRef}
 									id="content"
 									name="content"
 									placeholder={dict.quickCapture.contentPlaceholder}
+									rows={7}
+									className="min-h-[30dvh] md:min-h-[220px]"
 									required
 								/>
 							</div>

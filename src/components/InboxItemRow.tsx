@@ -220,7 +220,9 @@ export function InboxItemRow({
 							</div>
 
 							<div className="rounded-2xl border border-border/60 bg-background/85 px-4 py-3">
-								<div className="text-sm font-medium whitespace-pre-wrap wrap-break-word">{item.content}</div>
+								<div className="text-sm font-medium whitespace-pre-wrap" style={{ overflowWrap: 'anywhere' }}>
+									{item.content}
+								</div>
 								{visibleTags.length > 0 ? (
 									<div className="mt-2 flex flex-wrap gap-1">
 										{visibleTags.map((t) => (
@@ -241,7 +243,9 @@ export function InboxItemRow({
 							{item.note ? (
 								<div className="rounded-2xl border border-amber-500/12 bg-amber-500/4 px-4 py-3">
 									<div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{noteLabel}</div>
-									<div className="whitespace-pre-wrap wrap-break-word text-sm leading-7 text-muted-foreground">{item.note}</div>
+									<div className="whitespace-pre-wrap text-sm leading-7 text-muted-foreground" style={{ overflowWrap: 'anywhere' }}>
+										{item.note}
+									</div>
 								</div>
 							) : null}
 

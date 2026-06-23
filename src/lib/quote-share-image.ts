@@ -81,6 +81,35 @@ function wrapLines(params: {
   return { lines, truncated }
 }
 
+function truncateTextToWidth(params: {
+  ctx: CanvasRenderingContext2D
+  text: string
+  maxWidth: number
+  ellipsis?: string
+}): { text: string; truncated: boolean } {
+  const { ctx, maxWidth } = params
+  const raw = String(params.text || '').trim()
+  if (!raw) return { text: '', truncated: false }
+
+  const ellipsis = params.ellipsis ?? '…'
+  if (ctx.measureText(raw).width <= maxWidth) return { text: raw, truncated: false }
+  if (maxWidth <= ctx.measureText(ellipsis).width) return { text: '', truncated: true }
+
+  const chars = Array.from(raw)
+  let low = 0
+  let high = chars.length
+
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2)
+    const candidate = chars.slice(0, mid).join('') + ellipsis
+    if (ctx.measureText(candidate).width <= maxWidth) low = mid
+    else high = mid - 1
+  }
+
+  const clipped = low > 0 ? chars.slice(0, low).join('') + ellipsis : ''
+  return { text: clipped, truncated: true }
+}
+
 function toBlob(canvas: HTMLCanvasElement, type: string, quality?: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     canvas.toBlob(
@@ -280,12 +309,22 @@ export async function renderQuoteSharePng(params: QuoteShareImageParams): Promis
   const safeName = String(params.name || '').trim() || (isZh ? '你' : 'You')
   const fallbackLetter = String(params.avatarFallback || safeName || brand).trim().charAt(0).toUpperCase() || 'F'
 
-  const footerW = px(276)
   const footerH = px(110)
-  const footerX = width - padX - footerW
+  const footerMinW = px(276)
+  const footerMaxW = Math.min(contentW, px(520))
+  const footerPadL = px(20)
+  const footerPadR = px(20)
   const footerY = height - padBottom - footerH
   const avatarSize = px(60)
-  const avatarX = footerX + px(20)
+  const avatarGap = px(16)
+
+  ctx.font = `700 ${px(32)}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`
+  const maxNameWidth = Math.max(0, footerMaxW - footerPadL - avatarSize - avatarGap - footerPadR)
+  const { text: drawName } = truncateTextToWidth({ ctx, text: safeName, maxWidth: maxNameWidth })
+  const drawNameW = ctx.measureText(drawName).width
+  const footerW = Math.max(footerMinW, Math.min(footerMaxW, footerPadL + avatarSize + avatarGap + drawNameW + footerPadR))
+  const footerX = width - padX - footerW
+  const avatarX = footerX + footerPadL
   const avatarY = footerY + px(25)
 
   if (template.footer.showContainer) {
@@ -328,7 +367,7 @@ export async function renderQuoteSharePng(params: QuoteShareImageParams): Promis
 
   ctx.fillStyle = template.footer.nameText
   ctx.font = `700 ${px(32)}px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial`
-  ctx.fillText(safeName, avatarX + avatarSize + px(16), footerY + px(38))
+  ctx.fillText(drawName, avatarX + avatarSize + avatarGap, footerY + px(38))
 
   const defaultQuality = 0.92
   const dataUrl =

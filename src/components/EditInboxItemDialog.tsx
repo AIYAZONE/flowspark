@@ -122,9 +122,10 @@ export function EditInboxItemDialog({
 									name="content"
 									value={content}
 									onChange={(e) => setContent(e.target.value)}
+									placeholder={dict.quickCapture.contentPlaceholder}
 									rows={8}
 									required
-									className="min-h-[34dvh] md:min-h-[260px]"
+									className="min-h-[30dvh] md:min-h-[220px]"
 								/>
 							</div>
 
@@ -135,6 +136,7 @@ export function EditInboxItemDialog({
 									name="note"
 									value={note}
 									onChange={(e) => setNote(e.target.value)}
+									placeholder={dict.quickCapture.notePlaceholder}
 									rows={8}
 									className="min-h-[28dvh] md:min-h-[220px]"
 								/>

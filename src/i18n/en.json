@@ -43,7 +43,7 @@
 			"invalid_date_range": "End date cannot be earlier than start date",
 			"missing_ai_key": "AI API key is not configured",
 			"operation_failed": "Operation failed, please try again later",
-			"name_too_long": "Name is too long",
+			"name_too_long": "Name is too long (max 20 units; non-ASCII counts as 2)",
 			"delete_failed": "Delete failed",
 			"image_too_large": "Image size exceeds 5MB",
 			"image_type_invalid": "Only PNG, JPG and WebP are supported",
@@ -102,8 +102,8 @@
 		"addAction": "Add action",
 		"addIdea": "Quick capture",
 		"title": "Quick Capture",
-		"contentLabel": "One-liner",
-		"contentPlaceholder": "Write down your idea...",
+		"contentLabel": "Idea content",
+		"contentPlaceholder": "Write out your full idea...",
 		"noteLabel": "Note",
 		"notePlaceholder": "Add more context (optional)",
 		"tagsLabel": "Tags",
@@ -119,6 +119,11 @@
 			"login": "Login",
 			"socialProof": "Designed for people building themselves for the long run",
 			"ctaTitle": "Ready to enter your Life OS?"
+		},
+		"capabilities": {
+			"label": "System Capabilities",
+			"title": "Not more features. A stronger personal system.",
+			"subtitle": "FlowSpark brings direction, execution, and system judgment into one place so the product feels like a system, not a loose set of tools."
 		},
 		"visual": {
 			"userLabel": "User",
@@ -144,6 +149,9 @@
 				"title": "Intelligence System",
 				"desc": "AI works in the background to understand your patterns, friction, and rhythm, replacing scattered tips with system judgment."
 			}
+		},
+		"cta": {
+			"subtitle": "If you want more than better task capture, and want steadier movement on your life’s main thread, this is the place to start."
 		},
 		"footer": "© 2025 FlowSpark. All rights reserved."
 	},
@@ -218,6 +226,7 @@
 		"description": "Create a new account",
 		"nameLabel": "Name",
 		"namePlaceholder": "Your Name",
+		"nameHint": "Max 20 units (non-ASCII counts as 2)",
 		"emailLabel": "Email",
 		"emailPlaceholder": "m@example.com",
 		"passwordLabel": "Password",
@@ -785,6 +794,7 @@
 		"advancedActions": "Advanced",
 		"email": "Email",
 		"name": "Name",
+		"nameHint": "Max 20 units (non-ASCII counts as 2)",
 		"language": "Language",
 		"avatar": "Avatar URL",
 		"timezone": "Timezone",

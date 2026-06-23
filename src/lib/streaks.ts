@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { subDays } from 'date-fns'
-import { queryWithOwnershipFallback } from '@/lib/ownership'
+import { queryWithOwnershipFallback } from './ownership.ts'
 
 export type ShieldGrantRule = 'first_3_day' | 'refill_7_day'
 

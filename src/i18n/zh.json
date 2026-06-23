@@ -43,7 +43,7 @@
 			"invalid_date_range": "结束日期不得早于开始日期",
 			"missing_ai_key": "未配置 AI API Key",
 			"operation_failed": "操作失败，请稍后重试",
-			"name_too_long": "姓名长度超出限制",
+			"name_too_long": "昵称长度超出限制（最多 20 单位，中文/表情算 2）",
 			"delete_failed": "删除失败",
 			"image_too_large": "图片大小超过 5MB",
 			"image_type_invalid": "仅支持 PNG、JPG、WebP 格式",
@@ -56,13 +56,13 @@
 		"today": "今日",
 		"goals": "路径",
 		"notifications": "通知",
-		"inbox": "信号",
+		"inbox": "灵感",
 		"potential": "潜力发掘",
 		"profile": "自我",
 		"signOut": "退出登录"
 	},
 	"inbox": {
-		"title": "信号",
+		"title": "灵感",
 		"subtitle": "系统先为你收集输入，再在合适的时候提醒处理。",
 		"cardTitle": "灵感收件箱",
 		"viewAll": "打开收件箱",
@@ -102,8 +102,8 @@
 		"addAction": "新增行动",
 		"addIdea": "灵感速记",
 		"title": "灵感速记",
-		"contentLabel": "一句话",
-		"contentPlaceholder": "随手记下你的灵感…",
+		"contentLabel": "灵感内容",
+		"contentPlaceholder": "直接写下完整灵感内容…",
 		"noteLabel": "备注",
 		"notePlaceholder": "补充更多上下文（可选）",
 		"tagsLabel": "标签",
@@ -119,6 +119,11 @@
 			"login": "登录账号",
 			"socialProof": "为想长期进化的人而设计",
 			"ctaTitle": "准备好进入你的人生系统了吗？"
+		},
+		"capabilities": {
+			"label": "System Capabilities",
+			"title": "不是更多功能，而是一个更强的个人系统。",
+			"subtitle": "FlowSpark 把方向、执行和系统判断收在一起，让产品看起来像一个高级系统，而不是一组分散功能。"
 		},
 		"visual": {
 			"userLabel": "用户",
@@ -144,6 +149,9 @@
 				"title": "智能系统",
 				"desc": "AI 在幕后理解你的模式、阻力与节奏，用系统判断替代零散建议。"
 			}
+		},
+		"cta": {
+			"subtitle": "如果你想做的不是多记一点任务，而是更稳地推进自己的人生主线，这里就是那个入口。"
 		},
 		"footer": "© 2025 FlowSpark. 保留所有权利。"
 	},
@@ -218,6 +226,7 @@
 		"description": "创建一个新账号",
 		"nameLabel": "姓名",
 		"namePlaceholder": "您的姓名",
+		"nameHint": "最多 20 单位（中文/表情算 2）",
 		"emailLabel": "邮箱",
 		"emailPlaceholder": "m@example.com",
 		"passwordLabel": "密码",
@@ -785,6 +794,7 @@
 		"advancedActions": "高级操作",
 		"email": "邮箱",
 		"name": "姓名",
+		"nameHint": "最多 20 单位（中文/表情算 2）",
 		"language": "语言",
 		"avatar": "头像地址",
 		"timezone": "时区",

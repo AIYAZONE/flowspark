@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { AvatarUploader } from '@/components/AvatarUploader'
 import { Pencil, Mail, Globe, CalendarDays, Loader2, LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { getNicknameUnits, NICKNAME_MAX_UNITS, truncateNicknameToUnits } from '@/lib/nickname'
 import {
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ interface Dict {
     statusOnline: string
     email: string
     name: string
+    nameHint: string
     timezone: string
     updateProfile: string
     avatar: string
@@ -59,6 +61,7 @@ interface Dict {
     cancel: string
     signOutConfirmTitle: string
     signOutConfirmDesc: string
+    errors?: Record<string, string>
   }
 }
 
@@ -98,6 +101,7 @@ export function ProfileCard({
   const router = useRouter()
   const supabase = createClient()
   const isEn = currentLocale === 'en'
+  const nameUnits = getNicknameUnits(name)
 
   const formatTimezoneLabel = (tz?: string | null) => {
     const key = tz || 'UTC'
@@ -146,6 +150,14 @@ export function ProfileCard({
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
+
+    const trimmedName = name.trim()
+    if (trimmedName && getNicknameUnits(trimmedName) > NICKNAME_MAX_UNITS) {
+      const message = dict.common.errors?.name_too_long ?? 'name_too_long'
+      setToast({ type: 'error', message: `${dict.common.error}: ${message}` })
+      return
+    }
+
     setIsUpdating(true)
     const fd = new FormData()
     fd.set('name', name)
@@ -166,7 +178,8 @@ export function ProfileCard({
       router.refresh()
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed'
-      setToast({ type: 'error', message: `${dict.common.error}: ${message}` })
+      const translated = dict.common.errors?.[message]
+      setToast({ type: 'error', message: `${dict.common.error}: ${translated ?? message}` })
     } finally {
       setIsUpdating(false)
     }
@@ -296,7 +309,16 @@ export function ProfileCard({
             />
             <div className="grid gap-2">
               <Label htmlFor="name">{dict.profile.name}</Label>
-              <Input id="name" name="name" value={name} onChange={(e) => setName(e.target.value)} />
+              <Input
+                id="name"
+                name="name"
+                value={name}
+                onChange={(e) => setName(truncateNicknameToUnits(e.target.value, NICKNAME_MAX_UNITS))}
+              />
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                <span>{dict.profile.nameHint}</span>
+                <span>{nameUnits}/{NICKNAME_MAX_UNITS}</span>
+              </div>
             </div>
             <div className="grid gap-2">
               <Label htmlFor="timezone">{dict.profile.timezone}</Label>

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { createClient } from '@/lib/supabase/server';
 import { getSiteUrl } from '@/lib/get-site-url';
+import { getNicknameUnits, NICKNAME_MAX_UNITS } from '@/lib/nickname';
 
 function mapLoginErrorCode(message: string): string {
 	const lower = message.toLowerCase();
@@ -61,8 +62,12 @@ export async function signup(formData: FormData) {
 
 	const email = formData.get('email') as string;
 	const password = formData.get('password') as string;
-	const name = formData.get('name') as string;
+	const name = ((formData.get('name') as string) || '').trim();
 	const siteUrl = getSiteUrl();
+
+	if (name && getNicknameUnits(name) > NICKNAME_MAX_UNITS) {
+		redirect('/signup?error=name_too_long');
+	}
 
 	const { error, data } = await supabase.auth.signUp({
 		email,
