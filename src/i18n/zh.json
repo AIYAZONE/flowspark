@@ -52,6 +52,10 @@
 	},
 	"sidebar": {
 		"brand": "FlowSpark",
+		"groups": {
+			"core": "系统",
+			"identity": "自我"
+		},
 		"dashboard": "系统",
 		"today": "今日",
 		"goals": "路径",

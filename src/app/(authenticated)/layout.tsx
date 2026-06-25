@@ -39,10 +39,10 @@ export default async function AuthenticatedLayout({
     .order('created_at', { ascending: false })
 
   return (
-    <div className="fixed inset-0 flex h-full w-full overflow-hidden bg-muted/40">
+    <div className="fixed inset-0 flex h-full w-full overflow-hidden bg-linear-to-br from-background via-muted/25 to-background">
       <Sidebar dict={dict} />
-      <div className="flex flex-col flex-1 min-w-0 h-full overflow-hidden">
-        <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto px-4 pb-8 sm:px-6 lg:px-8 md:pb-0 2xl:px-10 [@media(min-width:1920px)]:px-12 [@media(min-width:2560px)]:px-14">
+      <div className="flex flex-col flex-1 min-w-0 min-h-0 h-full overflow-hidden">
+        <main className="flex-1 min-w-0 min-h-0 overflow-x-hidden overflow-y-auto px-4 pb-8 sm:px-6 lg:px-8 md:pb-0 2xl:px-10 [@media(min-width:1920px)]:px-12 [@media(min-width:2560px)]:px-14">
           <div className="mx-auto w-full max-w-[1600px] pt-8 pb-12 md:pt-10 2xl:max-w-[1760px] [@media(min-width:1920px)]:max-w-[1840px] [@media(min-width:2560px)]:max-w-[2080px]">
             {children}
           </div>

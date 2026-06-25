@@ -24,6 +24,12 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
   const [epoch, setEpoch] = useState(0)
   const [notificationUnread, setNotificationUnread] = useState<number>(0)
 
+  const activeItemClass =
+    'bg-linear-to-b from-primary/12 via-primary/8 to-primary/5 text-primary ring-1 ring-primary/16'
+
+  const idleItemClass =
+    'text-muted-foreground hover:bg-muted/45 hover:text-foreground'
+
   useEffect(() => {
     const onResume = () => setEpoch((v) => v + 1)
     window.addEventListener('app:resume', onResume)
@@ -102,54 +108,54 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
       key={epoch}
       className={`${MOBILE_ONLY_CLASS} shrink-0 bg-transparent px-3 pb-safe-area-inset-bottom pt-2`}
     >
-      <nav
-        className="mx-auto flex h-[72px] max-w-xl items-center justify-around rounded-[1.75rem] border border-border/40 bg-background/88 px-2 shadow-lg shadow-black/5 backdrop-blur-xl"
-        onPointerDownCapture={(e) => {
-          if (!isDebugNav()) return
-          const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
-          console.log('[debugNav] pointerdown', {
-            x: e.clientX,
-            y: e.clientY,
-            targetTag: el?.tagName,
-            targetId: el?.id,
-            targetClass: el?.className,
-          })
-        }}
-      >
-        {navItems.map((item) => {
-          const isActive = pathname.startsWith(item.href)
-          const showUnreadDot = item.href === '/profile' && notificationUnread > 0
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={() => {
-                if (!isDebugNav()) return
-                console.log('[debugNav] click', { href: item.href })
-              }}
-              className={cn(
-                "mx-0.5 flex h-[58px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl transition-all duration-200",
-                isActive
-                  ? "bg-primary/10 text-primary ring-1 ring-primary/12"
-                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-              )}
-            >
-              <span className="relative">
-                <item.icon
-                  className={cn(
-                    "h-6 w-6 transition-all duration-200",
-                    isActive ? "scale-110 stroke-[2.5px]" : "stroke-[1.5px]"
-                  )}
-                />
-                {showUnreadDot ? (
-                  <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-background" />
-                ) : null}
-              </span>
-              <span className="text-[10px] font-medium">{item.title}</span>
-            </Link>
-          )
-        })}
-      </nav>
+      <div className="mx-auto max-w-xl rounded-[1.85rem] bg-linear-to-br from-primary/18 via-violet-500/10 to-sky-500/12 p-px shadow-lg shadow-black/5">
+        <nav
+          className="flex h-[72px] items-center justify-around rounded-[1.82rem] border border-white/10 bg-background/78 px-2 backdrop-blur-xl"
+          onPointerDownCapture={(e) => {
+            if (!isDebugNav()) return
+            const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
+            console.log('[debugNav] pointerdown', {
+              x: e.clientX,
+              y: e.clientY,
+              targetTag: el?.tagName,
+              targetId: el?.id,
+              targetClass: el?.className,
+            })
+          }}
+        >
+          {navItems.map((item) => {
+            const isActive = pathname.startsWith(item.href)
+            const showUnreadDot = item.href === '/profile' && notificationUnread > 0
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => {
+                  if (!isDebugNav()) return
+                  console.log('[debugNav] click', { href: item.href })
+                }}
+                className={cn(
+                  'mx-0.5 flex h-[58px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl transition-all duration-200',
+                  isActive ? activeItemClass : idleItemClass
+                )}
+              >
+                <span className="relative">
+                  <item.icon
+                    className={cn(
+                      'h-6 w-6 transition-all duration-200',
+                      isActive ? 'scale-110 stroke-[2.25px]' : 'stroke-[1.75px]'
+                    )}
+                  />
+                  {showUnreadDot ? (
+                    <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-background" />
+                  ) : null}
+                </span>
+                <span className="text-[10px] font-medium">{item.title}</span>
+              </Link>
+            )
+          })}
+        </nav>
+      </div>
     </div>
   )
 }

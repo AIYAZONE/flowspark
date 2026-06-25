@@ -52,6 +52,10 @@
 	},
 	"sidebar": {
 		"brand": "FlowSpark",
+		"groups": {
+			"core": "System",
+			"identity": "You"
+		},
 		"dashboard": "System",
 		"today": "Today",
 		"goals": "Paths",
