@@ -115,6 +115,23 @@
 			"badge": "Premium Life OS",
 			"title": "Don't just do more.\nAdvance your life's main thread.",
 			"subtitle": "FlowSpark is a personal operating system that brings long-term direction, today's execution, and AI judgment into one calm but powerful system.",
+			"signals": [
+				{
+					"label": "Direction",
+					"value": "Long-term direction",
+					"detail": "Compress long-range ambition into the single step that matters today."
+				},
+				{
+					"label": "Execution",
+					"value": "Daily traction",
+					"detail": "Keep you moving your main thread instead of getting scattered by inputs and tasks."
+				},
+				{
+					"label": "Intelligence",
+					"value": "System judgment",
+					"detail": "AI learns your rhythm, friction, and preferences in the background."
+				}
+			],
 			"start": "Enter My Life OS",
 			"login": "Login",
 			"socialProof": "Designed for people building themselves for the long run",
@@ -138,22 +155,43 @@
 		},
 		"features": {
 			"focus": {
-				"title": "Direction System",
-				"desc": "Compress long-term ambition into the single most important step for today, so you always know where life should move next."
+				"title": "Bring long-term direction down to the single step worth moving today.",
+				"desc": "The system compresses noise so you can see where life is actually worth advancing next."
 			},
 			"growth": {
-				"title": "Execution System",
-				"desc": "Bring execution, review, and continuity protection into one rhythm system so starting feels lighter and momentum lasts longer."
+				"title": "Protect continuity instead of letting action dissolve into tasks.",
+				"desc": "Execution, review, and return are gathered into one rhythm system so your main thread stays intact."
 			},
 			"insight": {
-				"title": "Intelligence System",
-				"desc": "AI works in the background to understand your patterns, friction, and rhythm, replacing scattered tips with system judgment."
+				"title": "Keep understanding you instead of constantly interrupting you.",
+				"desc": "AI learns your patterns, friction, and rhythm in the background, then helps with fewer but sharper judgments."
+			}
+		},
+		"trajectory": {
+			"label": "System Read",
+			"title": "You are moving, but the system already sees the real issue.",
+			"subtitle": "This is not task analytics. It is the system's core read on your current trajectory.",
+			"scoreLabel": "Trajectory Health",
+			"judgment": "Your direction is already clear. What needs repair now is not your goal, but your rhythm.",
+			"signals": {
+				"direction": {
+					"label": "Direction",
+					"state": "Main thread is clear"
+				},
+				"rhythm": {
+					"label": "Rhythm",
+					"state": "Recently scattered"
+				},
+				"stability": {
+					"label": "Stability",
+					"state": "Returning faster"
+				}
 			}
 		},
 		"cta": {
 			"subtitle": "If you want more than better task capture, and want steadier movement on your life’s main thread, this is the place to start."
 		},
-		"footer": "© 2025 FlowSpark. All rights reserved."
+		"footer": "© {years} FlowSpark. All rights reserved."
 	},
 	"login": {
 		"title": "Login",

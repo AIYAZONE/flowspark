@@ -21,7 +21,7 @@ export function HeroVisual({ dict }: HeroVisualProps) {
   const shouldReduceMotion = useReducedMotion()
 
   return (
-    <div className="relative w-full max-w-[500px] aspect-[4/5] mx-auto lg:mx-0">
+    <div className="relative mx-auto aspect-4/5 w-full max-w-[500px] lg:mx-0">
       {/* Background Glow */}
       <motion.div
         animate={
@@ -42,18 +42,18 @@ export function HeroVisual({ dict }: HeroVisualProps) {
                 ease: "linear",
               }
         }
-        className="absolute inset-0 bg-gradient-to-tr from-primary/30 via-purple-500/30 to-blue-500/30 blur-3xl rounded-full"
+        className="absolute inset-0 rounded-full bg-linear-to-tr from-primary/30 via-purple-500/30 to-blue-500/30 blur-3xl"
       />
 
       {/* Floating Cards Container */}
-      <div className="relative z-10 h-full flex flex-col justify-center gap-6">
+      <div className="relative z-10 flex h-full flex-col items-center justify-center gap-6">
         
         {/* Card 1: Vague Ambition Input */}
         <motion.div
           initial={shouldReduceMotion ? false : { x: -50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={shouldReduceMotion ? { duration: 0 } : { delay: 0.2, duration: 0.5 }}
-          className="bg-background/80 backdrop-blur-md border border-border p-4 rounded-xl shadow-lg transform -rotate-3"
+          className="w-[78%] max-w-[340px] rounded-xl border border-border bg-background/80 p-4 shadow-lg backdrop-blur-md"
         >
           <div className="flex items-center gap-3 mb-2">
             <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs">{dict.userLabel}</div>
@@ -79,7 +79,7 @@ export function HeroVisual({ dict }: HeroVisualProps) {
           initial={shouldReduceMotion ? false : { x: 50, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
           transition={shouldReduceMotion ? { duration: 0 } : { delay: 1.2, duration: 0.5 }}
-          className="bg-gradient-to-br from-background to-primary/5 backdrop-blur-md border border-primary/20 p-5 rounded-xl shadow-xl transform rotate-3"
+          className="w-[92%] max-w-[420px] rounded-xl border border-primary/20 bg-linear-to-br from-background to-primary/5 p-5 shadow-xl backdrop-blur-md"
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider">
@@ -112,7 +112,7 @@ export function HeroVisual({ dict }: HeroVisualProps) {
               ? { duration: 0 }
               : { delay: 2.5, type: "spring", bounce: 0.5 }
           }
-          className="absolute -right-4 -bottom-4 bg-foreground text-background p-4 rounded-xl shadow-2xl border border-border max-w-[200px]"
+          className="absolute right-2 bottom-0 w-[78%] max-w-[220px] rounded-xl border border-border bg-foreground p-4 text-background shadow-2xl"
         >
           <div className="flex items-start gap-3">
             <div className="p-2 bg-yellow-400 rounded-lg text-yellow-900">

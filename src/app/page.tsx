@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
-import { ArrowRight, Zap, Sparkles, Brain, Trophy } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getDictionary, getCurrentLocale } from "@/i18n/get-dictionary";
 import { createClient } from "@/lib/supabase/server";
@@ -8,6 +8,10 @@ import { AvatarMenu } from "@/components/AvatarMenu";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Analytics } from "@vercel/analytics/react";
 import { HeroVisual } from "@/components/HeroVisual";
+import { LandingCapabilities } from "@/components/LandingCapabilities";
+import { TrajectoryHealthPanel } from "@/components/TrajectoryHealthPanel";
+import { getLandingHeroSignals } from "@/lib/landing-hero-signals";
+import { COPYRIGHT_START_YEAR, formatCopyrightYearRange } from "@/lib/copyright";
 
 export default async function Home() {
   const dict = await getDictionary();
@@ -29,18 +33,7 @@ export default async function Home() {
   }
 
   const avatarLetter = (displayName?.[0] || user?.email?.[0] || 'U').toUpperCase();
-  const isZh = currentLocale.startsWith('zh')
-  const heroSignals = isZh
-    ? [
-        { label: 'Direction', value: '长期方向', detail: '把长期人生方向收敛成今天最值得推进的一步。' },
-        { label: 'Execution', value: '今日推进', detail: '让你先推进主线，而不是继续被信息和待办拖散。' },
-        { label: 'Intelligence', value: '系统判断', detail: 'AI 在幕后吸收你的节奏、阻力与偏好，持续修正建议。' },
-      ]
-    : [
-        { label: 'Direction', value: 'Long-term direction', detail: 'Compress long-range ambition into the single step that matters today.' },
-        { label: 'Execution', value: 'Daily traction', detail: 'Keep you moving your main thread instead of getting scattered by inputs and tasks.' },
-        { label: 'Intelligence', value: 'System judgment', detail: 'AI learns your rhythm, friction, and preferences in the background.' },
-      ]
+  const heroSignals = getLandingHeroSignals(dict.landing.hero)
 
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground selection:bg-primary/20 overflow-x-hidden">
@@ -117,12 +110,17 @@ export default async function Home() {
                   {dict.landing.hero.subtitle}
                 </p>
 
-                <div className="mb-7 grid gap-3 text-left sm:grid-cols-3">
+                <div className="mb-6 grid gap-2.5 text-left sm:grid-cols-3">
                   {heroSignals.map((item) => (
-                    <div key={item.label} className="rounded-2xl border border-border/50 bg-background/75 p-4 backdrop-blur-sm">
-                      <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">{item.label}</div>
-                      <div className="mt-2 text-sm font-semibold text-foreground">{item.value}</div>
-                      <div className="mt-2 text-xs leading-5 text-muted-foreground">{item.detail}</div>
+                    <div
+                      key={item.label}
+                      className="flex min-h-[116px] flex-col rounded-[1.35rem] border border-white/8 bg-white/2 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-[6px]"
+                    >
+                      <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/75">
+                        {item.label}
+                      </div>
+                      <div className="mt-2 text-sm font-medium text-foreground/85">{item.value}</div>
+                      <div className="mt-2 text-[12px] leading-5 text-muted-foreground">{item.detail}</div>
                     </div>
                   ))}
                 </div>
@@ -171,7 +169,7 @@ export default async function Home() {
 
               {/* Right Column: Visual */}
               <div className="flex-1 w-full max-w-[560px] lg:max-w-none lg:max-h-[calc(100vh-var(--header-h))] lg:self-center">
-                <div className="rounded-3xl sm:rounded-4xl bg-gradient-to-br from-primary/25 via-purple-500/15 to-blue-500/25 p-px shadow-2xl shadow-primary/10">
+                <div className="rounded-3xl sm:rounded-4xl bg-linear-to-br from-primary/25 via-violet-500/15 to-sky-500/25 p-px shadow-2xl shadow-primary/10">
                   <div className="rounded-3xl sm:rounded-4xl bg-background/70 backdrop-blur-xl p-2 sm:p-3 ring-1 ring-border/30">
                     <HeroVisual dict={dict.landing.visual} />
                   </div>
@@ -181,83 +179,69 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* Features Section */}
-        <section className="py-24 relative overflow-hidden">
-          <div className="absolute inset-0 bg-muted/30 -skew-y-3 transform origin-top-left scale-110" />
+        <LandingCapabilities
+          dict={{
+            label: dict.landing.capabilities.label,
+            title: dict.landing.capabilities.title,
+            subtitle: dict.landing.capabilities.subtitle,
+            cards: dict.landing.features,
+          }}
+        />
 
-          <div className="container relative mx-auto px-6 lg:px-8">
-            <div className="mx-auto mb-12 max-w-2xl text-center">
-              <div className="text-xs font-medium uppercase tracking-[0.22em] text-primary/80">
-                {dict.landing.capabilities.label}
-              </div>
-              <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">
-                {dict.landing.capabilities.title}
-              </h2>
-              <p className="mt-4 text-base leading-7 text-muted-foreground">
-                {dict.landing.capabilities.subtitle}
-              </p>
-            </div>
-            <div className="grid md:grid-cols-3 gap-8 lg:gap-12">
-
-              {/* Feature 1 */}
-              <div className="bg-background/80 backdrop-blur-sm rounded-2xl p-8 border border-border/50 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-6 text-primary">
-                  <Brain className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold mb-3">{dict.landing.features.focus.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {dict.landing.features.focus.desc}
-                </p>
-              </div>
-
-              {/* Feature 2 */}
-              <div className="bg-background/80 backdrop-blur-sm rounded-2xl p-8 border border-border/50 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
-                <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6 text-purple-500">
-                  <Trophy className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold mb-3">{dict.landing.features.growth.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {dict.landing.features.growth.desc}
-                </p>
-              </div>
-
-              {/* Feature 3 */}
-              <div className="bg-background/80 backdrop-blur-sm rounded-2xl p-8 border border-border/50 shadow-sm hover:shadow-md transition-all hover:-translate-y-1">
-                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mb-6 text-blue-500">
-                  <Zap className="w-6 h-6" />
-                </div>
-                <h3 className="text-xl font-bold mb-3">{dict.landing.features.insight.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {dict.landing.features.insight.desc}
-                </p>
-              </div>
-
-            </div>
-          </div>
-        </section>
+        <TrajectoryHealthPanel dict={dict.landing.trajectory} />
 
         {/* Bottom CTA */}
-        <section className="py-24 text-center">
-          <div className="container mx-auto px-6 lg:px-8">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl mb-6">
-              {dict.landing.hero.ctaTitle}
-            </h2>
-            <p className="mx-auto mb-8 max-w-2xl text-base leading-7 text-muted-foreground">
-              {dict.landing.cta.subtitle}
-            </p>
-            <Link href="/login">
-              <Button size="lg" className="rounded-full px-10 text-lg h-14 shadow-xl shadow-primary/20 hover:shadow-primary/40 hover:scale-105 transition-all duration-300">
-                {dict.landing.hero.start}
-              </Button>
-            </Link>
+        <section className="relative py-24 lg:py-28">
+          <div className="pointer-events-none absolute inset-x-0 top-8 h-56 bg-[radial-gradient(circle,rgba(16,185,129,0.10),transparent_62%)] blur-3xl" />
+          <div className="container relative mx-auto px-6 lg:px-8">
+            <div className="mx-auto max-w-5xl rounded-4xl bg-linear-to-br from-primary/22 via-violet-500/10 to-sky-500/18 p-px shadow-[0_40px_140px_-72px_rgba(16,185,129,0.36)]">
+              <div className="rounded-4xl border border-white/8 bg-background/72 px-6 py-10 text-center backdrop-blur-xl sm:px-10 lg:px-14 lg:py-14">
+                <div className="inline-flex items-center rounded-full border border-primary/15 bg-primary/6 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.22em] text-primary/80">
+                  {dict.landing.hero.badge}
+                </div>
+                <h2 className="mx-auto mt-5 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl lg:text-[2.8rem] lg:leading-[1.08]">
+                  {dict.landing.hero.ctaTitle}
+                </h2>
+                <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-muted-foreground lg:text-[15px]">
+                  {dict.landing.cta.subtitle}
+                </p>
+                <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
+                  <Link href={user ? "/dashboard" : "/login"}>
+                    <Button
+                      size="lg"
+                      className="h-14 rounded-full px-10 text-lg shadow-xl shadow-primary/25 transition-all duration-300 hover:scale-[1.02] hover:shadow-primary/40"
+                    >
+                      {user ? dict.sidebar.dashboard : dict.landing.hero.start}
+                    </Button>
+                  </Link>
+                  {!user && (
+                    <Link href="/login">
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="h-14 rounded-full border-primary/18 bg-background/20 px-10 text-base backdrop-blur-sm hover:bg-primary/6"
+                      >
+                        {dict.landing.hero.login}
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 py-12 bg-muted/20">
-        <div className="container mx-auto px-6 text-center text-sm text-muted-foreground lg:px-8">
-          <p>{dict.landing.footer}</p>
+      <footer className="border-t border-white/8 bg-background/65 py-10 backdrop-blur-xl">
+        <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-6 text-center lg:flex-row lg:px-8 lg:text-left">
+          <BrandLogo className="text-base" />
+          <p className="text-sm text-muted-foreground/90">
+            {dict.landing.footer.replace(
+              "{years}",
+              formatCopyrightYearRange(COPYRIGHT_START_YEAR)
+            )}
+          </p>
         </div>
       </footer>
     </div>
