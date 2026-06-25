@@ -394,6 +394,84 @@ export function TodayActionList({
         </div>
       </div>
 
+      {shouldShowMainPathCard ? (
+        <div className="rounded-3xl border border-primary/20 bg-linear-to-br from-primary/8 via-primary/5 to-card p-4 shadow-sm shadow-primary/10 md:p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="space-y-2">
+              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">
+                {mainPathLabel}
+              </div>
+              <div className="text-lg font-semibold text-foreground">
+                {primaryPathContext?.title}
+              </div>
+              <div className="text-sm font-medium text-foreground/90">
+                {primaryPathContext?.titleText}
+              </div>
+              <div className="text-sm leading-6 text-muted-foreground">
+                {primaryPathContext?.body}
+              </div>
+            </div>
+            <div className="flex items-center gap-2 sm:justify-end">
+              <Button asChild size="sm" className="rounded-full">
+                <Link href={`/goals/${primaryPathContext?.goalId}`}>{primaryPathContext?.ctaLabel || mainPathLabel}</Link>
+              </Button>
+              <Button asChild size="sm" variant="outline" className="rounded-full">
+                <Link href="/goals">{viewAllPathsLabel}</Link>
+              </Button>
+            </div>
+          </div>
+          {mainPathDensityContext ? (
+            <div className="mt-4 space-y-3">
+              <div className={`grid gap-3 ${mainPathDensityContext.recentMetricStatus === 'hidden' ? '' : 'sm:grid-cols-2'}`}>
+                {mainPathDensityContext.recentMetricStatus !== 'hidden' ? (
+                  <div className="rounded-2xl border border-border/50 bg-background/70 p-3">
+                    <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{recentMetricLabel}</div>
+                    <div className="mt-2 text-base font-semibold text-foreground">
+                      {mainPathDensityContext.recentCompletedCount7d ?? mainPathDensityContext.recentActiveCount7d ?? 0}
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {mainPathDensityContext.recentSummary}
+                    </div>
+                  </div>
+                ) : null}
+                <div className="rounded-2xl border border-border/50 bg-background/70 p-3">
+                  <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{densityMetricLabel}</div>
+                  <div className="mt-2 text-base font-semibold text-foreground">
+                    {mainPathDensityContext.remainingCount}
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {mainPathDensityContext.progressSummary}
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-primary/12 bg-primary/6 px-4 py-3 text-sm leading-6 text-foreground/90">
+                {mainPathDensityContext.meaningSummary}
+              </div>
+            </div>
+          ) : null}
+          {shouldShowMainPathActions ? (
+            <div className="mt-4 grid gap-3">
+              {mainPathActionItems.map((action) => (
+                <ActionItem
+                  key={action.id}
+                  action={action}
+                  dict={dict}
+                  showGoalTitle={showGoalTitle}
+                  tz={tz}
+                  goals={goals}
+                  initialOpen={action.id === initialOpenActionId}
+                  initialPanelMode={action.id === initialOpenActionId ? initialPanelMode : 'view'}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="mt-4 rounded-2xl border border-dashed border-border/60 px-4 py-3 text-sm text-muted-foreground">
+              {mainPathFallbackLabel}
+            </div>
+          )}
+        </div>
+      ) : null}
+
       {focusModel.recent.length > 0 ? (
         <div className="space-y-3">
           <div className="text-base font-semibold">{recentSectionLabel}</div>
@@ -481,84 +559,6 @@ export function TodayActionList({
               />
             ))}
           </div>
-        </div>
-      ) : null}
-
-      {shouldShowMainPathCard ? (
-        <div className="rounded-3xl border border-primary/20 bg-linear-to-br from-primary/8 via-primary/5 to-card p-4 shadow-sm shadow-primary/10 md:p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="space-y-2">
-              <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">
-                {mainPathLabel}
-              </div>
-              <div className="text-lg font-semibold text-foreground">
-                {primaryPathContext?.title}
-              </div>
-              <div className="text-sm font-medium text-foreground/90">
-                {primaryPathContext?.titleText}
-              </div>
-              <div className="text-sm leading-6 text-muted-foreground">
-                {primaryPathContext?.body}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 sm:justify-end">
-              <Button asChild size="sm" className="rounded-full">
-                <Link href={`/goals/${primaryPathContext?.goalId}`}>{primaryPathContext?.ctaLabel || mainPathLabel}</Link>
-              </Button>
-              <Button asChild size="sm" variant="outline" className="rounded-full">
-                <Link href="/goals">{viewAllPathsLabel}</Link>
-              </Button>
-            </div>
-          </div>
-          {mainPathDensityContext ? (
-            <div className="mt-4 space-y-3">
-              <div className={`grid gap-3 ${mainPathDensityContext.recentMetricStatus === 'hidden' ? '' : 'sm:grid-cols-2'}`}>
-                {mainPathDensityContext.recentMetricStatus !== 'hidden' ? (
-                  <div className="rounded-2xl border border-border/50 bg-background/70 p-3">
-                    <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{recentMetricLabel}</div>
-                    <div className="mt-2 text-base font-semibold text-foreground">
-                      {mainPathDensityContext.recentCompletedCount7d ?? mainPathDensityContext.recentActiveCount7d ?? 0}
-                    </div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {mainPathDensityContext.recentSummary}
-                    </div>
-                  </div>
-                ) : null}
-                <div className="rounded-2xl border border-border/50 bg-background/70 p-3">
-                  <div className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">{densityMetricLabel}</div>
-                  <div className="mt-2 text-base font-semibold text-foreground">
-                    {mainPathDensityContext.remainingCount}
-                  </div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {mainPathDensityContext.progressSummary}
-                  </div>
-                </div>
-              </div>
-              <div className="rounded-2xl border border-primary/12 bg-primary/6 px-4 py-3 text-sm leading-6 text-foreground/90">
-                {mainPathDensityContext.meaningSummary}
-              </div>
-            </div>
-          ) : null}
-          {shouldShowMainPathActions ? (
-            <div className="mt-4 grid gap-3">
-              {mainPathActionItems.map((action) => (
-                <ActionItem
-                  key={action.id}
-                  action={action}
-                  dict={dict}
-                  showGoalTitle={showGoalTitle}
-                  tz={tz}
-                  goals={goals}
-                  initialOpen={action.id === initialOpenActionId}
-                  initialPanelMode={action.id === initialOpenActionId ? initialPanelMode : 'view'}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="mt-4 rounded-2xl border border-dashed border-border/60 px-4 py-3 text-sm text-muted-foreground">
-              {mainPathFallbackLabel}
-            </div>
-          )}
         </div>
       ) : null}
 

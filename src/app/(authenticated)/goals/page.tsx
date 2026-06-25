@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { GoalListFilter } from '@/components/GoalListFilter'
-import { AddGoalDialog } from '@/components/AddGoalDialog'
 
 export default async function GoalsPage() {
   const supabase = await createClient()
@@ -16,15 +15,10 @@ export default async function GoalsPage() {
     .order('created_at', { ascending: false })
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">{dict.goals.title}</h1>
-          <div className="mt-1 text-sm text-muted-foreground">{dict.goals.subtitle}</div>
-        </div>
-        <div className="hidden md:block">
-          <AddGoalDialog dict={dict} />
-        </div>
+    <div className="space-y-7">
+      <div className="min-w-0">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">{dict.goals.title}</h1>
+        <div className="mt-1 text-sm text-muted-foreground/90">{dict.goals.subtitle}</div>
       </div>
 
       <GoalListFilter initialGoals={goals || []} dict={dict} />
