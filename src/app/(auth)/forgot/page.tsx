@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import { requestReset } from './actions'
 import { SubmitButton } from '@/components/SubmitButton'
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getDictionary } from '@/i18n/get-dictionary'
+import { AuthInlineNotice } from '@/components/AuthInlineNotice'
+import { AuthCardShell } from '@/components/AuthCardShell'
 
 export default async function ForgotPage({
   searchParams,
@@ -27,7 +28,7 @@ export default async function ForgotPage({
   const message = rawMessage === 'email_sent' ? dict.forgot.success : null
 
   return (
-    <Card className="relative z-10 w-full max-w-sm rounded-xl border border-border/50 bg-secondary/20 shadow-none">
+    <AuthCardShell>
       <CardHeader>
         <CardTitle className="text-2xl">{dict.forgot.title}</CardTitle>
         <CardDescription>
@@ -36,14 +37,14 @@ export default async function ForgotPage({
       </CardHeader>
       <CardContent>
         {error && (
-          <div className="mb-4 text-sm text-red-500 font-medium bg-red-50 p-3 rounded-md border border-red-200">
-            {dict.common.error}: {error}
-          </div>
+          <AuthInlineNotice variant="error" title={dict.common.error} className="mb-4">
+            {error}
+          </AuthInlineNotice>
         )}
         {message && (
-          <div className="mb-4 text-sm text-green-600 font-medium bg-green-50 p-3 rounded-md border border-green-200">
+          <AuthInlineNotice variant="success" className="mb-4">
             {message}
-          </div>
+          </AuthInlineNotice>
         )}
         <form action={requestReset} className="grid gap-4">
           <div className="grid gap-2">
@@ -66,6 +67,6 @@ export default async function ForgotPage({
           </div>
         </form>
       </CardContent>
-    </Card>
+    </AuthCardShell>
   )
 }

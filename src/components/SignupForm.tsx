@@ -9,6 +9,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { signup } from '@/app/(auth)/login/actions'
 import { SubmitButton } from '@/components/SubmitButton'
 import { getNicknameUnits, NICKNAME_MAX_UNITS, truncateNicknameToUnits } from '@/lib/nickname'
+import { AuthInlineNotice } from '@/components/AuthInlineNotice'
 
 interface Dict {
   common: {
@@ -132,14 +133,14 @@ export function SignupForm({ dict, error: initialError, message: initialMessage 
   return (
     <form action={signup} onSubmit={handleSubmit} className="grid gap-4">
       {error && (
-        <div className="mb-2 text-sm text-red-500 font-medium bg-red-50 p-3 rounded-md border border-red-200">
-          {dict.common.error}: {error}
-        </div>
+        <AuthInlineNotice variant="error" title={dict.common.error}>
+          {error}
+        </AuthInlineNotice>
       )}
       {initialMessage && (
-        <div className="mb-2 text-sm text-green-600 font-medium bg-green-50 p-3 rounded-md border border-green-200">
+        <AuthInlineNotice variant="success">
           {getSuccessMessage(initialMessage)}
-        </div>
+        </AuthInlineNotice>
       )}
 
       <div className="grid gap-2">

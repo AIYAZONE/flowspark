@@ -1,12 +1,13 @@
 import { ResetPasswordForm } from '@/components/ResetPasswordForm'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getDictionary } from '@/i18n/get-dictionary'
+import { AuthCardShell } from '@/components/AuthCardShell'
 
 export default async function ResetPage() {
   const dict = await getDictionary()
 
   return (
-    <Card className="relative z-10 w-full max-w-sm rounded-xl border border-border/50 bg-secondary/20 shadow-none">
+    <AuthCardShell>
       <CardHeader>
         <CardTitle className="text-2xl">{dict.reset.title}</CardTitle>
         <CardDescription>
@@ -16,6 +17,6 @@ export default async function ResetPage() {
       <CardContent>
         <ResetPasswordForm dict={dict} />
       </CardContent>
-    </Card>
+    </AuthCardShell>
   )
 }
