@@ -27,6 +27,10 @@ import { getRecentRecommendations } from '@/lib/ai/analyticsStore'
 import { buildTodayPersonalization, summarizeRecommendationSignals } from '@/lib/self-model'
 import { buildPrimaryPathContext } from '@/lib/path-context'
 import { buildMainPathDensityContext } from '@/lib/main-path-density'
+import { getTodayPrimaryCta } from '@/lib/today-primary-cta'
+import { getTodayMainThreadCopy } from '@/lib/today-main-thread'
+import { resolveTodayMainThreadDecision } from '@/lib/today-main-thread-decision'
+import { ChevronDown } from 'lucide-react'
 
 type RecommendationOutcomeRow = {
   id: string
@@ -265,6 +269,7 @@ export default async function TodayPage(props: {
   const completedCount = (actions || []).filter(action => action.completed).length
   const incompleteCount = (actions || []).filter(action => !action.completed).length
   const nextActionTitle = (actions || []).find(action => !action.completed)?.title || null
+  const nextIncompleteActionId = (actions || []).find(action => !action.completed)?.id || null
   const actionIdParam = Array.isArray(searchParams?.action) ? searchParams?.action[0] : searchParams?.action
   const rescueActionIdParam = Array.isArray(searchParams?.rescue) ? searchParams?.rescue[0] : searchParams?.rescue
   const initialOpenActionId = resolveInitialOpenAction({
@@ -294,26 +299,6 @@ export default async function TodayPage(props: {
   const rescueCtaLabel = localeIsZh
     ? (rescueAction ? '打开 5 分钟救援' : '去做最小行动')
     : (rescueAction ? 'Open 5-min rescue' : 'Do a minimum action')
-  const mainThreadTitle = showStreakRiskBanner
-    ? (localeIsZh ? '今天先保连续，不先追求更多' : 'Protect continuity before chasing more today')
-    : tomorrowHandoffCandidate
-      ? (localeIsZh ? '先把昨天的 momentum 接回来' : 'Bring yesterday’s momentum forward first')
-      : nextActionTitle
-        ? (localeIsZh ? `今天的主线是推进「${nextActionTitle}」` : `Today’s main thread is "${nextActionTitle}"`)
-        : (localeIsZh ? '今天的执行层已经收口' : 'Today’s execution layer is closed')
-  const mainThreadBody = showStreakRiskBanner
-    ? streakBannerBody
-    : tomorrowHandoffCandidate
-      ? (localeIsZh
-          ? '系统优先建议你延续昨天已经完成的 AI 核心行动，让推进感不要断掉。'
-          : 'The system recommends extending yesterday’s completed AI core action so momentum stays alive.')
-      : nextActionTitle
-        ? (localeIsZh
-            ? '今天不需要做更多决定。先把这一条推进到发生，其余信息都应该为它让路。'
-            : 'You do not need more decisions today. Push this one thing forward and let everything else support it.')
-        : (localeIsZh
-            ? '主线已经完成。接下来更适合补复盘、收口和为明天留出承接。'
-            : 'The main thread is already complete. The next best move is to review, close the loop, and prepare tomorrow.')
   const recommendationSignals = summarizeRecommendationSignals(recentRecommendations)
   const primaryPathContext = buildPrimaryPathContext({
     locale: localeIsZh ? 'zh' : 'en',
@@ -334,6 +319,39 @@ export default async function TodayPage(props: {
         : [],
     })),
   })
+  const mainThreadDecision = resolveTodayMainThreadDecision({
+    today,
+    showStreakRiskBanner,
+    tomorrowHandoffCandidate: tomorrowHandoffCandidate
+      ? {
+          actionId: tomorrowHandoffCandidate.actionId,
+          title: tomorrowHandoffCandidate.title,
+          goalId: tomorrowHandoffCandidate.goalId,
+        }
+      : null,
+    actions: (actions || []).map((action) => ({
+      id: action.id as string,
+      title: action.title as string,
+      goal_id: (action.goal_id as string | null | undefined) ?? null,
+      completed: Boolean(action.completed),
+      priority: (action.priority as string | null | undefined) ?? null,
+      type: (action.type as string | null | undefined) ?? null,
+      start_date: (action.start_date as string | null | undefined) ?? null,
+      end_date: (action.end_date as string | null | undefined) ?? null,
+    })),
+    primaryPathGoalId: primaryPathContext?.goalId ?? null,
+  })
+  const mainThreadActionId = mainThreadDecision.mainThreadActionId
+  const mainThreadActionTitle = mainThreadDecision.mainThreadActionTitle
+  const mainThread = getTodayMainThreadCopy({
+    locale: localeIsZh ? 'zh' : 'en',
+    showStreakRiskBanner,
+    streakBannerBody,
+    hasTomorrowHandoff: mainThreadDecision.source === 'handoff',
+    nextActionTitle: mainThreadActionTitle,
+  })
+  const mainThreadTitle = mainThread.title
+  const mainThreadBody = mainThread.body
   const sevenDaysAgo = shiftDateBucket(today, -6)
   const { data: recentMainPathActions } = primaryPathContext?.goalId
     ? await queryWithOwnershipFallback({
@@ -371,10 +389,18 @@ export default async function TodayPage(props: {
   const todayPersonalization = buildTodayPersonalization({
     locale: localeIsZh ? 'zh' : 'en',
     currentStreak: streakSnapshot.currentStreak,
-    nextActionTitle,
+    nextActionTitle: mainThreadActionTitle,
     showStreakRiskBanner,
-    hasTomorrowHandoff: Boolean(tomorrowHandoffCandidate),
+    hasTomorrowHandoff: mainThreadDecision.source === 'handoff',
     signals: recommendationSignals,
+  })
+
+  const primaryCta = getTodayPrimaryCta({
+    locale: localeIsZh ? 'zh' : 'en',
+    showStreakRiskBanner,
+    rescueActionId: rescueAction?.id ?? null,
+    tomorrowHandoffTargetActionId: mainThreadDecision.source === 'handoff' ? mainThreadActionId : null,
+    nextIncompleteActionId: mainThreadActionId ?? nextIncompleteActionId,
   })
 
   return (
@@ -394,6 +420,24 @@ export default async function TodayPage(props: {
           entry="streak_banner"
         />
       ) : null}
+      <div className="md:hidden sticky top-0 z-20 -mx-4 border-b border-white/8 bg-background/75 px-4 pb-3 pt-2 backdrop-blur-xl">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground/70">
+              {dict.today.title}
+            </div>
+            <div className="mt-1 truncate text-sm font-medium text-foreground">
+              {mainThreadTitle}
+            </div>
+          </div>
+          <a
+            href={primaryCta.href}
+            className="inline-flex h-10 shrink-0 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary/90"
+          >
+            {primaryCta.label}
+          </a>
+        </div>
+      </div>
       <StreakFeedbackBanner dict={dict} />
       <div className="flex items-center justify-between">
         <div>
@@ -403,7 +447,13 @@ export default async function TodayPage(props: {
             {toLocaleDateStringTZ(dict.common.locale, tz, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </div>
         </div>
-        <div className="hidden md:block">
+        <div className="hidden md:flex items-center gap-2">
+          <a
+            href={primaryCta.href}
+            className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm shadow-primary/20 hover:bg-primary/90"
+          >
+            {primaryCta.label}
+          </a>
           <AddActionDialog activeGoals={activeGoals || []} dict={dict} />
         </div>
       </div>
@@ -414,8 +464,134 @@ export default async function TodayPage(props: {
             {localeIsZh ? 'Today Main Thread' : 'Today Main Thread'}
           </div>
           <div className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl">{mainThreadTitle}</div>
-          <div className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{mainThreadBody}</div>
-          <div id="today-system-read" className="mt-5 max-w-2xl rounded-2xl border border-border/50 bg-background/80 p-4 scroll-mt-24">
+          <div className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground line-clamp-2 md:line-clamp-3">
+            {mainThreadBody}
+          </div>
+          <div className="hidden md:block">
+            <details id="today-system-read" className="mt-5 max-w-2xl rounded-2xl border border-border/50 bg-background/80 p-4 scroll-mt-24">
+              <summary className="cursor-pointer list-none">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">
+                      {todayPersonalization.eyebrow}
+                    </div>
+                    <div className="mt-2 text-base font-medium">{todayPersonalization.title}</div>
+                  </div>
+                  <ChevronDown className="ai-details-chevron mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
+                </div>
+              </summary>
+              <div className="mt-2 text-sm leading-6 text-muted-foreground">{todayPersonalization.body}</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a
+                  href="/profile#current-system-read"
+                  className="inline-flex items-center justify-center rounded-full border border-border/60 bg-background/85 px-3 py-1.5 text-xs font-medium hover:border-primary/35 hover:bg-primary/5"
+                >
+                  {localeIsZh ? '看当前理解' : 'Current system read'}
+                </a>
+                <a
+                  href="/profile/ai-insights#system-read-explained"
+                  className="inline-flex items-center justify-center rounded-full border border-border/60 bg-background/85 px-3 py-1.5 text-xs font-medium hover:border-primary/35 hover:bg-primary/5"
+                >
+                  {localeIsZh ? '看系统为何这样判断' : 'Why the system thinks this'}
+                </a>
+              </div>
+            </details>
+            {primaryPathContext ? (
+              <details className="mt-4 max-w-2xl rounded-2xl border border-primary/12 bg-primary/5 p-4">
+                <summary className="cursor-pointer list-none">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">
+                        {primaryPathContext.stageLabel}
+                      </div>
+                      <div className="mt-2 text-base font-medium">
+                        {localeIsZh ? `当前主线路径是「${primaryPathContext.title}」` : `Current main path: "${primaryPathContext.title}"`}
+                      </div>
+                    </div>
+                    <ChevronDown className="ai-details-chevron mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
+                  </div>
+                </summary>
+                <div className="mt-2 text-sm leading-6 text-foreground/90">
+                  {primaryPathContext.titleText}
+                </div>
+                <div className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {primaryPathContext.body}
+                </div>
+                <div className="mt-3 rounded-2xl border border-border/50 bg-background/80 p-3">
+                  <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    {localeIsZh ? 'Why This Path Leads Today' : 'Why This Path Leads Today'}
+                  </div>
+                  <div className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {primaryPathContext.evidence}
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <a
+                    href={`/goals/${primaryPathContext.goalId}`}
+                    className="inline-flex items-center justify-center rounded-full border border-border/60 bg-background/85 px-3 py-1.5 text-xs font-medium hover:border-primary/35 hover:bg-primary/5"
+                  >
+                    {primaryPathContext.ctaLabel}
+                  </a>
+                  <a
+                    href="/goals"
+                    className="inline-flex items-center justify-center rounded-full border border-border/60 bg-background/85 px-3 py-1.5 text-xs font-medium hover:border-primary/35 hover:bg-primary/5"
+                  >
+                    {localeIsZh ? '查看全部路径' : 'View all paths'}
+                  </a>
+                </div>
+              </details>
+            ) : null}
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+          <div className="rounded-2xl border border-border/50 bg-background/80 p-4 shadow-sm">
+            <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              {localeIsZh ? '待推进' : 'Open actions'}
+            </div>
+            <div className="mt-2 text-2xl font-semibold tracking-tight">{incompleteCount}</div>
+            <div className="mt-1 text-xs text-muted-foreground hidden sm:block">
+              {localeIsZh ? '今天仍需向前推进的行动数。' : 'Actions still waiting to move forward today.'}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-border/50 bg-background/80 p-4 shadow-sm">
+            <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              {localeIsZh ? '已收口' : 'Closed today'}
+            </div>
+            <div className="mt-2 text-2xl font-semibold tracking-tight">{completedCount}</div>
+            <div className="mt-1 text-xs text-muted-foreground hidden sm:block">
+              {localeIsZh ? '已经完成并计入系统判断的行动。' : 'Actions already closed and counted by the system.'}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-border/50 bg-background/80 p-4 shadow-sm">
+            <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              {localeIsZh ? '连续状态' : 'Continuity'}
+            </div>
+            <div className="mt-2 text-2xl font-semibold tracking-tight">{streakSnapshot.currentStreak}</div>
+            <div className="mt-1 text-xs text-muted-foreground hidden sm:block">
+              {localeIsZh
+                ? `护盾 ${streakSnapshot.shieldBalance} 个，${hasCompletedToday ? '今天已保住连续' : '今天仍需一次完成' }。`
+                : `${streakSnapshot.shieldBalance} shield(s), ${hasCompletedToday ? 'continuity secured today' : 'one completion still needed today'}.`}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <details className="md:hidden rounded-2xl border border-border/50 bg-background/80 p-4">
+        <summary className="cursor-pointer list-none">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1">
+              <div className="text-sm font-semibold">
+                {localeIsZh ? '更多背景 / 系统判断' : 'More context / System read'}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {localeIsZh ? '可选查看，不影响你直接开始推进。' : 'Optional. You can start moving without reading this.'}
+              </div>
+            </div>
+            <ChevronDown className="ai-details-chevron mt-0.5 h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200" />
+          </div>
+        </summary>
+        <div className="mt-4 space-y-4">
+          <div className="rounded-2xl border border-border/50 bg-background/85 p-4">
             <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">
               {todayPersonalization.eyebrow}
             </div>
@@ -436,8 +612,9 @@ export default async function TodayPage(props: {
               </a>
             </div>
           </div>
+
           {primaryPathContext ? (
-            <div className="mt-4 max-w-2xl rounded-2xl border border-primary/12 bg-primary/5 p-4">
+            <div className="rounded-2xl border border-primary/12 bg-primary/5 p-4">
               <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/80">
                 {primaryPathContext.stageLabel}
               </div>
@@ -449,14 +626,6 @@ export default async function TodayPage(props: {
               </div>
               <div className="mt-2 text-sm leading-6 text-muted-foreground">
                 {primaryPathContext.body}
-              </div>
-              <div className="mt-3 rounded-2xl border border-border/50 bg-background/80 p-3">
-                <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  {localeIsZh ? 'Why This Path Leads Today' : 'Why This Path Leads Today'}
-                </div>
-                <div className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {primaryPathContext.evidence}
-                </div>
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
                 <a
@@ -475,38 +644,7 @@ export default async function TodayPage(props: {
             </div>
           ) : null}
         </div>
-        <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-          <div className="rounded-2xl border border-border/50 bg-background/80 p-4 shadow-sm">
-            <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              {localeIsZh ? '待推进' : 'Open actions'}
-            </div>
-            <div className="mt-2 text-2xl font-semibold tracking-tight">{incompleteCount}</div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              {localeIsZh ? '今天仍需向前推进的行动数。' : 'Actions still waiting to move forward today.'}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-border/50 bg-background/80 p-4 shadow-sm">
-            <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              {localeIsZh ? '已收口' : 'Closed today'}
-            </div>
-            <div className="mt-2 text-2xl font-semibold tracking-tight">{completedCount}</div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              {localeIsZh ? '已经完成并计入系统判断的行动。' : 'Actions already closed and counted by the system.'}
-            </div>
-          </div>
-          <div className="rounded-2xl border border-border/50 bg-background/80 p-4 shadow-sm">
-            <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              {localeIsZh ? '连续状态' : 'Continuity'}
-            </div>
-            <div className="mt-2 text-2xl font-semibold tracking-tight">{streakSnapshot.currentStreak}</div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              {localeIsZh
-                ? `护盾 ${streakSnapshot.shieldBalance} 个，${hasCompletedToday ? '今天已保住连续' : '今天仍需一次完成' }。`
-                : `${streakSnapshot.shieldBalance} shield(s), ${hasCompletedToday ? 'continuity secured today' : 'one completion still needed today'}.`}
-            </div>
-          </div>
-        </div>
-      </div>
+      </details>
 
       {tomorrowHandoffCandidate && !hasCompletedCoreToday && (tomorrowHandoffTargetActionId || showAIPlan) ? (
         <TomorrowHandoffCard
@@ -592,6 +730,7 @@ export default async function TodayPage(props: {
             today={today}
             goals={activeGoals || []}
             primaryGoalId={primaryPathContext?.goalId ?? null}
+            mainThreadActionId={mainThreadActionId}
             primaryPathContext={primaryPathContext ?? null}
             mainPathDensityContext={mainPathDensityContext}
             initialOpenActionId={initialOpenActionId}

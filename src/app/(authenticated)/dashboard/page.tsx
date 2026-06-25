@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { ScoreTrendChart } from '@/components/ScoreTrendChart'
 import { getDictionary } from '@/i18n/get-dictionary'
-import { getUserTimezone, getTodayInTZ } from '@/lib/time'
+import { getDateBucketInTZ, getUserTimezone, getTodayInTZ, shiftDateBucket } from '@/lib/time'
 import { DashboardWelcome } from '@/components/DashboardWelcome'
 import { OnboardingHero } from '@/components/OnboardingHero'
 import { DailyPlanningCard } from '@/components/DailyPlanningCard'
@@ -24,6 +24,25 @@ import { getExperimentDecision } from '@/lib/featureFlags'
 import { queryWithOwnershipFallback } from '@/lib/ownership'
 import Link from 'next/link'
 import { ArrowRight, BrainCircuit, Route, Shield, Sparkles } from 'lucide-react'
+import { pickYesterdayHandoffCandidate, type TomorrowHandoffCandidateInput } from '@/lib/tomorrow-handoff'
+import { getTodayMainThreadCopy } from '@/lib/today-main-thread'
+import { buildPrimaryPathContext } from '@/lib/path-context'
+import { resolveTodayMainThreadDecision } from '@/lib/today-main-thread-decision'
+
+type RecommendationOutcomeRow = {
+  id: string
+  recommendation_id: string
+  action_id: string | null
+  updated_at: string
+}
+
+type HandoffActionRow = {
+  id: string
+  title: string
+  goal_id: string | null
+  ai_recommendation_id: string | null
+  type: string | null
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -56,9 +75,7 @@ export default async function DashboardPage() {
   const reviewQuestionsCount = ab2ReviewEnabled ? (ab2ReviewVariant === 'A' ? 1 : 2) : 2
   const tz = await getUserTimezone(supabase, user.id)
   const today = getTodayInTZ(tz)
-  const yesterdayDate = new Date(today)
-  yesterdayDate.setDate(yesterdayDate.getDate() - 1)
-  const yesterday = yesterdayDate.toISOString().split('T')[0]
+  const yesterday = shiftDateBucket(today, -1)
 
   const locale = String(dict.common.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en'
   const quoteDateISO = getTodayInTZ(QUOTE_TIME_ZONE)
@@ -93,7 +110,7 @@ export default async function DashboardPage() {
     .limit(1)
     .maybeSingle()
 
-  // Fetch today's core action
+  // Fetch today's actions using the same pool as /today.
   const { data: rawActions } = await queryWithOwnershipFallback({
     execute: (ownershipColumn) => supabase
       .from('actions')
@@ -103,7 +120,6 @@ export default async function DashboardPage() {
           status
         )
       `)
-      .eq('type', 'core')
       .eq(ownershipColumn, user.id)
       .or(
         [
@@ -115,7 +131,7 @@ export default async function DashboardPage() {
         ].join(',')
       )
       .order('completed', { ascending: true })
-      .order('start_date', { ascending: true }),
+      .order('priority', { ascending: false }),
   })
 
   const { data: archivedGoals } = await queryWithOwnershipFallback({
@@ -203,6 +219,84 @@ export default async function DashboardPage() {
     return false;
   }) || [];
 
+  const handoffRecentCutoffIso = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+  const { data: recentCompletedOutcomes } = await supabase
+    .from('ai_recommendation_outcomes')
+    .select('id, recommendation_id, action_id, updated_at')
+    .eq('user_id', user.id)
+    .eq('completed', true)
+    .gte('updated_at', handoffRecentCutoffIso)
+    .order('updated_at', { ascending: false })
+    .limit(20)
+
+  const yesterdayOutcomeRows = ((recentCompletedOutcomes || []) as RecommendationOutcomeRow[])
+    .filter((outcome) => (
+      Boolean(outcome.recommendation_id) &&
+      Boolean(outcome.updated_at) &&
+      getDateBucketInTZ(outcome.updated_at, tz) === yesterday
+    ))
+
+  const outcomeActionIds = [...new Set(
+    yesterdayOutcomeRows
+      .map((outcome) => outcome.action_id)
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+  )]
+  const fallbackRecommendationIds = [...new Set(
+    yesterdayOutcomeRows
+      .filter((outcome) => !outcome.action_id)
+      .map((outcome) => outcome.recommendation_id)
+      .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+  )]
+
+  const { data: handoffActionsById } = outcomeActionIds.length > 0
+    ? await queryWithOwnershipFallback({
+        execute: (ownershipColumn) => supabase
+          .from('actions')
+          .select('id, title, goal_id, ai_recommendation_id, type')
+          .eq(ownershipColumn, user.id)
+          .eq('type', 'core')
+          .in('id', outcomeActionIds)
+      })
+    : { data: [] as HandoffActionRow[] }
+
+  const { data: handoffActionsByRecommendation } = fallbackRecommendationIds.length > 0
+    ? await queryWithOwnershipFallback({
+        execute: (ownershipColumn) => supabase
+          .from('actions')
+          .select('id, title, goal_id, ai_recommendation_id, type')
+          .eq(ownershipColumn, user.id)
+          .eq('type', 'core')
+          .in('ai_recommendation_id', fallbackRecommendationIds)
+          .order('id', { ascending: true })
+      })
+    : { data: [] as HandoffActionRow[] }
+
+  const handoffActionById = new Map(
+    ((handoffActionsById || []) as HandoffActionRow[]).map((action) => [action.id, action])
+  )
+  const handoffActionByRecommendationId = new Map<string, HandoffActionRow>()
+  for (const action of (handoffActionsByRecommendation || []) as HandoffActionRow[]) {
+    if (!action.ai_recommendation_id || handoffActionByRecommendationId.has(action.ai_recommendation_id)) continue
+    handoffActionByRecommendationId.set(action.ai_recommendation_id, action)
+  }
+
+  const yesterdayCandidates: TomorrowHandoffCandidateInput[] = yesterdayOutcomeRows.flatMap((outcome) => {
+    const matchedAction = outcome.action_id
+      ? handoffActionById.get(outcome.action_id) ?? null
+      : handoffActionByRecommendationId.get(outcome.recommendation_id) ?? null
+
+    if (!matchedAction || !matchedAction.title) return []
+    return [{
+      outcomeId: outcome.id,
+      recommendationId: outcome.recommendation_id,
+      actionId: matchedAction.id,
+      title: matchedAction.title,
+      goalId: matchedAction.goal_id ?? null,
+      completedAt: outcome.updated_at,
+    }]
+  })
+  const tomorrowHandoffCandidate = pickYesterdayHandoffCandidate(yesterdayCandidates)
+
   // Fetch daily score
   const { data: scores } = await queryWithOwnershipFallback({
     primary: 'owner_id',
@@ -240,6 +334,25 @@ export default async function DashboardPage() {
   })
 
   const activeGoalsCount = goalsData?.length || 0
+  const primaryPathContext = buildPrimaryPathContext({
+    locale,
+    today,
+    goals: (goalsData || []).map((goal) => ({
+      id: goal.id as string,
+      title: goal.title as string,
+      priority: (goal.priority as string | null | undefined) ?? null,
+      start_date: (goal.start_date as string | null | undefined) ?? null,
+      end_date: (goal.end_date as string | null | undefined) ?? null,
+      success_criteria: (goal.success_criteria as string | null | undefined) ?? null,
+      stop_criteria: (goal.stop_criteria as string | null | undefined) ?? null,
+      actions: Array.isArray(goal.actions)
+        ? goal.actions.map((action) => ({
+            id: action.id as string,
+            completed: Boolean(action.completed),
+          }))
+        : [],
+    })),
+  })
 
   // Process goals for GoalProgressList
   // Strategy: Align with GoalListFilter.tsx logic
@@ -304,8 +417,8 @@ export default async function DashboardPage() {
     today,
   })
   const streak = streakSnapshot.currentStreak
-  const continuityPriorityAction = actions.find(action => !action.completed && action.type === 'core') || null
-  const showContinuityPriority = !streakSnapshot.completedToday && Boolean(continuityPriorityAction)
+  const hasCompletedToday = streakSnapshot.completedDates.includes(today)
+  const showStreakRiskBanner = !hasCompletedToday && (streakSnapshot.currentStreak > 0 || Boolean(streakSnapshot.recoverableMissDate))
 
   const chartData = recentScores?.map(s => ({ date: s.score_date, score: s.score })) || []
 
@@ -316,30 +429,62 @@ export default async function DashboardPage() {
   const isStage0 = activeGoalsCount === 0
   const isStage1 = !isStage0 && actions.length === 0
   const incompleteActionsCount = actions.filter(action => !action.completed).length
-  const nextActionTitle = actions.find(action => !action.completed)?.title || null
+  const streakBannerBody = streakSnapshot.recoverableMissDate
+    ? (
+      streakSnapshot.shieldBalance > 0
+        ? (locale === 'zh'
+          ? `昨天漏掉了 1 天，你还有 ${streakSnapshot.shieldBalance} 个护盾可补回；处理完后再推进今天。`
+          : `Yesterday is recoverable. You still have ${streakSnapshot.shieldBalance} shield(s); recover it first, then move today forward.`)
+        : (locale === 'zh'
+          ? '昨天已经断掉，但现在没有护盾；先完成今天的 5 分钟最小行动，重新起步。'
+          : 'Yesterday was missed and no shield is available. Restart with a 5-minute minimum action today.'))
+    : (locale === 'zh'
+      ? `你当前已经连续 ${streakSnapshot.currentStreak} 天，今天优先完成一个最小行动即可继续保持。`
+      : `You are on a ${streakSnapshot.currentStreak}-day streak. Finish one minimum action today to keep it going.`)
+  const mainThreadDecision = resolveTodayMainThreadDecision({
+    today,
+    showStreakRiskBanner,
+    tomorrowHandoffCandidate: tomorrowHandoffCandidate
+      ? {
+          actionId: tomorrowHandoffCandidate.actionId,
+          title: tomorrowHandoffCandidate.title,
+          goalId: tomorrowHandoffCandidate.goalId,
+        }
+      : null,
+    actions: actions.map((action) => ({
+      id: action.id as string,
+      title: action.title as string,
+      goal_id: (action.goal_id as string | null | undefined) ?? null,
+      completed: Boolean(action.completed),
+      priority: (action.priority as string | null | undefined) ?? null,
+      type: (action.type as string | null | undefined) ?? null,
+      start_date: (action.start_date as string | null | undefined) ?? null,
+      end_date: (action.end_date as string | null | undefined) ?? null,
+    })),
+    primaryPathGoalId: primaryPathContext?.goalId ?? null,
+  })
+  const continuityPriorityAction = actions.find((action) => action.id === mainThreadDecision.mainThreadActionId) || null
+  const showContinuityPriority = showStreakRiskBanner && Boolean(continuityPriorityAction)
+  const mainThread = getTodayMainThreadCopy({
+    locale,
+    showStreakRiskBanner,
+    streakBannerBody,
+    hasTomorrowHandoff: mainThreadDecision.source === 'handoff',
+    nextActionTitle: mainThreadDecision.mainThreadActionTitle,
+  })
   const systemJudgmentTitle = isStage0
     ? (locale === 'zh' ? '先定义你的第一条长期路径' : 'Define your first long-term path')
-    : showContinuityPriority
-      ? (locale === 'zh' ? '今天先保连续，再谈冲刺' : 'Protect continuity first, then push harder')
-      : nextActionTitle
-        ? (locale === 'zh' ? `今天先推进「${nextActionTitle}」` : `Push "${nextActionTitle}" first today`)
-        : (locale === 'zh' ? '今天的主线已完成，适合收口复盘' : 'Today’s main thread is complete. Close the loop with a review.')
+    : mainThread.title
   const systemJudgmentBody = isStage0
     ? (locale === 'zh'
         ? '系统还缺少一条足够清晰的长期路径。先定义你要走向哪里，后面的 AI 判断才会越来越准。'
         : 'The system still needs one clear long-term path. Define where you are headed first so AI judgment can become sharper over time.')
-    : showContinuityPriority
-      ? (locale === 'zh'
-          ? '你现在更需要保住节奏，而不是做更多。先完成一个最小版本，系统会帮你把连续性留住。'
-          : 'You need rhythm more than volume right now. Finish a minimum version first and let the system preserve continuity.')
-      : nextActionTitle
-        ? (locale === 'zh'
-            ? '系统判断你现在最应该做的不是看更多信息，而是把下一步推进到发生。'
-            : 'The system believes your next step matters more than consuming more information right now.')
-        : (locale === 'zh'
-            ? '执行层已经收口，下一步更适合做今日复盘，让系统更新对你的理解。'
-            : 'Execution is closed for today. The next best move is a daily review so the system can update its model of you.')
-  const systemJudgmentHref = isStage0 ? '/goals' : '/today'
+    : mainThread.body
+  const systemJudgmentHref = isStage0
+    ? '/goals'
+    : mainThreadDecision.mainThreadActionId
+      ? `/today?action=${mainThreadDecision.mainThreadActionId}#today-actions`
+      : '/today'
   const systemJudgmentCta = isStage0
     ? (locale === 'zh' ? '定义一条路径' : 'Define a path')
     : (locale === 'zh' ? '进入今日主线' : 'Open today')

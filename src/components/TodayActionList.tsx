@@ -10,6 +10,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Progress } from '@/components/ui/progress'
 import { ActionItem } from '@/components/ActionItem'
 import { ActionListFilter } from '@/components/ActionListFilter'
+import { getTodayActionViewToggleState } from '@/lib/today-action-view-toggle'
 import type { MainPathDensityContext } from '@/lib/main-path-density'
 import { calcCompletionPercent } from '@/lib/progress'
 import type { PrimaryPathContext } from '@/lib/path-context'
@@ -65,6 +66,7 @@ export function TodayActionList({
   tz,
   today,
   primaryGoalId = null,
+  mainThreadActionId = null,
   primaryPathContext = null,
   mainPathDensityContext = null,
   showGoalTitle = true,
@@ -77,6 +79,7 @@ export function TodayActionList({
   tz: string
   today: string
   primaryGoalId?: string | null
+  mainThreadActionId?: string | null
   primaryPathContext?: PrimaryPathContext | null
   mainPathDensityContext?: MainPathDensityContext | null
   showGoalTitle?: boolean
@@ -125,7 +128,7 @@ export function TodayActionList({
     }
   }, [actions, today])
 
-  const shouldFocusByDefault = summary.incompleteCount > 12
+  const shouldFocusByDefault = summary.incompleteCount > 0
 
   const focusModel = useMemo(() => {
     const incomplete = actions.filter(a => !a.completed)
@@ -226,6 +229,7 @@ export function TodayActionList({
   const [openGoalIds, setOpenGoalIds] = useState<Record<string, boolean>>(initialRevealState.openGoalIds)
   const [completedOpen, setCompletedOpen] = useState(initialRevealState.completedOpen)
   const hasScrolledToTargetRef = useRef(false)
+  const toggleState = getTodayActionViewToggleState(view)
 
   useEffect(() => {
     const targetId = initialRevealState.scrollTargetId
@@ -252,6 +256,26 @@ export function TodayActionList({
     return focusModel.groups.find((group) => group.goalId === primaryGoalId) ?? null
   }, [focusModel.groups, primaryGoalId])
 
+  const mainPathPrimaryAction = useMemo(() => {
+    if (!mainThreadActionId) return null
+    return actions.find((action) => action.id === mainThreadActionId) ?? null
+  }, [actions, mainThreadActionId])
+
+  const mainPathActionItems = useMemo(() => {
+    const items: Action[] = []
+
+    if (mainPathPrimaryAction && mainPathPrimaryAction.goal_id === primaryGoalId) {
+      items.push(mainPathPrimaryAction)
+    }
+
+    for (const action of mainPathGroup?.items ?? []) {
+      if (items.some((item) => item.id === action.id)) continue
+      items.push(action)
+    }
+
+    return items
+  }, [mainPathGroup?.items, mainPathPrimaryAction, primaryGoalId])
+
   const secondaryGroups = useMemo(() => {
     if (!mainPathGroup) return focusModel.groups
     return focusModel.groups.filter((group) => group.goalId !== mainPathGroup.goalId)
@@ -260,7 +284,7 @@ export function TodayActionList({
   const shouldShowMainPathCard =
     Boolean(primaryPathContext)
   const shouldShowMainPathActions =
-    Boolean(mainPathGroup?.items.length) &&
+    Boolean(mainPathActionItems.length) &&
     primaryPathContext?.goalId === mainPathGroup?.goalId
 
   if (view === 'all') {
@@ -269,7 +293,10 @@ export function TodayActionList({
         <div className="rounded-lg border bg-card/50 backdrop-blur-sm p-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div className="space-y-1">
-              <div className="text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground sm:hidden">
+                {dict.goals.filter.incomplete} {summary.incompleteCount} · {dict.goals.filter.completed} {summary.completedCount} · {dict.today.delayed} {summary.overdueCount}
+              </div>
+              <div className="hidden sm:block text-sm text-muted-foreground">
                 {dict.goals.filter.incomplete} {summary.incompleteCount} · {dict.goals.filter.completed} {summary.completedCount} · {dict.today.delayed} {summary.overdueCount}
               </div>
               {overloadTip ? (
@@ -281,19 +308,26 @@ export function TodayActionList({
               <Button
                 type="button"
                 size="sm"
-                variant="outline"
+                variant={toggleState.focusVariant}
                 className="rounded-full"
+                disabled={toggleState.focusDisabled}
                 onClick={() => setView('focus')}
               >
                 {dict.today.focusView}
               </Button>
-              <Button type="button" size="sm" className="rounded-full" disabled>
+              <Button
+                type="button"
+                size="sm"
+                variant={toggleState.allVariant}
+                className="rounded-full"
+                disabled={toggleState.allDisabled}
+              >
                 {dict.today.allView}
               </Button>
             </div>
           </div>
 
-          <div className="mt-3 space-y-1">
+          <div className="mt-3 space-y-1 hidden sm:block">
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{dict.today.progressLabel}</span>
               <span>{summary.completedPct}%</span>
@@ -312,7 +346,10 @@ export function TodayActionList({
       <div className="rounded-lg border bg-card/50 backdrop-blur-sm p-4">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="space-y-1">
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground sm:hidden">
+              {(isZh ? '必做' : 'Must')} {Math.min(maxMust, focusModel.must.length)} · {(isZh ? '逾期' : 'Overdue')} {summary.overdueCount} · {dict.goals.filter.incomplete} {summary.incompleteCount}
+            </div>
+            <div className="hidden sm:block text-sm text-muted-foreground">
               {dict.goals.filter.incomplete} {summary.incompleteCount} · {recentSummaryLabel} {summary.recentCount} · {dict.today.focusView} {Math.min(maxMust, focusModel.must.length)} · {dict.today.delayed} {summary.overdueCount}
             </div>
             {primaryGoalId ? (
@@ -326,14 +363,21 @@ export function TodayActionList({
           </div>
 
           <div className="flex items-center gap-2">
-            <Button type="button" size="sm" className="rounded-full" disabled>
+            <Button
+              type="button"
+              size="sm"
+              variant={toggleState.focusVariant}
+              className="rounded-full"
+              disabled={toggleState.focusDisabled}
+            >
               {dict.today.focusView}
             </Button>
             <Button
               type="button"
               size="sm"
-              variant="outline"
+              variant={toggleState.allVariant}
               className="rounded-full"
+              disabled={toggleState.allDisabled}
               onClick={() => setView('all')}
             >
               {dict.today.allView}
@@ -341,7 +385,7 @@ export function TodayActionList({
           </div>
         </div>
 
-        <div className="mt-3 space-y-1">
+        <div className="mt-3 space-y-1 hidden sm:block">
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>{dict.today.progressLabel}</span>
             <span>{summary.completedPct}%</span>
@@ -497,7 +541,7 @@ export function TodayActionList({
           ) : null}
           {shouldShowMainPathActions ? (
             <div className="mt-4 grid gap-3">
-              {mainPathGroup?.items.map((action) => (
+              {mainPathActionItems.map((action) => (
                 <ActionItem
                   key={action.id}
                   action={action}
