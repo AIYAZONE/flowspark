@@ -94,7 +94,7 @@ export function TodayActionList({
   const recentMetricLabel = isZh ? '最近推进' : 'Recent'
   const densityMetricLabel = isZh ? '当前密度' : 'Density'
   const mainPathFallbackLabel = isZh
-    ? '今天这条主线没有落在 residual 动作区，说明它当前更多体现在 must / overdue / recent 或已接近收口。'
+    ? '今天这条主线没有落在「余量」动作区，说明它当前更多体现在「必做 / 逾期 / 刚创建」等区域，或已接近收口。'
     : 'This main path does not currently sit inside the residual action area, which usually means it is showing up in must / overdue / recent or is already near closure.'
 
   const allViewActions = useMemo(() => {

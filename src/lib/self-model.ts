@@ -307,7 +307,7 @@ export function buildTodayPersonalization(params: {
 
   if (showStreakRiskBanner) {
     return {
-      eyebrow: isZh ? 'Today System Read' : 'Today System Read',
+      eyebrow: isZh ? '今日系统解读' : 'Today System Read',
       title: isZh ? '系统把你放在“先保连续”的轨道上。' : 'The system places you on a continuity-first track today.',
       body: topFeedbackLabel === 'no_time' || shortSelectionCount >= Math.max(2, longSelectionCount * 2)
         ? (isZh
@@ -321,7 +321,7 @@ export function buildTodayPersonalization(params: {
 
   if (hasTomorrowHandoff) {
     return {
-      eyebrow: isZh ? 'Today System Read' : 'Today System Read',
+      eyebrow: isZh ? '今日系统解读' : 'Today System Read',
       title: isZh ? '系统判断你更适合延续已有 momentum。' : 'The system sees you as someone who should extend existing momentum.',
       body: completedRecentCount >= 3
         ? (isZh
@@ -335,7 +335,7 @@ export function buildTodayPersonalization(params: {
 
   if (topFeedbackLabel === 'no_time') {
     return {
-      eyebrow: isZh ? 'Today System Read' : 'Today System Read',
+      eyebrow: isZh ? '今日系统解读' : 'Today System Read',
       title: isZh ? '系统在主动压低今天的时间门槛。' : 'The system is actively lowering today’s time threshold.',
       body: isZh
         ? `最近“没时间”是你的主要阻力，所以系统会把 ${actionRef} 优先收敛成更容易开始的一步。`
@@ -345,7 +345,7 @@ export function buildTodayPersonalization(params: {
 
   if (topFeedbackLabel === 'too_hard') {
     return {
-      eyebrow: isZh ? 'Today System Read' : 'Today System Read',
+      eyebrow: isZh ? '今日系统解读' : 'Today System Read',
       title: isZh ? '系统先给你最小可执行版本。' : 'The system starts with a minimum viable version for you.',
       body: isZh
         ? `最近的难度反馈说明门槛偏高，所以系统会先把 ${actionRef} 降到可启动，再逐步抬高。`
@@ -355,7 +355,7 @@ export function buildTodayPersonalization(params: {
 
   if (shortSelectionCount >= Math.max(2, longSelectionCount * 2)) {
     return {
-      eyebrow: isZh ? 'Today System Read' : 'Today System Read',
+      eyebrow: isZh ? '今日系统解读' : 'Today System Read',
       title: isZh ? '系统会先让今天更容易开始。' : 'The system will make today easier to start.',
       body: isZh
         ? `你最近更常采纳 5-10 分钟版本，所以系统会先把 ${actionRef} 压缩成一个低摩擦起步动作。`
@@ -365,7 +365,7 @@ export function buildTodayPersonalization(params: {
 
   if (longSelectionCount >= Math.max(2, shortSelectionCount + 1)) {
     return {
-      eyebrow: isZh ? 'Today System Read' : 'Today System Read',
+      eyebrow: isZh ? '今日系统解读' : 'Today System Read',
       title: isZh ? '系统判断你今天能承接更完整的推进窗口。' : 'The system believes you can handle a fuller execution window today.',
       body: isZh
         ? `你最近能接住更完整版本，所以系统不会把 ${actionRef} 过度切碎。`
@@ -374,7 +374,7 @@ export function buildTodayPersonalization(params: {
   }
 
   return {
-    eyebrow: isZh ? 'Today System Read' : 'Today System Read',
+    eyebrow: isZh ? '今日系统解读' : 'Today System Read',
     title: isZh ? '系统还在继续校准你的最佳节奏。' : 'The system is still calibrating your best pace.',
     body: isZh
       ? `当前系统会给 ${actionRef} 一个中性强度判断，并继续根据你的采纳与完成结果修正。`

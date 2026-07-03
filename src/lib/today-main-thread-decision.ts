@@ -41,6 +41,27 @@ function pickPrimaryPathAction(actions: TodayMainThreadDecisionAction[], primary
   return candidates[0] ?? null
 }
 
+function pickFallbackAction(actions: TodayMainThreadDecisionAction[]) {
+  const candidates = actions
+    .filter((action) => action.completed !== true)
+    .sort((a, b) => {
+      const priorityDiff = comparePriority(a.priority, b.priority)
+      if (priorityDiff !== 0) return priorityDiff
+
+      const typeA = a.type === 'core' ? 1 : 0
+      const typeB = b.type === 'core' ? 1 : 0
+      if (typeA !== typeB) return typeB - typeA
+
+      const dateA = getComparableActionDate(a)
+      const dateB = getComparableActionDate(b)
+      if (dateA !== dateB) return dateA.localeCompare(dateB)
+
+      return a.id.localeCompare(b.id)
+    })
+
+  return candidates[0] ?? null
+}
+
 export function resolveTodayMainThreadDecision(input: {
   today: string
   showStreakRiskBanner: boolean
@@ -54,9 +75,10 @@ export function resolveTodayMainThreadDecision(input: {
 }): {
   mainThreadActionId: string | null
   mainThreadActionTitle: string | null
-  source: 'continuity' | 'handoff' | 'primary_path_action' | 'closed'
+  source: 'continuity' | 'handoff' | 'primary_path_action' | 'fallback_action' | 'closed'
 } {
   const primaryPathAction = pickPrimaryPathAction(input.actions, input.primaryPathGoalId)
+  const fallbackAction = primaryPathAction ? null : pickFallbackAction(input.actions)
 
   if (input.showStreakRiskBanner) {
     return {
@@ -87,10 +109,17 @@ export function resolveTodayMainThreadDecision(input: {
     }
   }
 
+  if (fallbackAction) {
+    return {
+      mainThreadActionId: fallbackAction.id,
+      mainThreadActionTitle: fallbackAction.title,
+      source: 'fallback_action',
+    }
+  }
+
   return {
     mainThreadActionId: null,
     mainThreadActionTitle: null,
     source: 'closed',
   }
 }
-

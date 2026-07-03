@@ -264,6 +264,7 @@ export function QuickCaptureSpeedDial({
 								<Button
 									type="button"
 									variant="secondary"
+									onClick={() => setOpen(false)}
 									className={cn(
 										'shadow-lg gap-2 transition-all whitespace-nowrap',
 										open ? 'opacity-100 translate-y-0' : 'opacity-0'
@@ -284,6 +285,7 @@ export function QuickCaptureSpeedDial({
 							<Button
 								type="button"
 								variant="secondary"
+								onClick={() => setOpen(false)}
 								className={cn(
 									'shadow-lg gap-2 transition-all whitespace-nowrap',
 									open ? 'opacity-100 translate-y-0' : 'opacity-0'
@@ -303,6 +305,7 @@ export function QuickCaptureSpeedDial({
 								<Button
 									type="button"
 									variant="secondary"
+									onClick={() => setOpen(false)}
 									className={cn(
 										'shadow-lg gap-2 transition-all whitespace-nowrap',
 										open ? 'opacity-100 translate-y-0' : 'opacity-0'
@@ -320,6 +323,7 @@ export function QuickCaptureSpeedDial({
 							<Button
 								type="button"
 								variant="secondary"
+								onClick={() => setOpen(false)}
 								className={cn(
 									'shadow-lg gap-2 transition-all whitespace-nowrap',
 									open ? 'opacity-100 translate-y-0' : 'opacity-0'

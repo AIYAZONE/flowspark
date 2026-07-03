@@ -60,12 +60,13 @@ export function buildPrimaryPathContext(params: {
   const completedActions = actions.filter((action) => action.completed).length
   const progress = totalActions > 0 ? completedActions / totalActions : 0
   const daysToDeadline = primaryGoal.end_date ? diffDays(today, primaryGoal.end_date) : null
+  const stageLabel = isZh ? '路径阶段' : 'Path Stage'
 
   if (totalActions === 0) {
     return {
       goalId: primaryGoal.id,
       title: primaryGoal.title,
-      stageLabel: isZh ? 'Path Stage' : 'Path Stage',
+      stageLabel,
       titleText: isZh ? '这条路径还在落点阶段，今天先把它变成可执行。' : 'This path is still in its setup stage, so today should make it executable.',
       body: isZh
         ? `「${primaryGoal.title}」已经是当前最重要的路径，但系统还没有看到足够的行动承接。今天最值钱的一步，是把方向落成一个具体动作。`
@@ -81,7 +82,7 @@ export function buildPrimaryPathContext(params: {
     return {
       goalId: primaryGoal.id,
       title: primaryGoal.title,
-      stageLabel: isZh ? 'Path Stage' : 'Path Stage',
+      stageLabel,
       titleText: isZh ? '这条路径已进入启动期，今天先让它发生第一次真实推进。' : 'This path has entered activation, so today should create the first real move.',
       body: isZh
         ? `「${primaryGoal.title}」已经有承接动作，但系统还没看到完成信号。今天最重要的不是做很多，而是拿到第一次真实完成。`
@@ -93,20 +94,23 @@ export function buildPrimaryPathContext(params: {
     }
   }
 
-  if ((daysToDeadline != null && daysToDeadline <= 7) || progress >= 0.8) {
+  const closeByDeadline = daysToDeadline != null && daysToDeadline <= 7
+  const closeByProgress = progress >= 0.8 && totalActions >= 3 && completedActions >= 2
+
+  if (closeByDeadline || closeByProgress) {
     return {
       goalId: primaryGoal.id,
       title: primaryGoal.title,
-      stageLabel: isZh ? 'Path Stage' : 'Path Stage',
+      stageLabel,
       titleText: isZh ? '这条路径进入收口窗口，今天更适合完成关键闭环。' : 'This path is in a closing window, so today should finish the key loop.',
       body: isZh
         ? `「${primaryGoal.title}」已经推进到后半段，今天系统更倾向收关键尾，而不是继续横向扩展。`
         : `"${primaryGoal.title}" is already in its later phase, so today the system prefers closing critical loops instead of expanding sideways.`,
       evidence: isZh
-        ? daysToDeadline != null && daysToDeadline <= 7
+        ? closeByDeadline
           ? `距离路径截止只剩 ${daysToDeadline} 天，且已出现稳定完成信号。`
           : `这条路径当前完成度约 ${Math.round(progress * 100)}%，说明它更接近收口而不是起步。`
-        : daysToDeadline != null && daysToDeadline <= 7
+        : closeByDeadline
           ? `Only ${daysToDeadline} day(s) remain before the path deadline, and completion signals are already present.`
           : `This path is about ${Math.round(progress * 100)}% complete, which places it closer to closing than to starting.`,
       ctaLabel: isZh ? '去收关键尾' : 'Close the loop',
@@ -117,7 +121,7 @@ export function buildPrimaryPathContext(params: {
     return {
       goalId: primaryGoal.id,
       title: primaryGoal.title,
-      stageLabel: isZh ? 'Path Stage' : 'Path Stage',
+      stageLabel,
       titleText: isZh ? '这条路径处在稳定推进期，今天应继续压实主线。' : 'This path is in a steady execution phase, so today should keep pressing the main thread forward.',
       body: isZh
         ? `「${primaryGoal.title}」已经不是概念阶段，系统会把今天的主线更多压向持续推进，而不是重新判断方向。`
@@ -132,7 +136,7 @@ export function buildPrimaryPathContext(params: {
   return {
     goalId: primaryGoal.id,
     title: primaryGoal.title,
-    stageLabel: isZh ? 'Path Stage' : 'Path Stage',
+    stageLabel,
     titleText: isZh ? '这条路径还在铺轨期，今天先把执行密度做起来。' : 'This path is still laying tracks, so today should build execution density.',
     body: isZh
       ? `「${primaryGoal.title}」已经有起步信号，但系统还需要更多连续推进来确认它真正进入稳定主线。`

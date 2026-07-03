@@ -461,7 +461,7 @@ export default async function TodayPage(props: {
       <div className="grid gap-4 lg:grid-cols-[1.45fr_0.85fr]">
         <div className="rounded-3xl border border-primary/15 bg-linear-to-br from-primary/10 via-background to-background p-5 shadow-sm md:p-6">
           <div className="text-xs font-medium uppercase tracking-[0.18em] text-primary/80">
-            {localeIsZh ? 'Today Main Thread' : 'Today Main Thread'}
+            {localeIsZh ? '今日主线' : 'Today Main Thread'}
           </div>
           <div className="mt-3 text-2xl font-semibold tracking-tight md:text-3xl">{mainThreadTitle}</div>
           <div className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground line-clamp-2 md:line-clamp-3">
@@ -519,7 +519,7 @@ export default async function TodayPage(props: {
                 </div>
                 <div className="mt-3 rounded-2xl border border-border/50 bg-background/80 p-3">
                   <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                    {localeIsZh ? 'Why This Path Leads Today' : 'Why This Path Leads Today'}
+                    {localeIsZh ? '为什么今天主线是它' : 'Why This Path Leads Today'}
                   </div>
                   <div className="mt-2 text-sm leading-6 text-muted-foreground">
                     {primaryPathContext.evidence}

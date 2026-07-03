@@ -82,7 +82,7 @@ test('resolveTodayMainThreadDecision keeps continuity source but still picks act
   })
 })
 
-test('resolveTodayMainThreadDecision returns closed when primary path has no executable action', () => {
+test('resolveTodayMainThreadDecision falls back to other incomplete actions when primary path has no executable action', () => {
   assert.deepEqual(resolveTodayMainThreadDecision({
     today: '2026-06-25',
     showStreakRiskBanner: false,
@@ -101,9 +101,33 @@ test('resolveTodayMainThreadDecision returns closed when primary path has no exe
     ],
     primaryPathGoalId: 'goal-a',
   }), {
+    mainThreadActionId: 'b1',
+    mainThreadActionTitle: '路径B-动作',
+    source: 'fallback_action',
+  })
+})
+
+test('resolveTodayMainThreadDecision returns closed only when there is no incomplete action', () => {
+  assert.deepEqual(resolveTodayMainThreadDecision({
+    today: '2026-06-25',
+    showStreakRiskBanner: false,
+    tomorrowHandoffCandidate: null,
+    actions: [
+      {
+        id: 'a1',
+        title: '已完成动作',
+        goal_id: 'goal-a',
+        completed: true,
+        priority: 'high',
+        type: 'core',
+        start_date: '2026-06-25',
+        end_date: '2026-06-25',
+      },
+    ],
+    primaryPathGoalId: 'goal-a',
+  }), {
     mainThreadActionId: null,
     mainThreadActionTitle: null,
     source: 'closed',
   })
 })
-
