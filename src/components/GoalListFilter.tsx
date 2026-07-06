@@ -233,40 +233,13 @@ export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
     }, [initialGoals, search, statusFilter, priorityFilter, categoryFilter, locale])
 
     const totalGoals = (mainPathGoal ? 1 : 0) + starredGoals.length + otherGoals.length + archivedGoals.length
-    const activeCount = useMemo(
-        () => initialGoals.filter((g) => g.status !== 'archived').length,
-        [initialGoals]
-    )
-    const starredCount = useMemo(
-        () => initialGoals.filter((g) => g.status !== 'archived' && g.is_starred).length,
-        [initialGoals]
-    )
-    const archivedCount = useMemo(
-        () => initialGoals.filter((g) => g.status === 'archived').length,
-        [initialGoals]
-    )
 
     return (
         <div className="space-y-6">
             <div className="sticky top-3 z-10">
                 <div className="rounded-3xl bg-linear-to-r from-primary/10 via-violet-500/5 to-sky-500/8 p-px">
                     <div className="rounded-3xl border border-border/60 bg-background/75 p-3 shadow-sm shadow-black/5 backdrop-blur-xl dark:border-white/10 dark:bg-background/60 sm:p-4">
-                        <div className="flex flex-wrap gap-2">
-                            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/85 px-3 py-1.5 text-xs font-medium text-foreground/80 dark:border-white/10 dark:bg-background/40">
-                                <span className="text-muted-foreground">{dict.goals.status.active}</span>
-                                <span className="font-mono tabular-nums text-foreground">{activeCount}</span>
-                            </div>
-                            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/85 px-3 py-1.5 text-xs font-medium text-foreground/80 dark:border-white/10 dark:bg-background/40">
-                                <span className="text-muted-foreground">{dict.goals.filter.starredGoals}</span>
-                                <span className="font-mono tabular-nums text-foreground">{starredCount}</span>
-                            </div>
-                            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/85 px-3 py-1.5 text-xs font-medium text-foreground/80 dark:border-white/10 dark:bg-background/40">
-                                <span className="text-muted-foreground">{dict.goals.status.archived}</span>
-                                <span className="font-mono tabular-nums text-foreground">{archivedCount}</span>
-                            </div>
-                        </div>
-
-                        <div className="mt-3 flex flex-col gap-3 lg:flex-row lg:items-center">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                             <div className="relative flex-1">
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/80" />
                                 <Input
