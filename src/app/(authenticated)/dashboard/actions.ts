@@ -309,6 +309,7 @@ async function toggleActionInternal(formData: FormData) {
   }
 
   revalidatePath('/dashboard');
+  revalidatePath('/system');
   revalidatePath('/today');
   revalidatePath('/notifications');
 
@@ -369,6 +370,7 @@ export async function submitScore(formData: FormData) {
 	}
 
 	revalidatePath('/dashboard');
+	revalidatePath('/system');
 	await upsertBehaviorSnapshot({
 		supabase,
 		userId: user.id,

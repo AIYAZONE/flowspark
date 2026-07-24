@@ -613,6 +613,7 @@ export async function createActionAndReturnId(formData: FormData) {
 	}
 
 	revalidatePath('/dashboard');
+	revalidatePath('/system');
 	revalidatePath('/today');
 	revalidatePath(`/goals/${goal_id}`);
 	await upsertBehaviorSnapshot({
@@ -718,6 +719,7 @@ export async function applyAITodayPlanToExistingAction(formData: FormData) {
 	if (updateActionResult.error) throw new Error('operation_failed');
 
 	revalidatePath('/dashboard');
+	revalidatePath('/system');
 	revalidatePath('/today');
 	revalidatePath('/goals');
 	if (action.goal_id) revalidatePath(`/goals/${action.goal_id}`);
@@ -839,6 +841,7 @@ export async function createActionWithSubItems(formData: FormData) {
 	}
 
 	revalidatePath('/dashboard');
+	revalidatePath('/system');
 	revalidatePath('/today');
 	revalidatePath('/goals');
 	revalidatePath(`/goals/${goal_id}`);
@@ -1215,6 +1218,7 @@ export async function deleteAction(formData: FormData) {
 	}
 
 	revalidatePath('/dashboard');
+	revalidatePath('/system');
 	revalidatePath('/today');
 	if (goal_id) revalidatePath(`/goals/${goal_id}`);
 }
@@ -1263,6 +1267,7 @@ export async function deleteGoal(formData: FormData) {
 	}
 
 	revalidatePath('/dashboard');
+	revalidatePath('/system');
 	revalidatePath('/today');
 	revalidatePath('/goals');
 	redirect('/goals');
@@ -1296,6 +1301,7 @@ export async function replaceGoalCategory(params: {
 
 	revalidatePath('/goals');
 	revalidatePath('/dashboard');
+	revalidatePath('/system');
 	revalidatePath('/today');
 
 	return { success: true as const, updatedCount: data?.length ?? 0 };

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Target, CalendarCheck, User, LogOut, Menu, Loader2, X } from 'lucide-react'
+import { LayoutDashboard, Target, CalendarCheck, User, LogOut, Menu, Loader2, X, MessageSquare } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,7 @@ import {
 interface MobileSidebarProps {
   dict: {
     sidebar: {
+      chat: string
       dashboard: string
       today: string
       goals: string
@@ -44,8 +45,13 @@ export function MobileSidebar({ dict }: MobileSidebarProps) {
 
   const sidebarItems = [
     {
+      title: dict.sidebar.chat,
+      href: '/chat',
+      icon: MessageSquare,
+    },
+    {
       title: dict.sidebar.dashboard,
-      href: '/dashboard',
+      href: '/system',
       icon: LayoutDashboard,
     },
     {

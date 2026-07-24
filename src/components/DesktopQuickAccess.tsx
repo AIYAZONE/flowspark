@@ -74,6 +74,7 @@ export function DesktopQuickAccess({
     getDesktopQuickAccessServerSnapshot
   )
   const pathname = usePathname()
+  const isSystemPage = pathname === '/system'
   const showAddGoalEntry = pathname === '/goals' || pathname.startsWith('/goals/')
   const [fabPosition, setFabPosition] = useState<FabPosition | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -341,6 +342,8 @@ export function DesktopQuickAccess({
     !open && menuPlacement.vertical === 'up' && 'translate-y-2',
     !open && menuPlacement.vertical === 'down' && '-translate-y-2'
   )
+
+  if (isSystemPage) return null
 
   return (
     <>

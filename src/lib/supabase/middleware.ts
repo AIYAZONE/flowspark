@@ -65,6 +65,8 @@ export async function updateSession(request: NextRequest) {
 
 	// Protected routes
 	if (
+		request.nextUrl.pathname.startsWith('/chat') ||
+		request.nextUrl.pathname.startsWith('/system') ||
 		request.nextUrl.pathname.startsWith('/dashboard') ||
 		request.nextUrl.pathname.startsWith('/goals') ||
 		request.nextUrl.pathname.startsWith('/profile') ||
@@ -95,7 +97,7 @@ export async function updateSession(request: NextRequest) {
 		}
 	}
 
-	// Redirect to dashboard if logged in
+	// Redirect to system if logged in
 	if (
 		request.nextUrl.pathname === '/login' ||
 		request.nextUrl.pathname === '/signup' ||
@@ -103,7 +105,7 @@ export async function updateSession(request: NextRequest) {
 		request.nextUrl.pathname === '/reset'
 	) {
 		if (user) {
-			return NextResponse.redirect(new URL('/dashboard', request.url));
+			return NextResponse.redirect(new URL('/chat', request.url));
 		}
 	}
 

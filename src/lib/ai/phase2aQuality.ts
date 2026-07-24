@@ -1,6 +1,6 @@
-import { safeParseJSON } from '@/lib/ai/json'
-import type { ParseResult } from '@/lib/ai/phase2aSchemas'
-import { buildRepairPrompt } from '@/lib/ai/phase2aSchemas'
+import { safeParseJSON } from './json.ts'
+import type { ParseResult } from './phase2aSchemas.ts'
+import { buildRepairPrompt } from './phase2aSchemas.ts'
 
 export type ChatMessage = { role: 'system' | 'user'; content: string }
 
@@ -29,4 +29,3 @@ function parseContent<T>(content: string, parse: (payload: unknown) => ParseResu
   const payload = safeParseJSON(content)
   return parse(payload)
 }
-

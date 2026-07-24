@@ -219,7 +219,7 @@ export default async function DashboardPage() {
     return false;
   }) || [];
 
-  const handoffRecentCutoffIso = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString()
+  const handoffRecentCutoffIso = `${yesterday}T00:00:00.000Z`
   const { data: recentCompletedOutcomes } = await supabase
     .from('ai_recommendation_outcomes')
     .select('id, recommendation_id, action_id, updated_at')
@@ -504,7 +504,7 @@ export default async function DashboardPage() {
         <div className="rounded-3xl border border-primary/15 bg-linear-to-br from-primary/10 via-background to-background p-5 shadow-sm md:p-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/80 px-3 py-1 text-xs font-medium text-primary">
             <Sparkles className="h-3.5 w-3.5" />
-            <span>Premium Life OS</span>
+            <span>{locale === 'zh' ? 'System Overview' : 'System Overview'}</span>
           </div>
           <div className="mt-4 space-y-2">
             <h1 className="text-3xl font-bold tracking-tight md:text-4xl">{dict.dashboard.title}</h1>
@@ -552,17 +552,25 @@ export default async function DashboardPage() {
 
         <div className="rounded-3xl border border-border/50 bg-background/90 p-5 shadow-sm md:p-6">
           <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            {locale === 'zh' ? '系统判断' : 'System judgment'}
+            {locale === 'zh' ? '总览 / 回顾' : 'Overview / Review'}
           </div>
           <div className="mt-3 text-2xl font-semibold tracking-tight">{systemJudgmentTitle}</div>
           <div className="mt-3 text-sm leading-6 text-muted-foreground">{systemJudgmentBody}</div>
-          <Link
-            href={systemJudgmentHref}
-            className="mt-6 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-          >
-            <span>{systemJudgmentCta}</span>
-            <ArrowRight className="h-4 w-4" />
-          </Link>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Link
+              href="/system"
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+            >
+              <span>{locale === 'zh' ? '回到系统首页' : 'Back to system'}</span>
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              href={systemJudgmentHref}
+              className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/85 px-4 py-2 text-sm font-medium hover:border-primary/35 hover:bg-primary/5"
+            >
+              <span>{systemJudgmentCta}</span>
+            </Link>
+          </div>
           <div className="mt-6 rounded-2xl border border-border/50 bg-muted/30 p-4">
             <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
               {locale === 'zh' ? '本周信号' : 'Weekly signal'}

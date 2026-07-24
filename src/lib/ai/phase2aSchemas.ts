@@ -1,4 +1,4 @@
-import { isRecord } from '@/lib/ai/json'
+import { isRecord } from './json.ts'
 
 export type ISODate = string
 export type Minutes = number

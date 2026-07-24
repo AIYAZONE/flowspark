@@ -47,6 +47,7 @@ export async function createInboxItem(formData: FormData) {
 
 	revalidatePath('/today')
 	revalidatePath('/dashboard')
+	revalidatePath('/system')
 	revalidatePath('/inbox')
 }
 
@@ -70,6 +71,7 @@ export async function archiveInboxItem(formData: FormData) {
 
 	revalidatePath('/today')
 	revalidatePath('/dashboard')
+	revalidatePath('/system')
 	revalidatePath('/inbox')
 }
 
@@ -94,6 +96,7 @@ export async function unarchiveInboxItem(formData: FormData) {
 
 	revalidatePath('/today')
 	revalidatePath('/dashboard')
+	revalidatePath('/system')
 	revalidatePath('/inbox')
 }
 
@@ -117,6 +120,7 @@ export async function deleteInboxItem(formData: FormData) {
 
 	revalidatePath('/today')
 	revalidatePath('/dashboard')
+	revalidatePath('/system')
 	revalidatePath('/inbox')
 }
 
@@ -146,6 +150,7 @@ export async function updateInboxItem(formData: FormData) {
 
 	revalidatePath('/today')
 	revalidatePath('/dashboard')
+	revalidatePath('/system')
 	revalidatePath('/inbox')
 }
 
@@ -223,6 +228,7 @@ export async function convertInboxItemToAction(formData: FormData) {
 
 	revalidatePath('/today')
 	revalidatePath('/dashboard')
+	revalidatePath('/system')
 	revalidatePath('/inbox')
 	revalidatePath(`/goals/${goal_id}`)
 }

@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Target, CalendarCheck, User, Lightbulb } from 'lucide-react'
+import { LayoutDashboard, Target, CalendarCheck, User, Lightbulb, MessageSquare } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { MOBILE_ONLY_CLASS } from '@/components/responsive-classes'
 
 interface MobileNavBarProps {
   dict: {
     sidebar: {
+      chat: string
       dashboard: string
       today: string
       goals: string
@@ -77,8 +78,13 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
 
   const navItems = [
     {
+      title: dict.sidebar.chat,
+      href: '/chat',
+      icon: MessageSquare,
+    },
+    {
       title: dict.sidebar.dashboard,
-      href: '/dashboard',
+      href: '/system',
       icon: LayoutDashboard,
     },
     {

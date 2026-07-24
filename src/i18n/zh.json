@@ -57,6 +57,7 @@
 			"identity": "自我"
 		},
 		"dashboard": "系统",
+		"chat": "对话",
 		"today": "今日",
 		"goals": "路径",
 		"notifications": "通知",
@@ -478,7 +479,7 @@
 	},
 	"today": {
 		"title": "今日",
-		"subtitle": "把今天最重要的一步放到中心，其余都为它让路。",
+         "subtitle": "今天只看要推进的事，直接开始。",
 		"focusView": "聚焦",
 		"allView": "全部",
 		"mustSection": "必须完成",
@@ -552,12 +553,12 @@
 	},
 	"goals": {
 		"title": "路径",
-		"subtitle": "定义你正在走向哪里，以及哪些长期方向值得被持续推进。",
+                "subtitle": "只保留你正在推进的路径，直接进入下一步。",
 		"newGoal": "新建路径",
 		"noGoals": "你还没有定义任何路径。",
 		"createFirst": "创建你的第一条路径",
 		"filter": {
-			"searchPlaceholder": "搜索目标...",
+                        "searchPlaceholder": "搜索路径...",
 			"searchActionsPlaceholder": "搜索行动...",
 			"filterByGoal": "按目标筛选",
 			"allGoals": "全部目标",

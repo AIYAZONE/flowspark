@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarCheck, LayoutDashboard, Lightbulb, Target, User } from 'lucide-react'
+import { CalendarCheck, LayoutDashboard, Lightbulb, MessageSquare, Target, User } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { BrandMark } from '@/components/BrandLogo'
@@ -12,6 +12,7 @@ interface SidebarProps {
   dict: {
     sidebar: {
       dashboard: string
+      chat: string
       today: string
       goals: string
       notifications: string
@@ -81,8 +82,13 @@ export function Sidebar({ dict }: SidebarProps) {
 
   const sidebarItems = [
     {
+      title: dict.sidebar.chat,
+      href: '/chat',
+      icon: MessageSquare,
+    },
+    {
       title: dict.sidebar.dashboard,
-      href: '/dashboard',
+      href: '/system',
       icon: LayoutDashboard,
     },
     {

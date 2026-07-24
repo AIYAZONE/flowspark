@@ -54,7 +54,7 @@ export async function login(formData: FormData) {
 		redirect('/login?error=unexpected_error');
 	}
 
-	redirect('/dashboard');
+	redirect('/chat');
 }
 
 export async function signup(formData: FormData) {
@@ -103,7 +103,7 @@ export async function signup(formData: FormData) {
 	}
 
 	revalidatePath('/', 'layout');
-	redirect('/dashboard');
+	redirect('/chat');
 }
 
 export async function signOut() {
@@ -137,7 +137,7 @@ export async function verifyEmail(formData: FormData) {
 		redirect(`/verify?email=${encodeURIComponent(email)}&error=${code}`);
 	}
 
-	redirect('/dashboard');
+	redirect('/chat');
 }
 
 export async function resendOtp(email: string) {

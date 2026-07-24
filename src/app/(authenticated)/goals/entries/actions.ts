@@ -325,5 +325,6 @@ export async function convertGoalEntryToAction(formData: FormData) {
 
 	revalidatePath('/today')
 	revalidatePath('/dashboard')
+	revalidatePath('/system')
 	revalidatePath(`/goals/${goal_id}`)
 }

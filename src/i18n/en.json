@@ -57,6 +57,7 @@
 			"identity": "You"
 		},
 		"dashboard": "System",
+		"chat": "Chat",
 		"today": "Today",
 		"goals": "Paths",
 		"notifications": "Notifications",
@@ -478,7 +479,7 @@
 	},
 	"today": {
 		"title": "Today",
-		"subtitle": "Put the single most important step for today at the center. Everything else supports it.",
+         "subtitle": "See what needs to move today and start directly.",
 		"focusView": "Focus",
 		"allView": "All",
 		"mustSection": "Must Do",
@@ -552,12 +553,12 @@
 	},
 	"goals": {
 		"title": "Paths",
-		"subtitle": "Define where you are headed, and which long-term directions deserve steady progress.",
+                "subtitle": "Keep the paths you are actively moving and jump straight into the next step.",
 		"newGoal": "New Path",
 		"noGoals": "You have not defined any paths yet.",
 		"createFirst": "Create your first path",
 		"filter": {
-			"searchPlaceholder": "Search goals...",
+                        "searchPlaceholder": "Search paths...",
 			"searchActionsPlaceholder": "Search actions...",
 			"filterByGoal": "Filter by Goal",
 			"allGoals": "All Goals",

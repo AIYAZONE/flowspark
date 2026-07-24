@@ -252,6 +252,8 @@ export function QuickCaptureSpeedDial({
 		return id
 	}, [pathname])
 
+	if (pathname === '/system') return null
+
 	return (
 		<>
 			{open ? <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} /> : null}

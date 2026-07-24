@@ -56,6 +56,7 @@ export async function recoverYesterdayStreakWithShield() {
   })
 
   revalidatePath('/dashboard')
+  revalidatePath('/system')
   revalidatePath('/today')
   revalidatePath('/notifications')
 

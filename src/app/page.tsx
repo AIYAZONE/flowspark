@@ -54,9 +54,9 @@ export default async function Home() {
             </div>
             {user ? (
               <>
-                <Link href="/dashboard" className="hidden sm:inline-flex">
+                <Link href="/chat" className="hidden sm:inline-flex">
                   <Button size="sm" className="rounded-full px-5 shadow-sm">
-                    {dict.sidebar.dashboard}
+                    {dict.sidebar.chat}
                   </Button>
                 </Link>
                 <AvatarMenu
@@ -127,9 +127,9 @@ export default async function Home() {
 
                 <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 lg:gap-3">
                   {user ? (
-                    <Link href="/dashboard" className="w-full sm:w-auto">
+                    <Link href="/chat" className="w-full sm:w-auto">
                       <Button size="lg" className="w-full sm:w-auto rounded-full px-8 lg:px-7 text-base shadow-lg shadow-primary/25 hover:shadow-primary/40 transition-all h-12 lg:h-11">
-                        {dict.sidebar.dashboard} <ArrowRight className="ml-2 h-4 w-4" />
+                        {dict.sidebar.chat} <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
                   ) : (
@@ -206,12 +206,12 @@ export default async function Home() {
                   {dict.landing.cta.subtitle}
                 </p>
                 <div className="mt-9 flex flex-col items-center justify-center gap-4 sm:flex-row">
-                  <Link href={user ? "/dashboard" : "/login"}>
+                  <Link href={user ? "/chat" : "/login"}>
                     <Button
                       size="lg"
                       className="h-14 rounded-full px-10 text-lg shadow-xl shadow-primary/25 transition-all duration-300 hover:scale-[1.02] hover:shadow-primary/40"
                     >
-                      {user ? dict.sidebar.dashboard : dict.landing.hero.start}
+                      {user ? dict.sidebar.chat : dict.landing.hero.start}
                     </Button>
                   </Link>
                   {!user && (
