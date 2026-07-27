@@ -11,6 +11,7 @@ import { AddActionDialog } from '@/components/AddActionDialog'
 import { AddGoalEntryDialog } from '@/components/AddGoalEntryDialog'
 import { QuickCaptureDialog } from '@/components/QuickCaptureDialog'
 import { MOBILE_ONLY_CLASS } from '@/components/responsive-classes'
+import { shouldHideQuickAccess } from '@/components/quick-access-visibility'
 
 type Dict = typeof en
 const FAB_POSITION_KEY = 'quick-capture-fab-position-v2'
@@ -252,7 +253,7 @@ export function QuickCaptureSpeedDial({
 		return id
 	}, [pathname])
 
-	if (pathname === '/system') return null
+        if (shouldHideQuickAccess(pathname)) return null
 
 	return (
 		<>

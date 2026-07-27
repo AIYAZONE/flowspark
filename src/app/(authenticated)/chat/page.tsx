@@ -20,5 +20,9 @@ export default async function ChatPage({
   const resolvedSource: ChatSource =
     source === 'today' ? 'today' : source === 'profile' ? 'profile' : 'system'
 
-  return <ChatSurface copy={dict.chat} source={resolvedSource} prefill={prefill ?? ''} />
+  return (
+    <div className="flex h-[calc(100dvh-12rem)] min-h-0 flex-col md:h-[calc(100dvh-6rem)]">
+      <ChatSurface copy={dict.chat} source={resolvedSource} prefill={prefill ?? ''} />
+    </div>
+  )
 }

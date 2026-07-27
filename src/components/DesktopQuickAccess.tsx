@@ -12,6 +12,7 @@ import { TABLET_AND_UP_CLASS } from '@/components/responsive-classes'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { clampPosition, snapToNearestSide, type FabPosition } from '@/components/desktop-quick-access-position'
+import { shouldHideQuickAccess } from '@/components/quick-access-visibility'
 
 type Dict = typeof en
 
@@ -74,7 +75,7 @@ export function DesktopQuickAccess({
     getDesktopQuickAccessServerSnapshot
   )
   const pathname = usePathname()
-  const isSystemPage = pathname === '/system'
+  const shouldHide = shouldHideQuickAccess(pathname)
   const showAddGoalEntry = pathname === '/goals' || pathname.startsWith('/goals/')
   const [fabPosition, setFabPosition] = useState<FabPosition | null>(null)
   const [dragging, setDragging] = useState(false)
@@ -343,7 +344,7 @@ export function DesktopQuickAccess({
     !open && menuPlacement.vertical === 'down' && '-translate-y-2'
   )
 
-  if (isSystemPage) return null
+  if (shouldHide) return null
 
   return (
     <>

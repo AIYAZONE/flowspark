@@ -36,8 +36,8 @@ function ChatInner({ copy, prefill }: { copy: ChatCopy; prefill?: string }) {
     source === 'today' ? copy.sourceToday : source === 'profile' ? copy.sourceProfile : copy.sourceSystem
 
   return (
-    <div className="mx-auto flex w-full max-w-[1600px] flex-col 2xl:max-w-[1760px]">
-      <div className="relative mx-auto flex h-[calc(100dvh-5rem)] w-full max-w-5xl min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+    <div className="mx-auto flex h-full w-full max-w-[1600px] min-h-0 flex-col 2xl:max-w-[1760px]">
+      <div className="relative mx-auto flex h-full w-full max-w-5xl min-h-0 flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
         <div className="relative mb-2 flex items-center gap-2 px-4 pt-4 text-xs text-muted-foreground sm:px-6">
           <div className="text-[11px] font-medium uppercase tracking-[0.18em] text-primary/70">
             {copy.eyebrow}

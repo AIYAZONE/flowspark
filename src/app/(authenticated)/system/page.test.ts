@@ -25,3 +25,13 @@ test('system 页面：目标进展直接展示，不保留折叠外壳', () => {
   assert.doesNotMatch(source, /只有在你需要回顾时再展开。|Expand only when you need a review\./)
   assert.doesNotMatch(source, /<Collapsible[\s\S]*?<GoalProgressList/)
 })
+
+test('system 页面：不再展示顶部主线 hero 和独立系统对话入口', () => {
+  const source = readFileSync(resolve(process.cwd(), 'src/app/(authenticated)/system/page.tsx'), 'utf8')
+
+  assert.doesNotMatch(source, /今天的主线是推进|The system does not have enough signal to guide you yet/)
+  assert.doesNotMatch(source, /执行系统安排|Execute system plan/)
+  assert.doesNotMatch(source, /真正的系统对话现在在独立页面里|The real system conversation now lives on a dedicated page/)
+  assert.doesNotMatch(source, /进入系统对话|Open system chat/)
+  assert.doesNotMatch(source, /<SystemChatEntry[\s\S]*?\/>/)
+})
