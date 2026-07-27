@@ -1,0 +1,279 @@
+'use client'
+
+import * as React from 'react'
+import { createActionFromChat, completeActionFromChat } from '@/app/(authenticated)/chat/actions'
+import type {
+  ChatActionDraft,
+  ChatCompleteDraft,
+  ChatHistoryEntry,
+  ChatStreamEvent,
+  ChatTurn
+} from './types'
+
+const STORAGE_KEY = 'flowspark_chat_turns'
+const FALLBACK_ERROR_TEXT =
+  '系统暂时无法生成判断。你可以换一种说法，或稍后再试——对话会一直留在这里。'
+
+export type ChatSource = 'today' | 'profile' | 'system' | null
+
+type ChatContextValue = {
+  turns: ChatTurn[]
+  isStreaming: boolean
+  source: ChatSource
+  send: (text: string) => void
+  applyAction: (turnId: string) => void
+  completeAction: (turnId: string) => void
+  dismissCompletion: (turnId: string) => void
+  clear: () => void
+}
+
+const ChatContext = React.createContext<ChatContextValue | null>(null)
+
+function getClientLocale(): 'zh' | 'en' {
+  if (typeof document === 'undefined') return 'zh'
+  const match = document.cookie.match(/(?:^|; )NEXT_LOCALE=([^;]+)/)
+  return match && match[1] === 'en' ? 'en' : 'zh'
+}
+
+function newId(): string {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) return crypto.randomUUID()
+  return `t_${Date.now()}_${Math.random().toString(36).slice(2)}`
+}
+
+export function ChatProvider({
+  children,
+  source = null
+}: {
+  children: React.ReactNode
+  source?: ChatSource
+}) {
+  const [turns, setTurns] = React.useState<ChatTurn[]>([])
+  const [isStreaming, setIsStreaming] = React.useState(false)
+  const [hydrated, setHydrated] = React.useState(false)
+  const turnsRef = React.useRef<ChatTurn[]>([])
+
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw) as ChatTurn[]
+        if (Array.isArray(parsed)) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setTurns(parsed)
+        }
+      }
+    } catch {
+      // ignore corrupt storage
+    }
+    setHydrated(true)
+  }, [])
+
+  React.useEffect(() => {
+    turnsRef.current = turns
+  }, [turns])
+
+  React.useEffect(() => {
+    if (!hydrated) return
+    if (turns.some((t) => t.status === 'streaming')) return
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(turns))
+    } catch {
+      // ignore quota errors
+    }
+  }, [turns, hydrated])
+
+  const updateTurn = React.useCallback((id: string, patch: Partial<ChatTurn>) => {
+    setTurns((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)))
+  }, [])
+
+  const extractAction = React.useCallback(async (assistantId: string, transcript: ChatHistoryEntry[]) => {
+    try {
+      const res = await fetch('/api/chat/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript, locale: getClientLocale() })
+      })
+      const data = (await res.json()) as { hasAction?: boolean; draft?: ChatActionDraft }
+      if (data?.hasAction && data?.draft?.title) {
+        updateTurn(assistantId, { action: data.draft, actionState: 'idle' })
+      }
+    } catch {
+      // no action card on failure
+    }
+  }, [updateTurn])
+
+  const extractCompletion = React.useCallback(async (assistantId: string, transcript: ChatHistoryEntry[]) => {
+    try {
+      const res = await fetch('/api/chat/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript, locale: getClientLocale() })
+      })
+      const data = (await res.json()) as { hasComplete?: boolean; draft?: ChatCompleteDraft }
+      if (data?.hasComplete && data?.draft?.actionId && data?.draft?.title) {
+        updateTurn(assistantId, { completion: data.draft, completionState: 'idle' })
+      }
+    } catch {
+      // no completion card on failure
+    }
+  }, [updateTurn])
+
+  const send = React.useCallback(
+    (text: string) => {
+      const trimmed = text.trim()
+      if (!trimmed || isStreaming) return
+
+      const historyForRequest: ChatHistoryEntry[] = turnsRef.current
+        .filter((t) => t.status === 'done' && t.text)
+        .map((t) => ({ role: t.role, text: t.text }))
+
+      const userTurn: ChatTurn = {
+        id: newId(),
+        role: 'user',
+        text: trimmed,
+        status: 'done',
+        createdAt: new Date().toISOString()
+      }
+      const assistantId = newId()
+      const assistantTurn: ChatTurn = {
+        id: assistantId,
+        role: 'assistant',
+        text: '',
+        status: 'streaming',
+        createdAt: new Date().toISOString()
+      }
+
+      setTurns((prev) => [...prev, userTurn, assistantTurn])
+      setIsStreaming(true)
+
+      const run = async () => {
+        let receivedText = ''
+        try {
+          const res = await fetch('/api/chat/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: trimmed, history: historyForRequest, locale: getClientLocale() })
+          })
+          if (!res.ok || !res.body) throw new Error('network')
+
+          const reader = res.body.getReader()
+          const decoder = new TextDecoder()
+          let buffer = ''
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+            buffer += decoder.decode(value, { stream: true })
+
+            let sep: number
+            while ((sep = buffer.indexOf('\n\n')) >= 0) {
+              const chunk = buffer.slice(0, sep)
+              buffer = buffer.slice(sep + 2)
+              const lines = chunk.split('\n').filter((l) => l.startsWith('data:'))
+              const last = lines[lines.length - 1]
+              if (!last) continue
+              const payload = last.slice(5).trim()
+              if (!payload) continue
+
+              let evt: ChatStreamEvent
+              try {
+                evt = JSON.parse(payload) as ChatStreamEvent
+              } catch {
+                continue
+              }
+
+              if (evt.type === 'text') {
+                receivedText += evt.value
+                updateTurn(assistantId, { text: receivedText })
+              } else if (evt.type === 'error') {
+                updateTurn(assistantId, { status: 'error', text: receivedText || FALLBACK_ERROR_TEXT })
+              }
+            }
+          }
+
+          updateTurn(assistantId, { status: 'done' })
+          const fullTranscript: ChatHistoryEntry[] = [
+            ...historyForRequest,
+            { role: 'user', text: trimmed },
+            { role: 'assistant', text: receivedText }
+          ]
+          await Promise.all([extractAction(assistantId, fullTranscript), extractCompletion(assistantId, fullTranscript)])
+        } catch {
+          updateTurn(assistantId, { status: 'error', text: receivedText || FALLBACK_ERROR_TEXT })
+        } finally {
+          setIsStreaming(false)
+        }
+      }
+
+      void run()
+    },
+    [isStreaming, extractAction, extractCompletion, updateTurn]
+  )
+
+  const applyAction = React.useCallback(
+    async (turnId: string) => {
+      const turn = turnsRef.current.find((t) => t.id === turnId)
+      if (!turn?.action) return
+      updateTurn(turnId, { actionState: 'confirming' })
+      const fd = new FormData()
+      fd.set('title', turn.action.title)
+      if (turn.action.goalHint) fd.set('goalHint', turn.action.goalHint)
+      if (turn.action.reason) fd.set('reason', turn.action.reason)
+      try {
+        const result = await createActionFromChat(fd)
+        if (result.error) throw new Error(result.error)
+        updateTurn(turnId, { actionState: 'done' })
+      } catch {
+        updateTurn(turnId, { actionState: 'error' })
+      }
+    },
+    [updateTurn]
+  )
+
+  const completeAction = React.useCallback(
+    async (turnId: string) => {
+      const turn = turnsRef.current.find((t) => t.id === turnId)
+      if (!turn?.completion) return
+      updateTurn(turnId, { completionState: 'confirming' })
+      const fd = new FormData()
+      fd.set('actionId', turn.completion.actionId)
+      try {
+        const result = await completeActionFromChat(fd)
+        if (result.error) throw new Error(result.error)
+        updateTurn(turnId, { completionState: 'done' })
+      } catch {
+        updateTurn(turnId, { completionState: 'error' })
+      }
+    },
+    [updateTurn]
+  )
+
+  const dismissCompletion = React.useCallback(
+    (turnId: string) => {
+      updateTurn(turnId, { completion: null, completionState: undefined })
+    },
+    [updateTurn]
+  )
+
+  const clear = React.useCallback(() => {
+    setTurns([])
+    try {
+      localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const value = React.useMemo<ChatContextValue>(
+    () => ({ turns, isStreaming, source, send, applyAction, completeAction, dismissCompletion, clear }),
+    [turns, isStreaming, source, send, applyAction, completeAction, dismissCompletion, clear]
+  )
+
+  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>
+}
+
+export function useChat(): ChatContextValue {
+  const ctx = React.useContext(ChatContext)
+  if (!ctx) throw new Error('useChat must be used within ChatProvider')
+  return ctx
+}

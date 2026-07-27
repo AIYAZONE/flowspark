@@ -7,7 +7,7 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "eslint",
-		"test": "node --test",
+		"test": "node --test --experimental-strip-types",
 		"check:ai-funnel": "node scripts/check-ai-funnel.mjs"
 	},
 	"dependencies": {

@@ -935,5 +935,42 @@
 			"invalid_code": "Invalid or expired code",
 			"unexpected_error": "An unexpected error occurred"
 		}
+	},
+	"chat": {
+		"eyebrow": "System Chat",
+		"headerBody": "Your input and the system's reply always stay on the same page.",
+		"sourceToday": "From Today",
+		"sourceProfile": "From You",
+		"sourceSystem": "System Chat",
+		"emptyTitle": "The system is ready.",
+		"emptyBody": "Tell it what you want to move forward, or name the life path you want to advance.",
+		"emptyChips": [
+			"What should I move forward next?",
+			"Help me see today's main thread",
+			"I want to start a new life path",
+			"I've been feeling lost lately—help me sort it out"
+		],
+		"placeholder": "Tell the system: what do you want to move forward?",
+		"send": "Send",
+		"thinking": "The system is judging…",
+		"statusLabel": "System Judgment",
+		"degradedLabel": "Degraded Understanding",
+		"degradedText": "The system couldn't form a judgment right now. Rephrase, or try again later—the conversation stays here.",
+		"retry": "Retry",
+		"actionCardTitle": "Action Draft",
+		"actionKindGoal": "New Path",
+		"actionKindAction": "Action",
+		"actionReasonLabel": "Why",
+		"actionConfirm": "Record as action",
+		"actionConfirming": "Recording…",
+		"actionDone": "Recorded as today's move",
+		"actionError": "Failed to record. Retry.",
+		"actionNoGoal": "You have no active path yet. Create one in Paths first.",
+		"completeCardTitle": "Completion",
+		"completeConfirm": "Mark complete",
+		"completeConfirming": "Marking…",
+		"completeDone": "Marked complete",
+		"completeError": "Failed to mark. Retry.",
+		"completeCancel": "Dismiss"
 	}
 }
