@@ -39,7 +39,7 @@ export function SystemOverviewCard({
         : `${incompleteActionsCount} action(s) still open. The system is still waiting for today’s input.`
 
   return (
-    <div className="rounded-3xl border border-primary/15 bg-linear-to-br from-primary/10 via-background to-background p-5 shadow-sm md:p-6">
+    <div className="rounded-2xl border border-primary/15 bg-linear-to-br from-primary/10 via-background to-background p-5 shadow-sm md:p-6">
       <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/80 px-3 py-1 text-xs font-medium text-primary">
         <Sparkles className="h-3.5 w-3.5" />
         <span>{locale === 'zh' ? 'Premium Life OS' : 'Premium Life OS'}</span>

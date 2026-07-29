@@ -94,7 +94,7 @@ export function StreakCard({
   ), [isZh, nextGrantAtStreak, shieldBalance])
 
   return (
-    <div className="rounded-lg border overflow-hidden">
+    <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm shadow-black/4 bg-card/95">
       <StreakRecoverDialog
         dict={dict}
         open={recoverOpen}

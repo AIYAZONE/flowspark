@@ -128,7 +128,7 @@ export function WeeklyInsightCard({ dict, locale, insight, compact = false }: We
         </div>
         <CardTitle className="text-xl">{dict.weeklyInsightTitle || '本周系统洞察'}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-4">
         {!insight ? (
           <>
             <div className="text-sm text-muted-foreground">

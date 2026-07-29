@@ -145,7 +145,7 @@ export function ActivityHeatmap({ dict, data }: ActivityHeatmapProps) {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         <div className="w-full overflow-x-auto custom-scrollbar pb-2">
           <svg 
             width={graphWidth + 30} 

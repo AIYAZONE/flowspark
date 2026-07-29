@@ -61,7 +61,7 @@ export function GoalProgressList({ dict, goals }: GoalProgressListProps) {
           {dict.dashboard.goals.viewAll} <ArrowRight className="h-3 w-3" />
         </Link>
       </CardHeader>
-      <CardContent className="grid gap-6 overflow-y-auto custom-scrollbar max-h-none md:max-h-[400px] md:pb-6">
+      <CardContent className="grid gap-6 overflow-y-auto custom-scrollbar max-h-none md:max-h-[400px] md:pb-6 pt-4">
         {goals.length === 0 ? (
           <div className="text-center py-8 px-4 text-sm text-muted-foreground bg-muted/20 rounded-lg border border-dashed flex flex-col items-center gap-2">
             <span>{dict.dashboard.goals.noGoals || "No active goals to focus on."}</span>
