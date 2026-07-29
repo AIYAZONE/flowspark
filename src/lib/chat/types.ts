@@ -18,6 +18,8 @@ export type ChatCompleteDraft = {
   reason?: string | null
 }
 
+export type ChatReferencedAction = { id: string; title: string; done?: boolean }
+
 export type ChatTurn = {
   id: string
   role: ChatRole
@@ -27,11 +29,13 @@ export type ChatTurn = {
   actionState?: ChatActionState
   completion?: ChatCompleteDraft | null
   completionState?: ChatCompleteState
+  referencedActions?: ChatReferencedAction[] | null
   createdAt: string
 }
 
 export type ChatStreamEvent =
   | { type: 'text'; value: string }
+  | { type: 'references'; actions: Array<{ id: string; title: string }> }
   | { type: 'done' }
   | { type: 'error'; message: string }
 
@@ -66,6 +70,10 @@ export type ChatCopy = {
   actionError: string
   actionDuplicate: string
   actionNoGoal: string
+  refTitle: string
+  refGoToday: string
+  refComplete: string
+  refDone: string
   completeCardTitle: string
   completeConfirm: string
   completeConfirming: string

@@ -29,6 +29,7 @@ type ChatContextValue = {
   applyAction: (turnId: string) => void
   completeAction: (turnId: string) => void
   dismissCompletion: (turnId: string) => void
+  completeReferencedAction: (turnId: string, actionId: string) => void
   clear: () => void
 }
 
@@ -201,6 +202,10 @@ export function ChatProvider({
               if (evt.type === 'text') {
                 receivedText += evt.value
                 updateTurn(assistantId, { text: receivedText })
+              } else if (evt.type === 'references') {
+                updateTurn(assistantId, {
+                  referencedActions: evt.actions.map((a) => ({ ...a, done: false }))
+                })
               } else if (evt.type === 'error') {
                 updateTurn(assistantId, { status: 'error', text: receivedText || FALLBACK_ERROR_TEXT })
               }
@@ -275,6 +280,32 @@ export function ChatProvider({
     [updateTurn]
   )
 
+  const completeReferencedAction = React.useCallback(
+    async (turnId: string, actionId: string) => {
+      const fd = new FormData()
+      fd.set('actionId', actionId)
+      try {
+        const result = await completeActionFromChat(fd)
+        if (result.error) throw new Error(result.error)
+        setTurns((prev) =>
+          prev.map((t) =>
+            t.id === turnId
+              ? {
+                  ...t,
+                  referencedActions: (t.referencedActions ?? []).map((a) =>
+                    a.id === actionId ? { ...a, done: true } : a
+                  )
+                }
+              : t
+          )
+        )
+      } catch {
+        // 保留未勾选状态，允许重试
+      }
+    },
+    []
+  )
+
   const clear = React.useCallback(() => {
     setTurns([])
     try {
@@ -285,8 +316,28 @@ export function ChatProvider({
   }, [])
 
   const value = React.useMemo<ChatContextValue>(
-    () => ({ turns, isStreaming, source, send, applyAction, completeAction, dismissCompletion, clear }),
-    [turns, isStreaming, source, send, applyAction, completeAction, dismissCompletion, clear]
+    () => ({
+      turns,
+      isStreaming,
+      source,
+      send,
+      applyAction,
+      completeAction,
+      dismissCompletion,
+      completeReferencedAction,
+      clear
+    }),
+    [
+      turns,
+      isStreaming,
+      source,
+      send,
+      applyAction,
+      completeAction,
+      dismissCompletion,
+      completeReferencedAction,
+      clear
+    ]
   )
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>

@@ -2,7 +2,8 @@ import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { streamAIChat, type StreamChatMessage } from '@/lib/ai/stream'
 import { buildChatSystemPrompt } from '@/lib/chat/prompt'
-import { getChatContext } from '@/lib/chat/context'
+import { getChatContext, getOpenActionsWithIds } from '@/lib/chat/context'
+import { findReferencedOpenActions } from '@/lib/chat/action-dedup'
 import type { ChatHistoryEntry, ChatStreamEvent } from '@/lib/chat/types'
 
 export const runtime = 'nodejs'
@@ -52,6 +53,14 @@ export async function POST(req: NextRequest) {
     return sseError('context_error')
   }
 
+  // 读取用户已有的开放行动，用于在回复里识别被引用的行动（渲染引用卡）
+  let openActions: Awaited<ReturnType<typeof getOpenActionsWithIds>> = []
+  try {
+    openActions = await getOpenActionsWithIds(supabase, user.id)
+  } catch {
+    // 降级：不生成引用卡，聊天主流程不受影响
+  }
+
   const summaryMessage: StreamChatMessage | null = summary
     ? {
         role: 'system',
@@ -72,8 +81,17 @@ export async function POST(req: NextRequest) {
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       try {
+        let full = ''
         for await (const delta of streamAIChat({ messages, signal: req.signal })) {
+          full += delta
           controller.enqueue(new TextEncoder().encode(sse({ type: 'text', value: delta })))
+        }
+        // 回复完整后，识别其中被提及的用户已有开放行动，下发引用卡数据
+        if (openActions.length) {
+          const refs = findReferencedOpenActions(full, openActions)
+          if (refs.length) {
+            controller.enqueue(new TextEncoder().encode(sse({ type: 'references', actions: refs })))
+          }
         }
         controller.enqueue(new TextEncoder().encode(sse({ type: 'done' })))
       } catch (e) {

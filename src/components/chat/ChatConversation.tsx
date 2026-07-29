@@ -10,6 +10,7 @@ type Props = {
   onApplyAction: (id: string) => void
   onCompleteAction: (id: string) => void
   onDismissCompletion: (id: string) => void
+  onCompleteReferenced: (turnId: string, actionId: string) => void
   onPickChip: (text: string) => void
 }
 
@@ -19,6 +20,7 @@ export function ChatConversation({
   onApplyAction,
   onCompleteAction,
   onDismissCompletion,
+  onCompleteReferenced,
   onPickChip
 }: Props) {
   if (turns.length === 0) {
@@ -35,6 +37,7 @@ export function ChatConversation({
           onApplyAction={onApplyAction}
           onCompleteAction={onCompleteAction}
           onDismissCompletion={onDismissCompletion}
+          onCompleteReferenced={onCompleteReferenced}
         />
       ))}
     </div>

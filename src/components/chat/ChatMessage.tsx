@@ -4,6 +4,7 @@ import { Sparkles } from 'lucide-react'
 import type { ChatCopy, ChatTurn } from '@/lib/chat/types'
 import { ChatActionCard } from './ChatActionCard'
 import { ChatCompleteCard } from './ChatCompleteCard'
+import { ChatReferenceCard } from './ChatReferenceCard'
 
 type Props = {
   turn: ChatTurn
@@ -11,9 +12,17 @@ type Props = {
   onApplyAction: (id: string) => void
   onCompleteAction: (id: string) => void
   onDismissCompletion: (id: string) => void
+  onCompleteReferenced: (turnId: string, actionId: string) => void
 }
 
-export function ChatMessage({ turn, copy, onApplyAction, onCompleteAction, onDismissCompletion }: Props) {
+export function ChatMessage({
+  turn,
+  copy,
+  onApplyAction,
+  onCompleteAction,
+  onDismissCompletion,
+  onCompleteReferenced
+}: Props) {
   if (turn.role === 'user') {
     return (
       <div className="flex flex-col items-end">
@@ -73,6 +82,14 @@ export function ChatMessage({ turn, copy, onApplyAction, onCompleteAction, onDis
           copy={copy}
           onConfirm={() => onCompleteAction(turn.id)}
           onDismiss={() => onDismissCompletion(turn.id)}
+        />
+      )}
+
+      {turn.referencedActions && turn.referencedActions.length > 0 && (
+        <ChatReferenceCard
+          actions={turn.referencedActions}
+          copy={copy}
+          onComplete={(actionId) => onCompleteReferenced(turn.id, actionId)}
         />
       )}
     </div>

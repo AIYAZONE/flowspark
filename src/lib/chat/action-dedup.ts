@@ -59,3 +59,31 @@ export async function findDuplicateOpenAction(
   }
   return null
 }
+
+/**
+ * 从回复文本中识别被提及的用户已有开放行动，返回被引用的子集（最多 max 条）。
+ * 用于聊天回复里"引用已有行动"时，渲染可跳转 / 可完成的引用卡。
+ *
+ * 匹配条件：归一化后的行动标题作为子串出现在归一化回复文本中，且标题长度 ≥ 4
+ * （过短标题易误命中，如"读书""锻炼"）。仅匹配标题整体出现，避免把泛泛而谈的词当引用。
+ */
+export function findReferencedOpenActions(
+  text: string,
+  openActions: OpenActionRef[],
+  max = 3
+): OpenActionRef[] {
+  const normText = normalizeActionTitle(text)
+  if (!normText) return []
+  const hits: OpenActionRef[] = []
+  const seen = new Set<string>()
+  for (const a of openActions) {
+    const en = normalizeActionTitle(a.title)
+    if (!en || en.length < 4) continue
+    if (normText.includes(en) && !seen.has(a.id)) {
+      hits.push(a)
+      seen.add(a.id)
+      if (hits.length >= max) break
+    }
+  }
+  return hits
+}

@@ -23,7 +23,16 @@ export function ChatSurface({
 }
 
 function ChatInner({ copy, prefill }: { copy: ChatCopy; prefill?: string }) {
-  const { turns, isStreaming, send, applyAction, completeAction, dismissCompletion, source } = useChat()
+  const {
+    turns,
+    isStreaming,
+    send,
+    applyAction,
+    completeAction,
+    dismissCompletion,
+    completeReferencedAction,
+    source
+  } = useChat()
   const [value, setValue] = React.useState(prefill || '')
   const scrollRef = React.useRef<HTMLDivElement>(null)
 
@@ -53,6 +62,7 @@ function ChatInner({ copy, prefill }: { copy: ChatCopy; prefill?: string }) {
             onApplyAction={applyAction}
             onCompleteAction={completeAction}
             onDismissCompletion={dismissCompletion}
+            onCompleteReferenced={completeReferencedAction}
             onPickChip={(text) => setValue(text)}
           />
         </div>
