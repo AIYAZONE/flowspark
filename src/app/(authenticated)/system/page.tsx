@@ -15,6 +15,10 @@ import { FocusDistributionChart } from '@/components/FocusDistributionChart'
 import { ActivityHeatmap } from '@/components/ActivityHeatmap'
 import { getOrCreateWeeklyInsight } from '@/lib/ai/insightStore'
 import { StreakCard } from '@/components/StreakCard'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { buildPrimaryPathContext } from '@/lib/path-context'
 
 export default async function SystemPage() {
   const supabase = await createClient()
@@ -63,6 +67,26 @@ export default async function SystemPage() {
   })
 
   const hasActiveGoals = (activeGoals || []).length > 0
+
+  const primaryPathContext = buildPrimaryPathContext({
+    locale,
+    today,
+    goals: (activeGoals || []).map((goal) => ({
+      id: goal.id as string,
+      title: goal.title as string,
+      priority: (goal.priority as string | null | undefined) ?? null,
+      start_date: (goal.start_date as string | null | undefined) ?? null,
+      end_date: (goal.end_date as string | null | undefined) ?? null,
+      success_criteria: (goal.success_criteria as string | null | undefined) ?? null,
+      stop_criteria: (goal.stop_criteria as string | null | undefined) ?? null,
+      actions: Array.isArray(goal.actions)
+        ? goal.actions.map((action) => ({
+            id: action.id as string,
+            completed: Boolean(action.completed),
+          }))
+        : [],
+    })),
+  })
 
   const { data: todayScoreRow } = await queryWithOwnershipFallback({
     primary: 'owner_id',
@@ -295,6 +319,41 @@ export default async function SystemPage() {
           className="h-full"
         />
       </div>
+
+      <Card className="border-primary/12 bg-primary/5 shadow-none">
+        <CardContent className="space-y-3 p-5">
+          <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+            {localeIsZh ? 'Main Path' : 'Main Path'}
+          </div>
+          <div className="text-sm font-medium">
+            {localeIsZh ? '这不是统计，这是系统给你的内在驱动机制。' : 'This is not analytics. It is the system’s incentive mechanism.'}
+          </div>
+          <div className="text-sm leading-6 text-muted-foreground">
+            {primaryPathContext
+              ? localeIsZh
+                ? `系统当前主线是「${primaryPathContext.title}」。${primaryPathContext.titleText}`
+                : `Current main path: "${primaryPathContext.title}". ${primaryPathContext.titleText}`
+              : localeIsZh
+                ? '系统还没有主线路径。先定义一条真正长期要走的路径，系统才会开始稳定指导你。'
+                : 'No main path yet. Define one long-term path first, then the system can guide you consistently.'}
+          </div>
+          {primaryPathContext ? (
+            <div className="text-xs leading-5 text-muted-foreground">{primaryPathContext.body}</div>
+          ) : null}
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" className="rounded-full">
+              <Link href="/today">{localeIsZh ? '去执行今天' : 'Go to today'}</Link>
+            </Button>
+            <Button asChild className="rounded-full">
+              <Link href={primaryPathContext ? `/goals/${primaryPathContext.goalId}` : '/goals'}>
+                {primaryPathContext
+                  ? primaryPathContext.ctaLabel
+                  : localeIsZh ? '去定义路径' : 'Define a path'}
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {hasActiveGoals ? (
         <GoalProgressList dict={dict} goals={goalProgressList} />

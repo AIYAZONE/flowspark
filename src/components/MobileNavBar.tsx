@@ -112,7 +112,7 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
   return (
     <div
       key={epoch}
-      className={`${MOBILE_ONLY_CLASS} shrink-0 bg-transparent px-3 pb-safe-area-inset-bottom pt-2`}
+      className={`${MOBILE_ONLY_CLASS} relative z-50 shrink-0 bg-transparent px-3 pb-safe-area-inset-bottom pt-2`}
     >
       <div className="mx-auto max-w-xl rounded-[1.85rem] bg-linear-to-br from-primary/18 via-violet-500/10 to-sky-500/12 p-px shadow-lg shadow-black/5">
         <nav
