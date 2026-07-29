@@ -20,6 +20,13 @@ export type ChatCompleteDraft = {
 
 export type ChatReferencedAction = { id: string; title: string; done?: boolean }
 
+export type ChatFeedbackReason = 'too_verbose' | 'not_relevant' | 'inaccurate' | 'want_specific'
+export type ChatTurnFeedback = {
+  rating: 'up' | 'down'
+  reason?: ChatFeedbackReason | null
+  reasonText?: string | null
+}
+
 export type ChatTurn = {
   id: string
   role: ChatRole
@@ -30,6 +37,7 @@ export type ChatTurn = {
   completion?: ChatCompleteDraft | null
   completionState?: ChatCompleteState
   referencedActions?: ChatReferencedAction[] | null
+  feedback?: ChatTurnFeedback | null
   createdAt: string
 }
 
@@ -60,6 +68,8 @@ export type ChatCopy = {
   degradedLabel: string
   degradedText: string
   retry: string
+  copyMessage: string
+  copiedMessage: string
   actionCardTitle: string
   actionKindGoal: string
   actionKindAction: string
@@ -74,6 +84,19 @@ export type ChatCopy = {
   refGoToday: string
   refComplete: string
   refDone: string
+  feedbackPrompt: string
+  feedbackLike: string
+  feedbackDislike: string
+  feedbackReasonPrompt: string
+  reasonTooVerbose: string
+  reasonNotRelevant: string
+  reasonInaccurate: string
+  reasonWantSpecific: string
+  feedbackReasonDetail: string
+  feedbackCustomPlaceholder: string
+  feedbackSubmit: string
+  feedbackCancel: string
+  feedbackThanks: string
   completeCardTitle: string
   completeConfirm: string
   completeConfirming: string

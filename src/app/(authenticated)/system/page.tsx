@@ -9,6 +9,7 @@ import { getDailyQuoteCandidates, DAILY_QUOTE_CANDIDATE_COUNT, QUOTE_TIME_ZONE }
 import { DashboardWelcome } from '@/components/DashboardWelcome'
 import { WeeklyInsightCard } from '@/components/WeeklyInsightCard'
 import { LevelCard } from '@/components/LevelCard'
+import { ScoreCard } from '@/components/ScoreCard'
 import { ScoreTrendChart } from '@/components/ScoreTrendChart'
 import { FocusDistributionChart } from '@/components/FocusDistributionChart'
 import { ActivityHeatmap } from '@/components/ActivityHeatmap'
@@ -90,6 +91,7 @@ export default async function SystemPage() {
   })
   const chartData = (recentScores || []).map((s) => ({ date: s.score_date, score: s.score }))
   const todayScore = chartData.find((entry) => entry.date === today)?.score ?? null
+  const recent7 = chartData.slice(0, 7).reverse()
 
   const datePredicate = [
     `and(start_date.lte.${today},end_date.gte.${today})`,
@@ -268,6 +270,7 @@ export default async function SystemPage() {
           shieldBalance={streakSnapshot.shieldBalance}
           recoverableMissDate={streakSnapshot.recoverableMissDate}
           nextGrantAtStreak={streakSnapshot.nextShieldGrantRule.nextGrantAtStreak}
+          className="h-full"
         />
         <LevelCard
           dict={dict}
@@ -275,6 +278,20 @@ export default async function SystemPage() {
           currentXP={currentXP}
           nextLevelXP={Math.floor(nextLevelXP)}
           lastLog={lastLog}
+          className="h-full"
+        />
+        <ScoreCard
+          dict={dict}
+          today={today}
+          recent7={recent7}
+          currentScore={dailyScore}
+          className="h-full"
+        />
+        <ScoreTrendChart
+          data={chartData}
+          title={localeIsZh ? '近 30 天自评趋势' : '30-day score trend'}
+          description={localeIsZh ? '看见波动与改善，让行动更有方向。' : 'See the drift and the gains.'}
+          scoreLabel={localeIsZh ? '自评' : 'Score'}
           className="h-full"
         />
       </div>
@@ -286,12 +303,6 @@ export default async function SystemPage() {
       <WeeklyInsightCard dict={dict.dashboard.planning} locale={locale} insight={weeklyInsight} />
 
       <div className="grid gap-4 md:grid-cols-2">
-        <ScoreTrendChart
-          data={chartData}
-          title={localeIsZh ? '近 30 天自评趋势' : '30-day score trend'}
-          description={localeIsZh ? '看见波动与改善，让行动更有方向。' : 'See the drift and the gains.'}
-          scoreLabel={localeIsZh ? '自评' : 'Score'}
-        />
         <FocusDistributionChart dict={dict} data={distributionData} />
       </div>
 

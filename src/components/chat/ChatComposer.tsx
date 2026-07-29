@@ -43,28 +43,25 @@ export function ChatComposer({ value, onChange, onSend, placeholder, disabled = 
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl rounded-[1.6rem] border border-border bg-muted/40 px-3 py-3 shadow-sm md:px-4">
-      <div className="flex items-end gap-2 rounded-[1.2rem] border border-border bg-background px-3 py-2">
-        <textarea
-          ref={ref}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          rows={1}
-          className="flex w-full resize-none rounded-md border-0 bg-transparent px-0 py-2 text-[15px] leading-7 text-foreground shadow-none outline-none ring-0 placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-0"
-        />
-        <button
-          type="button"
-          onClick={submit}
-          disabled={!value.trim() || disabled}
-          aria-label="发送"
-          className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition duration-200 hover:bg-primary/90 active:scale-[0.985] disabled:pointer-events-none disabled:opacity-40"
-        >
-          <ArrowUp className="h-4 w-4" strokeWidth={2.4} />
-        </button>
-      </div>
-      <p className="mt-2 px-1 text-[11px] text-muted-foreground/70">Enter 发送 · Shift+Enter 换行</p>
+    <div className="flex items-end gap-2 rounded-2xl border border-border bg-background px-3 py-2 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.18)] md:px-4">
+      <textarea
+        ref={ref}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        rows={1}
+        className="flex w-full resize-none rounded-md border-0 bg-transparent px-0 py-2 text-[15px] leading-7 text-foreground shadow-none outline-none ring-0 placeholder:text-muted-foreground/70 focus-visible:outline-none focus-visible:ring-0"
+      />
+      <button
+        type="button"
+        onClick={submit}
+        disabled={!value.trim() || disabled}
+        aria-label="发送"
+        className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition duration-200 hover:bg-primary/90 active:scale-[0.985] disabled:pointer-events-none disabled:opacity-40"
+      >
+        <ArrowUp className="h-4 w-4" strokeWidth={2.4} />
+      </button>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { findDuplicateOpenAction } from './action-dedup.ts'
 import { queryWithOwnershipFallback } from '../ownership.ts'
+import type { ChatFeedbackReason } from './types.ts'
 
 /**
  * 聊天闭环的"落库"纯逻辑，从 server action 中抽出以便单测。
@@ -91,6 +92,48 @@ export async function completeChatAction(
     .update({ completed: true })
     .eq('id', actionId)
     .eq('user_id', userId)
+
+  if (error) return { error: 'operation_failed' }
+
+  return { ok: true }
+}
+
+export type RecordChatFeedbackInput = {
+  turnId: string
+  rating: 'up' | 'down'
+  reason: ChatFeedbackReason | null
+  reasonText?: string | null
+  excerpt: string | null
+}
+
+export type RecordChatFeedbackResult = { ok?: boolean; error?: string }
+
+/**
+ * 把一条用户对助手回答的反馈写入 `chat_feedback`。
+ * 以 (user_id, turn_id) 唯一约束做 upsert：用户切换赞/踩或改原因时覆盖旧行，不产生重复。
+ * excerpt 仅存前 280 字，供后续分析，避免大字段。
+ */
+export async function recordChatFeedback(
+  supabase: SupabaseClient,
+  userId: string,
+  input: RecordChatFeedbackInput
+): Promise<RecordChatFeedbackResult> {
+  const { turnId, rating, reason, reasonText, excerpt } = input
+  if (!turnId || (rating !== 'up' && rating !== 'down')) return { error: 'missing_fields' }
+
+  const { error } = await supabase
+    .from('chat_feedback')
+    .upsert(
+      {
+        user_id: userId,
+        turn_id: turnId,
+        rating,
+        reason: reason ?? null,
+        reason_text: reasonText ? reasonText.slice(0, 500) : null,
+        excerpt: excerpt ? excerpt.slice(0, 280) : null
+      },
+      { onConflict: 'user_id,turn_id' }
+    )
 
   if (error) return { error: 'operation_failed' }
 

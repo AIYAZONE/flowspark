@@ -1,10 +1,16 @@
 'use client'
 
 import * as React from 'react'
-import { createActionFromChat, completeActionFromChat } from '@/app/(authenticated)/chat/actions'
+import {
+  createActionFromChat,
+  completeActionFromChat,
+  submitChatFeedback,
+  cancelChatFeedback
+} from '@/app/(authenticated)/chat/actions'
 import type {
   ChatActionDraft,
   ChatCompleteDraft,
+  ChatFeedbackReason,
   ChatHistoryEntry,
   ChatStreamEvent,
   ChatTurn
@@ -30,6 +36,8 @@ type ChatContextValue = {
   completeAction: (turnId: string) => void
   dismissCompletion: (turnId: string) => void
   completeReferencedAction: (turnId: string, actionId: string) => void
+  submitFeedback: (turnId: string, rating: 'up' | 'down', reason?: ChatFeedbackReason | null, excerpt?: string | null, reasonText?: string | null) => void
+  cancelFeedback: (turnId: string) => void
   clear: () => void
 }
 
@@ -315,6 +323,47 @@ export function ChatProvider({
     }
   }, [])
 
+  const submitFeedback = React.useCallback(
+    async (
+      turnId: string,
+      rating: 'up' | 'down',
+      reason: ChatFeedbackReason | null = null,
+      excerpt: string | null = null,
+      reasonText: string | null = null
+    ) => {
+      setTurns((prev) =>
+        prev.map((t) =>
+          t.id === turnId ? { ...t, feedback: { rating, reason, reasonText } } : t
+        )
+      )
+      const fd = new FormData()
+      fd.set('turnId', turnId)
+      fd.set('rating', rating)
+      if (reason) fd.set('reason', reason)
+      if (reasonText) fd.set('reasonText', reasonText)
+      if (excerpt) fd.set('excerpt', excerpt)
+      try {
+        const result = await submitChatFeedback(fd)
+        if (result.error) throw new Error(result.error)
+      } catch {
+      }
+    },
+    []
+  )
+
+  const cancelFeedback = React.useCallback(async (turnId: string) => {
+    setTurns((prev) =>
+      prev.map((t) => (t.id === turnId ? { ...t, feedback: null } : t))
+    )
+    const fd = new FormData()
+    fd.set('turnId', turnId)
+    try {
+      const result = await cancelChatFeedback(fd)
+      if (result.error) throw new Error(result.error)
+    } catch {
+    }
+  }, [])
+
   const value = React.useMemo<ChatContextValue>(
     () => ({
       turns,
@@ -325,6 +374,8 @@ export function ChatProvider({
       completeAction,
       dismissCompletion,
       completeReferencedAction,
+      submitFeedback,
+      cancelFeedback,
       clear
     }),
     [
@@ -336,6 +387,8 @@ export function ChatProvider({
       completeAction,
       dismissCompletion,
       completeReferencedAction,
+      submitFeedback,
+      cancelFeedback,
       clear
     ]
   )

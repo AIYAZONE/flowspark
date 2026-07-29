@@ -1,5 +1,6 @@
 import type { ChatContext } from './context'
-import type { SelfModelCard } from '@/lib/self-model'
+import type { SelfModelCard } from '../self-model'
+import { buildFeedbackDirective } from './feedback.ts'
 
 /**
  * Frames the model as the "人生路径推进系统 / Life OS" core: a calm, restrained,
@@ -44,6 +45,9 @@ export function buildChatSystemPrompt(params: { context: ChatContext; locale: 'z
     context.signals.topFeedbackLabel ? `；用户最常反馈「${context.signals.topFeedbackLabel}」` : ''
   }。`
 
+  // 闭环改进：仅当用户近 14 天负反馈 ≥ 2 时才有内容；否则为空串，不注入噪声。
+  const feedbackDirective = buildFeedbackDirective(context.feedbackSummary ?? null, locale)
+
   const selfModelSection = renderSelfModelCards(context.selfModelCards)
 
   const todayCard = context.todayPersonalization
@@ -65,7 +69,7 @@ ${actionLines}
 ${preferenceLine}
 - 近 7 天 AI 建议反馈信号（用于校准你的推荐方向与语气）：
 ${signalLine}
-
+${feedbackDirective ? `- 用户对你近期回答的负反馈闭环改进（务必遵循）：${feedbackDirective}\n` : ''}
 【人生系统画像（Self Model）】
 这是系统基于该用户长期数据形成的判断，是你理解他的最高权威依据，请在建议中贴合这些画像：
 ${selfModelSection}

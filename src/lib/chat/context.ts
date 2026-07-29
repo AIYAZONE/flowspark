@@ -14,6 +14,7 @@ import {
   type SelfModelSignalSummary,
   type TodayPersonalization
 } from '@/lib/self-model'
+import { getChatFeedbackSummary, type ChatFeedbackSummary } from './feedback.ts'
 
 export type ChatContext = {
   goals: Array<{ title: string; category: string | null; priority: string | null }>
@@ -25,6 +26,8 @@ export type ChatContext = {
   streak: { currentStreak: number; longestStreak: number; completedToday: boolean }
   preferences: string[]
   signals: SelfModelSignalSummary
+  // 聊天负反馈聚合：近 14 天负反馈 ≥ 2 时用于闭环改进 system prompt；无信号时为 null
+  feedbackSummary?: ChatFeedbackSummary | null
 }
 
 type GoalRow = { id: string; title: string; category: string | null; priority: string | null; status: string }
@@ -96,6 +99,14 @@ export async function getChatContext(
     // 降级：保留默认值，聊天仍可用
   }
 
+  // 聊天负反馈聚合：用于闭环改进后续回答；失败降级为 null，不影响主流程。
+  let feedbackSummary: ChatFeedbackSummary | null = null
+  try {
+    feedbackSummary = await getChatFeedbackSummary(supabase, userId)
+  } catch {
+    // 降级：不注入反馈改进指令
+  }
+
   const selfModelCards = buildSelfModelCards({ locale, currentStreak, completedToday, signals })
 
   const showStreakRiskBanner = !completedToday && (currentStreak > 0 || Boolean(recoverableMissDate))
@@ -116,7 +127,8 @@ export async function getChatContext(
     todayPersonalization,
     streak: { currentStreak, longestStreak, completedToday },
     preferences,
-    signals
+    signals,
+    feedbackSummary
   }
 }
 

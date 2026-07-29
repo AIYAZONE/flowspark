@@ -17,15 +17,15 @@ export function ChatReferenceCard({ actions, copy, onComplete }: Props) {
   if (!actions?.length) return null
 
   return (
-    <div className="mt-3 rounded-xl border border-border bg-card px-3 py-3">
+    <div className="relative mt-2 rounded-2xl border border-border/70 bg-card/70 px-4 py-3">
       <div className="mb-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70">
         {copy.refTitle}
       </div>
-      <div className="space-y-2">
+      <div className="space-y-2.5">
         {actions.map((a) => (
           <div
             key={a.id}
-            className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-background/60 px-3 py-2"
+            className="flex items-center justify-between gap-3 rounded-xl px-2 py-1.5 hover:bg-muted/50"
           >
             <span
               className={`min-w-0 flex-1 truncate text-[14px] ${

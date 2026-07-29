@@ -13,7 +13,7 @@ type Props = {
 
 export function ChatCompleteCard({ completion, completionState, copy, onConfirm, onDismiss }: Props) {
   return (
-    <div className="mt-4 rounded-xl border border-primary/20 bg-muted/40 p-3.5">
+    <div className="relative mt-2 rounded-2xl border border-border/70 bg-card/70 px-4 py-3.5">
       <div className="flex items-center gap-2">
         <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-medium tracking-wide text-primary">
           {copy.completeCardTitle}
