@@ -56,12 +56,17 @@ class MockBuilder {
       resolve({ data: this.db.goals, error: null })
       return
     }
+    if (this.table === 'actions') {
+      resolve({ data: this.db.actions, error: null })
+      return
+    }
     resolve({ data: [], error: null })
   }
 }
 
 class MockDb {
   goals: Array<{ id: string; title: string; status: string }> = []
+  actions: Array<{ id: string; title: string; completed: boolean | null }> = []
   responses: { insert?: { data: { id: string } | null; error: unknown }; update?: { error: unknown } } = {}
   nextId = 'act_test'
   lastInsert: Record<string, unknown> | null = null
@@ -177,4 +182,67 @@ test('completeChatAction maps update error to operation_failed', async () => {
   db.responses.update = { error: { message: 'boom' } }
   const res = await completeChatAction(asClient(db), 'u1', 'act1')
   assert.equal(res.error, 'operation_failed')
+})
+
+test('recordChatAction returns duplicate (no insert) when title matches an existing OPEN action', async () => {
+  const db = new MockDb()
+  db.goals = [{ id: 'g1', title: 'a', status: 'active' }]
+  db.actions = [
+    { id: 'exist1', title: '梳理家庭月收入与固定支出', completed: false },
+    { id: 'exist2', title: '已完成的事', completed: true }
+  ]
+  const res = await recordChatAction(asClient(db), 'u1', {
+    title: '梳理家庭月收入与固定支出',
+    goalHint: null,
+    reason: '',
+    today: '2026-07-29'
+  })
+  assert.equal(res.error, undefined)
+  assert.equal(res.duplicate, true)
+  assert.equal(res.actionId, 'exist1')
+  assert.equal(db.lastInsert, null)
+})
+
+test('recordChatAction matches duplicate by normalized substring (open action)', async () => {
+  const db = new MockDb()
+  db.goals = [{ id: 'g1', title: 'a', status: 'active' }]
+  db.actions = [{ id: 'exist1', title: '梳理家庭月收入与固定支出', completed: false }]
+  const res = await recordChatAction(asClient(db), 'u1', {
+    title: '梳理家庭月收入',
+    goalHint: null,
+    reason: '',
+    today: '2026-07-29'
+  })
+  assert.equal(res.duplicate, true)
+  assert.equal(res.actionId, 'exist1')
+  assert.equal(db.lastInsert, null)
+})
+
+test('recordChatAction inserts (not duplicate) when title matches only a COMPLETED action', async () => {
+  const db = new MockDb()
+  db.goals = [{ id: 'g1', title: 'a', status: 'active' }]
+  db.actions = [{ id: 'done1', title: '已完成的事', completed: true }]
+  const res = await recordChatAction(asClient(db), 'u1', {
+    title: '已完成的事',
+    goalHint: null,
+    reason: '',
+    today: '2026-07-29'
+  })
+  assert.equal(res.duplicate, undefined)
+  assert.equal(res.actionId, 'act_test')
+  assert.equal(db.lastInsert?.title, '已完成的事')
+})
+
+test('recordChatAction inserts normally when title does not match any existing action', async () => {
+  const db = new MockDb()
+  db.goals = [{ id: 'g1', title: 'a', status: 'active' }]
+  db.actions = [{ id: 'exist1', title: '已有的事', completed: false }]
+  const res = await recordChatAction(asClient(db), 'u1', {
+    title: '全新的事',
+    goalHint: null,
+    reason: '',
+    today: '2026-07-29'
+  })
+  assert.equal(res.duplicate, undefined)
+  assert.equal(res.actionId, 'act_test')
 })

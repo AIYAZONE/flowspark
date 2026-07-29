@@ -965,6 +965,7 @@
 		"actionConfirming": "Recording…",
 		"actionDone": "Recorded as today's move",
 		"actionError": "Failed to record. Retry.",
+		"actionDuplicate": "Already in your list",
 		"actionNoGoal": "You have no active path yet. Create one in Paths first.",
 		"completeCardTitle": "Completion",
 		"completeConfirm": "Mark complete",

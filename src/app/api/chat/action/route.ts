@@ -2,6 +2,7 @@ import type { NextRequest } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { callAIChatJSON } from '@/lib/ai/client'
 import { parseActionExtraction } from '@/lib/chat/action-extractor'
+import { findDuplicateOpenAction, listAllOpenActions } from '@/lib/chat/action-dedup'
 import type { ChatHistoryEntry } from '@/lib/chat/types'
 
 export const runtime = 'nodejs'
@@ -39,8 +40,23 @@ export async function POST(req: NextRequest) {
 
   const locale: 'zh' | 'en' = parsed.locale === 'en' ? 'en' : 'zh'
 
+  // 读取用户已有的开放行动，用于去重：避免把已存在的行动当成新行动提议
+  let existingTitles: string[] = []
+  try {
+    const existing = await listAllOpenActions(supabase, user.id)
+    existingTitles = existing.map((a) => a.title)
+  } catch {
+    // 去重降级：允许创建，由落库层兜底
+  }
+
+  const existingContext = existingTitles.length
+    ? `用户已在系统中存在、且未完成的「待推进行动」清单（绝对不要为其中任何一项生成创建草案，它们已经存在，重复创建会造成重复）：\n${existingTitles
+        .map((t, i) => `${i + 1}. ${t}`)
+        .join('\n')}`
+    : '（用户当前没有已存在的待推进行动）'
+
   const messages = [
-    { role: 'system' as const, content: EXTRACTION_SYSTEM_PROMPT },
+    { role: 'system' as const, content: `${EXTRACTION_SYSTEM_PROMPT}\n\n${existingContext}` },
     ...transcript.map((t) => ({
       role: 'user' as const,
       content: t.role === 'assistant' ? `系统：${t.text}` : `用户：${t.text}`
@@ -54,7 +70,12 @@ export async function POST(req: NextRequest) {
   try {
     const raw = await callAIChatJSON({ messages, temperature: 0.1 })
     const { hasAction, draft } = parseActionExtraction(raw)
-    if (hasAction && draft) {
+    if (hasAction && draft?.title) {
+      // 服务端去重：若草案标题命中用户已有的开放行动，则抑制创建卡片，避免重复
+      const dup = await findDuplicateOpenAction(supabase, user.id, draft.title)
+      if (dup) {
+        return Response.json({ hasAction: false }, { status: 200 })
+      }
       return Response.json({ hasAction: true, draft }, { status: 200 })
     }
     return Response.json({ hasAction: false }, { status: 200 })

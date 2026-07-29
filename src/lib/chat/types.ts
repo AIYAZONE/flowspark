@@ -1,6 +1,6 @@
 export type ChatRole = 'user' | 'assistant'
 export type ChatTurnStatus = 'streaming' | 'done' | 'error'
-export type ChatActionState = 'idle' | 'confirming' | 'done' | 'error'
+export type ChatActionState = 'idle' | 'confirming' | 'done' | 'error' | 'duplicate'
 export type ChatCompleteState = 'idle' | 'confirming' | 'done' | 'error'
 
 export type ChatActionKind = 'goal' | 'action'
@@ -64,6 +64,7 @@ export type ChatCopy = {
   actionConfirming: string
   actionDone: string
   actionError: string
+  actionDuplicate: string
   actionNoGoal: string
   completeCardTitle: string
   completeConfirm: string

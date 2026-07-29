@@ -1,4 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { findDuplicateOpenAction } from './action-dedup.ts'
+import { queryWithOwnershipFallback } from '../ownership.ts'
 
 /**
  * 聊天闭环的"落库"纯逻辑，从 server action 中抽出以便单测。
@@ -13,7 +15,7 @@ export type RecordChatActionInput = {
   today: string
 }
 
-export type RecordChatActionResult = { actionId?: string; error?: string }
+export type RecordChatActionResult = { actionId?: string; duplicate?: boolean; error?: string }
 
 /**
  * 将一条聊天提议的行动写入 `actions`，归属到用户某个进行中目标：
@@ -27,6 +29,10 @@ export async function recordChatAction(
 ): Promise<RecordChatActionResult> {
   const { title, goalHint, reason, today } = input
   if (!title) return { error: 'missing_fields' }
+
+  // 去重兜底：若该标题命中用户已有的开放行动，直接返回已存在项，不插入重复
+  const dup = await findDuplicateOpenAction(supabase, userId, title)
+  if (dup) return { actionId: dup.id, duplicate: true }
 
   const { data: goalsData } = await supabase
     .from('goals')

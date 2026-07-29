@@ -236,9 +236,13 @@ export function ChatProvider({
       if (turn.action.goalHint) fd.set('goalHint', turn.action.goalHint)
       if (turn.action.reason) fd.set('reason', turn.action.reason)
       try {
-        const result = await createActionFromChat(fd)
-        if (result.error) throw new Error(result.error)
-        updateTurn(turnId, { actionState: 'done' })
+    const result = await createActionFromChat(fd)
+    if (result.error) throw new Error(result.error)
+    if (result.duplicate) {
+      updateTurn(turnId, { actionState: 'duplicate' })
+      return
+    }
+    updateTurn(turnId, { actionState: 'done' })
       } catch {
         updateTurn(turnId, { actionState: 'error' })
       }

@@ -965,6 +965,7 @@
 		"actionConfirming": "记录中…",
 		"actionDone": "已记入今日推进",
 		"actionError": "记录失败，请重试",
+		"actionDuplicate": "已在你的清单中",
 		"actionNoGoal": "你还没有进行中的路径，请先到「路径」创建。",
 		"completeCardTitle": "完成确认",
 		"completeConfirm": "标记完成",

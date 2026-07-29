@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getTodayInTZ, getUserTimezone } from '@/lib/time'
 import { recordChatAction, completeChatAction } from '@/lib/chat/persistence'
 
-type CreateResult = { actionId?: string; error?: string }
+type CreateResult = { actionId?: string; duplicate?: boolean; error?: string }
 
 /**
  * Records a chat-proposed action under one of the user's active goals.
@@ -33,7 +33,7 @@ export async function createActionFromChat(formData: FormData): Promise<CreateRe
   revalidatePath('/goals')
   revalidatePath('/system')
 
-  return { actionId: result.actionId }
+  return { actionId: result.actionId, duplicate: result.duplicate }
 }
 
 type CompleteResult = { ok?: boolean; error?: string }

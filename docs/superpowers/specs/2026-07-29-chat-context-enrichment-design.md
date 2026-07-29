@@ -24,6 +24,34 @@
 **显式不做（留给后续阶段）**：
 - `buildTodayPersonalization` 的 `hasTomorrowHandoff` 标志位：聊天上下文不计算 handoff，P0 固定为 `false`（近似安全，不影响卡片正确性）。`showStreakRiskBanner` 用 `streakSnapshot.currentStreak > 0 || recoverableMissDate` 推导。
 
+## 8. P3 自用验收（Self-acceptance）— 已补可复现自检
+
+> P3 在规划文档里是「别急着通用化，先自己每天用，验证 P0 之后 chat 建议是否真比 ChatGPT 贴你」。它本质是人工验收，不是代码任务。本步把验收变成**可复现**：加一道自动化闸门 + 一个 dev 诊断接口，让你随时确认"大脑已插电"。
+
+### 8.1 改动文件
+
+1. `tests/lib/chat/prompt.test.ts`（新增，3 用例全过）
+   - `full context renders all enrichment sections`：用满数据 `ChatContext` 渲染系统提示词，断言同时含【当前系统上下文】【人生系统画像（Self Model）】【今日系统解读】三段，且 Streak / 偏好 / 信号 / 画像卡片正文全部落进文本——即"大脑已插电"的硬证据。
+   - `English locale` / `degraded context`：验证英文框架、以及空数据降级仍正常渲染（不阻断聊天）。
+   - 这是 P0 接线的回归护城河：任何人改 `prompt.ts` / `context.ts` 把画像或偏好弄丢，本测试会立刻红。
+2. `src/app/api/chat/debug/context/route.ts`（新增，dev-only GET）
+   - `GET /api/chat/debug/context?locale=zh|en`：返回当前账号实际注入聊天的系统提示词预览 + 各项来源健康度（`goals / todayActions / selfModelCards / todayPersonalization / streak / preferences / signals` 计数）。
+   - `NODE_ENV === 'production'` 时直接 404，避免泄露系统提示词。
+
+### 8.2 如何使用（自用验收流程）
+
+1. `npm run dev` 后访问 `http://localhost:3000/api/chat/debug/context` —— 看 `sources` 是否非零、`promptPreview` 是否含你的连续天数 / 偏好 / 画像。
+2. 在 `/chat` 实际聊几句，验证模型能引用你的真实背景（而非泛泛而谈）。
+3. 连续对话 > 20 轮，验证旧背景仍被 `summary` 召回（见 §6）。
+4. 跑 `npm test`，确认 211 用例全绿（含 §8.1 闸门）。
+
+### 8.3 验收
+
+- [ ] `npm test` 全绿（211 用例），`prompt.test.ts` 3 用例证明大脑已插电。
+- [ ] `tsc --noEmit` 无新错误。
+- [ ] dev 下 `GET /api/chat/debug/context` 返回非空来源与提示词预览；prod 下 404。
+- [ ] 真人连续用几天，确认 chat 建议明显比直接开 ChatGPT 更贴自己（人工验收成立再谈下一步通用化）。
+
 ## 7. P2 落库可靠性（创建/完成闭环）— 已补端到端测试
 
 > P2 的创建/完成闭环此前已存在：`/api/chat/action` 与 `/api/chat/complete` 负责 LLM 提取，`createActionFromChat` / `completeActionFromChat` 两个 server action 负责写库。问题在于写库逻辑耦合在 `use server` 文件里，无法在 `node --test` 中直接验证。本步把"真正写库"抽成纯函数并补测试。
