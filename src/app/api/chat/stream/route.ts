@@ -8,7 +8,7 @@ import type { ChatHistoryEntry, ChatStreamEvent } from '@/lib/chat/types'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const MAX_HISTORY = 10
+const MAX_HISTORY = 20
 
 function sse(data: ChatStreamEvent): string {
   return `data: ${JSON.stringify(data)}\n\n`
@@ -25,7 +25,7 @@ function sseError(message: string): Response {
 }
 
 export async function POST(req: NextRequest) {
-  let parsed: { message?: string; history?: ChatHistoryEntry[]; locale?: string }
+  let parsed: { message?: string; history?: ChatHistoryEntry[]; summary?: string; locale?: string }
   try {
     parsed = await req.json()
   } catch {
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
 
   const locale: 'zh' | 'en' = parsed.locale === 'en' ? 'en' : 'zh'
   const history = Array.isArray(parsed.history) ? parsed.history.slice(-MAX_HISTORY) : []
+  const summary = typeof parsed.summary === 'string' ? parsed.summary.trim() : ''
 
   const supabase = await createClient()
   const {
@@ -46,13 +47,24 @@ export async function POST(req: NextRequest) {
 
   let context
   try {
-    context = await getChatContext(supabase, user.id)
+    context = await getChatContext(supabase, user.id, locale)
   } catch {
     return sseError('context_error')
   }
 
+  const summaryMessage: StreamChatMessage | null = summary
+    ? {
+        role: 'system',
+        content:
+          locale === 'en'
+            ? `【Conversation history summary】The following is a compressed summary of earlier turns (beyond the recent window) for background context:\n${summary}`
+            : `【历史摘要】以下为本次对话更早轮次的压缩要点，供你理解背景（非当前提问）：\n${summary}`
+      }
+    : null
+
   const messages: StreamChatMessage[] = [
     { role: 'system', content: buildChatSystemPrompt({ context, locale }) },
+    ...(summaryMessage ? [summaryMessage] : []),
     ...history.map((h) => ({ role: h.role, content: h.text })),
     { role: 'user', content: message }
   ]

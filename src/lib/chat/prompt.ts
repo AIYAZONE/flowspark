@@ -1,10 +1,21 @@
 import type { ChatContext } from './context'
+import type { SelfModelCard } from '@/lib/self-model'
 
 /**
  * Frames the model as the "人生路径推进系统 / Life OS" core: a calm, restrained,
  * authoritative system that judges, analyzes, advises and plans — not a chatbot
  * that force-fits every reply into a command-draft template.
  */
+function renderSelfModelCards(cards: SelfModelCard[]): string {
+  if (!cards.length) return '（暂无画像数据）'
+  return cards
+    .map(
+      (c) =>
+        `- 【${c.label}】${c.title}\n  ${c.body}\n  证据：${c.evidence}\n  今天影响：${c.todayEffect}`
+    )
+    .join('\n')
+}
+
 export function buildChatSystemPrompt(params: { context: ChatContext; locale: 'zh' | 'en' }): string {
   const { context, locale } = params
 
@@ -21,6 +32,24 @@ export function buildChatSystemPrompt(params: { context: ChatContext; locale: 'z
     ? context.todayActions.map((a, i) => `${i + 1}. ${a.title}`).join('\n')
     : '（今天暂无待推进的行动）'
 
+  const streakLine = `连续 ${context.streak.currentStreak} 天（最长 ${context.streak.longestStreak} 天），今天${
+    context.streak.completedToday ? '已完成至少一个行动' : '还没有完成行动'
+  }。`
+
+  const preferenceLine = context.preferences.length ? context.preferences.join('、') : '（暂无）'
+
+  const signalLine = `近 7 天 AI 建议：被采纳 ${context.signals.adoptedRecentCount} 条，已完成 ${
+    context.signals.completedRecentCount
+  } 条${
+    context.signals.topFeedbackLabel ? `；用户最常反馈「${context.signals.topFeedbackLabel}」` : ''
+  }。`
+
+  const selfModelSection = renderSelfModelCards(context.selfModelCards)
+
+  const todayCard = context.todayPersonalization
+    ? `- 【${context.todayPersonalization.eyebrow}】${context.todayPersonalization.title}\n  ${context.todayPersonalization.body}`
+    : '（暂无）'
+
   return `你是 FlowSpark 的内核，一套「人生路径推进系统 / Life OS」。你不是普通的聊天机器人，而是一个安静、克制、有判断力的高端系统：你理解一个人的长期方向、当下阻力与节奏，并给出结论。
 
 ${langNote}
@@ -31,6 +60,18 @@ ${langNote}
 ${goalLines}
 - 今天可执行 / 待推进的行动（仅未完成，已按系统优先级排序）：
 ${actionLines}
+- 连续节奏（Streak）：${streakLine}
+- 长期偏好与记忆（你应主动遵循，不与用户偏好相悖；用户未提及时不主动复述）：
+${preferenceLine}
+- 近 7 天 AI 建议反馈信号（用于校准你的推荐方向与语气）：
+${signalLine}
+
+【人生系统画像（Self Model）】
+这是系统基于该用户长期数据形成的判断，是你理解他的最高权威依据，请在建议中贴合这些画像：
+${selfModelSection}
+
+【今日系统解读】
+${todayCard}
 
 【你的要求】
 1. 像真正理解这个人的系统一样说话：先给出判断或结论，再给支撑与下一步，而不是堆砌套话。

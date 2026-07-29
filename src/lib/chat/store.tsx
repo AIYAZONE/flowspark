@@ -9,6 +9,11 @@ import type {
   ChatStreamEvent,
   ChatTurn
 } from './types'
+import { buildChatSummary } from './summary'
+
+// 与 /api/chat/stream 的 MAX_HISTORY 保持一致：仅最近 20 轮进入工作记忆，
+// 更旧的轮次由 buildChatSummary 压缩为摘要随请求回传。
+const CHAT_HISTORY_WINDOW = 20
 
 const STORAGE_KEY = 'flowspark_chat_turns'
 const FALLBACK_ERROR_TEXT =
@@ -127,6 +132,12 @@ export function ChatProvider({
         .filter((t) => t.status === 'done' && t.text)
         .map((t) => ({ role: t.role, text: t.text }))
 
+      // P1：仅最近 CHAT_HISTORY_WINDOW 轮作为工作记忆发送，
+      // 更早的轮次压缩为摘要，回传服务端以保留长期背景。
+      const workingMemory = historyForRequest.slice(-CHAT_HISTORY_WINDOW)
+      const overflow = historyForRequest.slice(0, historyForRequest.length - CHAT_HISTORY_WINDOW)
+      const historySummary = buildChatSummary(overflow)
+
       const userTurn: ChatTurn = {
         id: newId(),
         role: 'user',
@@ -152,7 +163,12 @@ export function ChatProvider({
           const res = await fetch('/api/chat/stream', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message: trimmed, history: historyForRequest, locale: getClientLocale() })
+            body: JSON.stringify({
+              message: trimmed,
+              history: workingMemory,
+              summary: historySummary ?? undefined,
+              locale: getClientLocale()
+            })
           })
           if (!res.ok || !res.body) throw new Error('network')
 
