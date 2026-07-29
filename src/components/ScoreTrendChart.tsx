@@ -2,9 +2,18 @@
 
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from "recharts"
 import { subDays, format, isSameDay, parseISO } from "date-fns"
+import { cn } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
-export function ScoreTrendChart({ data, title, description, scoreLabel = 'Score' }: { data: { date: string, score: number }[], title: string, description?: string, scoreLabel?: string }) {
+type ScoreTrendChartProps = {
+  data: { date: string; score: number }[]
+  title: string
+  description?: string
+  scoreLabel?: string
+  className?: string
+}
+
+export function ScoreTrendChart({ data, title, description, scoreLabel = 'Score', className }: ScoreTrendChartProps) {
   // Generate last 30 days to ensure consistent X-axis spacing
   const today = new Date()
   const chartData = Array.from({ length: 30 }).map((_, i) => {
@@ -23,7 +32,7 @@ export function ScoreTrendChart({ data, title, description, scoreLabel = 'Score'
   })
 
   return (
-    <Card className="col-span-1 shadow-sm border-border/60">
+    <Card className={cn("col-span-1 shadow-sm border-border/60", className)}>
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         {description && (

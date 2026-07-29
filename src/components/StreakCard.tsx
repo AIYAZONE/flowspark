@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Info } from 'lucide-react'
-
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { StreakRecoverDialog } from '@/components/StreakRecoverDialog'
 import { StreakMilestoneDialog } from '@/components/StreakMilestoneDialog'
@@ -28,6 +28,7 @@ export function StreakCard({
   shieldBalance = 0,
   recoverableMissDate = null,
   nextGrantAtStreak = 3,
+  className,
 }: {
   dict: Dict
   streak?: number
@@ -35,6 +36,7 @@ export function StreakCard({
   shieldBalance?: number
   recoverableMissDate?: string | null
   nextGrantAtStreak?: number
+  className?: string
 }) {
   const milestoneSummary = useMemo(() => getStreakMilestoneSummary(streak), [streak])
   const progress = milestoneSummary.progressPercent / 100
@@ -94,7 +96,7 @@ export function StreakCard({
   ), [isZh, nextGrantAtStreak, shieldBalance])
 
   return (
-    <div className="rounded-2xl border border-border/50 overflow-hidden shadow-sm shadow-black/4 bg-card/95">
+    <div className={cn("rounded-2xl border border-border/50 overflow-hidden shadow-sm shadow-black/4 bg-card/95", className)}>
       <StreakRecoverDialog
         dict={dict}
         open={recoverOpen}
