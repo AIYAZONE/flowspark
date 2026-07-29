@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, BrainCircuit, Sparkles } from 'lucide-react'
+import { BrainCircuit, Sparkles } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
@@ -183,25 +183,6 @@ export function WeeklyInsightCard({ dict, locale, insight, compact = false }: We
               <Button type="button" onClick={handleGenerate} disabled={loading} variant="outline" className="rounded-full">
                 {loading && <LoadingSpinner size={16} className="mr-2 text-current/80" />}
                 {dict.weeklyInsightRegenerate || '重新生成'}
-              </Button>
-              <Button asChild variant="outline" className="rounded-full flex-1">
-                <Link
-                  href="/profile/ai-insights"
-                  onClick={() => {
-                    logAIEvent('ai_weekly_insight_open_report', { source: 'dashboard' }, {
-                      recommendation_id: insight.recommendationId,
-                      scene: 'weekly_insight',
-                    })
-                    sendAIFeedback('ai_weekly_insight_open_report', {
-                      recommendation_id: insight.recommendationId,
-                      source: 'dashboard',
-                      scene: 'weekly_insight',
-                    })
-                  }}
-                >
-                  <span>{dict.weeklyInsightOpenReport || '查看系统分析'}</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
               </Button>
             </div>
           </>

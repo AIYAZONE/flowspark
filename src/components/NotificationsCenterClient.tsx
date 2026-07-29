@@ -3,14 +3,15 @@
 import type en from '@/i18n/en.json'
 import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { Bell, Check, CheckCheck, Loader2 } from 'lucide-react'
+import { Bell, Check, CheckCheck, Loader2, Trash2 } from 'lucide-react'
 
 import type { SystemNotificationRow } from '@/lib/notifications'
 import { formatSystemNotificationCopy } from '@/lib/notifications'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { markAllNotificationsRead, markNotificationRead } from '@/app/(authenticated)/notifications/actions'
+import { deleteAllNotifications, deleteNotification, markAllNotificationsRead, markNotificationRead } from '@/app/(authenticated)/notifications/actions'
 import { ProfileSubPageHeader } from '@/components/profile/ProfileSubPageHeader'
+import { ConfirmDeleteNotificationDialog } from '@/components/ConfirmDeleteNotificationDialog'
 
 type Dict = typeof en
 
@@ -81,6 +82,46 @@ export function NotificationsCenterClient(props: {
     })
   }
 
+  function applyDelete(id: string) {
+    setItems((prev) => {
+      const removed = prev.find((item) => item.id === id)
+      if (removed && !removed.read_at) setUnread((u) => Math.max(0, u - 1))
+      return prev.filter((item) => item.id !== id)
+    })
+  }
+
+  async function handleDelete(id: string) {
+    setErrorText(null)
+    const snapshot = items
+    applyDelete(id)
+    try {
+      const formData = new FormData()
+      formData.set('id', id)
+      await deleteNotification(formData)
+      router.refresh()
+    } catch (err) {
+      setItems(snapshot)
+      const key = err instanceof Error ? err.message : 'operation_failed'
+      setErrorText(errors[key] || dict.common.errors.operation_failed)
+    }
+  }
+
+  async function handleDeleteAll() {
+    setErrorText(null)
+    const snapshot = items
+    setItems([])
+    setUnread(0)
+    try {
+      await deleteAllNotifications()
+      router.refresh()
+    } catch (err) {
+      setItems(snapshot)
+      setUnread(initialUnread)
+      const key = err instanceof Error ? err.message : 'operation_failed'
+      setErrorText(errors[key] || dict.common.errors.operation_failed)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <ProfileSubPageHeader
@@ -91,17 +132,37 @@ export function NotificationsCenterClient(props: {
         breadcrumbs={[{ label: dict.profile.title, href: '/profile' }]}
         icon={<Bell className="h-4 w-4" />}
         rightSlot={
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="rounded-full"
-            onClick={handleMarkAll}
-            disabled={isMarkingAll || unread === 0}
-          >
-            {isMarkingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
-            <span className="ml-2">{isZh ? '全部已读' : 'Mark all read'}</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="rounded-full"
+              onClick={handleMarkAll}
+              disabled={isMarkingAll || unread === 0}
+            >
+              {isMarkingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCheck className="h-4 w-4" />}
+              <span className="ml-2">{isZh ? '全部已读' : 'Mark all read'}</span>
+            </Button>
+            <ConfirmDeleteNotificationDialog
+              dict={dict}
+              trigger={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-full text-muted-foreground hover:text-destructive"
+                  disabled={items.length === 0}
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span className="ml-2">{isZh ? '清空全部' : 'Clear all'}</span>
+                </Button>
+              }
+              title={isZh ? '清空全部通知' : 'Clear all notifications'}
+              description={isZh ? '确定要清空全部通知吗？此操作不可撤销。' : 'Clear all notifications? This cannot be undone.'}
+              onConfirm={handleDeleteAll}
+            />
+          </div>
         }
       />
 
@@ -115,20 +176,22 @@ export function NotificationsCenterClient(props: {
         {formatted.map(({ item, copy, createdText }) => {
           const isUnread = !item.read_at
           return (
-            <button
+            <div
               key={item.id}
-              type="button"
               className={cn(
-                'w-full text-left rounded-xl border bg-card/60 p-4 transition-colors',
+                'rounded-xl border bg-card/60 p-4 transition-colors',
                 isUnread ? 'border-primary/20 hover:bg-primary/5' : 'border-border/60 hover:bg-muted/40'
               )}
-              onClick={() => {
-                if (!isUnread) return
-                void handleMarkRead(item.id)
-              }}
             >
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 text-left"
+                  onClick={() => {
+                    if (!isUnread) return
+                    void handleMarkRead(item.id)
+                  }}
+                >
                   <div className="flex items-center gap-2">
                     <div className={cn('text-sm font-medium', isUnread ? 'text-foreground' : 'text-muted-foreground')}>
                       {copy.title}
@@ -136,10 +199,28 @@ export function NotificationsCenterClient(props: {
                     {isUnread ? <span className="h-2 w-2 rounded-full bg-primary" /> : <Check className="h-3.5 w-3.5 text-muted-foreground/70" />}
                   </div>
                   <div className="mt-1 text-xs text-muted-foreground">{copy.body}</div>
+                </button>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <span className="text-[10px] text-muted-foreground/70">{createdText}</span>
+                  <ConfirmDeleteNotificationDialog
+                    dict={dict}
+                    trigger={
+                      <button
+                        type="button"
+                        className="rounded-md p-1 text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                        aria-label={isZh ? '删除通知' : 'Delete notification'}
+                        title={isZh ? '删除' : 'Delete'}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    }
+                    title={isZh ? '删除通知' : 'Delete notification'}
+                    description={isZh ? '确定要删除这条通知吗？此操作不可撤销。' : 'Delete this notification? This cannot be undone.'}
+                    onConfirm={() => handleDelete(item.id)}
+                  />
                 </div>
-                <div className="shrink-0 text-[10px] text-muted-foreground/70">{createdText}</div>
               </div>
-            </button>
+            </div>
           )
         })}
 

@@ -126,22 +126,6 @@ export default async function ProfilePage() {
         </Card>
       </section>
 
-      <section className="space-y-4">
-        <Card className="border-dashed border-border/70 bg-background shadow-none">
-          <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1 text-sm text-muted-foreground">
-              <div>
-                {localeIsZh
-                  ? '想更深入地了解系统如何判断你、你的采纳与完成趋势，可以打开数据洞察。'
-                  : 'Dive deeper into how the system reads you, and your adoption and completion trends, in Data Insights.'}
-              </div>
-            </div>
-            <Button asChild variant="outline" className="rounded-full">
-              <Link href="/profile/ai-insights">{localeIsZh ? '打开数据洞察' : 'Open Data Insights'}</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </section>
     </div>
   )
 }
