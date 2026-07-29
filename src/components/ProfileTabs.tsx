@@ -4,13 +4,12 @@ import { useMemo } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 
-export type ProfileTabKey = 'self' | 'incentives' | 'analytics' | 'settings'
+export type ProfileTabKey = 'self' | 'incentives' | 'settings'
 
 function normalizeProfileTab(value: string | null | undefined): ProfileTabKey | null {
   if (!value) return null
   if (value === 'self') return 'self'
   if (value === 'incentives') return 'incentives'
-  if (value === 'analytics') return 'analytics'
   if (value === 'settings') return 'settings'
   return null
 }

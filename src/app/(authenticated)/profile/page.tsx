@@ -15,21 +15,11 @@ import { buildSelfModelCards, summarizeRecommendationSignals } from '@/lib/self-
 import { queryWithOwnershipFallback } from '@/lib/ownership'
 import { buildPrimaryPathContext } from '@/lib/path-context'
 import { ProfileTabs, type ProfileTabKey } from '@/components/ProfileTabs'
-import { WeeklyInsightCard } from '@/components/WeeklyInsightCard'
-import { LevelCard } from '@/components/LevelCard'
-import { ScoreTrendChart } from '@/components/ScoreTrendChart'
-import { FocusDistributionChart } from '@/components/FocusDistributionChart'
-import { ActivityHeatmap } from '@/components/ActivityHeatmap'
-import { getOrCreateWeeklyInsight } from '@/lib/ai/insightStore'
-import { SystemOverviewCard } from '@/components/SystemOverviewCard'
-import { SystemChatEntry } from '@/components/SystemChatEntry'
 import { SystemMemorySection } from './SystemMemorySection'
 import { getDefaultSystemMemoryPreferences, listSystemMemoryPreferences } from '@/lib/system-memory/preferences'
-import { buildSystemChatHref } from '@/lib/system-chat'
 
 function normalizeInitialTab(value: unknown): ProfileTabKey {
   if (value === 'incentives') return 'incentives'
-  if (value === 'analytics') return 'analytics'
   if (value === 'settings') return 'settings'
   return 'self'
 }
@@ -131,12 +121,6 @@ export default async function ProfilePage({
     })),
   })
 
-  const weeklyInsight = await getOrCreateWeeklyInsight({
-    supabase,
-    userId: user.id,
-    locale,
-  })
-
   let systemMemoryPreferences = getDefaultSystemMemoryPreferences(locale)
   try {
     systemMemoryPreferences = await listSystemMemoryPreferences({
@@ -148,130 +132,9 @@ export default async function ProfilePage({
     systemMemoryPreferences = getDefaultSystemMemoryPreferences(locale)
   }
 
-  const currentXP = (profile as unknown as { xp?: number | null })?.xp || 0
-  const currentLevel = (profile as unknown as { level?: number | null })?.level || 1
-  const nextLevelXP = 100 * Math.pow(1.2, currentLevel - 1)
-  const { data: lastLog } = await supabase
-    .from('xp_logs')
-    .select('amount, source')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  const { data: recentScores } = await queryWithOwnershipFallback({
-    primary: 'owner_id',
-    fallback: 'user_id',
-    execute: (ownershipColumn) =>
-      supabase
-        .from('daily_scores')
-        .select('score_date, score')
-        .eq(ownershipColumn, user.id)
-        .order('score_date', { ascending: false })
-        .limit(30),
-  })
-  const chartData = (recentScores || []).map((s) => ({ date: s.score_date, score: s.score }))
-  const todayScore = chartData.find((entry) => entry.date === today)?.score ?? null
-
-  const datePredicate = [
-    `and(start_date.lte.${today},end_date.gte.${today})`,
-    `and(end_date.lt.${today},completed.eq.false)`,
-    `and(end_date.is.null,start_date.lt.${today},completed.eq.false)`,
-    `and(end_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
-    `and(end_date.is.null,start_date.lt.${today},completed.eq.true,updated_at.gte.${yesterday})`,
-  ].join(',')
-
-  const { data: rawTodayActions } = await queryWithOwnershipFallback({
-    execute: (ownershipColumn) =>
-      supabase
-        .from('actions')
-        .select(`
-          id,
-          completed,
-          start_date,
-          end_date,
-          updated_at,
-          goals (
-            status
-          )
-        `)
-        .eq(ownershipColumn, user.id)
-        .or(datePredicate),
-  })
-
-  const todayActionPool = (rawTodayActions || []).filter((action) => {
-    if (action.goals?.[0]?.status === 'archived') return false
-    const actionDate = action.end_date || action.start_date || today
-    if (!action.completed) {
-      return actionDate <= today
-    }
-    if (!action.updated_at) return false
-    const updatedDate = new Intl.DateTimeFormat('en-CA', {
-      timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-    }).format(new Date(action.updated_at))
-    return updatedDate === today
-  })
-  const incompleteActionsCount = todayActionPool.filter((action) => !action.completed).length
-
-  const oneYearAgo = new Date()
-  oneYearAgo.setDate(oneYearAgo.getDate() - 365)
-
-  const { data: completedActions } = await queryWithOwnershipFallback({
-    execute: (ownershipColumn) =>
-      supabase
-        .from('actions')
-        .select('updated_at')
-        .eq(ownershipColumn, user.id)
-        .eq('completed', true)
-        .gte('updated_at', oneYearAgo.toISOString()),
-  })
-
-  const heatmapData =
-    completedActions?.reduce((acc, curr) => {
-      const date = curr.updated_at?.split('T')[0]
-      if (!date) return acc
-      const existing = acc.find((d) => d.date === date)
-      if (existing) {
-        existing.count++
-      } else {
-        acc.push({ date, count: 1 })
-      }
-      return acc
-    }, [] as { date: string; count: number }[]) || []
-
-  const { data: actionsType } = await queryWithOwnershipFallback({
-    execute: (ownershipColumn) =>
-      supabase
-        .from('actions')
-        .select('type')
-        .eq(ownershipColumn, user.id),
-  })
-
-  const typeCount =
-    actionsType?.reduce((acc, curr) => {
-      const type = curr.type || 'other'
-      acc[type] = (acc[type] || 0) + 1
-      return acc
-    }, {} as Record<string, number>) || {}
-
-  const distributionData = Object.entries(typeCount).map(([type, count]) => {
-    let color = '#6b7280'
-    const typeLabel = dict.today.types[type as keyof typeof dict.today.types] || type
-    let name = typeLabel
-    if (type === 'core') { color = '#059669'; name = dict.today.types.core }
-    if (type === 'learning') { color = '#3b82f6'; name = dict.today.types.learning }
-    if (type === 'maintenance') { color = '#f59e0b'; name = dict.today.types.maintenance }
-    if (type === 'health') { color = '#ec4899'; name = dict.today.types.rest }
-    return { name, value: count, color }
-  })
-
   const tabLabels = {
     self: localeIsZh ? '画像' : 'Self',
     incentives: localeIsZh ? '激励' : 'Incentives',
-    analytics: localeIsZh ? '分析' : 'Analytics',
     settings: localeIsZh ? '设置' : 'Settings',
   }
 
@@ -284,19 +147,6 @@ export default async function ProfilePage({
         </div>
         <LanguageToggle currentLocale={currentLocale} />
       </div>
-
-      <SystemChatEntry
-        eyebrow={localeIsZh ? '系统对话' : 'System Chat'}
-        title={localeIsZh ? '分析类问题也统一进独立对话页' : 'Analysis questions now live in the dedicated chat page'}
-        body={localeIsZh
-          ? '这里继续展示画像、记忆和长期洞察；真正和系统来回对话的过程，已经收拢到一个独立页面里。'
-          : 'This page keeps memory, profile, and long-term insight. The actual back-and-forth conversation now happens in one dedicated page.'}
-        ctaLabel={localeIsZh ? '去问系统分析我' : 'Ask the system to analyze me'}
-        href={buildSystemChatHref({
-          source: 'profile',
-          prefill: localeIsZh ? '分析我最近的状态' : 'Analyze my recent state',
-        })}
-      />
 
       <ProfileTabs
         initialTab={initialTab}
@@ -579,43 +429,6 @@ export default async function ProfilePage({
                       </Button>
                     </CardContent>
                   </Card>
-                </div>
-              </div>
-            ),
-          },
-          {
-            key: 'analytics',
-            label: tabLabels.analytics,
-            content: (
-              <div className="space-y-6">
-                <SystemOverviewCard
-                  locale={locale}
-                  activeGoalsCount={(activeGoals || []).length}
-                  streak={streakSnapshot.currentStreak}
-                  shieldBalance={streakSnapshot.shieldBalance}
-                  todayScore={todayScore}
-                  incompleteActionsCount={incompleteActionsCount}
-                />
-                <WeeklyInsightCard dict={dict.dashboard.planning} locale={locale} insight={weeklyInsight} />
-                <div className="grid gap-4 md:grid-cols-2">
-                  <LevelCard
-                    dict={dict}
-                    level={currentLevel}
-                    currentXP={currentXP}
-                    nextLevelXP={Math.floor(nextLevelXP)}
-                    lastLog={lastLog}
-                    className="h-full"
-                  />
-                  <FocusDistributionChart dict={dict} data={distributionData} />
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <ScoreTrendChart
-                    data={chartData}
-                    title={localeIsZh ? '近 30 天自评趋势' : '30-day score trend'}
-                    description={localeIsZh ? '看见波动与改善，让行动更有方向。' : 'See the drift and the gains.'}
-                    scoreLabel={localeIsZh ? '自评' : 'Score'}
-                  />
-                  <ActivityHeatmap dict={dict} data={heatmapData} />
                 </div>
               </div>
             ),
