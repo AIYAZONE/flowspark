@@ -63,16 +63,6 @@ export default async function DashboardPage() {
   const ab1TodayPlanVariant = ab1TodayPlanDecision.variant
   const showAIPlan = todayPlanEnabled && (!ab1TodayPlanEnabled || ab1TodayPlanVariant === 'B')
 
-  const ab2ReviewDecision = await getExperimentDecision({
-    supabase,
-    userId: user.id,
-    experimentKey: 'ab2_review_q',
-    envEnabled: process.env.AI_EXPERIMENT_AB2_REVIEW_Q,
-    defaultEnabled: false,
-  })
-  const ab2ReviewEnabled = ab2ReviewDecision.enabled
-  const ab2ReviewVariant = ab2ReviewDecision.variant
-  const reviewQuestionsCount = ab2ReviewEnabled ? (ab2ReviewVariant === 'A' ? 1 : 2) : 2
   const tz = await getUserTimezone(supabase, user.id)
   const today = getTodayInTZ(tz)
   const yesterday = shiftDateBucket(today, -1)
@@ -494,7 +484,6 @@ export default async function DashboardPage() {
       <ExperimentExposureTracker
         source="dashboard"
         ab1TodayPlanVariant={ab1TodayPlanVariant}
-        ab2ReviewVariant={ab2ReviewVariant}
         showAIPlan={showAIPlan}
         showAIReview={!isStage0}
         dateBucket={today}
@@ -679,8 +668,6 @@ export default async function DashboardPage() {
               today={today}
               recent7={chartData.slice(0, 7)}
               currentScore={dailyScore ?? null}
-              reviewQuestionsCount={reviewQuestionsCount}
-              ab2ReviewVariant={ab2ReviewVariant}
               className="h-full"
             />
           </div>
