@@ -1223,6 +1223,152 @@ export async function deleteAction(formData: FormData) {
 	if (goal_id) revalidatePath(`/goals/${goal_id}`);
 }
 
+// 归档单个 action：放弃但保留回顾价值（归档 ≠ 删除）
+export async function archiveAction(formData: FormData) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) return;
+
+	const id = formData.get('id') as string;
+	const goal_id = formData.get('goal_id') as string | null;
+	if (!id) return;
+
+	const result = await runOwnershipMutationWithFallback({
+		primary: 'owner_id',
+		fallback: 'user_id',
+		fallbackOnAnyError: true,
+		execute: (ownershipColumn) =>
+			supabase
+				.from('actions')
+				.update({ archived: true, archived_at: new Date().toISOString() })
+				.eq('id', id)
+				.eq(ownershipColumn, user.id)
+	});
+
+	if (result.error) {
+		console.error('Error archiving action:', result.error);
+		throw new Error('operation_failed');
+	}
+
+	revalidatePath('/dashboard');
+	revalidatePath('/system');
+	revalidatePath('/today');
+	if (goal_id) revalidatePath(`/goals/${goal_id}`);
+}
+
+// 取消归档：把已归档 action 恢复为活跃
+export async function unarchiveAction(formData: FormData) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) return;
+
+	const id = formData.get('id') as string;
+	const goal_id = formData.get('goal_id') as string | null;
+	if (!id) return;
+
+	const result = await runOwnershipMutationWithFallback({
+		primary: 'owner_id',
+		fallback: 'user_id',
+		fallbackOnAnyError: true,
+		execute: (ownershipColumn) =>
+			supabase
+				.from('actions')
+				.update({ archived: false, archived_at: null })
+				.eq('id', id)
+				.eq(ownershipColumn, user.id)
+	});
+
+	if (result.error) {
+		console.error('Error unarchiving action:', result.error);
+		throw new Error('operation_failed');
+	}
+
+	revalidatePath('/dashboard');
+	revalidatePath('/system');
+	revalidatePath('/today');
+	if (goal_id) revalidatePath(`/goals/${goal_id}`);
+}
+
+// 建立 action 间链接（关联 / 前置）—— 仅"连接"语义，绝不改动 action 本身数据
+export async function createActionLink(formData: FormData) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) return;
+
+	const sourceId = formData.get('source_action_id') as string;
+	const targetId = formData.get('target_action_id') as string;
+	const linkType = (formData.get('link_type') as string) || 'related';
+	const goal_id = formData.get('goal_id') as string | null;
+
+	if (!sourceId || !targetId) return;
+	if (sourceId === targetId) throw new Error('self_link');
+	if (linkType !== 'related' && linkType !== 'precedes') throw new Error('invalid_link_type');
+
+	// 校验两端 action 均归属当前用户（任一归属列均可）
+	const { data: sourceOk } = await queryWithOwnershipFallback({
+		execute: (column) =>
+			supabase.from('actions').select('id').eq('id', sourceId).eq(column, user.id).maybeSingle()
+	});
+	const { data: targetOk } = await queryWithOwnershipFallback({
+		execute: (column) =>
+			supabase.from('actions').select('id').eq('id', targetId).eq(column, user.id).maybeSingle()
+	});
+	if (!sourceOk || !targetOk) {
+		console.error('Action link ownership check failed');
+		throw new Error('operation_failed');
+	}
+
+	const { error } = await supabase.from('action_links').insert({
+		user_id: user.id,
+		source_action_id: sourceId,
+		target_action_id: targetId,
+		link_type: linkType
+	});
+
+	if (error) {
+		// 唯一约束冲突视为已存在，静默忽略
+		if (error.code === '23505') return;
+		console.error('Error creating action link:', error);
+		throw new Error('operation_failed');
+	}
+
+	revalidatePath('/today');
+	if (goal_id) revalidatePath(`/goals/${goal_id}`);
+}
+
+// 删除 action 间链接
+export async function deleteActionLink(formData: FormData) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) return;
+
+	const id = formData.get('id') as string;
+	const goal_id = formData.get('goal_id') as string | null;
+	if (!id) return;
+
+	const { error } = await supabase
+		.from('action_links')
+		.delete()
+		.eq('id', id)
+		.eq('user_id', user.id);
+
+	if (error) {
+		console.error('Error deleting action link:', error);
+		throw new Error('operation_failed');
+	}
+
+	revalidatePath('/today');
+	if (goal_id) revalidatePath(`/goals/${goal_id}`);
+}
+
 export async function deleteGoal(formData: FormData) {
 	const supabase = await createClient();
 	const {
@@ -1677,4 +1823,113 @@ export async function revokeGoalCalendarFeed(goalId: string) {
 
 	revalidatePath(`/goals/${goalId}`);
 	return { success: true as const };
+}
+
+// ---- Area (领域) 元信息管理 ----
+// 领域由 goals.category 文本承载；area_meta 仅存用户级呈现元信息（排序/图标/描述）。
+
+export async function upsertAreaMeta(formData: FormData) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) throw new Error('unauthenticated');
+
+	const categoryKey =
+		typeof formData.get('category_key') === 'string'
+			? (formData.get('category_key') as string).trim()
+			: '';
+	if (!categoryKey) throw new Error('missing_fields');
+
+	const rawSort = formData.get('sort_order');
+	const sort_order =
+		typeof rawSort === 'string' && rawSort.trim() !== ''
+			? Math.max(0, Math.round(Number(rawSort)))
+			: 0;
+	if (!Number.isFinite(sort_order)) throw new Error('invalid_input');
+
+	const icon =
+		typeof formData.get('icon') === 'string'
+			? (formData.get('icon') as string).trim().slice(0, 40) || 'circle'
+			: 'circle';
+
+	const descriptionRaw = formData.get('description');
+	const description =
+		typeof descriptionRaw === 'string' && descriptionRaw.trim() !== ''
+			? descriptionRaw.trim().slice(0, 200)
+			: null;
+
+	const { error } = await supabase.from('area_meta').upsert(
+		{
+			user_id: user.id,
+			category_key: categoryKey,
+			sort_order,
+			icon,
+			description,
+			updated_at: new Date().toISOString()
+		},
+		{ onConflict: 'user_id,category_key' }
+	);
+	if (error) {
+		console.error('Error upserting area_meta:', error);
+		throw new Error('operation_failed');
+	}
+
+	revalidatePath('/goals');
+}
+
+export async function deleteAreaMeta(formData: FormData) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) throw new Error('unauthenticated');
+
+	const categoryKey =
+		typeof formData.get('category_key') === 'string'
+			? (formData.get('category_key') as string).trim()
+			: '';
+	if (!categoryKey) throw new Error('missing_fields');
+
+	// 级联：把该领域下的目标改挂"其他/未分类"，不删除目标本身（呼应对破坏性操作的谨慎）
+	await replaceGoalCategory({ from: categoryKey, to: 'other' });
+
+	const { error } = await supabase
+		.from('area_meta')
+		.delete()
+		.eq('user_id', user.id)
+		.eq('category_key', categoryKey);
+	if (error) {
+		console.error('Error deleting area_meta:', error);
+		throw new Error('operation_failed');
+	}
+
+	revalidatePath('/goals');
+}
+
+// 仅删除 area_meta 行，不级联重贴目标标签（供重命名领域时清理旧 key 使用）
+export async function deleteAreaMetaRow(formData: FormData) {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) throw new Error('unauthenticated');
+
+	const categoryKey =
+		typeof formData.get('category_key') === 'string'
+			? (formData.get('category_key') as string).trim()
+			: '';
+	if (!categoryKey) throw new Error('missing_fields');
+
+	const { error } = await supabase
+		.from('area_meta')
+		.delete()
+		.eq('user_id', user.id)
+		.eq('category_key', categoryKey);
+	if (error) {
+		console.error('Error deleting area_meta row:', error);
+		throw new Error('operation_failed');
+	}
+
+	revalidatePath('/goals');
 }

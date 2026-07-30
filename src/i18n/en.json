@@ -605,6 +605,19 @@
 			"replaceAndRemove": "Replace & remove",
 			"replaceConfirm": "Replace this category for all goals? This cannot be undone."
 		},
+		"areas": {
+			"title": "Manage Areas",
+			"description": "Organize how goals are grouped and ordered by area.",
+			"renamePlaceholder": "Area name",
+			"descriptionPlaceholder": "Optional description",
+			"moveUp": "Move up",
+			"moveDown": "Move down",
+			"delete": "Delete area",
+			"deleteConfirm": "Delete this area? Its goals will move to Uncategorized.",
+			"confirm": "Delete",
+			"cancel": "Cancel",
+			"renameDisabledHint": "Built-in areas can't be renamed."
+		},
 		"start": "Start",
 		"end": "End",
 		"new": {
@@ -687,9 +700,48 @@
 			"noActions": "No actions yet.",
 			"addAction": "Add Action",
 			"date": "Date",
-			"switchGoal": "Switch Goal"
-		}
-	},
+		"switchGoal": "Switch Goal"
+	}
+},
+"actions": {
+	"archive": "Archive",
+	"unarchive": "Restore",
+	"archived": "Archived",
+	"archivedSection": "Archived Actions",
+	"archivedHint": "Kept for reference. Restore anytime to bring them back.",
+	"linkedSection": "Linked Actions",
+	"linkedHint": "Connect actions that belong to the same effort.",
+	"noLinks": "No linked actions yet.",
+	"addLink": "Link action",
+	"removeLink": "Remove",
+	"linkTypeLabel": "Relationship",
+	"linkTypeRelated": "Related",
+	"linkTypePrecedes": "Precedes",
+	"linkTypePrecedesIn": "After",
+	"linkSelfError": "An action can't be linked to itself.",
+	"linkExistsError": "This link already exists.",
+	"linkTargetPlaceholder": "Choose an action…",
+	"linkCancel": "Cancel",
+	"linkSearchPlaceholder": "Search actions…",
+	"linkNoMatch": "No matching actions",
+	"linkSelected": "Selected",
+	"linkSelectedCount": "{count} selected",
+	"linkShowOther": "Show actions in other goals",
+	"linkOnlyThisGoal": "Only this goal"
+},
+"insights": {
+	"title": "Review Insights",
+	"stalledDesc": "No action updated in over 30 days. May be stuck, or worth breaking down into smaller steps.",
+	"staleDesc": "Past their due date and still unfinished. Reschedule or split them into smaller tasks.",
+	"quietDesc": "No activity this week. If the area still matters, set one small next step.",
+	"stalledTitle": "Stalled goals",
+	"stalledItem": "{days}d idle",
+	"staleTitle": "Overdue actions",
+	"staleItem": "{days}d overdue",
+	"quietTitle": "Quiet areas",
+	"quietItem": "{area}",
+	"open": "Open"
+},
 	"profile": {
 		"title": "You",
 		"subtitle": "Help the system understand you better by making your patterns, rhythm, and long-term shifts visible.",

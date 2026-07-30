@@ -60,7 +60,7 @@ export async function getChatContext(
 
   const { data: actionsData } = await queryWithOwnershipFallback({
     execute: (col) =>
-      supabase.from('actions').select('id,title,goal_id,priority,type,start_date,end_date,completed').eq(col, userId)
+      supabase.from('actions').select('id,title,goal_id,priority,type,start_date,end_date,completed').eq(col, userId).eq('archived', false)
   })
   const actionsAll: ActionRow[] = actionsData ?? []
   const openActions = actionsAll.filter((a) => !a.completed)
@@ -141,7 +141,7 @@ export type OpenActionRef = { id: string; title: string }
 export async function getOpenActionsWithIds(supabase: SupabaseClient, userId: string): Promise<OpenActionRef[]> {
   const { data: actionsData } = await queryWithOwnershipFallback({
     execute: (col) =>
-      supabase.from('actions').select('id,title,start_date,end_date,completed').eq(col, userId)
+      supabase.from('actions').select('id,title,start_date,end_date,completed').eq(col, userId).eq('archived', false)
   })
   const actionsAll: Array<{
     id: string

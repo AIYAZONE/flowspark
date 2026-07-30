@@ -605,6 +605,19 @@
 			"replaceAndRemove": "替换并移除",
 			"replaceConfirm": "将所有使用该分类的目标替换为新分类？该操作不可撤销。"
 		},
+		"areas": {
+			"title": "管理领域",
+			"description": "组织目标按领域分组与排序的方式。",
+			"renamePlaceholder": "领域名称",
+			"descriptionPlaceholder": "可选描述",
+			"moveUp": "上移",
+			"moveDown": "下移",
+			"delete": "删除领域",
+			"deleteConfirm": "删除该领域？其下的目标将移入「未分类」。",
+			"confirm": "删除",
+			"cancel": "取消",
+			"renameDisabledHint": "内置领域不可重命名。"
+		},
 		"start": "开始",
 		"end": "结束",
 		"new": {
@@ -687,9 +700,48 @@
 			"noActions": "暂无行动记录。",
 			"addAction": "添加行动",
 			"date": "日期",
-			"switchGoal": "切换目标"
-		}
-	},
+		"switchGoal": "切换目标"
+	}
+},
+"actions": {
+	"archive": "归档",
+	"unarchive": "恢复",
+	"archived": "已归档",
+	"archivedSection": "已归档行动",
+	"archivedHint": "保留以备回顾。随时可恢复以重新启用。",
+	"linkedSection": "关联行动",
+	"linkedHint": "把属于同一件事的行动连起来，便于回顾与 AI 涌现提示。",
+	"noLinks": "还没有关联的行动。",
+	"addLink": "关联行动",
+	"removeLink": "移除",
+	"linkTypeLabel": "关系",
+	"linkTypeRelated": "关联",
+	"linkTypePrecedes": "前置",
+	"linkTypePrecedesIn": "其后",
+	"linkSelfError": "行动不能关联到自己。",
+	"linkExistsError": "该关联已存在。",
+	"linkTargetPlaceholder": "选择一个行动…",
+	"linkCancel": "取消",
+	"linkSearchPlaceholder": "搜索行动…",
+	"linkNoMatch": "没有匹配的行动",
+	"linkSelected": "已选",
+	"linkSelectedCount": "已选 {count} 项",
+	"linkShowOther": "查看其他目标的行动",
+	"linkOnlyThisGoal": "只看本目标"
+},
+"insights": {
+	"title": "回顾洞察",
+	"stalledDesc": "超过 30 天没有任何行动更新，可能已搁置，或值得拆成更小的步骤推进。",
+	"staleDesc": "早已超过截止日却仍未完成，建议重新排期或拆成更小的任务。",
+	"quietDesc": "本周没有任何动作，若该领域仍重要，不妨安排一个小的下一步。",
+	"stalledTitle": "停滞目标",
+	"stalledItem": "已 {days} 天无进展",
+	"staleTitle": "超时行动",
+	"staleItem": "逾期 {days} 天",
+	"quietTitle": "安静领域",
+	"quietItem": "{area}",
+	"open": "打开"
+},
 	"profile": {
 		"title": "自我",
 		"subtitle": "让系统更懂你，看清你的模式、节奏与长期变化。",

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { GoalListFilter } from '@/components/GoalListFilter'
 import { AddGoalDialog } from '@/components/AddGoalDialog'
+import type { AreaMeta } from '@/lib/goalCategories'
 
 export default async function GoalsPage() {
   const supabase = await createClient()
@@ -14,6 +15,12 @@ export default async function GoalsPage() {
     .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
+
+  const { data: areaMeta } = await supabase
+    .from('area_meta')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('sort_order', { ascending: true })
 
   return (
     <div className="space-y-6">
@@ -35,7 +42,7 @@ export default async function GoalsPage() {
         />
       </div>
 
-      <GoalListFilter initialGoals={goals || []} dict={dict} />
+      <GoalListFilter initialGoals={goals || []} areaMeta={areaMeta || []} dict={dict} />
     </div>
   )
 }

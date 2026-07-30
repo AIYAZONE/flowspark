@@ -39,11 +39,12 @@ import { ActionDescriptionEditor, type ActionAttachmentDraft } from '@/component
 import { RichTextContentView } from '@/components/RichTextContentView'
 import { RichTextImagePreviewDialog } from '@/components/RichTextImagePreviewDialog'
 import { ActionSubItemsSection } from '@/components/ActionSubItemsSection'
+import Link from 'next/link'
 import { ModalActionFooter } from '@/components/ModalActionFooter'
 import { ModalHeaderActions } from '@/components/ModalHeaderActions'
 import { DESKTOP_MODAL_SHELL_CLASS } from '@/components/responsive-classes'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { createActionAndReturnId, updateAction } from '@/app/(authenticated)/goals/actions'
+import { createActionAndReturnId, updateAction, createActionLink, deleteActionLink } from '@/app/(authenticated)/goals/actions'
 import { getUpcomingRecurringDate, parseActionRecurrenceDescription, type ActionRecurrenceRule } from '@/lib/actionRecurrence'
 
 interface Action {
@@ -1115,6 +1116,7 @@ export function ActionItemPanel({
           onToggleItem={onToggleSubItem}
           busyId={subItemBusyId}
         />
+        <LinkedActionsSection actionId={action.id} goalId={action.goal_id} dict={dict.actions} />
       </div>
     )
 
@@ -1331,5 +1333,324 @@ export function ActionItemPanel({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  )
+}
+
+type LinkedActionView = {
+  linkId: string
+  otherId: string
+  otherTitle: string
+  otherGoalId: string | null
+  linkType: 'related' | 'precedes'
+  perspective: 'outgoing' | 'incoming'
+}
+
+type ActionLinkCandidate = {
+  id: string
+  title: string
+  goal_id: string | null
+}
+
+function linkTypeLabel(
+  linkType: 'related' | 'precedes',
+  perspective: 'outgoing' | 'incoming',
+  dict: Dictionary['actions']
+) {
+  if (linkType === 'related') return dict.linkTypeRelated
+  return perspective === 'outgoing' ? dict.linkTypePrecedes : dict.linkTypePrecedesIn
+}
+
+// Action↔Action 关联区：仅展示/维护"连接"关系，绝不改动 action 本身数据。
+// 链接由用户主动建立，AI 不会自动改结构（呼应 Phase 3 "建议而非自动"原则）。
+function LinkedActionsSection({
+  actionId,
+  goalId,
+  dict
+}: {
+  actionId: string
+  goalId?: string | null
+  dict: Dictionary['actions']
+}) {
+  const router = useRouter()
+  const supabase = createClient()
+  const [links, setLinks] = useState<LinkedActionView[]>([])
+  const [candidates, setCandidates] = useState<ActionLinkCandidate[]>([])
+  const [loading, setLoading] = useState(true)
+  const [adding, setAdding] = useState(false)
+  const [selected, setSelected] = useState<string[]>([])
+  const [linkType, setLinkType] = useState<'related' | 'precedes'>('related')
+  const [query, setQuery] = useState('')
+  const [showOther, setShowOther] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function refresh() {
+    setLoading(true)
+    setError(null)
+    const { data: linkRows } = await supabase
+      .from('action_links')
+      .select('id, source_action_id, target_action_id, link_type')
+      .or(`source_action_id.eq.${actionId},target_action_id.eq.${actionId}`)
+
+    const rows = (linkRows ?? []) as Array<{
+      id: string
+      source_action_id: string
+      target_action_id: string
+      link_type: string
+    }>
+
+    const otherIds = rows.map((r) =>
+      r.source_action_id === actionId ? r.target_action_id : r.source_action_id
+    )
+
+    const otherActions: Record<string, { id: string; title: string; goal_id: string | null }> = {}
+    if (otherIds.length) {
+      const { data: acts } = await supabase
+        .from('actions')
+        .select('id, title, goal_id')
+        .in('id', otherIds)
+        .eq('archived', false)
+      ;(acts ?? []).forEach((a) => {
+        const row = a as { id: string; title: string; goal_id: string | null }
+        otherActions[row.id] = row
+      })
+    }
+
+    const views: LinkedActionView[] = rows
+      .map((r) => {
+        const isSource = r.source_action_id === actionId
+        const otherId = isSource ? r.target_action_id : r.source_action_id
+        const other = otherActions[otherId]
+        if (!other) return null
+        return {
+          linkId: r.id,
+          otherId,
+          otherTitle: other.title,
+          otherGoalId: other.goal_id,
+          linkType: (r.link_type as 'related' | 'precedes') || 'related',
+          perspective: isSource ? 'outgoing' : 'incoming'
+        } as LinkedActionView
+      })
+      .filter((v): v is LinkedActionView => v !== null)
+
+    setLinks(views)
+    setLoading(false)
+  }
+
+  useEffect(() => {
+    refresh()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionId])
+
+  async function loadCandidates(includeOther: boolean) {
+    setError(null)
+    const linkedIds = new Set(links.map((l) => l.otherId))
+    let q = supabase.from('actions').select('id, title, goal_id').eq('archived', false)
+    // 默认只显示同一目标下的行动；无归属目标时回退为全部
+    if (goalId && !includeOther) q = q.eq('goal_id', goalId)
+    const { data } = await q.order('title', { ascending: true }).limit(1000)
+    const cands = ((data ?? []) as Array<{ id: string; title: string; goal_id: string | null }>)
+      .filter((a) => a.id !== actionId && !linkedIds.has(a.id))
+      .map((a) => ({ id: a.id, title: a.title, goal_id: a.goal_id }))
+    setCandidates(cands)
+    return cands
+  }
+
+  async function openAdd() {
+    setSelected([])
+    setQuery('')
+    setLinkType('related')
+    setShowOther(false)
+    await loadCandidates(false)
+    setAdding(true)
+  }
+
+  async function toggleOther() {
+    const next = !showOther
+    setShowOther(next)
+    await loadCandidates(next)
+  }
+
+  async function handleAdd() {
+    if (selected.length === 0) return
+    setError(null)
+    let failed = false
+    for (const targetId of selected) {
+      try {
+        const fd = new FormData()
+        fd.set('source_action_id', actionId)
+        fd.set('target_action_id', targetId)
+        fd.set('link_type', linkType)
+        if (goalId) fd.set('goal_id', goalId)
+        await createActionLink(fd)
+      } catch {
+        failed = true
+      }
+    }
+    setAdding(false)
+    router.refresh()
+    await refresh()
+    if (failed) setError(dict.linkExistsError)
+  }
+
+  async function handleRemove(linkId: string) {
+    setError(null)
+    try {
+      const fd = new FormData()
+      fd.set('id', linkId)
+      if (goalId) fd.set('goal_id', goalId)
+      await deleteActionLink(fd)
+      router.refresh()
+      await refresh()
+    } catch {
+      setError(dict.linkExistsError)
+    }
+  }
+
+  const trimmed = query.trim().toLowerCase()
+  const filtered = trimmed
+    ? candidates.filter((c) => c.title.toLowerCase().includes(trimmed))
+    : candidates
+
+  return (
+    <div className="mt-4 border-t border-border/60 pt-3">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {dict.linkedSection}
+        </span>
+        {!adding && (
+          <button
+            type="button"
+            onClick={openAdd}
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            {dict.addLink}
+          </button>
+        )}
+      </div>
+
+      {dict.linkedHint && <p className="mb-2 text-xs text-muted-foreground">{dict.linkedHint}</p>}
+
+      {loading ? (
+        <p className="text-xs text-muted-foreground">…</p>
+      ) : links.length === 0 && !adding ? (
+        <p className="text-xs text-muted-foreground">{dict.noLinks}</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {links.map((l) => (
+            <li key={l.linkId} className="flex items-center gap-2 text-sm">
+              <Link
+                href={`/today?action=${l.otherId}`}
+                className="flex-1 truncate text-foreground hover:underline"
+              >
+                {l.otherTitle}
+              </Link>
+              <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                {linkTypeLabel(l.linkType, l.perspective, dict)}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleRemove(l.linkId)}
+                className="shrink-0 text-xs text-muted-foreground hover:text-destructive"
+                aria-label={dict.removeLink}
+              >
+                {dict.removeLink}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {adding && (
+        <div className="mt-2 space-y-2 rounded-lg border border-border/60 p-2">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">{dict.linkTypeLabel}</span>
+            <button
+              type="button"
+              onClick={() => setLinkType('related')}
+              className={cn(
+                'rounded px-2 py-0.5',
+                linkType === 'related' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+              )}
+            >
+              {dict.linkTypeRelated}
+            </button>
+            <button
+              type="button"
+              onClick={() => setLinkType('precedes')}
+              className={cn(
+                'rounded px-2 py-0.5',
+                linkType === 'precedes' ? 'bg-primary text-primary-foreground' : 'bg-muted'
+              )}
+            >
+              {dict.linkTypePrecedes}
+            </button>
+          </div>
+          {goalId && (
+            <button
+              type="button"
+              onClick={toggleOther}
+              className="self-start text-xs text-primary hover:underline"
+            >
+              {showOther ? dict.linkOnlyThisGoal : dict.linkShowOther}
+            </button>
+          )}
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={dict.linkSearchPlaceholder}
+            autoFocus
+            className="w-full rounded-md border border-border bg-background px-2 py-1 text-sm outline-none focus:border-primary"
+          />
+          {selected.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              {dict.linkSelectedCount.replace('{count}', String(selected.length))}
+            </p>
+          )}
+          <ul className="max-h-44 space-y-1 overflow-y-auto rounded-md border border-border/60 p-1">
+            {filtered.length === 0 ? (
+              <li className="px-2 py-1 text-xs text-muted-foreground">{dict.linkNoMatch}</li>
+            ) : (
+              filtered.map((c) => (
+                <li key={c.id}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setSelected((prev) =>
+                        prev.includes(c.id) ? prev.filter((id) => id !== c.id) : [...prev, c.id]
+                      )
+                    }
+                    className={cn(
+                      'w-full truncate rounded px-2 py-1 text-left text-sm hover:bg-muted',
+                      selected.includes(c.id) ? 'bg-primary/10 font-medium' : ''
+                    )}
+                  >
+                    {c.title}
+                  </button>
+                </li>
+              ))
+            )}
+          </ul>
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={selected.length === 0}
+              className="rounded-md bg-primary px-3 py-1 text-xs font-medium text-primary-foreground disabled:opacity-50"
+            >
+              {selected.length > 0 ? `${dict.addLink} (${selected.length})` : dict.addLink}
+            </button>
+            <button
+              type="button"
+              onClick={() => setAdding(false)}
+              className="rounded-md px-3 py-1 text-xs text-muted-foreground hover:underline"
+            >
+              {dict.linkCancel}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
   )
 }

@@ -111,6 +111,7 @@ export default async function DashboardPage() {
         )
       `)
       .eq(ownershipColumn, user.id)
+      .eq('archived', false)
       .or(
         [
           `and(start_date.lte.${today},end_date.gte.${today})`,

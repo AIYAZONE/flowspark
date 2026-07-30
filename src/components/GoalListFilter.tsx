@@ -3,7 +3,27 @@
 import { useMemo, useState, type MouseEvent } from 'react'
 import Link from 'next/link'
 import { format } from 'date-fns'
-import { Archive, Calendar, ChevronDown, ChevronRight, Plus, Search, Star, Tag } from 'lucide-react'
+import {
+  Archive,
+  Calendar,
+  ChevronDown,
+  ChevronRight,
+  Circle,
+  GraduationCap,
+  HeartPulse,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Smile,
+  Sparkles,
+  Star,
+  Tag,
+  TrendingUp,
+  Users,
+  Wallet,
+  Briefcase,
+  type LucideIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -20,8 +40,9 @@ import {
 } from '@/components/ui/collapsible'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import { AddGoalDialog } from '@/components/AddGoalDialog'
+import { AreaManageDialog } from '@/components/AreaManageDialog'
 import { toggleGoalStar } from '@/app/(authenticated)/goals/actions'
-import { getCategoryLabel } from '@/lib/goalCategories'
+import { getAreaDefaultIcon, getAreaDefaultOrder, getCategoryLabel, type AreaMeta } from '@/lib/goalCategories'
 import { buildGoalListViewModel, type GoalListViewGoal } from '@/lib/goal-list-view'
 import type en from '@/i18n/en.json'
 
@@ -29,8 +50,21 @@ type Dict = typeof en
 
 type GoalCardGoal = GoalListViewGoal & { description?: string | null }
 
+const AREA_ICON_MAP: Record<string, LucideIcon> = {
+  sparkles: Sparkles,
+  briefcase: Briefcase,
+  'heart-pulse': HeartPulse,
+  'trending-up': TrendingUp,
+  'graduation-cap': GraduationCap,
+  wallet: Wallet,
+  smile: Smile,
+  users: Users,
+  circle: Circle,
+}
+
 interface GoalListFilterProps {
   initialGoals: GoalCardGoal[]
+  areaMeta: AreaMeta[]
   dict: Dict
 }
 
@@ -110,10 +144,11 @@ function GoalCard({ goal, dict }: { goal: GoalCardGoal; dict: Dict }) {
   )
 }
 
-export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
+export function GoalListFilter({ initialGoals, areaMeta, dict }: GoalListFilterProps) {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [isArchivedOpen, setIsArchivedOpen] = useState(false)
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({})
 
   const { mainGoals, archivedGoals, totalGoals } = useMemo(
     () =>
@@ -127,6 +162,41 @@ export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
 
   const archivedOpen = statusFilter === 'archived' ? true : isArchivedOpen
   const showEmptyState = totalGoals === 0
+
+  // 按领域（category）聚合主目标，按 area_meta 排序/默认排序输出 section；未分类置底
+  const groupedMain = useMemo(() => {
+    const map = new Map<string, GoalCardGoal[]>()
+    for (const goal of mainGoals) {
+      const key = goal.category || 'other'
+      if (!map.has(key)) map.set(key, [])
+      map.get(key)!.push(goal)
+    }
+    const metaByKey = new Map(areaMeta.map((m) => [m.category_key, m]))
+    const sections = Array.from(map.entries()).map(([key, goals]) => {
+      const meta = metaByKey.get(key)
+      return {
+        key,
+        label: getCategoryLabel(dict, key),
+        iconName: meta?.icon || getAreaDefaultIcon(key),
+        order: meta?.sort_order ?? getAreaDefaultOrder(key),
+        goals,
+      }
+    })
+    sections.sort((a, b) => a.order - b.order || a.label.localeCompare(b.label))
+    return sections
+  }, [mainGoals, areaMeta, dict])
+
+  // 领域条：统计出现过的领域（含未分类），供管理弹窗使用
+  const usedCategories = useMemo(
+    () => Array.from(new Set(initialGoals.map((g) => g.category || 'other'))),
+    [initialGoals],
+  )
+
+  function scrollToSection(key: string) {
+    setOpenSections((prev) => ({ ...prev, [key]: true }))
+    const el = document.getElementById(`area-section-${key}`)
+    el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <div className="space-y-5">
@@ -174,13 +244,76 @@ export function GoalListFilter({ initialGoals, dict }: GoalListFilterProps) {
         </div>
       ) : (
         <div className="space-y-6">
-          {mainGoals.length > 0 ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {mainGoals.map((goal) => (
-                <GoalCard key={goal.id} goal={goal} dict={dict} />
-              ))}
-            </div>
-          ) : null}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            {groupedMain.map((section) => {
+              const StripIcon = AREA_ICON_MAP[section.iconName] ?? Circle
+              return (
+                <button
+                  key={section.key}
+                  type="button"
+                  onClick={() => scrollToSection(section.key)}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border/50 bg-background/70 px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
+                >
+                  <StripIcon className="h-3.5 w-3.5" />
+                  <span>{section.label}</span>
+                  <span className="text-muted-foreground/60">· {section.goals.length}</span>
+                </button>
+              )
+            })}
+            <AreaManageDialog
+              dict={dict}
+              areaMeta={areaMeta}
+              usedCategories={usedCategories}
+              trigger={
+                <button
+                  type="button"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-xs text-primary transition-colors hover:bg-primary/10"
+                >
+                  <SlidersHorizontal className="h-3.5 w-3.5" />
+                  <span>{dict.goals.areas.title}</span>
+                </button>
+              }
+            />
+          </div>
+
+          {groupedMain.map((section) => {
+            const SectionIcon = AREA_ICON_MAP[section.iconName] ?? Circle
+            const isOpen = openSections[section.key] ?? true
+            return (
+              <Collapsible
+                key={section.key}
+                id={`area-section-${section.key}`}
+                open={isOpen}
+                onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, [section.key]: open }))}
+                className="space-y-3"
+              >
+                <CollapsibleTrigger asChild>
+                  <div className="group flex cursor-pointer items-center gap-2 rounded-2xl px-1 py-1.5 transition-colors hover:bg-background/60 dark:hover:bg-white/5">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-full text-muted-foreground hover:bg-muted/30 hover:text-foreground group-hover:bg-muted/35"
+                    >
+                      {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                    </Button>
+                    <SectionIcon className="h-4 w-4 text-muted-foreground/85" />
+                    <div className="text-[11px] font-medium uppercase tracking-[0.22em] text-muted-foreground">
+                      {section.label}
+                    </div>
+                    <div className="text-xs text-muted-foreground">· {section.goals.length}</div>
+                    <div className="hidden h-px flex-1 bg-border/50 dark:bg-white/10 sm:block" />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {section.goals.map((goal) => (
+                      <GoalCard key={goal.id} goal={goal} dict={dict} />
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            )
+          })}
 
           {archivedGoals.length > 0 ? (
             <Collapsible open={archivedOpen} onOpenChange={setIsArchivedOpen} className="space-y-3">

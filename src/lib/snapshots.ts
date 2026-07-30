@@ -133,6 +133,7 @@ export async function getBehaviorSnapshotSummary(params: {
       .from('actions')
       .select('type, completed, created_at, updated_at')
       .eq('user_id', userId)
+      .eq('archived', false)
       .or(`created_at.gte.${sinceTs30},updated_at.gte.${sinceTs30}`)
       .limit(500),
     supabase
@@ -177,6 +178,7 @@ export async function upsertBehaviorSnapshot(params: {
       .from('actions')
       .select('type, completed, created_at, updated_at')
       .eq('user_id', userId)
+      .eq('archived', false)
       .or(`created_at.gte.${sinceTs30},updated_at.gte.${sinceTs30}`)
       .limit(500),
     supabase

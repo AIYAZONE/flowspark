@@ -81,3 +81,55 @@ export function buildCategoryOptions(params: {
 
   return options
 }
+
+// ---- Area (领域) 呈现默认值 ----
+// goal 的"领域"由 goals.category 文本承载（内置 8 类 + 自定义）。
+// 以下常量提供领域在 /goals 分组的默认排序与默认图标，用户可在 area_meta 中覆盖。
+
+export const UNCATEGORIZED_CATEGORY_KEY = 'other'
+
+// 默认排序：内置领域按此序，自定义领域回退 100，"其他/未分类"置底 999。
+export const AREA_DEFAULT_ORDER: Record<string, number> = {
+  personal_brand: 0,
+  company_project: 1,
+  health: 2,
+  career: 3,
+  learning: 4,
+  finance: 5,
+  lifestyle: 6,
+  social: 7,
+  other: 999,
+}
+
+// 默认图标（lucide 图标名，kebab-case，供组件侧映射为组件）。
+export const AREA_DEFAULT_ICON: Record<string, string> = {
+  personal_brand: 'sparkles',
+  company_project: 'briefcase',
+  health: 'heart-pulse',
+  career: 'trending-up',
+  learning: 'graduation-cap',
+  finance: 'wallet',
+  lifestyle: 'smile',
+  social: 'users',
+  other: 'circle',
+}
+
+export function getAreaDefaultOrder(categoryKey: string): number {
+  return AREA_DEFAULT_ORDER[categoryKey] ?? 100
+}
+
+export function getAreaDefaultIcon(categoryKey: string): string {
+  return AREA_DEFAULT_ICON[categoryKey] ?? 'circle'
+}
+
+// area_meta 表行类型（用户级领域呈现元信息）
+export interface AreaMeta {
+  id: string
+  user_id: string
+  category_key: string
+  sort_order: number
+  icon: string
+  description: string | null
+  created_at: string
+  updated_at: string
+}

@@ -2,12 +2,14 @@
 
 import { useMemo, useSyncExternalStore } from 'react'
 import { format } from 'date-fns'
-import { ArrowLeft } from 'lucide-react'
+import { Archive, ArrowLeft, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 
 import type en from '@/i18n/en.json'
 import type { GoalEntry } from '@/components/goal-entry.types'
 import { Button } from '@/components/ui/button'
+import { ActionItem } from '@/components/ActionItem'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { GoalDetailsCard } from '@/components/GoalDetailsCard'
 import { GoalDetailMobileLayout } from '@/components/GoalDetailMobileLayout'
 import { GoalQuickSwitch } from '@/components/GoalQuickSwitch'
@@ -39,6 +41,7 @@ interface Action {
   type: string
   priority: string
   completed: boolean
+  archived?: boolean
   start_date: string
   end_date?: string | null
   goal_id: string
@@ -77,6 +80,7 @@ function useMediaQuery(query: string): boolean {
 export function GoalDetailResponsiveLayout({
   goal,
   actions,
+  archivedActions,
   entries,
   dict,
   activeGoals,
@@ -86,6 +90,7 @@ export function GoalDetailResponsiveLayout({
 }: {
   goal: Goal
   actions: Action[]
+  archivedActions?: Action[]
   entries: GoalEntry[]
   dict: Dict
   activeGoals: Array<{ id: string; title: string }>
@@ -183,6 +188,23 @@ export function GoalDetailResponsiveLayout({
           tzDefaults={tzDefaults}
         />
       )}
+
+      {archivedActions && archivedActions.length > 0 ? (
+        <Collapsible className="rounded-2xl border border-border/50 bg-muted/20 p-4">
+          <CollapsibleTrigger className="flex w-full items-center gap-2 text-left">
+            <Archive className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-muted-foreground">{dict.actions.archivedSection}</span>
+            <span className="text-xs text-muted-foreground/70">· {archivedActions.length}</span>
+            <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground" />
+          </CollapsibleTrigger>
+          <p className="mt-1 text-xs text-muted-foreground/70">{dict.actions.archivedHint}</p>
+          <CollapsibleContent className="mt-3 space-y-2">
+            {archivedActions.map((action) => (
+              <ActionItem key={action.id} action={action} dict={dict} />
+            ))}
+          </CollapsibleContent>
+        </Collapsible>
+      ) : null}
     </div>
   )
 }

@@ -16,6 +16,8 @@ import {
   resolveInitialPanelMode,
 } from '@/lib/today-action-open-state'
 import { mergeTargetedActionIntoTodayList } from '@/lib/today-task-list'
+import { getCategoryLabel } from '@/lib/goalCategories'
+import { EmergentInsights, type StalledGoalInsight, type StaleActionInsight } from '@/components/EmergentInsights'
 
 export default async function TodayPage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
@@ -38,7 +40,7 @@ export default async function TodayPage(props: {
   const { data: activeGoals } = await queryWithOwnershipFallback({
     execute: (ownershipColumn) => supabase
       .from('goals')
-      .select('id, title, priority, start_date, end_date, success_criteria, stop_criteria, actions(id, completed)')
+      .select('id, title, priority, start_date, end_date, success_criteria, stop_criteria, category, actions(id, completed, updated_at)')
       .eq(ownershipColumn, ownerId)
       .eq('status', 'active')
       .order('created_at', { ascending: false }),
@@ -72,6 +74,7 @@ export default async function TodayPage(props: {
         )
       `)
       .eq(ownershipColumn, ownerId)
+      .eq('archived', false)
       .or(datePredicate)
       .order('completed', { ascending: true })
       .order('priority', { ascending: false }),
@@ -79,6 +82,7 @@ export default async function TodayPage(props: {
 
   let actions = rawActions?.filter((action) => {
     if (action.goals?.status === 'archived') return false
+    if (action.archived) return false
 
     const isRegular = action.start_date <= today && (action.end_date || action.start_date) >= today
     const isDelayedIncomplete = !action.completed && (action.end_date || action.start_date) < today
@@ -175,6 +179,55 @@ export default async function TodayPage(props: {
         label: localeIsZh ? '查看清单' : 'View list',
       }
 
+  // Phase 3：确定性涌现洞察（纯日期 / SQL 计算，无 LLM 质量风险）
+  const ONE_DAY = 86_400_000
+  const nowTs = new Date(today).getTime()
+  const weekStart = shiftDateBucket(today, -6)
+
+  const stalledGoals: StalledGoalInsight[] = (activeGoals || [])
+    .map((goal) => {
+      const updates = (goal.actions || [])
+        .map((a) => (a.updated_at ? new Date(a.updated_at).getTime() : null))
+        .filter((t): t is number => t !== null)
+      const lastUpdate = updates.length ? Math.max(...updates) : null
+      const startTs = goal.start_date ? new Date(goal.start_date).getTime() : null
+      const refTs = lastUpdate ?? startTs
+      if (refTs === null) return null
+      const days = Math.floor((nowTs - refTs) / ONE_DAY)
+      return days >= 30 ? { id: goal.id as string, title: goal.title as string, days } : null
+    })
+    .filter((g): g is StalledGoalInsight => g !== null)
+
+  const staleActions: StaleActionInsight[] = actions
+    .filter(
+      (a) =>
+        !a.completed &&
+        Boolean(a.end_date || a.start_date) &&
+        new Date(a.end_date || a.start_date) < new Date(shiftDateBucket(today, -14))
+    )
+    .map((a) => {
+      const due = a.end_date || a.start_date
+      const days = Math.max(1, Math.floor((new Date(today).getTime() - new Date(due).getTime()) / ONE_DAY))
+      return { id: a.id, title: a.title, goalId: (a.goal_id as string | null) ?? null, days }
+    })
+
+  // 安静领域：有活跃目标、但本周内无任何 action 更新的领域
+  const quietAreas: string[] = (() => {
+    const weekActivity = new Map<string, boolean>()
+    for (const goal of activeGoals || []) {
+      const category = (goal.category as string | null) || ''
+      if (!category) continue
+      const anyThisWeek = (goal.actions || []).some((a) =>
+        a.updated_at ? new Date(a.updated_at).toISOString().slice(0, 10) >= weekStart : false
+      )
+      const prev = weekActivity.get(category)
+      weekActivity.set(category, prev === true ? true : anyThisWeek)
+    }
+    return Array.from(weekActivity.entries())
+      .filter(([, active]) => !active)
+      .map(([category]) => getCategoryLabel(dict, category))
+  })()
+
   return (
     <div className="space-y-6">
       <div className="md:hidden sticky top-0 z-20 -mx-4 border-b border-white/8 bg-background/75 px-4 pb-3 pt-2 backdrop-blur-xl">
@@ -220,6 +273,11 @@ export default async function TodayPage(props: {
           <AddActionDialog activeGoals={activeGoals || []} dict={dict} />
         </div>
       </div>
+
+      <EmergentInsights
+        data={{ stalledGoals, staleActions, quietAreas }}
+        dict={dict.insights}
+      />
 
       <div id="today-actions">
         <TodayActionList

@@ -40,7 +40,7 @@ function CompleteButton({
 }
 import { useEffect, useState, useTransition } from 'react'
 import { format } from 'date-fns'
-import { Calendar, CheckCircle2, ChevronRight, Circle, Pencil, Sparkles, Trash2 } from 'lucide-react'
+import { Archive, Calendar, CheckCircle2, ChevronRight, Circle, Pencil, Sparkles, Trash2, Undo2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -54,7 +54,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toggleActionWithReward } from '@/app/(authenticated)/dashboard/actions'
-import { deleteAction, toggleActionSubItem } from '@/app/(authenticated)/goals/actions'
+import { archiveAction, deleteAction, toggleActionSubItem, unarchiveAction } from '@/app/(authenticated)/goals/actions'
 import type { Dictionary, TodayDictionary } from '@/i18n/types'
 import { ActionSubItemsSection } from '@/components/ActionSubItemsSection'
 import { RichTextContentView } from '@/components/RichTextContentView'
@@ -114,6 +114,7 @@ interface Action {
     id: string
     title: string
     completed: boolean
+    archived?: boolean
     type: string
     priority?: string
     description?: string
@@ -163,6 +164,7 @@ export function ActionItem({
     const todayText: TodayDictionary = dict.today
     const isLoading = false
     const [isDeleting, setIsDeleting] = useState(false)
+    const [isArchiving, setIsArchiving] = useState(false)
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [detailsOpen, setDetailsOpen] = useState(false)
     const [panelMode, setPanelMode] = useState<'view' | 'edit' | 'rescue'>('view')
@@ -222,6 +224,24 @@ export function ActionItem({
             console.error(error)
         } finally {
             setIsDeleting(false)
+        }
+    }
+
+    async function handleArchive() {
+        setIsArchiving(true)
+        try {
+            const formData = new FormData()
+            formData.set('id', action.id)
+            formData.set('goal_id', action.goal_id)
+            if (action.archived) {
+                await unarchiveAction(formData)
+            } else {
+                await archiveAction(formData)
+            }
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setIsArchiving(false)
         }
     }
 
@@ -408,6 +428,12 @@ export function ActionItem({
                                         {newBadgeText}
                                     </span>
                                 )}
+                                {action.archived && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-border/60 bg-muted/40 font-medium text-muted-foreground">
+                                        <Archive className="h-3 w-3" />
+                                        {dict.actions.archived}
+                                    </span>
+                                )}
                                 {hasAIAdopted && (
                                     <span
                                         title={aiAdoptedHint}
@@ -485,6 +511,24 @@ export function ActionItem({
                         >
                             <Pencil className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
                             <span className="sr-only">{dict.common.edit}</span>
+                        </Button>
+
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleArchive}
+                            className="h-9 w-9 lg:h-8 lg:w-8 rounded-full text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
+                            disabled={isLoading || isArchiving || isDeleting}
+                        >
+                            {action.archived ? (
+                                <Undo2 className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
+                            ) : (
+                                <Archive className="h-4 w-4 lg:h-3.5 lg:w-3.5" />
+                            )}
+                            <span className="sr-only">
+                                {action.archived ? dict.actions.unarchive : dict.actions.archive}
+                            </span>
                         </Button>
 
                         <Button

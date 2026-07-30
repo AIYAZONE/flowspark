@@ -115,6 +115,10 @@ export default async function GoalDetailPage({ params }: PageProps) {
 
 	if (!goal) return <div>{dict.goals.detail.notFound}</div>
 
+	const goalActions = actions || []
+	const activeActions = goalActions.filter((a) => !a.archived)
+	const archivedActions = goalActions.filter((a) => a.archived)
+
 	const startDefault = getTodayInTZ(tz)
 	const endDefault = addDaysFromDateString(startDefault, 7)
 
@@ -130,7 +134,8 @@ export default async function GoalDetailPage({ params }: PageProps) {
 	return (
 		<GoalDetailResponsiveLayout
 			goal={goal}
-			actions={actions || []}
+			actions={activeActions}
+			archivedActions={archivedActions}
 			entries={mappedEntries}
 			dict={dict}
 			activeGoals={(activeGoals || []).map((g) => ({ id: g.id as string, title: g.title as string }))}
