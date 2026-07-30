@@ -9,7 +9,6 @@ export type CoachScene =
   | 'today_plan'
   | 'rescue'
   | 'review'
-  | 'weekly_insight'
 
 export type CoachConfidence = 'low' | 'medium' | 'high'
 export type CoachDifficultyMode = 'starter' | 'balanced' | 'push'
@@ -122,17 +121,6 @@ export type CoachContext = {
   actionContext: CoachActionContext
 }
 
-export type WeeklyInsightOutput = {
-  type: 'weekly_insight'
-  summary: string
-  momentum: CoachMomentumBucket
-  strongestTimeBucket: string | null
-  topFriction: string | null
-  recommendation: string
-  confidence?: CoachConfidence
-}
-
 export type TodayPlanApiResponse = CoachApiResponse<TodayPlanOutput>
 export type RescueApiResponse = CoachApiResponse<RescueOutput>
 export type ReviewApiResponse = CoachApiResponse<ReviewOutput>
-export type WeeklyInsightApiResponse = CoachApiResponse<WeeklyInsightOutput>

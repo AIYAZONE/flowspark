@@ -319,6 +319,13 @@ export function evaluateReviewQuality(output: ReviewOutput): RecommendationQuali
     reasons.push('if_then_then_too_short')
     score -= 1
   }
+  // 可操作回顾项：直接链到 Goal/Action、可一键归档/重排，显著提升可用性
+  if (output.review_items && output.review_items.length > 0) {
+    score += 1
+    reasons.push('has_actionable_review_items')
+  } else {
+    reasons.push('no_review_items')
+  }
   return {
     schema_valid: true,
     actionability_score: Math.max(0, Math.min(5, score)),

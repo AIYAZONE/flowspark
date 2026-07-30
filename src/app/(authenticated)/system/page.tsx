@@ -13,7 +13,6 @@ import { ScoreCard } from '@/components/ScoreCard'
 import { ScoreTrendChart } from '@/components/ScoreTrendChart'
 import { FocusDistributionChart } from '@/components/FocusDistributionChart'
 import { ActivityHeatmap } from '@/components/ActivityHeatmap'
-import { getOrCreateWeeklyInsight } from '@/lib/ai/insightStore'
 import { StreakCard } from '@/components/StreakCard'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -223,12 +222,6 @@ export default async function SystemPage() {
     .limit(1)
     .maybeSingle()
 
-  const weeklyInsight = await getOrCreateWeeklyInsight({
-    supabase,
-    userId: user.id,
-    locale,
-  })
-
   const goalProgressList = (activeGoals || [])
     .map((g) => {
       const raw = g as unknown as { actions?: Array<{ completed?: boolean | null }> | null }
@@ -359,7 +352,7 @@ export default async function SystemPage() {
         <GoalProgressList dict={dict} goals={goalProgressList} />
       ) : null}
 
-      <WeeklyInsightCard dict={dict.dashboard.planning} locale={locale} insight={weeklyInsight} />
+      <WeeklyInsightCard dict={dict} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <FocusDistributionChart dict={dict} data={distributionData} />

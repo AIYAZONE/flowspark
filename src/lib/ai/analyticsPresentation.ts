@@ -21,10 +21,6 @@ const SCENE_META = {
     zh: { label: '复盘建议', description: 'AI 根据今天的执行情况给出复盘与明日提醒。' },
     en: { label: 'Review', description: 'AI reflects on today and suggests what to watch tomorrow.' },
   },
-  weekly_insight: {
-    zh: { label: '周洞察', description: 'AI 总结你最近一周的节奏、阻力和下周建议。' },
-    en: { label: 'Weekly Insight', description: 'AI summarizes your weekly rhythm, frictions, and next-week suggestion.' },
-  },
 } satisfies Record<string, Record<Locale, { label: string; description: string }>>
 
 const STATUS_META = {
@@ -157,9 +153,6 @@ export function formatAIPromptLabel(scene: string | null | undefined, prompt: st
   const version = extractVersion(prompt)
   if (prompt.startsWith('today_plan')) {
     return localized(locale, `今日建议提示词${version ? ` ${version}` : ''}`, `Today plan prompt${version ? ` ${version}` : ''}`)
-  }
-  if (prompt.startsWith('weekly_insight')) {
-    return localized(locale, `周洞察提示词${version ? ` ${version}` : ''}`, `Weekly insight prompt${version ? ` ${version}` : ''}`)
   }
   if (scene === 'rescue') {
     return localized(locale, `救援建议提示词${version ? ` ${version}` : ''}`, `Rescue prompt${version ? ` ${version}` : ''}`)

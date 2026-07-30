@@ -5,6 +5,7 @@ import type {
 	GoalSetupStepAOutput,
 	GoalSetupStepBOutput,
 	RescueOutput,
+	ReviewItem,
 	ReviewOutput,
 	TodayPlanOutput
 } from '@/lib/ai/phase2aSchemas';
@@ -16,7 +17,14 @@ import {
 	parseTodayPlan
 } from '@/lib/ai/phase2aSchemas';
 
+import type { CoachActionBrief } from '@/lib/ai/types'
+
 type Locale = 'en' | 'zh';
+
+export interface ReviewCandidates {
+	goals: { id: string; title: string; status: string | null }[]
+	actions: CoachActionBrief[]
+}
 
 function jsonOnlyRule(locale: Locale) {
 	if (locale === 'zh') {
@@ -312,6 +320,7 @@ export async function aiReview(opts: {
 		risk_level?: 'low' | 'medium' | 'high';
 		grounding_hints?: string[];
 	};
+	candidates?: ReviewCandidates;
 }): Promise<ReviewOutput> {
 	const system = [
 		jsonOnlyRule(opts.locale),
@@ -326,12 +335,18 @@ export async function aiReview(opts: {
 		'    "if_then":{"if":"string","then":"string"},',
 		'    "suggested_core_action_direction":"string"',
 		'  },',
+		'  "review_items":[{"goal_id":"string|null","action_id":"string|null","title":"string","action_kind":"archive|reorder|focus|complete","reason":"string"}],',
 		'  "confidence":"low|medium|high"',
 		'}',
 		'Hard rules:',
 		'- summary_sentence <= 30 chars.',
 		'- tomorrow_card.if_then.then must be a minimal action, not pressure.',
-		'- Keep output short and actionable.'
+		'- Keep output short and actionable.',
+		'- review_items are OPTIONAL but encouraged when candidate goals/actions are provided.',
+		'- Each review_item must reference a REAL id from the provided candidates (goal_id or action_id).',
+		'- action_kind: archive=建议归档; reorder=建议重排优先级; focus=建议集中注意力; complete=建议收尾.',
+		'- title must be the real action/goal title; reason explains why (<= 40 chars).',
+		'- Do NOT invent ids. If unsure, omit review_items. Maximum 6 review_items.'
 	].join('\n');
 
 	const user = [
@@ -341,7 +356,11 @@ export async function aiReview(opts: {
 		formatContext(opts.answers),
 		'Strategy context (optional JSON):',
 		formatContext(opts.strategy ?? {}),
-		'Task: Summarize today in one sentence and provide a tomorrow anti-fail card.'
+		'Candidate goals this period (JSON):',
+		formatContext(opts.candidates?.goals ?? []),
+		'Candidate open actions (JSON):',
+		formatContext(opts.candidates?.actions ?? []),
+		'Task: Summarize today in one sentence and provide a tomorrow anti-fail card. If candidate actions/goals show stalled/overdue/low-priority clutter, emit review_items with the right action_kind referencing their real ids.'
 	].join('\n');
 
 	try {
@@ -357,14 +376,62 @@ export async function aiReview(opts: {
 	} catch (e) {
 		const message = e instanceof Error ? e.message : 'operation_failed';
 		if (message === 'missing_ai_key') throw new Error('missing_ai_key');
-		return buildFallbackReview(opts.locale, opts.score, opts.answers);
+		return buildFallbackReview(opts.locale, opts.score, opts.answers, opts.candidates);
 	}
+}
+
+// 从真实候选数据派生可操作周回顾项（无 AI 时也能产出 actionable 结果）
+export function deriveFallbackReviewItems(
+	candidates: ReviewCandidates | undefined,
+	locale: Locale
+): ReviewItem[] {
+	if (!candidates) return []
+	const now = Date.now()
+	const isOverdue = (end?: string | null) => !!end && new Date(end).getTime() < now
+	const items: ReviewItem[] = []
+	for (const a of candidates.actions.slice(0, 10)) {
+		if (items.length >= 6) break
+		if (a.completed) continue
+		if (a.priority === 'low') {
+			items.push({
+				goal_id: a.goalId ?? null,
+				action_id: a.id,
+				title: a.title,
+				action_kind: 'archive',
+				reason: locale === 'zh' ? '低优先级且长期未动，建议归档' : 'Low priority, untouched — consider archiving'
+			})
+		} else if (isOverdue(a.endDate)) {
+			items.push({
+				goal_id: a.goalId ?? null,
+				action_id: a.id,
+				title: a.title,
+				action_kind: 'focus',
+				reason: locale === 'zh' ? '已逾期，建议聚焦或重排' : 'Overdue — focus or reschedule'
+			})
+		}
+	}
+	if (items.length < 3) {
+		for (const g of candidates.goals.slice(0, 10)) {
+			if (items.length >= 6) break
+			if (g.status === 'stuck') {
+				items.push({
+					goal_id: g.id,
+					action_id: null,
+					title: g.title,
+					action_kind: 'focus',
+					reason: locale === 'zh' ? '目标停滞，建议重新审视' : 'Goal stalled — revisit it'
+				})
+			}
+		}
+	}
+	return items
 }
 
 function buildFallbackReview(
 	locale: Locale,
 	score: number | null,
-	answers: Record<string, string>
+	answers: Record<string, string>,
+	candidates?: ReviewCandidates
 ): ReviewOutput {
 	const friction = answers.friction || null;
 
@@ -404,6 +471,7 @@ function buildFallbackReview(
 			if_then: { if: iff, then },
 			suggested_core_action_direction: direction
 		},
+		review_items: deriveFallbackReviewItems(candidates, locale),
 		confidence: 'low'
 	};
 }

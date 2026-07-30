@@ -1,7 +1,6 @@
 import { getConfiguredAIModel } from '@/lib/ai/client'
 import { buildCoachContext } from '@/lib/ai/contextBuilder'
-import { aiWeeklyInsight } from '@/lib/ai/insights'
-import { aiRescue, aiReview, aiTodayPlan } from '@/lib/ai/phase2a'
+import { aiRescue, aiReview, aiTodayPlan, deriveFallbackReviewItems, type ReviewCandidates } from '@/lib/ai/phase2a'
 import {
   buildRescueStrategy,
   buildReviewStrategy,
@@ -16,7 +15,6 @@ import type {
   TodayPlanOutput,
 } from '@/lib/ai/phase2aSchemas'
 import { createRecommendation } from '@/lib/ai/recommendationStore'
-import { upsertGrowthProfileSummary } from '@/lib/userState'
 import type {
   CoachActionBrief,
   CoachApiResponse,
@@ -26,8 +24,6 @@ import type {
   RescueApiResponse,
   ReviewApiResponse,
   TodayPlanApiResponse,
-  WeeklyInsightApiResponse,
-  WeeklyInsightOutput,
 } from '@/lib/ai/types'
 import type { createClient } from '@/lib/supabase/server'
 
@@ -236,7 +232,9 @@ function buildFallbackRescuePlan(params: {
 function buildFallbackReviewPlan(params: {
   locale: 'zh' | 'en'
   friction: string | null
+  candidates?: ReviewCandidates
 }): ReviewOutput {
+  const reviewItems = deriveFallbackReviewItems(params.candidates, params.locale)
   if (params.locale === 'zh') {
     return {
       type: 'review',
@@ -250,6 +248,7 @@ function buildFallbackReviewPlan(params: {
         },
         suggested_core_action_direction: '优先选择低摩擦、可快速见到结果的核心行动',
       },
+      review_items: reviewItems,
       confidence: 'low',
     }
   }
@@ -266,6 +265,7 @@ function buildFallbackReviewPlan(params: {
       },
       suggested_core_action_direction: 'Choose a low-friction core action with a fast visible outcome first',
     },
+    review_items: reviewItems,
     confidence: 'low',
   }
 }
@@ -273,7 +273,7 @@ function buildFallbackReviewPlan(params: {
 async function persistRecommendation<T>(params: {
   supabase: SupabaseServerClient
   userId: string
-  scene: 'today_plan' | 'rescue' | 'review' | 'weekly_insight'
+  scene: 'today_plan' | 'rescue' | 'review'
   strategyVersion: string
   promptVersion: string
   inputSummary: unknown
@@ -600,6 +600,11 @@ export async function planReview(params: {
     timezone,
   })
 
+  const candidates: ReviewCandidates = {
+    goals: context.goals.map((g) => ({ id: g.id, title: g.title, status: g.status ?? null })),
+    actions: context.actionContext.candidateActions
+  }
+
   let output: ReviewOutput
   let fallbackUsed = false
   const strategy = buildReviewStrategy({
@@ -614,6 +619,7 @@ export async function planReview(params: {
       today,
       score,
       answers,
+      candidates,
       strategy: {
         difficulty_mode: strategy.difficultyMode,
         risk_level: strategy.riskLevel,
@@ -625,6 +631,7 @@ export async function planReview(params: {
       output = buildFallbackReviewPlan({
         locale,
         friction: answers.friction || null,
+        candidates,
       })
       fallbackUsed = true
     }
@@ -632,6 +639,7 @@ export async function planReview(params: {
     output = buildFallbackReviewPlan({
       locale,
       friction: answers.friction || null,
+      candidates,
     })
     fallbackUsed = true
     qualityLabels = {
@@ -687,64 +695,4 @@ export async function planReview(params: {
   }
 }
 
-export async function planWeeklyInsight(params: {
-  supabase: SupabaseServerClient
-  userId: string
-  locale: 'en' | 'zh'
-  timezone?: string
-}): Promise<WeeklyInsightApiResponse> {
-  const { supabase, userId, locale, timezone } = params
-  const context = await buildCoachContext({
-    supabase,
-    userId,
-    scene: 'weekly_insight',
-    locale,
-    timezone,
-  })
-  const { output, fallbackUsed } = await aiWeeklyInsight({ context })
-  const recommendationId = await persistRecommendation({
-    supabase,
-    userId,
-    scene: 'weekly_insight',
-    strategyVersion: 'phase_d_v1',
-    promptVersion: 'weekly_insight_v1',
-    inputSummary: {
-      context: {
-        profile: context.profile,
-        behavior: context.behavior,
-        frictions: context.frictions,
-        recentAI: context.recentAI,
-      },
-    },
-    output,
-    fallbackUsed,
-  })
 
-  try {
-    await upsertGrowthProfileSummary({
-      supabase,
-      userId,
-      summary: output.summary,
-      currentStage: output.momentum,
-      riskOfDropout:
-        output.momentum === 'low' && output.topFriction ? output.topFriction : null,
-    })
-  } catch (error) {
-    if (!(error instanceof Error) || !isMissingRelationError(error.message)) {
-      console.error('upsertGrowthProfileSummary failed', error)
-    }
-  }
-
-  const response: CoachApiResponse<WeeklyInsightOutput> = {
-    ok: true,
-    scene: 'weekly_insight',
-    recommendationId,
-    strategyVersion: 'phase_d_v1',
-    promptVersion: 'weekly_insight_v1',
-    model: fallbackUsed ? 'fallback_rule_v1' : getConfiguredAIModel(),
-    data: output,
-    confidence: output.confidence,
-    fallbackUsed,
-  }
-  return response
-}

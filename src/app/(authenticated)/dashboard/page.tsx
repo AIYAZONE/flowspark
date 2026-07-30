@@ -17,7 +17,6 @@ import { WeeklyInsightCard } from '@/components/WeeklyInsightCard'
 import { isEnvEnabled } from '@/lib/experiments'
 import { ExperimentExposureTracker } from '@/components/ExperimentExposureTracker'
 import { calcCompletionPercent, calcTimeProgressPercent, getPaceStatus } from '@/lib/progress'
-import { getOrCreateWeeklyInsight } from '@/lib/ai/insightStore'
 import { getStreakSnapshot } from '@/lib/streaks'
 import { DAILY_QUOTE_CANDIDATE_COUNT, getDailyQuoteCandidates, QUOTE_TIME_ZONE } from '@/lib/daily-quote'
 import { getExperimentDecision } from '@/lib/featureFlags'
@@ -74,12 +73,6 @@ export default async function DashboardPage() {
     dateISO: quoteDateISO,
     count: DAILY_QUOTE_CANDIDATE_COUNT,
   })
-  const weeklyInsight = await getOrCreateWeeklyInsight({
-    supabase,
-    userId: user.id,
-    locale,
-  })
-
   // Fetch user profile for name and XP
   const { data: profile } = await supabase
     .from('user_profiles')
@@ -561,14 +554,6 @@ export default async function DashboardPage() {
               <span>{systemJudgmentCta}</span>
             </Link>
           </div>
-          <div className="mt-6 rounded-2xl border border-border/50 bg-muted/30 p-4">
-            <div className="text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              {locale === 'zh' ? '本周信号' : 'Weekly signal'}
-            </div>
-            <div className="mt-2 text-sm text-foreground">
-              {weeklyInsight?.output.summary || (locale === 'zh' ? '系统会在本周复盘中继续提炼你的执行模式。' : 'The system will keep refining your execution pattern in this week’s review.')}
-            </div>
-          </div>
         </div>
       </div>
       {/* 1. Header & Welcome */}
@@ -674,11 +659,7 @@ export default async function DashboardPage() {
           </div>
 
           <div className="lg:col-span-3">
-            <WeeklyInsightCard
-              dict={dict.dashboard.planning}
-              locale={locale}
-              insight={weeklyInsight}
-            />
+            <WeeklyInsightCard dict={dict} />
           </div>
 
           {/* Row 2: Main Content (Left) & Analysis (Right) */}

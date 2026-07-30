@@ -104,6 +104,16 @@ export interface RescueOutput {
   confidence?: 'low' | 'medium' | 'high'
 }
 
+export type ReviewItemKind = 'archive' | 'reorder' | 'focus' | 'complete'
+
+export interface ReviewItem {
+  goal_id: string | null
+  action_id: string | null
+  title: string
+  action_kind: ReviewItemKind
+  reason: string
+}
+
 export interface ReviewOutput {
   type: 'review'
   summary_sentence: string
@@ -113,6 +123,7 @@ export interface ReviewOutput {
     if_then: { if: string; then: string }
     suggested_core_action_direction: string
   }
+  review_items?: ReviewItem[]
   confidence?: 'low' | 'medium' | 'high'
 }
 
@@ -617,6 +628,29 @@ export function parseReview(payload: unknown): ParseResult<ReviewOutput> {
   if (!dir) violations.push('tomorrow_direction_required')
   if (!iff || !then) violations.push('tomorrow_if_then_required')
 
+  // review_items 是可选项：把"建议"变成可点击执行的对象（链到 Goal/Action、可归档/重排）
+  const rawItems = Array.isArray(payload.review_items) ? payload.review_items : []
+  const review_items: ReviewItem[] = []
+  for (const raw of rawItems.slice(0, 12)) {
+    if (!isRecord(raw)) continue
+    const title = asTrimmedString(raw.title)
+    const reason = asTrimmedString(raw.reason)
+    const goal_id = asTrimmedString(raw.goal_id) ?? null
+    const action_id = asTrimmedString(raw.action_id) ?? null
+    const action_kind = asTrimmedString(raw.action_kind)
+    if (!title || !reason) continue
+    if (!goal_id && !action_id) continue
+    if (
+      action_kind !== 'archive' &&
+      action_kind !== 'reorder' &&
+      action_kind !== 'focus' &&
+      action_kind !== 'complete'
+    ) {
+      continue
+    }
+    review_items.push({ goal_id, action_id, title, action_kind: action_kind as ReviewItemKind, reason })
+  }
+
   const confidence = normalizeConfidence(payload.confidence)
 
   if (violations.length) return { ok: false, violations }
@@ -632,6 +666,7 @@ export function parseReview(payload: unknown): ParseResult<ReviewOutput> {
         if_then: { if: iff!, then: then! },
         suggested_core_action_direction: dir!
       },
+      review_items: review_items.length ? review_items : undefined,
       confidence
     }
   }
