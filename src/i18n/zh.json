@@ -727,7 +727,13 @@
 	"linkSelected": "已选",
 	"linkSelectedCount": "已选 {count} 项",
 	"linkShowOther": "查看其他目标的行动",
-	"linkOnlyThisGoal": "只看本目标"
+	"linkOnlyThisGoal": "只看本目标",
+	"linkAiSuggest": "AI 建议",
+	"linkAiLoading": "AI 正在分析…",
+	"linkAiAccept": "关联",
+	"linkAiDismiss": "忽略",
+	"linkAiNone": "暂时没有可建议的关联",
+	"linkAiError": "建议生成失败，请稍后再试"
 },
 "insights": {
 	"title": "回顾洞察",

@@ -727,7 +727,13 @@
 	"linkSelected": "Selected",
 	"linkSelectedCount": "{count} selected",
 	"linkShowOther": "Show actions in other goals",
-	"linkOnlyThisGoal": "Only this goal"
+	"linkOnlyThisGoal": "Only this goal",
+	"linkAiSuggest": "AI suggestions",
+	"linkAiLoading": "AI is analyzing…",
+	"linkAiAccept": "Link",
+	"linkAiDismiss": "Dismiss",
+	"linkAiNone": "No link suggestions for now",
+	"linkAiError": "Couldn't generate suggestions, try again"
 },
 "insights": {
 	"title": "Review Insights",

@@ -21,6 +21,7 @@ import {
 	queryWithOwnershipFallback,
 	type OwnershipColumn
 } from '@/lib/ownership';
+import { suggestActionLinksAI, type ActionLinkSuggestion } from '@/lib/ai/actionLinks';
 import { getTodayInTZ, getUserTimezone } from '@/lib/time';
 
 const ACTIVE_GOAL_LIMIT = 5;
@@ -1340,6 +1341,84 @@ export async function createActionLink(formData: FormData) {
 
 	revalidatePath('/today');
 	if (goal_id) revalidatePath(`/goals/${goal_id}`);
+}
+
+// AI 关联建议（只读、只建议，绝不建链）：基于当前行动 + 候选行动让 LLM 判断哪些应关联
+export async function suggestActionLinks(formData: FormData): Promise<ActionLinkSuggestion[]> {
+	const supabase = await createClient();
+	const {
+		data: { user }
+	} = await supabase.auth.getUser();
+	if (!user) return [];
+
+	const sourceId = (formData.get('action_id') as string) || '';
+	if (!sourceId) return [];
+
+	const { data: srcRows } = await queryWithOwnershipFallback({
+		execute: (column) =>
+			supabase
+				.from('actions')
+				.select('id, title, description, goal_id')
+				.eq('id', sourceId)
+				.eq(column, user.id)
+				.limit(1)
+	});
+	const source = (Array.isArray(srcRows) ? srcRows[0] : srcRows) as
+		| { id: string; title: string; description: string | null; goal_id: string | null }
+		| null;
+	if (!source) return [];
+
+	const { data: linkRows } = await supabase
+		.from('action_links')
+		.select('source_action_id, target_action_id')
+		.or(`source_action_id.eq.${sourceId},target_action_id.eq.${sourceId}`);
+	const linkedIds = new Set(
+		(linkRows ?? []).map((r) =>
+			r.source_action_id === sourceId ? r.target_action_id : r.source_action_id
+		)
+	);
+
+	// 优先同目标候选；不足时补一部分其他目标的最近行动，以捕捉跨目标的"同一件事"
+	let base = supabase
+		.from('actions')
+		.select('id, title, goal_id')
+		.eq('archived', false)
+		.neq('id', sourceId);
+	if (source.goal_id) base = base.eq('goal_id', source.goal_id);
+	const { data: sameGoal } = await base.order('updated_at', { ascending: false }).limit(50);
+	const pool = ((sameGoal ?? []) as Array<{ id: string; title: string; goal_id: string | null }>).filter(
+		(c) => !linkedIds.has(c.id)
+	);
+
+	if (pool.length < 50 && source.goal_id) {
+		const { data: others } = await supabase
+			.from('actions')
+			.select('id, title, goal_id')
+			.eq('archived', false)
+			.neq('id', sourceId)
+			.neq('goal_id', source.goal_id)
+			.order('updated_at', { ascending: false })
+			.limit(20);
+		const have = new Set(pool.map((c) => c.id));
+		for (const c of (others ?? []) as Array<{ id: string; title: string; goal_id: string | null }>) {
+			if (!have.has(c.id)) pool.push(c);
+		}
+	}
+
+	const candidates = pool.map((c) => ({ id: c.id, title: c.title }));
+
+	const { data: profile } = await supabase
+		.from('user_profiles')
+		.select('locale')
+		.eq('id', user.id)
+		.maybeSingle();
+	const locale = (profile?.locale || '').toLowerCase().startsWith('zh') ? 'zh' : 'en';
+
+	return suggestActionLinksAI({
+		source: { id: source.id, title: source.title, description: source.description },
+		candidates,
+		locale
+	});
 }
 
 // 删除 action 间链接

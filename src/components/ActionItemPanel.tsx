@@ -44,7 +44,8 @@ import { ModalActionFooter } from '@/components/ModalActionFooter'
 import { ModalHeaderActions } from '@/components/ModalHeaderActions'
 import { DESKTOP_MODAL_SHELL_CLASS } from '@/components/responsive-classes'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { createActionAndReturnId, updateAction, createActionLink, deleteActionLink } from '@/app/(authenticated)/goals/actions'
+import { createActionAndReturnId, updateAction, createActionLink, deleteActionLink, suggestActionLinks } from '@/app/(authenticated)/goals/actions'
+import type { ActionLinkSuggestion } from '@/lib/ai/actionLinks'
 import { getUpcomingRecurringDate, parseActionRecurrenceDescription, type ActionRecurrenceRule } from '@/lib/actionRecurrence'
 
 interface Action {
@@ -1382,6 +1383,9 @@ function LinkedActionsSection({
   const [query, setQuery] = useState('')
   const [showOther, setShowOther] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [suggestions, setSuggestions] = useState<ActionLinkSuggestion[]>([])
+  const [suggesting, setSuggesting] = useState(false)
+  const [suggested, setSuggested] = useState(false)
 
   async function refresh() {
     setLoading(true)
@@ -1506,6 +1510,44 @@ function LinkedActionsSection({
     }
   }
 
+  async function handleSuggest() {
+    setError(null)
+    setSuggestions([])
+    setSuggested(false)
+    setSuggesting(true)
+    try {
+      const fd = new FormData()
+      fd.set('action_id', actionId)
+      const res = await suggestActionLinks(fd)
+      setSuggestions(res)
+      setSuggested(true)
+    } catch {
+      setError(dict.linkAiError)
+    } finally {
+      setSuggesting(false)
+    }
+  }
+
+  async function acceptSuggestion(s: ActionLinkSuggestion) {
+    try {
+      const fd = new FormData()
+      fd.set('source_action_id', actionId)
+      fd.set('target_action_id', s.targetId)
+      fd.set('link_type', s.linkType)
+      if (goalId) fd.set('goal_id', goalId)
+      await createActionLink(fd)
+      setSuggestions((prev) => prev.filter((x) => x.targetId !== s.targetId))
+      router.refresh()
+      await refresh()
+    } catch {
+      setError(dict.linkExistsError)
+    }
+  }
+
+  function dismissSuggestion(targetId: string) {
+    setSuggestions((prev) => prev.filter((x) => x.targetId !== targetId))
+  }
+
   const trimmed = query.trim().toLowerCase()
   const filtered = trimmed
     ? candidates.filter((c) => c.title.toLowerCase().includes(trimmed))
@@ -1518,13 +1560,24 @@ function LinkedActionsSection({
           {dict.linkedSection}
         </span>
         {!adding && (
-          <button
-            type="button"
-            onClick={openAdd}
-            className="text-xs font-medium text-primary hover:underline"
-          >
-            {dict.addLink}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleSuggest}
+              disabled={suggesting}
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline disabled:opacity-50"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              {suggesting ? dict.linkAiLoading : dict.linkAiSuggest}
+            </button>
+            <button
+              type="button"
+              onClick={openAdd}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              {dict.addLink}
+            </button>
+          </div>
         )}
       </div>
 
@@ -1649,6 +1702,49 @@ function LinkedActionsSection({
               {dict.linkCancel}
             </button>
           </div>
+        </div>
+      )}
+
+      {suggesting && <p className="mt-2 text-xs text-muted-foreground">{dict.linkAiLoading}</p>}
+      {suggested && !suggesting && suggestions.length === 0 && (
+        <p className="mt-2 text-xs text-muted-foreground">{dict.linkAiNone}</p>
+      )}
+      {suggestions.length > 0 && (
+        <div className="mt-2 space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-2">
+          <p className="text-xs font-medium text-primary">{dict.linkAiSuggest}</p>
+          <ul className="space-y-1.5">
+            {suggestions.map((s) => (
+              <li key={s.targetId} className="rounded-md bg-background p-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/today?action=${s.targetId}`}
+                      className="block truncate text-sm font-medium text-foreground hover:underline"
+                    >
+                      {s.title}
+                    </Link>
+                    {s.reason && <p className="mt-0.5 text-xs text-muted-foreground">{s.reason}</p>}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => acceptSuggestion(s)}
+                      className="rounded bg-primary px-2 py-0.5 text-xs font-medium text-primary-foreground"
+                    >
+                      {dict.linkAiAccept}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => dismissSuggestion(s.targetId)}
+                      className="rounded px-2 py-0.5 text-xs text-muted-foreground hover:underline"
+                    >
+                      {dict.linkAiDismiss}
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
