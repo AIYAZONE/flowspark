@@ -620,6 +620,9 @@
 		},
 		"start": "Start",
 		"end": "End",
+		"progress": {
+			"byTime": "Time-based"
+		},
 		"new": {
 			"title": "Create New Path",
 			"details": "Path Details",

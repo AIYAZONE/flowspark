@@ -1,3 +1,5 @@
+import type { GoalProgressInfo } from '@/lib/progress'
+
 export type GoalListViewGoal = {
   id: string
   title: string
@@ -8,6 +10,8 @@ export type GoalListViewGoal = {
   priority?: string | null
   category?: string | null
   is_starred?: boolean | null
+  /** 卡片进度可视化信息，由页面层注入 */
+  progress?: GoalProgressInfo
 }
 
 type GoalListViewModelParams = {

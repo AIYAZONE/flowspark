@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { GoalListFilter } from '@/components/GoalListFilter'
 import { AddGoalDialog } from '@/components/AddGoalDialog'
+import { buildGoalProgressInfo, type GoalProgressInfo } from '@/lib/progress'
 import type { AreaMeta } from '@/lib/goalCategories'
 
 export default async function GoalsPage() {
@@ -22,19 +23,48 @@ export default async function GoalsPage() {
     .eq('user_id', user.id)
     .order('sort_order', { ascending: true })
 
+  const { data: actionRows } = await supabase
+    .from('actions')
+    .select('goal_id, completed')
+    .eq('user_id', user.id)
+    .eq('archived', false)
+    .not('goal_id', 'is', null)
+
+  const actionAgg = new Map<string, { completed: number; total: number }>()
+  for (const row of actionRows || []) {
+    if (!row.goal_id) continue
+    const current = actionAgg.get(row.goal_id) || { completed: 0, total: 0 }
+    current.total += 1
+    if (row.completed) current.completed += 1
+    actionAgg.set(row.goal_id, current)
+  }
+
+  const goalsWithProgress = (goals || []).map((goal) => {
+    const progress: GoalProgressInfo = buildGoalProgressInfo({
+      startDate: goal.start_date,
+      endDate: goal.end_date,
+      actionAgg: goal.id ? actionAgg.get(goal.id) : null,
+    })
+    return { ...goal, progress }
+  })
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">{dict.goals.title}</h1>
-          <div className="mt-2 text-sm leading-relaxed text-muted-foreground">{dict.goals.subtitle}</div>
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0 max-w-2xl">
+          <h1 className="text-3xl font-semibold tracking-tight text-foreground md:text-4xl">
+            {dict.goals.title}
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {dict.goals.subtitle}
+          </p>
         </div>
         <AddGoalDialog
           dict={dict}
           trigger={
             <button
               type="button"
-              className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm shadow-primary/20 transition-[color,background-color,box-shadow,transform] duration-200 hover:bg-primary/90 hover:shadow-md hover:shadow-primary/25 active:scale-[0.985] active:bg-primary/85 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              className="inline-flex h-10 items-center justify-center rounded-full bg-primary px-5 text-sm font-medium text-primary-foreground shadow-sm shadow-primary/20 transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
               {dict.goals.newGoal}
             </button>
@@ -42,7 +72,7 @@ export default async function GoalsPage() {
         />
       </div>
 
-      <GoalListFilter initialGoals={goals || []} areaMeta={areaMeta || []} dict={dict} />
+      <GoalListFilter initialGoals={goalsWithProgress} areaMeta={areaMeta || []} dict={dict} />
     </div>
   )
 }

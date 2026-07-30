@@ -37,3 +37,43 @@ export function getPaceStatus(actionProgress: number, timeProgress: number): Pac
 	if (delta <= -10) return 'behind'
 	return 'onTrack'
 }
+
+export type GoalProgressInfo = {
+	/** 已完成的关联行动数（仅统计未归档行动） */
+	actionCompleted: number
+	/** 关联行动总数（仅统计未归档行动） */
+	actionTotal: number
+	/** 卡片主进度条展示的完成度（0-100），优先取行动完成率，无行动时回退时间进度 */
+	completionPercent: number
+	/** 时间进度百分比（0-100），无起止日期时为 null */
+	timePercent: number | null
+	/** 距结束日期剩余天数，已逾期为负数，无结束日期为 null */
+	daysLeft: number | null
+	/** 主进度条所依据的指标：有行动用 actions，否则用 time */
+	basis: 'actions' | 'time'
+}
+
+/**
+ * 构造目标卡片所需的可视化进度信息。
+ * 进度主数据来自关联行动完成率；当目标没有关联行动时回退到时间进度。
+ */
+export function buildGoalProgressInfo(params: {
+	startDate?: string | null
+	endDate?: string | null
+	actionAgg?: { completed: number; total: number } | null
+}): GoalProgressInfo {
+	const timePercent = calcTimeProgressPercent(params.startDate, params.endDate)
+	const daysLeft = calcDaysLeft(params.endDate)
+	const actionTotal = params.actionAgg?.total ?? 0
+	const actionCompleted = params.actionAgg?.completed ?? 0
+	const actionPercent = calcCompletionPercent(actionCompleted, actionTotal)
+	const basis: 'actions' | 'time' = actionTotal > 0 ? 'actions' : 'time'
+	return {
+		actionCompleted,
+		actionTotal,
+		completionPercent: basis === 'actions' ? actionPercent : (timePercent ?? 0),
+		timePercent,
+		daysLeft,
+		basis,
+	}
+}

@@ -620,6 +620,9 @@
 		},
 		"start": "开始",
 		"end": "结束",
+		"progress": {
+			"byTime": "按时间"
+		},
 		"new": {
 			"title": "创建新路径",
 			"details": "路径详情",
