@@ -370,13 +370,13 @@ export function GoalListFilter({ initialGoals, areaMeta, dict }: GoalListFilterP
             const isOpen = openSections[section.key] ?? true
             const Chevron = isOpen ? ChevronDown : ChevronRight
             return (
-              <Collapsible
-                key={section.key}
-                id={`area-section-${section.key}`}
-                open={isOpen}
-                onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, [section.key]: open }))}
-                className="space-y-3"
-              >
+              <section key={section.key} className="rounded-2xl border border-border/50 bg-muted/25 p-3 transition-colors sm:p-4 dark:bg-white/[0.02]">
+                <Collapsible
+                  id={`area-section-${section.key}`}
+                  open={isOpen}
+                  onOpenChange={(open) => setOpenSections((prev) => ({ ...prev, [section.key]: open }))}
+                  className="space-y-3"
+                >
                 <CollapsibleTrigger asChild>
                   <button
                     type="button"
@@ -416,11 +416,13 @@ export function GoalListFilter({ initialGoals, areaMeta, dict }: GoalListFilterP
                   </div>
                 </CollapsibleContent>
               </Collapsible>
+              </section>
             )
           })}
 
           {archivedGoals.length > 0 ? (
-            <Collapsible open={archivedOpen} onOpenChange={setIsArchivedOpen} className="space-y-3">
+            <section className="rounded-2xl border border-border/50 bg-muted/20 p-3 opacity-90 transition-colors sm:p-4 dark:bg-white/[0.015]">
+              <Collapsible open={archivedOpen} onOpenChange={setIsArchivedOpen} className="space-y-3">
               <CollapsibleTrigger asChild>
                 <button
                   type="button"
@@ -471,6 +473,7 @@ export function GoalListFilter({ initialGoals, areaMeta, dict }: GoalListFilterP
                 </div>
               </CollapsibleContent>
             </Collapsible>
+            </section>
           ) : null}
         </div>
       )}
