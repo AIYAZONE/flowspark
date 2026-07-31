@@ -85,9 +85,9 @@ export default async function Home() {
         </div>
       </header>
 
-      <main className="flex-1 pt-[calc(env(safe-area-inset-top)+4rem)]">
+      <main className="flex-1 pt-[calc(env(safe-area-inset-top)_+_4rem)]">
         {/* Hero Section */}
-        <section className="relative flex items-center min-h-[calc(100svh-4rem)] py-[clamp(1.25rem,6vh,3rem)] lg:min-h-[clamp(620px,78vh,840px)] lg:py-[clamp(1.5rem,6vh,3.5rem)]">
+        <section className="relative flex items-center min-h-[calc(100svh_-_4rem)] py-[clamp(1.25rem,6vh,3rem)] lg:min-h-[clamp(620px,78vh,840px)] lg:py-[clamp(1.5rem,6vh,3.5rem)]">
           {/* Ambient Background */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[min(620px,46vh)] w-full bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-primary/20 via-background to-background pointer-events-none" />
           <div className="pointer-events-none absolute inset-x-0 top-[18%] h-64 bg-[radial-gradient(circle,rgba(16,185,129,0.12),transparent_60%)] blur-3xl" />
@@ -168,7 +168,7 @@ export default async function Home() {
               </div>
 
               {/* Right Column: Visual */}
-              <div className="flex-1 w-full max-w-[560px] lg:max-w-none lg:max-h-[calc(100vh-var(--header-h))] lg:self-center">
+              <div className="flex-1 w-full max-w-[560px] lg:max-w-none lg:max-h-[calc(100vh_-_var(--header-h))] lg:self-center">
                 <div className="rounded-3xl sm:rounded-4xl bg-linear-to-br from-primary/25 via-violet-500/15 to-sky-500/25 p-px shadow-2xl shadow-primary/10">
                   <div className="rounded-3xl sm:rounded-4xl bg-background/70 backdrop-blur-xl p-2 sm:p-3 ring-1 ring-border/30">
                     <HeroVisual dict={dict.landing.visual} />

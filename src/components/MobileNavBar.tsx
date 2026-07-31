@@ -53,8 +53,7 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
   const [notificationUnread, setNotificationUnread] = useState<number>(0)
   const [moreOpen, setMoreOpen] = useState(false)
 
-  const activeItemClass =
-    'bg-linear-to-b from-primary/12 via-primary/8 to-primary/5 text-primary ring-1 ring-primary/16'
+  const activeItemClass = 'bg-primary/10 text-primary'
 
   const idleItemClass =
     'text-muted-foreground hover:bg-muted/45 hover:text-foreground'
@@ -110,11 +109,11 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
   return (
     <div
       key={epoch}
-      className={`${MOBILE_ONLY_CLASS} relative z-50 shrink-0 bg-transparent px-3 pb-safe-area-inset-bottom pt-2`}
+      className={`${MOBILE_ONLY_CLASS} relative z-50 shrink-0 bg-transparent -mx-4 mt-2 sm:-mx-6`}
     >
-      <div className="mx-auto max-w-xl rounded-[1.85rem] bg-linear-to-br from-primary/18 via-violet-500/10 to-sky-500/12 p-px shadow-lg shadow-black/5">
+      <div className="mx-auto max-w-xl rounded-t-2xl border-t border-border/45 bg-background/82 shadow-[0_-8px_30px_-20px_rgba(15,23,42,0.22)] backdrop-blur-xl">
         <nav
-          className="flex h-[72px] items-center justify-around rounded-[1.82rem] border border-white/10 bg-background/78 px-2 backdrop-blur-xl"
+          className="flex h-[72px] items-center justify-center gap-1.5 px-5 sm:gap-2 sm:px-6"
           onPointerDownCapture={(e) => {
             if (!isDebugNav()) return
             const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
@@ -139,7 +138,7 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
                   console.log('[debugNav] click', { href: item.href })
                 }}
                 className={cn(
-                  'mx-0.5 flex h-[58px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl transition-all duration-200',
+                  'flex h-[58px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 transition-all duration-200',
                   isActive ? activeItemClass : idleItemClass
                 )}
               >
@@ -160,7 +159,7 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
             aria-label={dict.sidebar.more}
             aria-haspopup="dialog"
             className={cn(
-              'mx-0.5 flex h-[58px] flex-1 flex-col items-center justify-center gap-1 rounded-2xl transition-all duration-200',
+              'flex h-[58px] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 transition-all duration-200',
               moreActive ? activeItemClass : idleItemClass
             )}
           >
@@ -178,54 +177,63 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
             <span className="text-[10px] font-medium">{dict.sidebar.more}</span>
           </button>
         </nav>
+        <div className="pb-[env(safe-area-inset-bottom)]" aria-hidden />
       </div>
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent
           side="bottom"
-          className="rounded-t-[1.85rem] border-t border-white/10 bg-linear-to-br from-primary/18 via-violet-500/10 to-sky-500/12 p-px"
+          className="inset-x-0 bottom-0 left-0 right-0 top-auto border-border/30 rounded-t-2xl bg-background/95 backdrop-blur-xl p-0"
+          style={{
+            position: 'fixed',
+            top: 'auto',
+            width: '100%',
+            maxHeight: '85dvh',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            overflow: 'hidden',
+            padding: 0,
+            boxShadow: '0 -20px 60px -25px rgba(0,0,0,0.25)',
+          }}
         >
-          <div className="flex max-h-[80dvh] min-h-0 flex-col rounded-t-[1.82rem] bg-background/82 backdrop-blur-xl">
-            <div className="flex flex-col items-center pt-2">
-              <span className="h-1.5 w-10 rounded-full bg-border/60" />
-            </div>
-            <div className="px-3 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-3">
-              <SheetTitle className="px-1 pb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground/70">
-                {dict.sidebar.more}
-              </SheetTitle>
-              <nav className="grid gap-1.5">
-                {SECONDARY_ITEMS.map((item) => {
-                  const isActive = pathname.startsWith(item.href)
-                  const Icon = item.icon
-                  const showDot = item.href === '/profile' && showUnreadDot
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      onClick={() => setMoreOpen(false)}
+          <div className="px-4 pb-[calc(env(safe-area-inset-bottom)_+_1.25rem)] pt-4">
+            <SheetTitle className="px-1 pb-3 text-base font-semibold text-foreground">
+              {dict.sidebar.more}
+            </SheetTitle>
+            <nav className="grid min-h-0 gap-1.5">
+              {SECONDARY_ITEMS.map((item, index) => {
+                const isActive = pathname.startsWith(item.href)
+                const Icon = item.icon
+                const showDot = item.href === '/profile' && showUnreadDot
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setMoreOpen(false)}
+                    style={{ animationDelay: `${(index + 1) * 60}ms` }}
+                    className={cn(
+                      'flex items-center gap-3.5 rounded-2xl px-4 py-4 text-base font-medium transition-all duration-150 ease-out hover:scale-[0.995] animate-in fade-in slide-in-from-bottom-1',
+                      isActive
+                        ? 'bg-primary/12 text-primary'
+                        : 'text-foreground hover:bg-muted/45'
+                    )}
+                  >
+                    <Icon
                       className={cn(
-                        'flex items-center gap-3.5 rounded-2xl px-3 py-3 text-sm font-medium transition-all duration-200',
-                        isActive
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-muted/45 hover:text-foreground'
+                        'h-6 w-6 shrink-0 transition-all duration-150 ease-out',
+                        isActive ? 'text-primary' : 'text-muted-foreground'
                       )}
-                    >
-                      <Icon
-                        className={cn(
-                          'h-5 w-5 shrink-0 transition-all duration-200',
-                          isActive ? 'text-primary' : 'text-muted-foreground'
-                        )}
-                        strokeWidth={isActive ? 2.1 : 1.85}
-                      />
-                      <span className="flex-1">{dict.sidebar[item.titleKey]}</span>
-                      {showDot ? (
-                        <span className="h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-background" />
-                      ) : null}
-                    </Link>
-                  )
-                })}
-              </nav>
-            </div>
+                      strokeWidth={isActive ? 2.1 : 1.85}
+                    />
+                    <span className="flex-1">{dict.sidebar[item.titleKey]}</span>
+                    {showDot ? (
+                      <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-background" />
+                    ) : null}
+                  </Link>
+                )
+              })}
+            </nav>
           </div>
         </SheetContent>
       </Sheet>

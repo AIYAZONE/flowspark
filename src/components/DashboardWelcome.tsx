@@ -661,7 +661,7 @@ export function DashboardWelcome({
 
                   <div className="flex h-dvh items-center justify-center px-4 py-6" onClick={() => setSharePreviewFullscreenOpen(false)}>
                     <div
-                      className="relative flex max-h-[calc(100dvh-3rem)] max-w-[calc(100vw-2rem)] items-center justify-center md:max-h-[82vh] md:max-w-[360px]"
+                      className="relative flex max-h-[calc(100dvh_-_3rem)] max-w-[calc(100vw_-_2rem)] items-center justify-center md:max-h-[82vh] md:max-w-[360px]"
                       onClick={(event) => event.stopPropagation()}
                     >
                       {imageDataUrl ? (

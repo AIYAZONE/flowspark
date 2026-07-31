@@ -190,7 +190,7 @@ export function ActionListFilter({ initialActions, dict, showGoalTitle = false, 
                         </Button>
 
                         <SheetFormContent side="bottom" className="rounded-t-2xl">
-                            <div className="px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+                            <div className="px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)_+_1rem)]">
                                 <SheetHeader className="flex flex-row items-center justify-between space-y-0">
                                     <SheetTitle className="text-base">{dict.common.filters}</SheetTitle>
                                     <SheetClose asChild>

@@ -337,7 +337,7 @@ export function DesktopQuickAccess({
 
   const panelClassName = cn(
     'absolute z-10 w-[320px] rounded-3xl border border-border/60 bg-background/92 p-4 shadow-2xl backdrop-blur transition-[opacity,transform] duration-200',
-    menuPlacement.vertical === 'up' ? 'bottom-[calc(100%+12px)]' : 'top-[calc(100%+12px)]',
+    menuPlacement.vertical === 'up' ? 'bottom-[calc(100%_+_12px)]' : 'top-[calc(100%_+_12px)]',
     menuPlacement.horizontal === 'end' ? 'right-0' : 'left-0',
     open ? 'pointer-events-auto translate-y-0 scale-100 opacity-100' : 'pointer-events-none scale-95 opacity-0',
     !open && menuPlacement.vertical === 'up' && 'translate-y-2',

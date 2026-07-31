@@ -54,7 +54,7 @@ function ChatInner({ copy, prefill }: { copy: ChatCopy; prefill?: string }) {
   return (
     <>
       <div className="relative mx-auto w-full max-w-5xl px-4 sm:px-6">
-        <div className="pt-4 pb-[calc(208px+env(safe-area-inset-bottom))] sm:pt-6 md:pb-44">
+        <div className="pt-4 pb-[calc(208px_+_env(safe-area-inset-bottom))] sm:pt-6 md:pb-44">
           <ChatConversation
             copy={copy}
             turns={turns}
@@ -69,7 +69,7 @@ function ChatInner({ copy, prefill }: { copy: ChatCopy; prefill?: string }) {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none pl-0 md:pl-[108px] xl:pl-[118px] 2xl:pl-[126px] [@media(min-width:1920px)]:pl-[134px] [@media(min-width:2560px)]:pl-[142px] pb-[calc(96px+env(safe-area-inset-bottom))] md:pb-0">
+      <div className="fixed bottom-0 left-0 right-0 z-40 pointer-events-none pl-0 md:pl-[108px] xl:pl-[118px] 2xl:pl-[126px] [@media(min-width:1920px)]:pl-[134px] [@media(min-width:2560px)]:pl-[142px] pb-[calc(96px_+_env(safe-area-inset-bottom))] md:pb-0">
         <div className="px-4 pb-6 sm:px-6 sm:pb-8 lg:px-8 2xl:px-10 [@media(min-width:1920px)]:px-12 [@media(min-width:2560px)]:px-14">
           <div className="mx-auto w-full max-w-5xl">
             <div className="mx-auto max-w-3xl pointer-events-auto">

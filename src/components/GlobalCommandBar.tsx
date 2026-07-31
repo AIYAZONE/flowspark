@@ -175,7 +175,7 @@ export function GlobalCommandBar(props: {
   }
 
   const bottomOffsetClass =
-    'bottom-[calc(env(safe-area-inset-bottom)+6.25rem)] md:bottom-3'
+    'bottom-[calc(env(safe-area-inset-bottom)_+_6.25rem)] md:bottom-3'
   const shellClassName = isHomeMode
     ? 'rounded-[2rem] border border-primary/18 bg-linear-to-br from-primary/12 via-background to-background p-4 shadow-sm md:p-5'
     : 'pointer-events-none fixed inset-x-0 z-40 px-3 md:left-[108px] xl:left-[118px] 2xl:left-[126px] [@media(min-width:1920px)]:left-[134px] [@media(min-width:2560px)]:left-[142px]'

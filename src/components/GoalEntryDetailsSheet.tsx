@@ -145,7 +145,7 @@ function GoalEntryDetailsSheetInner({
 		<div
 			className={cn(
 				'min-h-0 flex-1 overflow-y-auto px-4 pt-4',
-				isTabletAndUp ? 'pb-4 sm:px-6 sm:pb-6' : 'pb-[calc(env(safe-area-inset-bottom)+1rem)]'
+				isTabletAndUp ? 'pb-4 sm:px-6 sm:pb-6' : 'pb-[calc(env(safe-area-inset-bottom)_+_1rem)]'
 			)}
 		>
 			<div className="space-y-4">

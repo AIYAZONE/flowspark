@@ -232,13 +232,13 @@ export function QuickCaptureSpeedDial({
 	const wrapperClassName = cn(
 		'fixed z-50',
 		MOBILE_ONLY_CLASS,
-		canDragFab && fabPosition ? '' : 'right-[10px] bottom-[calc(7.25rem+env(safe-area-inset-bottom))]'
+		canDragFab && fabPosition ? '' : 'right-[10px] bottom-[calc(7.25rem_+_env(safe-area-inset-bottom))]'
 	)
 	const menuClassName = cn(
 		'absolute z-10 flex flex-col gap-3 transition-all duration-200',
 		menuPlacement.vertical === 'up'
-			? 'bottom-[calc(100%+12px)]'
-			: 'top-[calc(100%+12px)]',
+			? 'bottom-[calc(100%_+_12px)]'
+			: 'top-[calc(100%_+_12px)]',
 		menuPlacement.horizontal === 'end' ? 'right-0 items-end' : 'left-0 items-start',
 		open ? 'pointer-events-auto opacity-100 translate-y-0 scale-100' : 'pointer-events-none opacity-0 scale-95',
 		!open && menuPlacement.vertical === 'up' && 'translate-y-2',

@@ -19,7 +19,7 @@ export function RichTextImagePreviewDialog(props: {
           <DialogTitle>{props.title}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex max-h-[calc(90vh-4.5rem)] flex-col gap-4 overflow-auto p-4">
+        <div className="flex max-h-[calc(90vh_-_4.5rem)] flex-col gap-4 overflow-auto p-4">
           {props.imageUrl ? (
             <div className="relative flex min-h-[280px] items-center justify-center overflow-hidden rounded-lg border border-border/50 bg-muted/20">
               <Image

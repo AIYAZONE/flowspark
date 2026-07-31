@@ -653,7 +653,7 @@ export function AITodayPlanButton({
                   )
                 })}
 
-                <div className="flex flex-col-reverse gap-3 border-t border-border/50 pt-5 pb-[calc(env(safe-area-inset-bottom)+0.25rem)] md:flex-row md:items-center md:justify-between md:gap-3 md:pb-0">
+                <div className="flex flex-col-reverse gap-3 border-t border-border/50 pt-5 pb-[calc(env(safe-area-inset-bottom)_+_0.25rem)] md:flex-row md:items-center md:justify-between md:gap-3 md:pb-0">
                   <div className="hidden text-xs text-muted-foreground md:block">
                     {selected ? getVariantLabel(selected.minutes) : ''}
                   </div>

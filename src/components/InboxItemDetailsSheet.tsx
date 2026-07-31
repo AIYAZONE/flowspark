@@ -318,7 +318,7 @@ function InboxItemDetailsSheetInner({
 								</div>
 							</SheetHeader>
 
-							<div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] pt-4">
+							<div className="min-h-0 flex-1 overflow-y-auto px-4 pb-[calc(env(safe-area-inset-bottom)_+_1rem)] pt-4">
 								<div className="space-y-4">
 									<div className="rounded-2xl border border-border/60 bg-background/85 px-4 py-3">
 										<div className="text-sm font-medium whitespace-pre-wrap" style={{ overflowWrap: 'anywhere' }}>
