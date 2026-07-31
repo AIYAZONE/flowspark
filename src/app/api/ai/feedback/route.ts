@@ -49,15 +49,15 @@ const EVENT_META_DEFAULTS: Partial<Record<string, Record<string, string>>> = {
     scene: 'today_plan',
   },
   ai_review_click: {
-    source: 'dashboard',
+    source: 'review',
     scene: 'review',
   },
   ai_review_generated: {
-    source: 'dashboard',
+    source: 'review',
     scene: 'review',
   },
   ai_review_dismiss: {
-    source: 'dashboard',
+    source: 'review',
     scene: 'review',
   },
   ai_tomorrow_handoff_exposed: {
@@ -73,7 +73,7 @@ const EVENT_META_DEFAULTS: Partial<Record<string, Record<string, string>>> = {
     scene: 'tomorrow_handoff',
   },
   ai_review_exposed: {
-    source: 'dashboard',
+    source: 'review',
     scene: 'review',
   },
 }

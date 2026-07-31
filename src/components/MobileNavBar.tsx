@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Target, CalendarCheck, User, Lightbulb, MessageSquare } from 'lucide-react'
+import { CalendarCheck, ClipboardCheck, LayoutDashboard, Lightbulb, MessageSquare, Target, User } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { MOBILE_ONLY_CLASS } from '@/components/responsive-classes'
 
@@ -14,6 +14,7 @@ interface MobileNavBarProps {
       dashboard: string
       today: string
       goals: string
+      review: string
       inbox: string
       profile: string
     }
@@ -96,6 +97,11 @@ export function MobileNavBar({ dict }: MobileNavBarProps) {
       title: dict.sidebar.goals,
       href: '/goals',
       icon: Target,
+    },
+    {
+      title: dict.sidebar.review,
+      href: '/review',
+      icon: ClipboardCheck,
     },
     {
       title: dict.sidebar.inbox,

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarCheck, LayoutDashboard, Lightbulb, MessageSquare, Target, User } from 'lucide-react'
+import { CalendarCheck, ClipboardCheck, LayoutDashboard, Lightbulb, MessageSquare, Target, User } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { BrandMark } from '@/components/BrandLogo'
@@ -15,6 +15,7 @@ interface SidebarProps {
       chat: string
       today: string
       goals: string
+      review: string
       notifications: string
       inbox: string
       profile: string
@@ -100,6 +101,11 @@ export function Sidebar({ dict }: SidebarProps) {
       title: dict.sidebar.goals,
       href: '/goals',
       icon: Target,
+    },
+    {
+      title: dict.sidebar.review,
+      href: '/review',
+      icon: ClipboardCheck,
     },
     {
       title: dict.sidebar.inbox,

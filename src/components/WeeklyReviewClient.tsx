@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import type { Dictionary } from '@/i18n/types'
 import { archiveAction } from '@/app/(authenticated)/goals/actions'
+import { trackFeedbackEvent } from '@/lib/feedback'
 
 type ReviewItemKind = 'archive' | 'reorder' | 'focus' | 'complete'
 
@@ -63,6 +64,10 @@ export function WeeklyReviewClient({
   const [archiveError, setArchiveError] = useState<string | null>(null)
   const [, startArchive] = useTransition()
 
+  useEffect(() => {
+    void trackFeedbackEvent('ai_review_exposed')
+  }, [])
+
   async function runReview() {
     setLoading(true)
     setError(false)
@@ -81,6 +86,7 @@ export function WeeklyReviewClient({
       const json = (await res.json()) as ReviewApiResponse
       if (!res.ok || !json.ok) throw new Error('bad_response')
       setResult(json.data)
+      void trackFeedbackEvent('ai_review_generated')
     } catch {
       setError(true)
     } finally {
@@ -99,6 +105,7 @@ export function WeeklyReviewClient({
         fd.set('id', actionId)
         await archiveAction(fd)
         setArchivedIds((prev) => new Set(prev).add(actionId))
+        void trackFeedbackEvent('ai_review_click', { action: 'archive' })
       } catch {
         setArchiveError(r.archiveError)
       } finally {
@@ -240,6 +247,7 @@ export function WeeklyReviewClient({
                         <div className="flex shrink-0 items-center gap-2">
                           <a
                             href={target}
+                            onClick={() => void trackFeedbackEvent('ai_review_click', { action: 'view', goal_id: item.goal_id ?? '' })}
                             className="inline-flex h-8 items-center rounded-lg border border-border/60 px-2.5 text-xs text-muted-foreground transition-colors hover:bg-muted/50"
                           >
                             {r.viewBtn}
