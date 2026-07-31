@@ -122,7 +122,7 @@ export function Sidebar({ dict }: SidebarProps) {
       )}
     >
       <div className="flex h-full w-full flex-col border-r border-white/8 bg-background/75 text-foreground backdrop-blur-xl">
-        <div className="flex flex-col items-center justify-center gap-2 border-b border-white/8 px-2 py-4 xl:py-5 2xl:py-6">
+        <div className="flex flex-col items-center justify-center gap-2 border-b border-white/8 px-2 py-3 xl:py-4 2xl:py-5">
           <Link
             href="/"
             className="flex items-center justify-center rounded-2xl border border-white/10 bg-white/3 p-2 text-primary backdrop-blur-sm transition-transform duration-200 hover:scale-[1.02] xl:p-2.5"
@@ -141,11 +141,11 @@ export function Sidebar({ dict }: SidebarProps) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-4 xl:px-2.5 xl:py-4.5 2xl:px-3 [@media(min-width:1920px)]:px-3.5">
-          <div className="relative mb-3 flex items-center justify-center text-[8px] font-medium uppercase tracking-[0.28em] text-muted-foreground/55 before:mr-2 before:h-px before:flex-1 before:bg-border/50 after:ml-2 after:h-px after:flex-1 after:bg-border/50 xl:text-[9px]">
+        <div className="no-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 xl:px-2.5 xl:py-3.5 2xl:px-3 2xl:py-4 [@media(min-width:1920px)]:px-3.5">
+          <div className="relative mb-2 flex items-center justify-center text-[8px] font-medium uppercase tracking-[0.28em] text-muted-foreground/55 before:mr-2 before:h-px before:flex-1 before:bg-border/50 after:ml-2 after:h-px after:flex-1 after:bg-border/50 xl:text-[9px]">
             {dict.sidebar.groups.core}
           </div>
-          <nav className="flex flex-col items-center gap-2.5 xl:gap-3 2xl:gap-3.5">
+          <nav className="flex flex-col items-center gap-2 xl:gap-2.5 2xl:gap-3">
             {sidebarItems.map((item) => {
               const isActive = pathname.startsWith(item.href)
               return (
@@ -154,7 +154,7 @@ export function Sidebar({ dict }: SidebarProps) {
                   href={item.href}
                   prefetch={false}
                   className={cn(
-                    'group flex w-full max-w-[78px] flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 py-3 text-center transition-all duration-200 xl:max-w-[84px] xl:gap-2 xl:px-2 xl:py-3 2xl:max-w-[90px] 2xl:gap-2.5 2xl:px-2.5 2xl:py-3.5 [@media(min-width:1920px)]:max-w-[96px]',
+                    'group flex w-full max-w-[78px] flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 py-2.5 text-center transition-all duration-200 xl:max-w-[84px] xl:gap-2 xl:px-2 xl:py-2.5 2xl:max-w-[90px] 2xl:gap-2.5 2xl:px-2.5 2xl:py-3 [@media(min-width:1920px)]:max-w-[96px]',
                     isActive ? activeItemClass : idleItemClass
                   )}
                   aria-current={isActive ? 'page' : undefined}
@@ -183,7 +183,7 @@ export function Sidebar({ dict }: SidebarProps) {
         </div>
 
         <div className="border-t border-white/8 px-2 py-4 xl:px-2.5 xl:py-4.5 2xl:px-3 [@media(min-width:1920px)]:px-3.5">
-          <div className="relative mb-3 flex items-center justify-center text-[8px] font-medium uppercase tracking-[0.28em] text-muted-foreground/55 before:mr-2 before:h-px before:flex-1 before:bg-border/50 after:ml-2 after:h-px after:flex-1 after:bg-border/50 xl:text-[9px]">
+          <div className="relative mb-2 flex items-center justify-center text-[8px] font-medium uppercase tracking-[0.28em] text-muted-foreground/55 before:mr-2 before:h-px before:flex-1 before:bg-border/50 after:ml-2 after:h-px after:flex-1 after:bg-border/50 xl:text-[9px]">
             {dict.sidebar.groups.identity}
           </div>
           {(() => {

@@ -168,6 +168,14 @@
     padding-bottom: calc(env(safe-area-inset-bottom) + 1rem);
   }
 
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   details[open] .ai-details-chevron {
     transform: rotate(180deg);
   }
