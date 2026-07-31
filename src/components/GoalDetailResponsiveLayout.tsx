@@ -16,6 +16,7 @@ import { GoalQuickSwitch } from '@/components/GoalQuickSwitch'
 import { GoalStatusBadge } from '@/components/GoalStatusBadge'
 import { GoalSubItemsTabs } from '@/components/GoalSubItemsTabs'
 import { StreakFeedbackBanner } from '@/components/StreakFeedbackBanner'
+import { GoalBlueprint, type GoalBlueprintData } from '@/components/GoalBlueprint'
 import { DESKTOP_AND_UP_MEDIA_QUERY } from '@/components/responsive-classes'
 
 type Dict = typeof en
@@ -86,7 +87,8 @@ export function GoalDetailResponsiveLayout({
   activeGoals,
   shareInfo,
   calendarFeedInfo,
-  tzDefaults
+  tzDefaults,
+  blueprint
 }: {
   goal: Goal
   actions: Action[]
@@ -97,6 +99,7 @@ export function GoalDetailResponsiveLayout({
   shareInfo: { token: string | null; expiresAt: string | null }
   calendarFeedInfo: { token: string | null; expiresAt: string | null }
   tzDefaults: { startDefault: string; endDefault: string }
+  blueprint?: GoalBlueprintData
 }) {
   const isDesktop = useMediaQuery(DESKTOP_AND_UP_MEDIA_QUERY)
   const completedActions = useMemo(
@@ -117,6 +120,14 @@ export function GoalDetailResponsiveLayout({
   return (
     <div className="space-y-5 lg:space-y-6">
       <StreakFeedbackBanner dict={dict} />
+      {blueprint ? (
+        <GoalBlueprint
+          goalId={goal.id}
+          goalTitle={goal.title}
+          goalDescription={goal.description}
+          initial={blueprint}
+        />
+      ) : null}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-start gap-3 lg:flex-1 lg:gap-4">
           <Button

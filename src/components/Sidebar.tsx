@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarCheck, ClipboardCheck, LayoutDashboard, Lightbulb, MessageSquare, Target, User } from 'lucide-react'
+import { CalendarCheck, ClipboardCheck, LayoutDashboard, Lightbulb, MessageSquare, Target, User, Brain } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { BrandMark } from '@/components/BrandLogo'
@@ -19,6 +19,7 @@ interface SidebarProps {
       notifications: string
       inbox: string
       profile: string
+      persona: string
       groups: {
         core: string
         identity: string
@@ -34,9 +35,45 @@ interface SidebarProps {
   }
 }
 
+type Density = 'comfortable' | 'compact' | 'mini' | 'icon'
+
+// 基于视口高度的初始档位估计；layout 校正后可能进一步降到更小档，确保不裁切。
+const H_COMFORT = 780
+const H_COMPACT = 640
+const H_MINI = 520
+const HYS = 24 // 滞回带宽：升档需更高阈值
+
+function nextDensityByViewport(prev: Density, h: number): Density {
+  switch (prev) {
+    case 'comfortable':
+      if (h < H_COMFORT - HYS) return h < H_COMPACT - HYS ? (h < H_MINI - HYS ? 'icon' : 'mini') : 'compact'
+      return 'comfortable'
+    case 'compact':
+      if (h >= H_COMFORT + HYS) return 'comfortable'
+      if (h < H_COMPACT - HYS) return h < H_MINI - HYS ? 'icon' : 'mini'
+      return 'compact'
+    case 'mini':
+      if (h >= H_COMPACT + HYS) return 'compact'
+      if (h < H_MINI - HYS) return 'icon'
+      return 'mini'
+    case 'icon':
+      if (h >= H_MINI + HYS) return 'mini'
+      return 'icon'
+  }
+}
+
+const ORDER: Density[] = ['comfortable', 'compact', 'mini', 'icon']
+function downgrade(d: Density): Density {
+  const i = ORDER.indexOf(d)
+  return i < ORDER.length - 1 ? ORDER[i + 1] : d
+}
+
 export function Sidebar({ dict }: SidebarProps) {
   const pathname = usePathname()
   const [notificationUnread, setNotificationUnread] = useState<number>(0)
+  const [density, setDensity] = useState<Density>('comfortable')
+  const navRef = useRef<HTMLElement>(null)
+  const midRef = useRef<HTMLDivElement>(null)
 
   const activeItemClass =
     'bg-linear-to-b from-primary/12 via-primary/8 to-primary/5 text-primary ring-1 ring-primary/16 shadow-sm shadow-primary/10'
@@ -81,38 +118,48 @@ export function Sidebar({ dict }: SidebarProps) {
     }
   }, [])
 
+  // 视口驱动初始档位（粗选），不测中部避免反馈循环。
+  useEffect(() => {
+    function apply() {
+      setDensity((prev) => nextDensityByViewport(prev, window.innerHeight))
+    }
+    apply()
+    window.addEventListener('resize', apply)
+    return () => window.removeEventListener('resize', apply)
+  }, [])
+
+  // 实测校正：apply 档位后若 nav 渲染高度 > 中部可用 → 单向降到下一档。
+  // 不回升，避免反馈循环。视觉保证零裁切。
+  useLayoutEffect(() => {
+    const nav = navRef.current
+    const mid = midRef.current
+    if (!nav || !mid) return
+    const midH = mid.clientHeight
+    const navH = nav.scrollHeight
+    if (navH > midH) {
+      setDensity((prev) => downgrade(prev))
+    }
+    // 仅依赖 density；midRef/navRef 稳定
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [density])
+
   const sidebarItems = [
-    {
-      title: dict.sidebar.chat,
-      href: '/chat',
-      icon: MessageSquare,
-    },
-    {
-      title: dict.sidebar.dashboard,
-      href: '/system',
-      icon: LayoutDashboard,
-    },
-    {
-      title: dict.sidebar.today,
-      href: '/today',
-      icon: CalendarCheck,
-    },
-    {
-      title: dict.sidebar.goals,
-      href: '/goals',
-      icon: Target,
-    },
-    {
-      title: dict.sidebar.review,
-      href: '/review',
-      icon: ClipboardCheck,
-    },
-    {
-      title: dict.sidebar.inbox,
-      href: '/inbox',
-      icon: Lightbulb,
-    },
+    { title: dict.sidebar.chat, href: '/chat', icon: MessageSquare },
+    { title: dict.sidebar.dashboard, href: '/system', icon: LayoutDashboard },
+    { title: dict.sidebar.today, href: '/today', icon: CalendarCheck },
+    { title: dict.sidebar.goals, href: '/goals', icon: Target },
+    { title: dict.sidebar.review, href: '/review', icon: ClipboardCheck },
+    { title: dict.sidebar.inbox, href: '/inbox', icon: Lightbulb },
+    { title: dict.sidebar.persona, href: '/persona', icon: Brain },
   ]
+
+  // 导航图标尺寸按档位收敛
+  const iconSizeCls =
+    density === 'comfortable'
+      ? 'h-5 w-5 xl:h-[22px] xl:w-[22px] 2xl:h-6 2xl:w-6'
+      : density === 'compact'
+        ? 'h-[18px] w-[18px] xl:h-5 xl:w-5'
+        : 'h-4 w-4 xl:h-[18px] xl:w-[18px]'
 
   return (
     <div
@@ -122,7 +169,8 @@ export function Sidebar({ dict }: SidebarProps) {
       )}
     >
       <div className="flex h-full w-full flex-col border-r border-white/8 bg-background/75 text-foreground backdrop-blur-xl">
-        <div className="flex flex-col items-center justify-center gap-2 border-b border-white/8 px-2 py-3 xl:py-4 2xl:py-5">
+        {/* 头部品牌 */}
+        <div className="flex shrink-0 flex-col items-center justify-center gap-2 border-b border-white/8 px-2 py-3 xl:py-4 2xl:py-5">
           <Link
             href="/"
             className="flex items-center justify-center rounded-2xl border border-white/10 bg-white/3 p-2 text-primary backdrop-blur-sm transition-transform duration-200 hover:scale-[1.02] xl:p-2.5"
@@ -141,11 +189,16 @@ export function Sidebar({ dict }: SidebarProps) {
           </div>
         </div>
 
-        <div className="no-scrollbar flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 xl:px-2.5 xl:py-3.5 2xl:px-3 2xl:py-4 [@media(min-width:1920px)]:px-3.5">
-          <div className="relative mb-2 flex items-center justify-center text-[8px] font-medium uppercase tracking-[0.28em] text-muted-foreground/55 before:mr-2 before:h-px before:flex-1 before:bg-border/50 after:ml-2 after:h-px after:flex-1 after:bg-border/50 xl:text-[9px]">
+        {/* 中部：分组标题 + 7 项导航。data-density 驱动 CSS 精确控制 padding/gap/字号。*/}
+        <div
+          ref={midRef}
+          data-density={density}
+          className="sidebar-middle flex min-h-0 flex-1 flex-col items-stretch overflow-hidden px-2 xl:px-2.5 2xl:px-3"
+        >
+          <div className="sidebar-group-label relative mb-2 flex shrink-0 items-center justify-center text-[8px] font-medium uppercase tracking-[0.28em] text-muted-foreground/55 before:mr-2 before:h-px before:flex-1 before:bg-border/50 after:ml-2 after:h-px after:flex-1 after:bg-border/50 xl:text-[9px]">
             {dict.sidebar.groups.core}
           </div>
-          <nav className="flex flex-col items-center gap-2 xl:gap-2.5 2xl:gap-3">
+          <nav ref={navRef} className="sidebar-nav flex min-h-0 w-full flex-col items-stretch overflow-hidden">
             {sidebarItems.map((item) => {
               const isActive = pathname.startsWith(item.href)
               return (
@@ -153,15 +206,17 @@ export function Sidebar({ dict }: SidebarProps) {
                   key={item.href}
                   href={item.href}
                   prefetch={false}
+                  title={item.title}
                   className={cn(
-                    'group flex w-full max-w-[78px] flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 py-2.5 text-center transition-all duration-200 xl:max-w-[84px] xl:gap-2 xl:px-2 xl:py-2.5 2xl:max-w-[90px] 2xl:gap-2.5 2xl:px-2.5 2xl:py-3 [@media(min-width:1920px)]:max-w-[96px]',
+                    'group flex w-full flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 text-center transition-all duration-200 xl:gap-2 xl:px-2 2xl:gap-2.5 2xl:px-2.5',
                     isActive ? activeItemClass : idleItemClass
                   )}
                   aria-current={isActive ? 'page' : undefined}
                 >
                   <item.icon
                     className={cn(
-                      'h-5 w-5 shrink-0 transition-all duration-200 xl:h-[22px] xl:w-[22px] 2xl:h-6 2xl:w-6 [@media(min-width:1920px)]:h-[26px] [@media(min-width:1920px)]:w-[26px] [@media(min-width:2560px)]:h-7 [@media(min-width:2560px)]:w-7',
+                      'shrink-0 transition-all duration-200',
+                      iconSizeCls,
                       isActive
                         ? 'scale-105 text-primary'
                         : 'text-muted-foreground group-hover:scale-105 group-hover:text-foreground'
@@ -170,7 +225,7 @@ export function Sidebar({ dict }: SidebarProps) {
                   />
                   <span
                     className={cn(
-                      'line-clamp-2 text-[10px] font-medium leading-3.5 xl:text-[11px] xl:leading-4 2xl:text-[11.5px] 2xl:leading-[1.05rem] [@media(min-width:1920px)]:text-xs [@media(min-width:1920px)]:leading-[1.1rem]',
+                      'sidebar-label line-clamp-2 font-medium',
                       isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
                     )}
                   >
@@ -182,8 +237,12 @@ export function Sidebar({ dict }: SidebarProps) {
           </nav>
         </div>
 
-        <div className="border-t border-white/8 px-2 py-4 xl:px-2.5 xl:py-4.5 2xl:px-3 [@media(min-width:1920px)]:px-3.5">
-          <div className="relative mb-2 flex items-center justify-center text-[8px] font-medium uppercase tracking-[0.28em] text-muted-foreground/55 before:mr-2 before:h-px before:flex-1 before:bg-border/50 after:ml-2 after:h-px after:flex-1 after:bg-border/50 xl:text-[9px]">
+        {/* 底部：自我组 */}
+        <div
+          data-density={density}
+          className="sidebar-foot shrink-0 border-t border-white/8 px-2 xl:px-2.5 2xl:px-3"
+        >
+          <div className="sidebar-group-label relative mb-2 flex items-center justify-center text-[8px] font-medium uppercase tracking-[0.28em] text-muted-foreground/55 before:mr-2 before:h-px before:flex-1 before:bg-border/50 after:ml-2 after:h-px after:flex-1 after:bg-border/50 xl:text-[9px]">
             {dict.sidebar.groups.identity}
           </div>
           {(() => {
@@ -193,8 +252,9 @@ export function Sidebar({ dict }: SidebarProps) {
               <Link
                 href="/profile"
                 prefetch={false}
+                title={dict.sidebar.profile}
                 className={cn(
-                  'group mx-auto flex h-[62px] w-full max-w-[78px] flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 text-center transition-all duration-200 xl:h-[68px] xl:max-w-[84px] xl:gap-2 xl:px-2 2xl:h-[74px] 2xl:max-w-[90px] 2xl:gap-2.5 2xl:px-2.5 [@media(min-width:1920px)]:h-[80px] [@media(min-width:1920px)]:max-w-[96px]',
+                  'group flex w-full flex-col items-center justify-center gap-1.5 rounded-2xl px-1.5 text-center transition-all duration-200 xl:gap-2 xl:px-2 2xl:gap-2.5 2xl:px-2.5',
                   isActive ? activeItemClass : idleItemClass
                 )}
                 aria-current={isActive ? 'page' : undefined}
@@ -202,7 +262,8 @@ export function Sidebar({ dict }: SidebarProps) {
                 <span className="relative">
                   <User
                     className={cn(
-                      'h-5 w-5 shrink-0 transition-all duration-200 xl:h-[22px] xl:w-[22px] 2xl:h-6 2xl:w-6 [@media(min-width:1920px)]:h-[26px] [@media(min-width:1920px)]:w-[26px] [@media(min-width:2560px)]:h-7 [@media(min-width:2560px)]:w-7',
+                      'shrink-0 transition-all duration-200',
+                      iconSizeCls,
                       isActive
                         ? 'scale-105 text-primary'
                         : 'text-muted-foreground group-hover:scale-105 group-hover:text-foreground'
@@ -215,7 +276,7 @@ export function Sidebar({ dict }: SidebarProps) {
                 </span>
                 <span
                   className={cn(
-                    'line-clamp-2 text-[10px] font-medium leading-3.5 xl:text-[11px] xl:leading-4 2xl:text-[11.5px] 2xl:leading-[1.05rem] [@media(min-width:1920px)]:text-xs [@media(min-width:1920px)]:leading-[1.1rem]',
+                    'sidebar-label line-clamp-2 font-medium',
                     isActive ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
                   )}
                 >

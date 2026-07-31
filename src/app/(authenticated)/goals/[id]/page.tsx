@@ -4,6 +4,7 @@ import { getTodayInTZ, getUserTimezone } from '@/lib/time'
 import { queryWithOwnershipFallback } from '@/lib/ownership'
 
 import { GoalDetailResponsiveLayout } from '@/components/GoalDetailResponsiveLayout'
+import type { GoalBlueprintData } from '@/components/GoalBlueprint'
 
 function addDaysFromDateString(date: string, days: number): string {
 	const d = new Date(`${date}T00:00:00Z`)
@@ -14,6 +15,58 @@ function addDaysFromDateString(date: string, days: number): string {
 		month: '2-digit',
 		day: '2-digit'
 	}).format(d)
+}
+
+async function loadBlueprint(
+	supabase: Awaited<ReturnType<typeof createClient>>,
+	goalId: string,
+	positioning: GoalBlueprintData['positioning'],
+): Promise<GoalBlueprintData> {
+	const { data: pillars } = await supabase
+		.from('path_pillars')
+		.select('id, title, rationale, sort_order')
+		.eq('goal_id', goalId)
+		.order('sort_order', { ascending: true })
+
+	const { data: milestones } = await supabase
+		.from('path_milestones')
+		.select('id, title, target_date, sort_order')
+		.eq('goal_id', goalId)
+		.order('sort_order', { ascending: true })
+
+	let keyResults: Array<{ id: string; milestone_id: string; title: string; target: string | null; current: string | null }> = []
+	if (milestones && milestones.length > 0) {
+		const msIds = milestones.map((m) => m.id)
+		const { data: krs } = await supabase
+			.from('path_key_results')
+			.select('id, milestone_id, title, target, current')
+			.in('milestone_id', msIds)
+		keyResults = (krs as typeof keyResults) || []
+	}
+
+	const milestoneData = (milestones || []).map((m) => ({
+		id: m.id as string,
+		title: m.title as string,
+		target_date: (m.target_date as string | null) || null,
+		key_results: keyResults
+			.filter((kr) => kr.milestone_id === m.id)
+			.map((kr) => ({
+				id: kr.id,
+				title: kr.title,
+				target: kr.target ?? null,
+				current: kr.current ?? null,
+			})),
+	}))
+
+	return {
+		positioning: positioning ?? null,
+		pillars: (pillars || []).map((p) => ({
+			id: p.id as string,
+			title: p.title as string,
+			rationale: (p.rationale as string | null) ?? null,
+		})),
+		milestones: milestoneData,
+	}
 }
 
 interface PageProps {
@@ -115,6 +168,8 @@ export default async function GoalDetailPage({ params }: PageProps) {
 
 	if (!goal) return <div>{dict.goals.detail.notFound}</div>
 
+	const blueprint = await loadBlueprint(supabase, id, (goal.positioning as GoalBlueprintData['positioning']) ?? null)
+
 	const goalActions = actions || []
 	const activeActions = goalActions.filter((a) => !a.archived)
 	const archivedActions = goalActions.filter((a) => a.archived)
@@ -151,6 +206,7 @@ export default async function GoalDetailPage({ params }: PageProps) {
 				expiresAt: (calendarFeedData?.expires_at as string | null) || null
 			}}
 			tzDefaults={{ startDefault, endDefault }}
+			blueprint={blueprint}
 		/>
 	)
 }

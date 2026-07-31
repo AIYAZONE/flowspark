@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Target, CalendarCheck, User, LogOut, Menu, Loader2, X, MessageSquare } from 'lucide-react'
+import { LayoutDashboard, Target, CalendarCheck, User, LogOut, Menu, Loader2, X, MessageSquare, Brain } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
@@ -24,6 +24,7 @@ interface MobileSidebarProps {
       today: string
       goals: string
       profile: string
+      persona: string
       brand: string
       signOut: string
     }
@@ -68,6 +69,11 @@ export function MobileSidebar({ dict }: MobileSidebarProps) {
       title: dict.sidebar.profile,
       href: '/profile',
       icon: User,
+    },
+    {
+      title: dict.sidebar.persona,
+      href: '/persona',
+      icon: Brain,
     },
   ]
 

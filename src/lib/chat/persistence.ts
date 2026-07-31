@@ -2,6 +2,99 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { findDuplicateOpenAction } from './action-dedup.ts'
 import { queryWithOwnershipFallback } from '../ownership.ts'
 import type { ChatFeedbackReason } from './types.ts'
+import type { PathPlanResult } from '../ai/pathPlan.ts'
+
+export type RecordPathPlanInput = {
+  goalId: string
+  plan: PathPlanResult
+}
+
+export type RecordPathPlanResult = { ok?: boolean; error?: string }
+
+/**
+ * 把一条 Chat 规划师生成的路径方案落写进数据库（双向联动：chat → 路径）。
+ * 写入 goals.positioning，并把 pillars / milestones / 其下 key_results 写入对应子表。
+ * 落写是幂等友好的：先清空该 goal 已有的 pillars/milestones，再整体写入。
+ */
+export async function recordPathPlan(
+  supabase: SupabaseClient,
+  userId: string,
+  input: RecordPathPlanInput
+): Promise<RecordPathPlanResult> {
+  const { goalId, plan } = input
+  if (!goalId || !plan) return { error: 'missing_fields' }
+
+  // 1. 写定位卡到 goals
+  const { error: goalErr } = await supabase
+    .from('goals')
+    .update({
+      positioning: {
+        persona: plan.positioning.persona,
+        oneLiner: plan.positioning.oneLiner,
+        threePieces: plan.positioning.threePieces,
+        audience: plan.positioning.audience,
+      },
+    })
+    .eq('id', goalId)
+    .eq('user_id', userId)
+
+  if (goalErr) return { error: 'operation_failed' }
+
+  // 2. 清掉旧的子结构（幂等）
+  await supabase.from('path_pillars').delete().eq('goal_id', goalId)
+  const { data: oldMilestones } = await supabase
+    .from('path_milestones')
+    .select('id')
+    .eq('goal_id', goalId)
+  if (oldMilestones && oldMilestones.length > 0) {
+    const ids = oldMilestones.map((m) => m.id)
+    await supabase.from('path_key_results').delete().in('milestone_id', ids)
+    await supabase.from('path_milestones').delete().eq('goal_id', goalId)
+  }
+
+  // 3. 写策略支柱
+  if (plan.pillars?.length) {
+    const { error: pillarErr } = await supabase.from('path_pillars').insert(
+      plan.pillars.map((p, i) => ({
+        goal_id: goalId,
+        title: p.title,
+        rationale: p.rationale ?? null,
+        sort_order: i,
+      })),
+    )
+    if (pillarErr) return { error: 'operation_failed' }
+  }
+
+  // 4. 写里程碑 + 关键结果
+  for (let i = 0; i < (plan.milestones ?? []).length; i++) {
+    const m = plan.milestones[i]
+    const { data: milestone, error: msErr } = await supabase
+      .from('path_milestones')
+      .insert({
+        goal_id: goalId,
+        title: m.title,
+        target_date: m.target_date ?? null,
+        sort_order: i,
+      })
+      .select('id')
+      .single()
+    if (msErr || !milestone) return { error: 'operation_failed' }
+
+    if (m.key_results?.length) {
+      const { error: krErr } = await supabase.from('path_key_results').insert(
+        m.key_results.map((kr) => ({
+          milestone_id: milestone.id,
+          title: kr.title,
+          target: kr.target ?? null,
+          current: '0',
+        })),
+      )
+      if (krErr) return { error: 'operation_failed' }
+    }
+  }
+
+  return { ok: true }
+}
 
 /**
  * 聊天闭环的"落库"纯逻辑，从 server action 中抽出以便单测。

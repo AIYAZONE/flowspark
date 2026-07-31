@@ -94,6 +94,11 @@ Enables RLS for `goal_shares`; owners can manage their records, public reads are
    - `08_inbox_rls.sql`
    - `09_goal_entries.sql`
    - `10_goal_entries_rls.sql`
-   - `11_goal_shares.sql`
-   - `12_goal_shares_rls.sql`
+  - `11_goal_shares.sql`
+  - `12_goal_shares_rls.sql`
+  - `43_area_meta.sql`
+  - `44_action_archive.sql`
+  - `45_action_links.sql`
+  - `50_user_persona.sql` — 个人记忆表（人生系统的人设沉淀，原则 A）
+  - `51_path_structure.sql` — 路径 5 层结构（定位卡 + 支柱 + 里程碑 + 关键结果 + actions 外键）
 4. Once completed, the database initialization is finished.
