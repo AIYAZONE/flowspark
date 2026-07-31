@@ -39,7 +39,7 @@ FlowSpark 的定位不是"知识捕获型第二大脑"（那是 Obsidian 的事�
 > - ✅ **Phase 1 领域层**：`supabase/43_area_meta.sql` + `/goals` 领域分组面板 + `AreaManageDialog`。
 > - ✅ **Phase 2 双向视图 + 归档流**：`goals/[id]` 详情聚合 actions + 进度；`ArchiveGoalButton` / `archiveAction` 提供归档流。
 > - ✅ **Phase 3 链接 + AI 涌现**：`supabase/45_action_links.sql` + `ActionItemPanel` 双向展示 / AI 建议采纳落库闭环。
-> - ⚠️ **Phase 4 周回顾**：后端 `planReview` + `/api/ai/review` 已存在但**前端零调用**（引擎当前为死代码）；`WeeklyInsightCard` **并未被清理**（仍是只读形态），与 §7 教训直接冲突。详见 Phase 4 小节。
+> - ✅ **Phase 4 周回顾**：`/review` 可操作周回顾页已上线（问卷 → `/api/ai/review` → 结构化 `review_items`）；`ReviewOutput` 已结构化（`archive`/`reorder`/`focus`/`complete`），`aiReview`/`planReview` 注入真实 candidates，无 AI key 时 fallback 派生可操作项；`WeeklyInsightCard` 已改造为指向 `/review` 的入口卡；废弃的 `weekly_insight` 链路（`route`/`insightStore`/`insights`/`planWeeklyInsight`）已清理。详见 Phase 4 小节。
 > - ⬜ **Phase 5 Resources / 图谱**：未启动，优先级最低。
 
 ## 3. 方法论映射（PARA / Zettelkasten → FlowSpark）
@@ -91,7 +91,7 @@ FlowSpark 的定位不是"知识捕获型第二大脑"（那是 Obsidian 的事�
 3. **新建 `/review` 周回顾页**（建议独立路由，而非塞进 `/system`）：问卷（score + friction）→ 调 `/api/ai/review` → 渲染结构化结果；每条 `review_item` 配「一键归档 / 重排 / 聚焦」按钮，复用现有 `archiveAction` / `updateAction`（带 RLS，零新基础设施）。
 4. **收尾 `WeeklyInsightCard`**：改造为指向 `/review` 的入口卡，或在 `/review` 上线后正式移除（兑现 §7 教训）。
 
-**风险/成本**：中。AI 结构化质量需评估（沿用 `evaluateReviewQuality` 的 fallback 机制）；所有写操作复用现有带 RLS 的 actions，不引入新基础设施。建议新开 `feature/weekly-review` 分支（当前在 `feature/ai-chat`）。
+**风险/成本**：中。AI 结构化质量需评估（沿用 `evaluateReviewQuality` 的 fallback 机制）；所有写操作复用现有带 RLS 的 actions，不引入新基础设施。已在 `feature/ai-chat` 分支实现并提交（2026-07-31）。
 
 ### Phase 5 — Later（可选，锦上添花）
 - Resources 层：chat 里"保存为参考"而非只产出 goal/action。
@@ -126,15 +126,17 @@ FlowSpark 的定位不是"知识捕获型第二大脑"（那是 Obsidian 的事�
 - **Phase 3**：AI 关联建议的**采纳率**；停滞 goal 提示的准确率（人工抽样）。
 - **Phase 4**：周回顾使用率、单次回顾产生的归档/重排动作数。
 
-## 9. 建议起点（2026-07-30 更新）
+## 9. 建议起点（2026-07-31 更新）
 
-Phase 1–3 已落地（见 §2 状态表）。**当前唯一下一步是 Phase 4 周回顾**（详见 Phase 4 执行计划）。其起点应是：
+Phase 1–4 已全部落地并提交（见 §2 状态表）：
+- Phase 4 周回顾 = `/review` 可操作页 + 结构化 `review_items` + 废弃 `weekly_insight` 链路清理（2026-07-31 提交于 `feature/ai-chat`）。
 
-- 结构化 `ReviewOutput`（`review_items[]`）+ 改造 `aiReview` / `buildFallbackReview`
-- 新建 `/review` 可操作周回顾页，复用现有 `archiveAction` / `updateAction`（带 RLS）
-- 收尾 `WeeklyInsightCard`（改造为入口或移除）
+**下一步选项（按杠杆排序）**：
 
-> 注：原文档"Phase 1 的 Area 层是唯一正确的起点"已过时，因代码已超前实现至 Phase 3。
+1. **打磨 Phase 4 价值**：让 `/review` 在全局 `Sidebar`/底部导航可见（当前仅靠 `WeeklyInsightCard` 入口）；实测 AI 结构化质量与无 key fallback 覆盖；确认 `ai_review_*` 埋点就绪以衡量 §8 指标。
+2. **Phase 5（Resources / 图谱）**：可选、优先级最低，应在验证前 4 步用户价值后再议，避免跑偏成笔记软件。
+
+> 注：原文档「当前唯一下一步是 Phase 4」（2026-07-30）已过时，因 Phase 4 现已完成。另，原文档「Phase 1 的 Area 层是唯一正确的起点」亦已过时，代码已超前实现至 Phase 3。
 
 ## 10. 关联文档
 
