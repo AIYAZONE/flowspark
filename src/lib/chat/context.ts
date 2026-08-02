@@ -15,6 +15,7 @@ import {
   type TodayPersonalization
 } from '@/lib/self-model'
 import { getChatFeedbackSummary, type ChatFeedbackSummary } from './feedback.ts'
+import { type MilestoneStageInfo, computeMilestoneStage, type MilestoneLike } from '@/lib/path-context'
 
 export type ChatContext = {
   goals: Array<{ title: string; category: string | null; priority: string | null }>
@@ -28,6 +29,8 @@ export type ChatContext = {
   signals: SelfModelSignalSummary
   // 聊天负反馈聚合：近 14 天负反馈 ≥ 2 时用于闭环改进 system prompt；无信号时为 null
   feedbackSummary?: ChatFeedbackSummary | null
+  // 路径里程碑阶段信息：结构化标记当前里程碑，替代纯推断
+  milestoneStage?: MilestoneStageInfo | null
 }
 
 type GoalRow = { id: string; title: string; category: string | null; priority: string | null; status: string }
@@ -107,6 +110,43 @@ export async function getChatContext(
     // 降级：不注入反馈改进指令
   }
 
+  // —— 路径里程碑阶段：查询结构化里程碑数据，替代纯推断 ——
+  let milestoneStage: MilestoneStageInfo | null = null
+  try {
+    const primaryGoal = [...goals].sort((a, b) => {
+      const pMap: Record<string, number> = { high: 3, medium: 2, low: 1 }
+      const pA = pMap[a.priority || 'medium'] ?? 2
+      const pB = pMap[b.priority || 'medium'] ?? 2
+      if (pA !== pB) return pB - pA
+      return a.title.localeCompare(b.title)
+    })[0]
+    if (primaryGoal) {
+      const { data: milestonesData } = await queryWithOwnershipFallback({
+        execute: (col) =>
+          supabase
+            .from('path_milestones')
+            .select('id,title,target_date,sort_order,status,started_at,completed_at')
+            .eq(col, userId)
+            .eq('goal_id', primaryGoal.id)
+            .order('sort_order', { ascending: true }),
+      })
+      const milestones: MilestoneLike[] = (milestonesData ?? []).map((m: Record<string, unknown>) => ({
+        id: m.id as string,
+        title: m.title as string,
+        target_date: m.target_date as string | null,
+        sort_order: (m.sort_order as number) ?? 0,
+        status: (m.status as MilestoneLike['status']) || 'pending',
+        started_at: m.started_at as string | null,
+        completed_at: m.completed_at as string | null,
+      }))
+      if (milestones.length > 0) {
+        milestoneStage = computeMilestoneStage(milestones)
+      }
+    }
+  } catch {
+    // 降级：里程碑查询失败不影响聊天主流程
+  }
+
   const selfModelCards = buildSelfModelCards({ locale, currentStreak, completedToday, signals })
 
   const showStreakRiskBanner = !completedToday && (currentStreak > 0 || Boolean(recoverableMissDate))
@@ -128,7 +168,8 @@ export async function getChatContext(
     streak: { currentStreak, longestStreak, completedToday },
     preferences,
     signals,
-    feedbackSummary
+    feedbackSummary,
+    milestoneStage,
   }
 }
 

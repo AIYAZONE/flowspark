@@ -4,7 +4,7 @@ import { AddActionDialog } from '@/components/AddActionDialog'
 import { TodayActionList } from '@/components/TodayActionList'
 import { ensureUpcomingRecurringActions } from '@/app/(authenticated)/dashboard/recurring'
 import { queryWithOwnershipFallback } from '@/lib/ownership'
-import { buildPrimaryPathContext } from '@/lib/path-context'
+import { buildPrimaryPathContext, type MilestoneLike } from '@/lib/path-context'
 import {
   getTodayInTZ,
   getUserTimezone,
@@ -18,6 +18,7 @@ import {
 import { mergeTargetedActionIntoTodayList } from '@/lib/today-task-list'
 import { getCategoryLabel } from '@/lib/goalCategories'
 import { EmergentInsights, type StalledGoalInsight, type StaleActionInsight } from '@/components/EmergentInsights'
+import { detectStaleActions } from '@/lib/stale-detector'
 
 export default async function TodayPage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
@@ -47,6 +48,28 @@ export default async function TodayPage(props: {
   })
 
   await ensureUpcomingRecurringActions({ supabase, userId: ownerId, today })
+
+  // 查询主导路径的里程碑（结构化阶段数据）
+  let milestones: MilestoneLike[] = []
+  if ((activeGoals || []).length > 0) {
+    const primaryGoalId = activeGoals![0].id as string
+    const { data: milestonesData } = await supabase
+      .from('path_milestones')
+      .select('id,title,target_date,sort_order,status,started_at,completed_at')
+      .eq('goal_id', primaryGoalId)
+      .order('sort_order', { ascending: true })
+    if (milestonesData) {
+      milestones = milestonesData.map((m: Record<string, unknown>) => ({
+        id: m.id as string,
+        title: m.title as string,
+        target_date: m.target_date as string | null,
+        sort_order: (m.sort_order as number) ?? 0,
+        status: (m.status as MilestoneLike['status']) || 'pending',
+        started_at: m.started_at as string | null,
+        completed_at: m.completed_at as string | null,
+      }))
+    }
+  }
 
   const datePredicate = [
     `and(start_date.lte.${today},end_date.gte.${today})`,
@@ -121,6 +144,7 @@ export default async function TodayPage(props: {
           }))
         : [],
     })),
+    milestones,
   })
 
   const actionIdParam = Array.isArray(searchParams?.action) ? searchParams?.action[0] : searchParams?.action
@@ -228,6 +252,36 @@ export default async function TodayPage(props: {
       .map(([category]) => getCategoryLabel(dict, category))
   })()
 
+  // 救援配置：为驻点 action 提供 reasonTag 和里程碑阶段上下文
+  const staleWithRescue = detectStaleActions(
+    actions.map((a) => ({
+      id: a.id as string,
+      title: a.title as string,
+      completed: a.completed as boolean | null,
+      goal_id: a.goal_id as string | null,
+      goal_title: (a as Record<string, unknown>).goal_title as string | null,
+      updated_at: a.updated_at as string | null,
+      created_at: a.created_at as string | null,
+    })),
+    today
+  )
+
+  const rescueConfig = {
+    staleActions: staleWithRescue.staleActions.map((sa) => ({
+      id: sa.id,
+      title: sa.title,
+      goalId: sa.goal_id,
+      days: sa.days_since_last_progress,
+      reasonTag: sa.reason_tag,
+    })),
+    milestoneStage: milestones.length > 0 ? {
+      currentMilestoneTitle: milestones.find((m) => m.status === 'active')?.title || undefined,
+      completedCount: milestones.filter((m) => m.status === 'completed').length,
+      totalCount: milestones.length,
+      progressText: `${milestones.filter((m) => m.status === 'completed').length}/${milestones.length}`,
+    } : null,
+  }
+
   return (
     <div className="space-y-6">
       <div className="md:hidden sticky top-0 z-20 -mx-4 border-b border-white/8 bg-background/75 px-4 pb-3 pt-2 backdrop-blur-xl">
@@ -277,6 +331,7 @@ export default async function TodayPage(props: {
       <EmergentInsights
         data={{ stalledGoals, staleActions, quietAreas }}
         dict={dict.insights}
+        rescueConfig={staleWithRescue.rescueEligible ? rescueConfig : undefined}
       />
 
       <div id="today-actions">

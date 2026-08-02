@@ -56,7 +56,29 @@ function makeFullContext(): ChatContext {
     todayPersonalization: today,
     streak: { currentStreak: 5, longestStreak: 12, completedToday: true },
     preferences: ['回复保持短', '不要主动复述偏好'],
-    signals
+    signals,
+    milestoneStage: {
+      currentMilestone: {
+        id: 'ms-1',
+        title: '确定核心功能',
+        target_date: null,
+        sort_order: 0,
+        status: 'active',
+        started_at: '2026-07-20T00:00:00Z',
+        completed_at: null,
+      },
+      completedCount: 0,
+      totalCount: 3,
+      nextMilestone: {
+        id: 'ms-2',
+        title: 'MVP 上线',
+        target_date: '2026-08-15',
+        sort_order: 1,
+        status: 'pending',
+        started_at: null,
+        completed_at: null,
+      },
+    },
   }
 }
 
@@ -84,6 +106,11 @@ test('full context renders all enrichment sections (brain is plugged in)', () =>
   // 今日系统解读
   assert.match(prompt, /【今日系统解读】/)
   assert.match(prompt, /【今日解读】连续第 5 天在推进/)
+
+  // 路径里程碑阶段
+  assert.match(prompt, /路径里程碑阶段/)
+  assert.match(prompt, /确定核心功能/)
+  assert.match(prompt, /已完成 0\/3 个里程碑/)
 })
 
 test('English locale renders english framing without crashing', () => {
@@ -107,13 +134,14 @@ test('degraded context still renders (no data must not break chat)', () => {
       adoptedRecentCount: 0,
       completedRecentCount: 0,
       topFeedbackLabel: null
-    }
+    },
+    milestoneStage: null,
   }
   const prompt = buildChatSystemPrompt({ context: empty, locale: 'zh' })
   assert.match(prompt, /（暂无进行中的路径）/)
   assert.match(prompt, /（今天暂无待推进的行动）/)
   assert.match(prompt, /（暂无画像数据）/)
-  assert.match(prompt, /（暂无）/)
   assert.match(prompt, /连续 0 天（最长 0 天）/)
-  assert.match(prompt, /（暂无）/)
+  // 无里程碑时不渲染里程碑阶段行
+  assert.doesNotMatch(prompt, /路径里程碑阶段/)
 })

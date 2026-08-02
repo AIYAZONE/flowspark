@@ -193,6 +193,7 @@ export function buildRescueStrategy(params: {
   context: CoachContext
   reasonTag: RescueOutput['reason_tag']
   actionTitle: string
+  milestoneStage?: Record<string, unknown> | null
 }): RecommendationStrategySummary {
   const riskLevel = computeRiskLevel(params.context)
   const signals = deriveUserPreferenceSignals(params.context)
@@ -205,10 +206,21 @@ export function buildRescueStrategy(params: {
   if (signals.lowTrustScene === 'rescue') difficultyMode = 'starter'
   if (signals.topRejectReason === 'no_time' || signals.topRejectReason === 'too_hard') difficultyMode = 'starter'
 
+  const milestoneHints: (string | null)[] = []
+  if (params.milestoneStage) {
+    const ms = params.milestoneStage
+    if (ms.currentMilestoneTitle) {
+      milestoneHints.push(`milestone:${ms.currentMilestoneTitle}`)
+    }
+    if (typeof ms.completedCount === 'number' && typeof ms.totalCount === 'number') {
+      milestoneHints.push(`milestone_progress:${ms.completedCount}/${ms.totalCount}`)
+    }
+  }
+
   return {
     scene: 'rescue',
     strategyVersion: 'phase_c_v1',
-    promptVersion: 'rescue_v2',
+    promptVersion: 'rescue_v3',
     difficultyMode,
     riskLevel,
     selectedGoalId: null,
@@ -218,6 +230,7 @@ export function buildRescueStrategy(params: {
       params.context.frictions[0]?.reasonTag ? `top_friction:${params.context.frictions[0].reasonTag}` : null,
       signals.prefersShort == null ? null : `prefers_short:${signals.prefersShort ? 'yes' : 'no'}`,
       signals.topRejectReason ? `top_reject_reason:${signals.topRejectReason}` : null,
+      ...milestoneHints,
     ]),
     fallbackPolicy: ['minimal_variant_under_5_to_10_minutes', 'fallback_on_non_minimal_output'],
   }

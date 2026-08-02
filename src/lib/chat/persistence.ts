@@ -66,8 +66,10 @@ export async function recordPathPlan(
   }
 
   // 4. 写里程碑 + 关键结果
+  // 第一个里程碑设为 active（启动期），其余为 pending
   for (let i = 0; i < (plan.milestones ?? []).length; i++) {
     const m = plan.milestones[i]
+    const isFirst = i === 0
     const { data: milestone, error: msErr } = await supabase
       .from('path_milestones')
       .insert({
@@ -75,6 +77,8 @@ export async function recordPathPlan(
         title: m.title,
         target_date: m.target_date ?? null,
         sort_order: i,
+        status: isFirst ? 'active' : 'pending',
+        started_at: isFirst ? new Date().toISOString() : null,
       })
       .select('id')
       .single()

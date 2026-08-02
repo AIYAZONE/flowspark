@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { AlertTriangle, Clock, Layers, Sparkles } from 'lucide-react'
 import type { Dictionary } from '@/i18n/types'
+import { RescueInlineButton } from './RescueInlineButton'
 
 export type StalledGoalInsight = {
   id: string
@@ -29,10 +30,20 @@ function interpolate(template: string, vars: Record<string, string | number>) {
 // LLM 主动"这几条可能是一件事"的链接建议留作后续 Phase 3c。
 export function EmergentInsights({
   data,
-  dict
+  dict,
+  rescueConfig,
 }: {
   data: EmergentInsightsData
   dict: Dictionary['insights']
+  rescueConfig?: {
+    staleActions: Array<{ id: string; title: string; goalId: string | null; days: number; reasonTag: string }>
+    milestoneStage?: {
+      currentMilestoneTitle?: string
+      completedCount?: number
+      totalCount?: number
+      progressText?: string
+    } | null
+  }
 }) {
   const { stalledGoals, staleActions, quietAreas } = data
   const hasAny = stalledGoals.length > 0 || staleActions.length > 0 || quietAreas.length > 0
@@ -82,6 +93,19 @@ export function EmergentInsights({
                   <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
                     {interpolate(dict.staleItem, { days: action.days })}
                   </span>
+                  {rescueConfig && action.goalId ? (
+                    <RescueInlineButton
+                      goalId={action.goalId}
+                      goalTitle={rescueConfig.staleActions.find((a) => a.id === action.id)?.title || action.title}
+                      actionId={action.id}
+                      actionTitle={action.title}
+                      reasonTag={
+                        rescueConfig.staleActions.find((a) => a.id === action.id)?.reasonTag || 'stalled'
+                      }
+                      staleLabel={`「${action.title}」已停滞 ${action.days} 天`}
+                      milestoneStage={rescueConfig.milestoneStage}
+                    />
+                  ) : null}
                 </li>
               ))}
             </ul>

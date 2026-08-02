@@ -21,6 +21,9 @@ export async function POST(req: Request) {
   const reason_tag = typeof input.reason_tag === 'string' ? input.reason_tag : ''
   const action = (input.action && typeof input.action === 'object') ? (input.action as Record<string, unknown>) : null
   const goal = (input.goal && typeof input.goal === 'object') ? (input.goal as Record<string, unknown>) : null
+  const milestoneStage = (input.milestone_stage && typeof input.milestone_stage === 'object')
+    ? (input.milestone_stage as Record<string, unknown>)
+    : null
 
   if (!reason_tag || !action || !goal) return NextResponse.json({ error: 'missing_fields' }, { status: 400 })
 
@@ -46,6 +49,7 @@ export async function POST(req: Request) {
       reasonTag: reason_tag as never,
       action: actionPayload,
       goal: goalPayload,
+      milestoneStage,
     })
     return NextResponse.json(response, { status: 200 })
   } catch (error) {

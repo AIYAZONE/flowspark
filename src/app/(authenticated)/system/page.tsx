@@ -17,7 +17,7 @@ import { StreakCard } from '@/components/StreakCard'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { buildPrimaryPathContext } from '@/lib/path-context'
+import { buildPrimaryPathContext, type MilestoneLike } from '@/lib/path-context'
 
 export default async function SystemPage() {
   const supabase = await createClient()
@@ -67,6 +67,28 @@ export default async function SystemPage() {
 
   const hasActiveGoals = (activeGoals || []).length > 0
 
+  // 查询主导路径的里程碑（结构化阶段数据）
+  let milestones: MilestoneLike[] = []
+  if (hasActiveGoals) {
+    const primaryGoalId = activeGoals![0].id as string
+    const { data: milestonesData } = await supabase
+      .from('path_milestones')
+      .select('id,title,target_date,sort_order,status,started_at,completed_at')
+      .eq('goal_id', primaryGoalId)
+      .order('sort_order', { ascending: true })
+    if (milestonesData) {
+      milestones = milestonesData.map((m: Record<string, unknown>) => ({
+        id: m.id as string,
+        title: m.title as string,
+        target_date: m.target_date as string | null,
+        sort_order: (m.sort_order as number) ?? 0,
+        status: (m.status as MilestoneLike['status']) || 'pending',
+        started_at: m.started_at as string | null,
+        completed_at: m.completed_at as string | null,
+      }))
+    }
+  }
+
   const primaryPathContext = buildPrimaryPathContext({
     locale,
     today,
@@ -85,6 +107,7 @@ export default async function SystemPage() {
           }))
         : [],
     })),
+    milestones,
   })
 
   const { data: todayScoreRow } = await queryWithOwnershipFallback({

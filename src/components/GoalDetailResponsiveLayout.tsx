@@ -3,6 +3,8 @@
 import { useMemo, useSyncExternalStore } from 'react'
 import { format } from 'date-fns'
 import { Archive, ArrowLeft, ChevronDown } from 'lucide-react'
+import { RescuePanel } from './RescuePanel'
+import type { StaleSignal } from '@/lib/stale-detector'
 import Link from 'next/link'
 
 import type en from '@/i18n/en.json'
@@ -88,7 +90,9 @@ export function GoalDetailResponsiveLayout({
   shareInfo,
   calendarFeedInfo,
   tzDefaults,
-  blueprint
+  blueprint,
+  staleSignal,
+  milestoneStageForRescue
 }: {
   goal: Goal
   actions: Action[]
@@ -100,6 +104,13 @@ export function GoalDetailResponsiveLayout({
   calendarFeedInfo: { token: string | null; expiresAt: string | null }
   tzDefaults: { startDefault: string; endDefault: string }
   blueprint?: GoalBlueprintData
+  staleSignal?: StaleSignal
+  milestoneStageForRescue?: {
+    currentMilestoneTitle?: string
+    completedCount?: number
+    totalCount?: number
+    progressText?: string
+  } | null
 }) {
   const isDesktop = useMediaQuery(DESKTOP_AND_UP_MEDIA_QUERY)
   const completedActions = useMemo(
@@ -126,6 +137,22 @@ export function GoalDetailResponsiveLayout({
           goalTitle={goal.title}
           goalDescription={goal.description}
           initial={blueprint}
+        />
+      ) : null}
+      {/* 驻点救援：当路径中有超过 7 天无进展的 action 时，展示 AI 破局建议 */}
+      {staleSignal?.rescueEligible ? (
+        <RescuePanel
+          reasonTag={staleSignal.staleActions[0].reason_tag}
+          action={{
+            id: staleSignal.staleActions[0].id,
+            title: staleSignal.staleActions[0].title,
+          }}
+          goal={{
+            id: goal.id,
+            title: goal.title,
+          }}
+          milestoneStage={milestoneStageForRescue}
+          staleContextLabel={`「${staleSignal.staleActions[0].title}」已停滞 ${staleSignal.staleActions[0].days_since_last_progress} 天`}
         />
       ) : null}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

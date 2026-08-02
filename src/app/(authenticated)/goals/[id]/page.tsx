@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { getDictionary } from '@/i18n/get-dictionary'
 import { getTodayInTZ, getUserTimezone } from '@/lib/time'
 import { queryWithOwnershipFallback } from '@/lib/ownership'
+import { detectStaleActions, type StaleSignal } from '@/lib/stale-detector'
 
 import { GoalDetailResponsiveLayout } from '@/components/GoalDetailResponsiveLayout'
 import type { GoalBlueprintData } from '@/components/GoalBlueprint'
@@ -30,7 +31,7 @@ async function loadBlueprint(
 
 	const { data: milestones } = await supabase
 		.from('path_milestones')
-		.select('id, title, target_date, sort_order')
+		.select('id, title, target_date, sort_order, status, started_at, completed_at')
 		.eq('goal_id', goalId)
 		.order('sort_order', { ascending: true })
 
@@ -48,6 +49,9 @@ async function loadBlueprint(
 		id: m.id as string,
 		title: m.title as string,
 		target_date: (m.target_date as string | null) || null,
+		status: (m.status as 'pending' | 'active' | 'completed' | null) || null,
+		started_at: (m.started_at as string | null) || null,
+		completed_at: (m.completed_at as string | null) || null,
 		key_results: keyResults
 			.filter((kr) => kr.milestone_id === m.id)
 			.map((kr) => ({
@@ -174,8 +178,23 @@ export default async function GoalDetailPage({ params }: PageProps) {
 	const activeActions = goalActions.filter((a) => !a.archived)
 	const archivedActions = goalActions.filter((a) => a.archived)
 
-	const startDefault = getTodayInTZ(tz)
+	const today = getTodayInTZ(tz)
+	const startDefault = today
 	const endDefault = addDaysFromDateString(startDefault, 7)
+
+	// 驻点检测：超过 7 天无进展的 action 触发救援提示
+	const staleSignal: StaleSignal = detectStaleActions(
+		goalActions.map((a) => ({
+			id: a.id as string,
+			title: a.title as string,
+			completed: a.completed as boolean | null,
+			goal_id: a.goal_id as string | null,
+			goal_title: goal.title as string,
+			updated_at: (a.updated_at as string) || null,
+			created_at: (a.created_at as string) || null,
+		})),
+		today
+	)
 
 	const mappedEntries = (goalEntries || []).map((e) => ({
 		id: e.id as string,
@@ -185,6 +204,15 @@ export default async function GoalDetailPage({ params }: PageProps) {
 		note: (e.note as string) || '',
 		created_at: e.created_at as string
 	}))
+
+	// 里程碑阶段上下文（供 rescue panel 使用），来源为已加载的 blueprint.milestones
+	const blueprintMilestones = blueprint?.milestones ?? []
+	const milestoneStageForRescue = blueprintMilestones.length > 0 ? {
+		currentMilestoneTitle: blueprintMilestones.find((m) => m.status === 'active')?.title || undefined,
+		completedCount: blueprintMilestones.filter((m) => m.status === 'completed').length,
+		totalCount: blueprintMilestones.length,
+		progressText: `${blueprintMilestones.filter((m) => m.status === 'completed').length}/${blueprintMilestones.length}`,
+	} : null
 
 	return (
 		<GoalDetailResponsiveLayout
@@ -207,6 +235,8 @@ export default async function GoalDetailPage({ params }: PageProps) {
 			}}
 			tzDefaults={{ startDefault, endDefault }}
 			blueprint={blueprint}
+			staleSignal={staleSignal}
+			milestoneStageForRescue={milestoneStageForRescue}
 		/>
 	)
 }

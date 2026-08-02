@@ -11,6 +11,24 @@ type GoalLike = {
   actions?: Array<{ id: string; completed?: boolean | null }> | null
 }
 
+export type MilestoneLike = {
+  id: string
+  title: string
+  target_date?: string | null
+  sort_order: number
+  status: 'pending' | 'active' | 'completed'
+  started_at?: string | null
+  completed_at?: string | null
+}
+
+/** 结构化里程碑阶段信息，供 chat context 和 plan 端点消费 */
+export type MilestoneStageInfo = {
+  currentMilestone: MilestoneLike | null
+  completedCount: number
+  totalCount: number
+  nextMilestone: MilestoneLike | null
+}
+
 export type PrimaryPathContext = {
   goalId: string
   title: string
@@ -19,6 +37,8 @@ export type PrimaryPathContext = {
   body: string
   evidence: string
   ctaLabel: string
+  /** 结构化里程碑信息，当调用方传入 milestones 时有值 */
+  milestoneInfo?: MilestoneStageInfo
 }
 
 function compareGoals(a: GoalLike, b: GoalLike) {
@@ -45,12 +65,28 @@ function diffDays(fromDate: string, toDate: string) {
   return Math.round((to - from) / (1000 * 60 * 60 * 24))
 }
 
+/** 从 milestones 数组中计算结构化阶段信息 */
+export function computeMilestoneStage(milestones: MilestoneLike[]): MilestoneStageInfo {
+  const sorted = [...milestones].sort((a, b) => a.sort_order - b.sort_order)
+  const active = sorted.find((m) => m.status === 'active') || null
+  const completedCount = sorted.filter((m) => m.status === 'completed').length
+  const nextPending = sorted.find((m) => m.status === 'pending') || null
+
+  return {
+    currentMilestone: active,
+    completedCount,
+    totalCount: sorted.length,
+    nextMilestone: nextPending,
+  }
+}
+
 export function buildPrimaryPathContext(params: {
   locale: Locale
   today: string
   goals: GoalLike[]
+  milestones?: MilestoneLike[]
 }): PrimaryPathContext | null {
-  const { locale, today, goals } = params
+  const { locale, today, goals, milestones } = params
   const isZh = locale === 'zh'
   const primaryGoal = [...goals].sort(compareGoals)[0]
   if (!primaryGoal) return null
@@ -62,6 +98,78 @@ export function buildPrimaryPathContext(params: {
   const daysToDeadline = primaryGoal.end_date ? diffDays(today, primaryGoal.end_date) : null
   const stageLabel = isZh ? '路径阶段' : 'Path Stage'
 
+  // 结构化里程碑信息
+  const milestoneInfo = milestones && milestones.length > 0
+    ? computeMilestoneStage(milestones)
+    : undefined
+
+  // 如果有活跃里程碑，使用里程碑信息生成更精确的阶段上下文
+  if (milestoneInfo?.currentMilestone) {
+    const m = milestoneInfo.currentMilestone
+    const mLabel = isZh ? `${stageLabel} · ${m.title}` : `${stageLabel} · ${m.title}`
+    const mIndex = milestones!.filter((x) => x.status === 'completed').length
+    const mTotal = milestones!.length
+    const isFirst = mIndex === 0
+    const isLast = mIndex === mTotal - 1
+
+    if (isFirst && completedActions === 0) {
+      return {
+        goalId: primaryGoal.id,
+        title: primaryGoal.title,
+        stageLabel: mLabel,
+        titleText: isZh
+          ? `当前阶段「${m.title}」是路径的启动期，今天先让它发生第一次真实推进。`
+          : `The current stage "${m.title}" is the launch phase. Today should create the first real move.`,
+        body: isZh
+          ? `「${primaryGoal.title}」已规划了 ${mTotal} 个里程碑，现在是第一个「${m.title}」。今天最重要的不是做很多，而是拿到第一次真实完成。`
+          : `"${primaryGoal.title}" has ${mTotal} planned milestones, starting with "${m.title}". Today matters less for volume and more for getting the first real completion.`,
+        evidence: isZh
+          ? `路径共 ${mTotal} 个里程碑，当前处于第 1 个「${m.title}」，暂时还没有完成动作。`
+          : `The path has ${mTotal} milestones, currently at the 1st "${m.title}" with no completed actions yet.`,
+        ctaLabel: isZh ? '去推进当前阶段' : 'Move this stage',
+        milestoneInfo,
+      }
+    }
+
+    if (isLast && progress >= 0.5) {
+      return {
+        goalId: primaryGoal.id,
+        title: primaryGoal.title,
+        stageLabel: mLabel,
+        titleText: isZh
+          ? `当前阶段「${m.title}」是路径的最后一程，今天更适合完成关键闭环。`
+          : `The current stage "${m.title}" is the final stretch, so today should close the key loop.`,
+        body: isZh
+          ? `「${primaryGoal.title}」已走过 ${mIndex} 个里程碑，现在到了最后一个「${m.title}」。系统更倾向收关键尾，而不是继续横向扩展。`
+          : `"${primaryGoal.title}" has passed ${mIndex} milestones and is now at the final "${m.title}". The system prefers closing critical loops instead of expanding sideways.`,
+        evidence: isZh
+          ? `已完成 ${completedActions}/${totalActions} 个动作，且处于最后里程碑阶段。`
+          : `Completed ${completedActions}/${totalActions} actions and at the final milestone stage.`,
+        ctaLabel: isZh ? '收关键尾' : 'Close the loop',
+        milestoneInfo,
+      }
+    }
+
+    // 中间阶段稳定推进
+    return {
+      goalId: primaryGoal.id,
+      title: primaryGoal.title,
+      stageLabel: mLabel,
+      titleText: isZh
+        ? `当前阶段「${m.title}」处在稳定推进期，今天应继续压实主线。`
+        : `The current stage "${m.title}" is in steady execution, so today should keep pressing the main thread forward.`,
+      body: isZh
+        ? `「${primaryGoal.title}」已走过 ${mIndex} 个里程碑，当前聚焦在「${m.title}」。系统会把今天的主线更多压向持续推进。`
+        : `"${primaryGoal.title}" has passed ${mIndex} milestones and is now focused on "${m.title}". The system should push today toward sustained execution.`,
+      evidence: isZh
+        ? `已完成 ${completedActions}/${totalActions} 个动作，当前处于第 ${mIndex + 1}/${mTotal} 个里程碑。`
+        : `Completed ${completedActions}/${totalActions} actions, currently at milestone ${mIndex + 1}/${mTotal}.`,
+      ctaLabel: isZh ? '继续压实主线' : 'Keep the main thread moving',
+      milestoneInfo,
+    }
+  }
+
+  // 无活跃里程碑时回退到原有的 action 数量推断逻辑
   if (totalActions === 0) {
     return {
       goalId: primaryGoal.id,
@@ -75,6 +183,7 @@ export function buildPrimaryPathContext(params: {
         ? '当前优先级最高，但还没有挂接行动，说明它是方向明确、执行尚未落地的主线路径。'
         : 'It is currently the highest-priority path, but it has no attached actions yet, which means direction is clear while execution is not grounded.',
       ctaLabel: isZh ? '去完善这条路径' : 'Refine this path',
+      milestoneInfo,
     }
   }
 
@@ -91,6 +200,7 @@ export function buildPrimaryPathContext(params: {
         ? `这条路径下已有 ${totalActions} 个动作，但完成数仍为 0。`
         : `This path already has ${totalActions} actions underneath it, but completions are still at 0.`,
       ctaLabel: isZh ? '去推进这条路径' : 'Move this path',
+      milestoneInfo,
     }
   }
 
@@ -114,6 +224,7 @@ export function buildPrimaryPathContext(params: {
           ? `Only ${daysToDeadline} day(s) remain before the path deadline, and completion signals are already present.`
           : `This path is about ${Math.round(progress * 100)}% complete, which places it closer to closing than to starting.`,
       ctaLabel: isZh ? '去收关键尾' : 'Close the loop',
+      milestoneInfo,
     }
   }
 
@@ -130,6 +241,7 @@ export function buildPrimaryPathContext(params: {
         ? `这条路径已完成 ${completedActions}/${totalActions} 个动作，说明执行链条已经启动。`
         : `This path has completed ${completedActions}/${totalActions} actions, which means the execution chain is already active.`,
       ctaLabel: isZh ? '继续压实主线' : 'Keep the main thread moving',
+      milestoneInfo,
     }
   }
 
@@ -145,5 +257,6 @@ export function buildPrimaryPathContext(params: {
       ? `这条路径已有 ${completedActions} 次完成，但整体推进还未进入后半程。`
       : `This path already has ${completedActions} completions, but overall progress is not yet in the later phase.`,
     ctaLabel: isZh ? '继续铺轨推进' : 'Build momentum',
+    milestoneInfo,
   }
 }

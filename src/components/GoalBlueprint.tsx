@@ -40,6 +40,9 @@ export interface BlueprintMilestone {
   title: string
   target_date?: string | null
   key_results: BlueprintKR[]
+  status?: 'pending' | 'active' | 'completed' | null
+  started_at?: string | null
+  completed_at?: string | null
 }
 
 export interface GoalBlueprintData {
@@ -342,32 +345,70 @@ export function GoalBlueprint({
                 <ListChecks className="h-4 w-4 text-primary" /> 里程碑 / 关键结果
               </div>
               <ol className="space-y-3">
-                {data.milestones.map((m, i) => (
-                  <li key={i} className="rounded-xl border border-border/50 bg-muted/20 p-3">
-                    <div className="flex items-center gap-2">
-                      <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/12 text-xs font-semibold text-primary">
-                        {i + 1}
-                      </span>
-                      <p className="text-sm font-medium text-foreground">{m.title}</p>
-                      {m.target_date ? (
-                        <span className="text-xs text-muted-foreground">· {m.target_date}</span>
+                {data.milestones.map((m, i) => {
+                  const isActive = m.status === 'active'
+                  const isCompleted = m.status === 'completed'
+                  return (
+                    <li
+                      key={i}
+                      className={
+                        isActive
+                          ? 'rounded-xl border border-primary/30 bg-primary/5 p-3'
+                          : isCompleted
+                            ? 'rounded-xl border border-border/50 bg-muted/15 p-3 opacity-70'
+                            : 'rounded-xl border border-border/50 bg-muted/20 p-3'
+                      }
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={
+                            isCompleted
+                              ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-xs font-semibold text-emerald-600'
+                              : isActive
+                                ? 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-xs font-semibold text-primary'
+                                : 'inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary/12 text-xs font-semibold text-primary'
+                          }
+                        >
+                          {isCompleted ? '✓' : i + 1}
+                        </span>
+                        <p
+                          className={
+                            isCompleted
+                              ? 'text-sm font-medium text-muted-foreground line-through'
+                              : 'text-sm font-medium text-foreground'
+                          }
+                        >
+                          {m.title}
+                        </p>
+                        {isActive ? (
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                            进行中
+                          </span>
+                        ) : isCompleted ? (
+                          <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600">
+                            已完成
+                          </span>
+                        ) : null}
+                        {m.target_date ? (
+                          <span className="text-xs text-muted-foreground">· {m.target_date}</span>
+                        ) : null}
+                      </div>
+                      {m.key_results.length > 0 ? (
+                        <ul className="mt-2 space-y-1.5 pl-7">
+                          {m.key_results.map((kr, j) => (
+                            <li key={j} className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                              <CornerDownRight className="mt-0.5 h-3 w-3 shrink-0 text-border" />
+                              <span>
+                                {kr.title}
+                                {kr.target ? <span className="text-foreground"> → {kr.target}</span> : null}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
                       ) : null}
-                    </div>
-                    {m.key_results.length > 0 ? (
-                      <ul className="mt-2 space-y-1.5 pl-7">
-                        {m.key_results.map((kr, j) => (
-                          <li key={j} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                            <CornerDownRight className="mt-0.5 h-3 w-3 shrink-0 text-border" />
-                            <span>
-                              {kr.title}
-                              {kr.target ? <span className="text-foreground"> → {kr.target}</span> : null}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </li>
-                ))}
+                    </li>
+                  )
+                })}
               </ol>
             </section>
           ) : null}

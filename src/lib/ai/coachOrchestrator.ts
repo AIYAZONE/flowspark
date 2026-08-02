@@ -480,8 +480,9 @@ export async function planRescue(params: {
   action: { id: string; title: string; description?: string | null }
   goal: { id: string; title: string }
   timezone?: string
+  milestoneStage?: Record<string, unknown> | null
 }): Promise<RescueApiResponse> {
-  const { supabase, userId, locale, reasonTag, action, goal, timezone } = params
+  const { supabase, userId, locale, reasonTag, action, goal, timezone, milestoneStage } = params
   const context = await buildCoachContext({
     supabase,
     userId,
@@ -496,9 +497,16 @@ export async function planRescue(params: {
     context,
     reasonTag,
     actionTitle: action.title,
+    milestoneStage,
   })
   let qualityLabels: RecommendationQuality | null = null
   try {
+    const milestoneHint = milestoneStage ? (isZh => ({
+      milestone_title: milestoneStage.currentMilestoneTitle as string | undefined,
+      milestone_progress: milestoneStage.progressText as string | undefined,
+      stage_label: isZh ? `当前处于里程碑阶段：${milestoneStage.currentMilestoneTitle || '未知'}` : `Currently at milestone: ${milestoneStage.currentMilestoneTitle || 'unknown'}`,
+    }))(locale === 'zh') : null
+
     output = await aiRescue({
       locale,
       reason_tag: reasonTag,
@@ -508,6 +516,7 @@ export async function planRescue(params: {
         difficulty_mode: strategy.difficultyMode,
         risk_level: strategy.riskLevel,
         grounding_hints: strategy.groundingHints,
+        ...(milestoneHint ? { milestone_stage: milestoneHint.stage_label } : {}),
       },
     })
     qualityLabels = evaluateRescueQuality(output)

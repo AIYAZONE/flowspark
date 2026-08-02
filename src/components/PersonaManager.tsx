@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { Plus, Pencil, Trash2, Upload } from 'lucide-react'
+import { Plus, Pencil, Trash2, Upload, GitMerge } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,7 +27,7 @@ import {
   type PersonaCategory,
   type PersonaConfidence,
 } from '@/lib/persona-types'
-import { savePersona, removePersona, refreshPersona } from '@/app/(authenticated)/persona/actions'
+import { savePersona, removePersona, refreshPersona, mergePersona } from '@/app/(authenticated)/persona/actions'
 
 const CATEGORIES = Object.keys(PERSONA_CATEGORY_LABELS) as PersonaCategory[]
 const CONFIDENCES = Object.keys(PERSONA_CONFIDENCE_LABELS) as PersonaConfidence[]
@@ -37,6 +37,12 @@ export function PersonaManager({ initialItems }: { initialItems: UserPersona[] }
   const [editing, setEditing] = useState<UserPersona | null>(null)
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  const [mergeOpen, setMergeOpen] = useState(false)
+  const [mergeTargetId, setMergeTargetId] = useState('')
+  const [mergeSourceId, setMergeSourceId] = useState('')
+  const [merging, setMerging] = useState(false)
+  const [mergeMsg, setMergeMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
   const [importOpen, setImportOpen] = useState(false)
   const [importText, setImportText] = useState('')
@@ -81,6 +87,31 @@ export function PersonaManager({ initialItems }: { initialItems: UserPersona[] }
     if (res.ok) {
       const { items: refreshed } = await refreshPersona()
       setItems(refreshed)
+    }
+  }
+
+  function openMerge() {
+    setMergeTargetId('')
+    setMergeSourceId('')
+    setMergeMsg(null)
+    setMergeOpen(true)
+  }
+
+  async function handleMerge() {
+    if (!mergeTargetId || !mergeSourceId || mergeTargetId === mergeSourceId) return
+    setMerging(true)
+    setMergeMsg(null)
+    try {
+      const res = await mergePersona(mergeTargetId, mergeSourceId)
+      if (!res.ok) throw new Error(res.error || 'merge_failed')
+      const { items: refreshed } = await refreshPersona()
+      setItems(refreshed)
+      setMergeMsg({ type: 'ok', text: '已合并为一条，重复信息不再保留。' })
+      setTimeout(() => setMergeOpen(false), 900)
+    } catch (e) {
+      setMergeMsg({ type: 'err', text: e instanceof Error ? e.message : 'merge_failed' })
+    } finally {
+      setMerging(false)
     }
   }
 
@@ -131,6 +162,9 @@ export function PersonaManager({ initialItems }: { initialItems: UserPersona[] }
         <Button variant="outline" onClick={() => setImportOpen(true)}>
           <Upload className="mr-2 h-4 w-4" /> 导入文档
         </Button>
+        <Button variant="outline" onClick={openMerge} disabled={items.length < 2}>
+          <GitMerge className="mr-2 h-4 w-4" /> 合并重复
+        </Button>
         <Button onClick={openNew}>
           <Plus className="mr-2 h-4 w-4" /> 新增记忆
         </Button>
@@ -169,6 +203,19 @@ export function PersonaManager({ initialItems }: { initialItems: UserPersona[] }
                   onClick={() => openEdit(item)}
                 >
                   <Pencil className="mr-1 h-3.5 w-3.5" /> 编辑
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2"
+                  onClick={() => {
+                    setMergeSourceId(item.id)
+                    setMergeMsg(null)
+                    setMergeOpen(true)
+                  }}
+                  disabled={items.length < 2}
+                >
+                  <GitMerge className="mr-1 h-3.5 w-3.5" /> 合并
                 </Button>
                 <Button
                   variant="ghost"
@@ -252,6 +299,71 @@ export function PersonaManager({ initialItems }: { initialItems: UserPersona[] }
             </Button>
             <Button onClick={handleSave} disabled={saving || !editing?.title.trim()}>
               {saving ? '保存中…' : '保存'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={mergeOpen} onOpenChange={setMergeOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>合并重复的个人记忆</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            选择两条表达同一信息的记忆，系统会把「源」合并进「目标」并保留更详细的说明、取更高置信度，然后删除重复项。
+          </p>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>合并到（目标，保留）</Label>
+              <Select value={mergeTargetId} onValueChange={setMergeTargetId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择要保留的那条" />
+                </SelectTrigger>
+                <SelectContent>
+                  {items.map((i) => (
+                    <SelectItem key={i.id} value={i.id} disabled={i.id === mergeSourceId}>
+                      {i.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>被合并（源，删除）</Label>
+              <Select value={mergeSourceId} onValueChange={setMergeSourceId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择要被合并掉的那条" />
+                </SelectTrigger>
+                <SelectContent>
+                  {items.map((i) => (
+                    <SelectItem key={i.id} value={i.id} disabled={i.id === mergeTargetId}>
+                      {i.title}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {mergeMsg ? (
+            <p
+              className={
+                mergeMsg.type === 'ok'
+                  ? 'rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary'
+                  : 'rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive'
+              }
+            >
+              {mergeMsg.text}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMergeOpen(false)}>
+              取消
+            </Button>
+            <Button
+              onClick={handleMerge}
+              disabled={merging || !mergeTargetId || !mergeSourceId || mergeTargetId === mergeSourceId}
+            >
+              {merging ? '合并中…' : '合并'}
             </Button>
           </DialogFooter>
         </DialogContent>

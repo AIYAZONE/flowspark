@@ -1,6 +1,7 @@
 import type { ChatContext } from './context'
 import type { SelfModelCard } from '../self-model'
 import { buildFeedbackDirective } from './feedback.ts'
+import type { MilestoneStageInfo } from '../path-context'
 
 /**
  * Frames the model as the "人生路径推进系统 / Life OS" core: a calm, restrained,
@@ -15,6 +16,24 @@ function renderSelfModelCards(cards: SelfModelCard[]): string {
         `- 【${c.label}】${c.title}\n  ${c.body}\n  证据：${c.evidence}\n  今天影响：${c.todayEffect}`
     )
     .join('\n')
+}
+
+function renderMilestoneStage(info: MilestoneStageInfo | null | undefined, locale: 'zh' | 'en'): string {
+  if (!info || info.totalCount === 0) return ''
+  const isZh = locale === 'zh'
+  if (info.currentMilestone) {
+    return isZh
+      ? `当前活跃阶段「${info.currentMilestone.title}」（已完成 ${info.completedCount}/${info.totalCount} 个里程碑）`
+      : `Active stage: "${info.currentMilestone.title}" (${info.completedCount}/${info.totalCount} milestones completed)`
+  }
+  if (info.completedCount === info.totalCount) {
+    return isZh
+      ? `全部 ${info.totalCount} 个里程碑已完成`
+      : `All ${info.totalCount} milestones completed`
+  }
+  return isZh
+    ? `共 ${info.totalCount} 个里程碑，已完成 ${info.completedCount} 个，暂无活跃阶段`
+    : `${info.totalCount} milestones, ${info.completedCount} completed, no active stage`
 }
 
 export function buildChatSystemPrompt(params: { context: ChatContext; locale: 'zh' | 'en' }): string {
@@ -39,6 +58,8 @@ export function buildChatSystemPrompt(params: { context: ChatContext; locale: 'z
 
   const preferenceLine = context.preferences.length ? context.preferences.join('、') : '（暂无）'
 
+  const milestoneLine = renderMilestoneStage(context.milestoneStage, locale)
+
   const signalLine = `近 7 天 AI 建议：被采纳 ${context.signals.adoptedRecentCount} 条，已完成 ${
     context.signals.completedRecentCount
   } 条${
@@ -62,7 +83,7 @@ ${langNote}
 今天（${context.today}）这个人正在推进：
 - 进行中的路径（目标）：
 ${goalLines}
-- 今天可执行 / 待推进的行动（仅未完成，已按系统优先级排序）：
+${milestoneLine ? `- 路径里程碑阶段：${milestoneLine}\n` : ''}- 今天可执行 / 待推进的行动（仅未完成，已按系统优先级排序）：
 ${actionLines}
 - 连续节奏（Streak）：${streakLine}
 - 长期偏好与记忆（你应主动遵循，不与用户偏好相悖；用户未提及时不主动复述）：
