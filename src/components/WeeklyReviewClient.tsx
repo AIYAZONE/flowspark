@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import type { Dictionary } from '@/i18n/types'
 import { archiveAction } from '@/app/(authenticated)/goals/actions'
+import { saveReviewLearning } from '@/app/(authenticated)/persona/actions'
 import { trackFeedbackEvent } from '@/lib/feedback'
 
 type ReviewItemKind = 'archive' | 'reorder' | 'focus' | 'complete'
@@ -15,6 +16,8 @@ type ReviewItem = {
   reason: string
 }
 
+type Learning = { title: string; detail?: string }
+
 type ReviewOutput = {
   summary_sentence: string
   detected_friction_tag: string | null
@@ -24,6 +27,7 @@ type ReviewOutput = {
     suggested_core_action_direction: string
   }
   review_items?: ReviewItem[]
+  learnings?: Learning[]
   confidence?: 'low' | 'medium' | 'high'
 }
 
@@ -63,6 +67,10 @@ export function WeeklyReviewClient({
   const [archivePending, setArchivePending] = useState<string | null>(null)
   const [archiveError, setArchiveError] = useState<string | null>(null)
   const [, startArchive] = useTransition()
+
+  const [savedLearningKeys, setSavedLearningKeys] = useState<Set<string>>(new Set())
+  const [savingLearningKey, setSavingLearningKey] = useState<string | null>(null)
+  const [learningError, setLearningError] = useState<string | null>(null)
 
   useEffect(() => {
     void trackFeedbackEvent('ai_review_exposed')
@@ -110,6 +118,26 @@ export function WeeklyReviewClient({
         setArchiveError(r.archiveError)
       } finally {
         setArchivePending(null)
+      }
+    })
+  }
+
+  // 复盘闭环：把一条「学到了什么」沉淀进个人记忆（user_persona，category=reflection）
+  function handleSaveLearning(learning: Learning) {
+    const key = learning.title
+    if (savedLearningKeys.has(key)) return
+    setLearningError(null)
+    setSavingLearningKey(key)
+    startArchive(async () => {
+      try {
+        const res = await saveReviewLearning({ title: learning.title, detail: learning.detail ?? null })
+        if (!res.ok) throw new Error(res.error || 'save_failed')
+        setSavedLearningKeys((prev) => new Set(prev).add(key))
+        void trackFeedbackEvent('ai_review_click', { action: 'save_learning' })
+      } catch {
+        setLearningError(r.saveLearningError)
+      } finally {
+        setSavingLearningKey(null)
       }
     })
   }
@@ -272,11 +300,44 @@ export function WeeklyReviewClient({
             {archiveError && <p className="mt-2 text-xs text-destructive">{archiveError}</p>}
           </section>
 
+          {result.learnings && result.learnings.length > 0 && (
+            <section className="rounded-2xl border border-border/60 bg-card p-5 shadow-sm">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{r.learningsTitle}</p>
+              <ul className="mt-3 space-y-3">
+                {result.learnings.map((item, i) => {
+                  const key = item.title
+                  const saved = savedLearningKeys.has(key)
+                  const pending = savingLearningKey === key
+                  return (
+                    <li key={i} className="rounded-xl border border-border/50 bg-background/60 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 space-y-1">
+                          <span className="text-sm font-medium">{item.title}</span>
+                          {item.detail && <p className="text-xs text-muted-foreground">{item.detail}</p>}
+                        </div>
+                        <button
+                          type="button"
+                          disabled={saved || pending}
+                          onClick={() => handleSaveLearning(item)}
+                          className="inline-flex h-8 shrink-0 items-center rounded-lg border border-primary/30 bg-primary/5 px-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 disabled:opacity-60"
+                        >
+                          {saved ? r.savedToMemory : pending ? r.savingToMemory : r.saveToMemory}
+                        </button>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+              {learningError && <p className="mt-2 text-xs text-destructive">{learningError}</p>}
+            </section>
+          )}
+
           <button
             type="button"
             onClick={() => {
               setResult(null)
               setArchivedIds(new Set())
+              setSavedLearningKeys(new Set())
             }}
             className="inline-flex h-9 items-center justify-center rounded-lg border border-border/60 px-4 text-sm text-muted-foreground transition-colors hover:bg-muted/50"
           >

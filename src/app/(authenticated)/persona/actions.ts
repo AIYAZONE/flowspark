@@ -6,6 +6,7 @@ import {
   deletePersona,
   listPersona,
   mergePersonaInto,
+  findDuplicatePersona,
   type PersonaCategory,
   type PersonaConfidence,
   type PersonaInput,
@@ -53,6 +54,46 @@ export async function mergePersona(
     if (!target || !source) return { ok: false, error: 'not_found' }
     const merged = await mergePersonaInto(target, source)
     if (!merged) return { ok: false, error: 'merge_failed' }
+    return { ok: true }
+  } catch {
+    return { ok: false, error: 'operation_failed' }
+  }
+}
+
+/**
+ * 复盘闭环：把一条「本周学到的」洞察沉淀进个人记忆。
+ * category 固定 reflection，source 标记 manual；若同类别下已有语义相近条目则合并更新（复用 #3 合并逻辑）。
+ */
+export async function saveReviewLearning(input: {
+  title: string
+  detail?: string | null
+}): Promise<{ ok: boolean; error?: string }> {
+  if (!input.title?.trim()) return { ok: false, error: 'title_required' }
+  try {
+    const dup = await findDuplicatePersona({
+      category: 'reflection',
+      title: input.title.trim(),
+      detail: input.detail ?? null,
+    })
+    if (dup) {
+      await updatePersona(dup.match.id, {
+        detail:
+          input.detail && input.detail.length >= (dup.match.detail?.length ?? 0)
+            ? input.detail
+            : dup.match.detail,
+        source: 'manual',
+        confidence: 'medium',
+      })
+      return { ok: true }
+    }
+    const created = await createPersona({
+      category: 'reflection',
+      title: input.title.trim(),
+      detail: input.detail ?? null,
+      source: 'manual',
+      confidence: 'medium',
+    })
+    if (!created) return { ok: false, error: 'create_failed' }
     return { ok: true }
   } catch {
     return { ok: false, error: 'operation_failed' }

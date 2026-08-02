@@ -948,7 +948,12 @@
 		"archiveError": "Failed to archive. Retry.",
 		"regenerate": "Regenerate",
 		"errorTitle": "Something went wrong",
-		"retry": "Retry"
+		"retry": "Retry",
+		"learningsTitle": "What you learned this week",
+		"saveToMemory": "Save to memory",
+		"savingToMemory": "Saving…",
+		"savedToMemory": "Saved",
+		"saveLearningError": "Failed to save. Retry."
 	}
 }
 

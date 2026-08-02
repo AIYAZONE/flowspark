@@ -124,6 +124,7 @@ export interface ReviewOutput {
     suggested_core_action_direction: string
   }
   review_items?: ReviewItem[]
+  learnings?: { title: string; detail?: string }[]
   confidence?: 'low' | 'medium' | 'high'
 }
 
@@ -653,6 +654,17 @@ export function parseReview(payload: unknown): ParseResult<ReviewOutput> {
 
   const confidence = normalizeConfidence(payload.confidence)
 
+  // learnings：本周复盘沉淀出的「学到了什么」——可复用的个人洞察，会被沉淀进 user_persona
+  const rawLearnings = Array.isArray(payload.learnings) ? payload.learnings : []
+  const learnings: { title: string; detail?: string }[] = []
+  for (const raw of rawLearnings.slice(0, 6)) {
+    if (!isRecord(raw)) continue
+    const title = asTrimmedString(raw.title)
+    if (!title || !isShortSentence(title, 40)) continue
+    const detail = asTrimmedString(raw.detail)
+    learnings.push({ title, detail: detail && detail.length <= 120 ? detail : undefined })
+  }
+
   if (violations.length) return { ok: false, violations }
 
   return {
@@ -667,6 +679,7 @@ export function parseReview(payload: unknown): ParseResult<ReviewOutput> {
         suggested_core_action_direction: dir!
       },
       review_items: review_items.length ? review_items : undefined,
+      learnings: learnings.length ? learnings : undefined,
       confidence
     }
   }

@@ -333,6 +333,7 @@ export async function aiReview(opts: {
 		'    "suggested_core_action_direction":"string"',
 		'  },',
 		'  "review_items":[{"goal_id":"string|null","action_id":"string|null","title":"string","action_kind":"archive|reorder|focus|complete","reason":"string"}],',
+		'  "learnings":[{"title":"string (<=40)","detail":"string|null (<=120)"}],',
 		'  "confidence":"low|medium|high"',
 		'}',
 		'Hard rules:',
@@ -343,7 +344,8 @@ export async function aiReview(opts: {
 		'- Each review_item must reference a REAL id from the provided candidates (goal_id or action_id).',
 		'- action_kind: archive=建议归档; reorder=建议重排优先级; focus=建议集中注意力; complete=建议收尾.',
 		'- title must be the real action/goal title; reason explains why (<= 40 chars).',
-		'- Do NOT invent ids. If unsure, omit review_items. Maximum 6 review_items.'
+		'- Do NOT invent ids. If unsure, omit review_items. Maximum 6 review_items.',
+		'- learnings are OPTIONAL: 从本周复盘抽取的「学到了什么」——可复用的个人洞察（如"上午专注力更高""公开承诺提升完成率"）。title <= 40 chars, detail <= 120 chars. Maximum 4 learnings. Do NOT include generic platitudes.'
 	].join('\n');
 
 	const user = [
@@ -357,7 +359,7 @@ export async function aiReview(opts: {
 		formatContext(opts.candidates?.goals ?? []),
 		'Candidate open actions (JSON):',
 		formatContext(opts.candidates?.actions ?? []),
-		'Task: Summarize today in one sentence and provide a tomorrow anti-fail card. If candidate actions/goals show stalled/overdue/low-priority clutter, emit review_items with the right action_kind referencing their real ids.'
+		'Task: Summarize today in one sentence and provide a tomorrow anti-fail card. If candidate actions/goals show stalled/overdue/low-priority clutter, emit review_items with the right action_kind referencing their real ids. Also extract up to 4 learnings (what the user learned this week about themselves / how they work best) as reusable personal insights.'
 	].join('\n');
 
 	try {
@@ -377,7 +379,7 @@ export async function aiReview(opts: {
 	}
 }
 
-function buildFallbackReview(
+export function buildFallbackReview(
 	locale: Locale,
 	score: number | null,
 	answers: Record<string, string>,
@@ -422,6 +424,37 @@ function buildFallbackReview(
 			suggested_core_action_direction: direction
 		},
 		review_items: deriveFallbackReviewItems(candidates, locale),
+		learnings: deriveFallbackLearnings(locale, score, friction),
 		confidence: 'low'
 	};
+}
+
+/**
+ * 无 AI 时的兜底：基于分数/摩擦派生 1-2 条可复用洞察，保证复盘闭环（学→记忆）不中断。
+ */
+function deriveFallbackLearnings(
+	locale: Locale,
+	score: number | null,
+	friction: string | null
+): { title: string; detail?: string }[] {
+	const zh = locale === 'zh'
+	const out: { title: string; detail?: string }[] = []
+	if (score != null && score <= 2) {
+		out.push({
+			title: zh ? '低分时仍值得记录一件推进' : 'On hard days, log one small win',
+			detail: zh ? '哪怕很小，也能维持连续感。' : 'Even tiny progress keeps momentum.'
+		})
+	} else {
+		out.push({
+			title: zh ? '稳定的小闭环比突击更有效' : 'Steady small loops beat crunch',
+			detail: zh ? '连续性优先于单次强度。' : 'Consistency beats intensity.'
+		})
+	}
+	if (friction && friction !== 'none') {
+		out.push({
+			title: zh ? '识别出的摩擦值得提前设防' : 'Named friction deserves a pre-plan',
+			detail: friction
+		})
+	}
+	return out
 }

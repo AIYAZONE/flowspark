@@ -6,6 +6,7 @@ export type PersonaCategory =
   | 'aspiration'
   | 'aversion'
   | 'context'
+  | 'reflection'
 
 export type PersonaConfidence = 'low' | 'medium' | 'high'
 export type PersonaSource = 'chat' | 'manual' | 'inferred' | 'import'
@@ -29,6 +30,7 @@ export const PERSONA_CATEGORY_LABELS: Record<PersonaCategory, string> = {
   aspiration: '想成为的人',
   aversion: '抗拒点',
   context: '背景上下文',
+  reflection: '复盘洞察',
 }
 
 export const PERSONA_CONFIDENCE_LABELS: Record<PersonaConfidence, string> = {

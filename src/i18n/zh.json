@@ -948,7 +948,12 @@
 		"archiveError": "归档失败，请重试",
 		"regenerate": "重新生成",
 		"errorTitle": "出了点问题",
-		"retry": "重试"
+		"retry": "重试",
+		"learningsTitle": "本周你学到的",
+		"saveToMemory": "存入记忆",
+		"savingToMemory": "保存中…",
+		"savedToMemory": "已保存",
+		"saveLearningError": "保存失败，请重试"
 	}
 }
 
