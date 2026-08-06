@@ -8,14 +8,16 @@ import type {
 	GoalSetupStepBOutput,
 	RescueOutput,
 	ReviewOutput,
-	TodayPlanOutput
+	TodayPlanOutput,
+	BrandCheckOutput
 } from '@/lib/ai/phase2aSchemas';
 import {
 	parseGoalSetupStepA,
 	parseGoalSetupStepB,
 	parseRescue,
 	parseReview,
-	parseTodayPlan
+	parseTodayPlan,
+	parseBrandCheck
 } from '@/lib/ai/phase2aSchemas';
 
 type Locale = 'en' | 'zh';
@@ -457,4 +459,104 @@ function deriveFallbackLearnings(
 		})
 	}
 	return out
+}
+
+// ── Brand check（个人品牌专项：人设一致性检查）────────────────────────────
+
+export type BrandCheckPersonaSeed = { title: string; detail?: string | null }
+
+export async function aiBrandCheck(opts: {
+	locale: Locale
+	draft: string
+	persona: BrandCheckPersonaSeed[]
+}): Promise<BrandCheckOutput> {
+	const system = [
+		jsonOnlyRule(opts.locale),
+		'Schema: BrandCheckOutput',
+		'Output JSON shape:',
+		'{',
+		'  "type":"brand_check",',
+		'  "consistency_score": number(0-100),',
+		'  "hits":[{"persona_title":"string","verdict":"aligned|conflict|off_tone","note":"string"}],',
+		'  "suggestion":"string",',
+		'  "confidence":"low|medium|high"',
+		'}',
+		'场景：这是「视频号个人IP」专项——用户（你自己）的账号内容人设一致性检查。',
+		'Hard rules:',
+		'- persona_title MUST be one of the provided 视频号人设基准 titles (exact match). Do not invent.',
+		'- verdict: aligned=与视频号人设一致; conflict=与人设矛盾(如人设说不爱出镜，草稿却强调露脸); off_tone=语气/风格不符但非矛盾.',
+		'- consistency_score: 与「视频号人设基准（你的个人记忆）」整体契合度，0=严重偏离，100=高度一致。',
+		'- suggestion: 1-2 句具体改写建议（<= 160 chars），指出如何让视频号内容更贴合你的人设。',
+		'- Only emit hits when there is a real signal; otherwise hits=[].'
+	].join('\n');
+
+	const user = [
+		'视频号人设基准（来自你的个人记忆，JSON）:',
+		formatContext(opts.persona),
+		'待检查的视频号草稿内容:',
+		opts.draft,
+		'Task: 以「视频号人设基准」为基准，检查草稿是否与你的人设一致。列出矛盾/风格不符点，并给出整体一致性分数与改写建议。'
+	].join('\n');
+
+	try {
+		return await generateWithSingleRepair({
+			locale: opts.locale,
+			messages: [
+				{ role: 'system', content: system },
+				{ role: 'user', content: user }
+			],
+			call: (messages) => callAIChatJSON({ messages }),
+			parse: parseBrandCheck
+		});
+	} catch (e) {
+		const message = e instanceof Error ? e.message : 'operation_failed';
+		if (message === 'missing_ai_key') throw new Error('missing_ai_key');
+		return buildFallbackBrandCheck(opts.locale, opts.draft, opts.persona);
+	}
+}
+
+/**
+ * 无 AI 时的兜底：基于关键字重叠做最基础的一致性粗判，保证检查功能不中断。
+ */
+export function buildFallbackBrandCheck(
+	locale: Locale,
+	draft: string,
+	persona: BrandCheckPersonaSeed[]
+): BrandCheckOutput {
+	const zh = locale === 'zh'
+	const d = draft.toLowerCase()
+	// 视频号语境下的「露面/出镜」触发词：用于识别与「不爱出镜/不爱露脸」类人设相反的内容
+	const exposureTriggers = ['出镜', '露脸', '上镜', '镜头', '面对镜头', '真人出', '出幕', '口播', '出镜讲', 'camera', 'on camera', '镜前']
+	// 粗判：人设里明确「抗拒/不喜欢」的事，若草稿出现强相关词则标记为 conflict
+	const conflictTerms: { title: string; terms: string[] }[] = persona
+		.filter((p) => /抗拒|不爱|不喜|拒绝|讨厌|避免|avoid|averse|hate|dislike/i.test(p.title + ' ' + (p.detail ?? '')))
+		.map((p) => {
+			const base = (p.detail && p.detail.length >= 2 ? p.detail : p.title)
+				.toLowerCase()
+				.split(/[，。、；：!?.,;:\s]+/)
+				.filter((t) => t.length >= 2)
+			return { title: p.title, terms: Array.from(new Set([...base, ...exposureTriggers])) }
+		})
+	const hits = conflictTerms
+		.filter((c) => c.terms.some((t) => t && d.includes(t)))
+		.map((c) => ({
+			persona_title: c.title,
+			verdict: 'conflict' as const,
+			note: zh ? '草稿似乎与这条视频号人设倾向相反，请核对。' : 'Draft seems opposite to this video-account persona; check it.'
+		}))
+	const consistency_score = persona.length === 0 ? 70 : Math.max(40, 100 - hits.length * 25)
+	return {
+		type: 'brand_check',
+		consistency_score,
+		hits,
+		suggestion:
+			zh
+				? hits.length
+					? '草稿与部分视频号人设存在冲突，建议调整措辞以贴合你的人设。'
+					: '未检测到明显冲突，可继续发布。'
+				: hits.length
+					? 'Draft conflicts with some of your video-account persona; consider aligning the wording.'
+					: 'No obvious conflict detected.',
+		confidence: 'low'
+	}
 }

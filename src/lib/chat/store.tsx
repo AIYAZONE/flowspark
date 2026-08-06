@@ -1,9 +1,11 @@
 'use client'
 
 import * as React from 'react'
+import { useRouter } from 'next/navigation'
 import {
   createActionFromChat,
   completeActionFromChat,
+  createGoalFromChat,
   submitChatFeedback,
   cancelChatFeedback
 } from '@/app/(authenticated)/chat/actions'
@@ -61,6 +63,7 @@ export function ChatProvider({
   children: React.ReactNode
   source?: ChatSource
 }) {
+  const router = useRouter()
   const [turns, setTurns] = React.useState<ChatTurn[]>([])
   const [isStreaming, setIsStreaming] = React.useState(false)
   const [hydrated, setHydrated] = React.useState(false)
@@ -214,6 +217,9 @@ export function ChatProvider({
                 updateTurn(assistantId, {
                   referencedActions: evt.actions.map((a) => ({ ...a, done: false }))
                 })
+              } else if (evt.type === 'assets') {
+                // 资产已由后端直接入库，前端仅做只读展示
+                updateTurn(assistantId, { assets: evt.assets })
               } else if (evt.type === 'error') {
                 updateTurn(assistantId, { status: 'error', text: receivedText || FALLBACK_ERROR_TEXT })
               }
@@ -244,6 +250,28 @@ export function ChatProvider({
       const turn = turnsRef.current.find((t) => t.id === turnId)
       if (!turn?.action) return
       updateTurn(turnId, { actionState: 'confirming' })
+
+      // B 闭环：聊天里的「新路径」草案直接落成完整 5 层路径蓝图
+      if (turn.action.kind === 'goal') {
+        const history: ChatHistoryEntry[] = turnsRef.current
+          .filter((t) => t.status === 'done' && t.text)
+          .map((t) => ({ role: t.role, text: t.text }))
+        const fd = new FormData()
+        fd.set('title', turn.action.title)
+        if (turn.action.reason) fd.set('reason', turn.action.reason)
+        fd.set('locale', getClientLocale())
+        fd.set('conversation', JSON.stringify(history))
+        try {
+          const result = await createGoalFromChat(fd)
+          if (result.error) throw new Error(result.error)
+          updateTurn(turnId, { actionState: 'done' })
+          if (result.goalId) router.push(`/goals/${result.goalId}`)
+        } catch {
+          updateTurn(turnId, { actionState: 'error' })
+        }
+        return
+      }
+
       const fd = new FormData()
       fd.set('title', turn.action.title)
       if (turn.action.goalHint) fd.set('goalHint', turn.action.goalHint)
@@ -260,7 +288,7 @@ export function ChatProvider({
         updateTurn(turnId, { actionState: 'error' })
       }
     },
-    [updateTurn]
+    [updateTurn, router]
   )
 
   const completeAction = React.useCallback(

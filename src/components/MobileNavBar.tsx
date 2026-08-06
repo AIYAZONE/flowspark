@@ -13,6 +13,7 @@ import {
   Target,
   User,
   Brain,
+  Megaphone,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { MOBILE_ONLY_CLASS } from '@/components/responsive-classes'
@@ -29,6 +30,7 @@ interface MobileNavBarProps {
       inbox: string
       profile: string
       persona: string
+      brandStudio: string
       more: string
     }
   }
@@ -48,6 +50,7 @@ const SECONDARY_ITEMS = [
   { titleKey: 'dashboard' as const, href: '/system', icon: LayoutDashboard },
   { titleKey: 'profile' as const, href: '/profile', icon: User },
   { titleKey: 'persona' as const, href: '/persona', icon: Brain },
+  { titleKey: 'brandStudio' as const, href: '/brand-studio', icon: Megaphone },
 ]
 
 export function MobileNavBar({ dict }: MobileNavBarProps) {

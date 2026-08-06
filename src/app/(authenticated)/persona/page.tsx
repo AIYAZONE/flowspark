@@ -1,10 +1,13 @@
 import { listPersona } from '@/lib/persona'
 import { PersonaManager } from '@/components/PersonaManager'
+import { BrandCheckPanel } from '@/components/BrandCheckPanel'
+import { getDictionary } from '@/i18n/get-dictionary'
 
 export const metadata = { title: '个人记忆' }
 
 export default async function PersonaPage() {
   const items = await listPersona()
+  const dict = await getDictionary('zh')
 
   return (
     <div className="space-y-6">
@@ -20,6 +23,8 @@ export default async function PersonaPage() {
       </div>
 
       <PersonaManager initialItems={items} />
+
+      <BrandCheckPanel r={dict.brandCheck} />
     </div>
   )
 }

@@ -4,7 +4,7 @@ import { streamAIChat, type StreamChatMessage } from '@/lib/ai/stream'
 import { buildChatSystemPrompt } from '@/lib/chat/prompt'
 import { getChatContext, getOpenActionsWithIds } from '@/lib/chat/context'
 import { findReferencedOpenActions } from '@/lib/chat/action-dedup'
-import type { ChatHistoryEntry, ChatStreamEvent } from '@/lib/chat/types'
+import type { ChatHistoryEntry, ChatStreamEvent, ChatAssetDraft } from '@/lib/chat/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -26,7 +26,7 @@ function sseError(message: string): Response {
 }
 
 export async function POST(req: NextRequest) {
-  let parsed: { message?: string; history?: ChatHistoryEntry[]; summary?: string; locale?: string }
+  let parsed: { message?: string; history?: ChatHistoryEntry[]; summary?: string; locale?: string; chatSessionId?: string }
   try {
     parsed = await req.json()
   } catch {
@@ -92,6 +92,27 @@ export async function POST(req: NextRequest) {
           if (refs.length) {
             controller.enqueue(new TextEncoder().encode(sse({ type: 'references', actions: refs })))
           }
+        }
+        // 回复完整后，让 AI 从本轮对话自动沉淀内容资产（直接入库，用户零操作）
+        try {
+          const transcript: ChatHistoryEntry[] = [
+            ...history,
+            { role: 'user', text: message },
+            { role: 'assistant', text: full }
+          ]
+          const res = await fetch(`${req.nextUrl.origin}/api/chat/assets`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transcript, locale, chatSessionId: parsed.chatSessionId })
+          })
+          if (res.ok) {
+            const assetRes = (await res.json()) as { assets?: ChatAssetDraft[] }
+            if (Array.isArray(assetRes.assets) && assetRes.assets.length) {
+              controller.enqueue(new TextEncoder().encode(sse({ type: 'assets', assets: assetRes.assets })))
+            }
+          }
+        } catch {
+          // 资产沉淀失败不影响主聊天流程
         }
         controller.enqueue(new TextEncoder().encode(sse({ type: 'done' })))
       } catch (e) {

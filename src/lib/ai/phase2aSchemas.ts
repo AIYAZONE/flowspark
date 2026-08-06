@@ -128,6 +128,22 @@ export interface ReviewOutput {
   confidence?: 'low' | 'medium' | 'high'
 }
 
+export type BrandCheckVerdict = 'aligned' | 'conflict' | 'off_tone'
+
+export interface BrandCheckHit {
+  persona_title: string
+  verdict: BrandCheckVerdict
+  note: string
+}
+
+export interface BrandCheckOutput {
+  type: 'brand_check'
+  consistency_score: number
+  hits: BrandCheckHit[]
+  suggestion: string
+  confidence?: 'low' | 'medium' | 'high'
+}
+
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; violations: string[] }
 
 function asTrimmedString(value: unknown): string | null {
@@ -699,4 +715,45 @@ export function buildRepairPrompt(locale: 'en' | 'zh', violations: string[]) {
     items || '- (unknown)',
     'Do not add extra fields. Ensure required fields exist and all constraints are satisfied.'
   ].join('\n')
+}
+
+// ── Brand check (个人品牌专项：人设一致性检查) ──────────────────────────
+
+export function parseBrandCheck(payload: unknown): ParseResult<BrandCheckOutput> {
+  const violations: string[] = []
+  if (!isRecord(payload)) return { ok: false, violations: ['root_not_object'] }
+
+  const scoreRaw = Number(payload.consistency_score)
+  const consistency_score = Number.isFinite(scoreRaw)
+    ? Math.max(0, Math.min(100, Math.round(scoreRaw)))
+    : 0
+
+  const rawHits = Array.isArray(payload.hits) ? payload.hits : []
+  const hits: BrandCheckHit[] = []
+  for (const raw of rawHits.slice(0, 8)) {
+    if (!isRecord(raw)) continue
+    const persona_title = asTrimmedString(raw.persona_title)
+    const verdict = raw.verdict
+    const noteRaw = asTrimmedString(raw.note)
+    const note = noteRaw && noteRaw.length <= 160 ? noteRaw : ''
+    if (!persona_title || (verdict !== 'aligned' && verdict !== 'conflict' && verdict !== 'off_tone')) continue
+    hits.push({ persona_title, verdict, note })
+  }
+
+  const suggestion = asTrimmedString(payload.suggestion) ?? ''
+
+  if (!suggestion) violations.push('suggestion required')
+
+  if (violations.length) return { ok: false, violations }
+
+  return {
+    ok: true,
+    value: {
+      type: 'brand_check',
+      consistency_score,
+      hits: hits.length ? hits : [],
+      suggestion,
+      confidence: normalizeConfidence(payload.confidence)
+    }
+  }
 }

@@ -13,6 +13,7 @@ import {
 import { ChatActionCard } from './ChatActionCard'
 import { ChatCompleteCard } from './ChatCompleteCard'
 import { ChatReferenceCard } from './ChatReferenceCard'
+import { ChatAssetsCard } from './ChatAssetsCard'
 import { ChatFeedbackControl } from './ChatFeedbackControl'
 
 type Props = {
@@ -164,6 +165,10 @@ export function ChatMessage({
           copy={copy}
           onConfirm={() => onApplyAction(turn.id)}
         />
+      )}
+
+      {turn.assets && turn.assets.length > 0 && (
+        <ChatAssetsCard assets={turn.assets} copy={copy} />
       )}
 
       {turn.completion && turn.completionState !== 'done' && (

@@ -60,12 +60,12 @@ todos:
       - redesign-goals-ui
   - id: gen-mockup
     content: 用 [skill:多模态内容生成] 生成目标列表页视觉预览图
-    status: pending
+    status: completed
     dependencies:
       - redesign-goals-ui
   - id: visual-validate
     content: 用 [subagent:ui-visual-validator] 校验重设计页面视觉与无障碍
-    status: pending
+    status: completed
     dependencies:
       - redesign-goals-ui
 ---

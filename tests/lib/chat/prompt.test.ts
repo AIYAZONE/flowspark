@@ -51,6 +51,7 @@ function makeFullContext(): ChatContext {
       { title: '推进 Self Model 接入', type: 'core', priority: 'medium' },
       { title: '写周报', type: null, priority: 'low' }
     ],
+    completedActions: ['整理需求文档'],
     today: '2026-07-29',
     selfModelCards: cards,
     todayPersonalization: today,
@@ -111,6 +112,12 @@ test('full context renders all enrichment sections (brain is plugged in)', () =>
   assert.match(prompt, /路径里程碑阶段/)
   assert.match(prompt, /确定核心功能/)
   assert.match(prompt, /已完成 0\/3 个里程碑/)
+
+  // 已完成行动黑名单：明确告知 AI 哪些已结束，禁止复活
+  assert.match(prompt, /近期已完成的行动（用户已勾掉，禁止再次推荐或复活）/)
+  assert.match(prompt, /整理需求文档/)
+  // 硬约束规则存在
+  assert.match(prompt, /绝不复活已完成行动/)
 })
 
 test('English locale renders english framing without crashing', () => {
@@ -123,6 +130,7 @@ test('degraded context still renders (no data must not break chat)', () => {
   const empty: ChatContext = {
     goals: [],
     todayActions: [],
+    completedActions: [],
     today: '2026-07-29',
     selfModelCards: [],
     todayPersonalization: null,

@@ -1,6 +1,6 @@
 import { getConfiguredAIModel } from '@/lib/ai/client'
 import { buildCoachContext } from '@/lib/ai/contextBuilder'
-import { aiRescue, aiReview, aiTodayPlan, deriveFallbackReviewItems, type ReviewCandidates } from '@/lib/ai/phase2a'
+import { aiRescue, aiReview, aiTodayPlan, aiBrandCheck, buildFallbackBrandCheck, deriveFallbackReviewItems, type ReviewCandidates } from '@/lib/ai/phase2a'
 import {
   buildRescueStrategy,
   buildReviewStrategy,
@@ -13,6 +13,7 @@ import type {
   RescueOutput,
   ReviewOutput,
   TodayPlanOutput,
+  BrandCheckOutput,
 } from '@/lib/ai/phase2aSchemas'
 import { createRecommendation } from '@/lib/ai/recommendationStore'
 import type {
@@ -24,6 +25,7 @@ import type {
   RescueApiResponse,
   ReviewApiResponse,
   TodayPlanApiResponse,
+  BrandCheckApiResponse,
 } from '@/lib/ai/types'
 import type { createClient } from '@/lib/supabase/server'
 
@@ -273,7 +275,7 @@ function buildFallbackReviewPlan(params: {
 async function persistRecommendation<T>(params: {
   supabase: SupabaseServerClient
   userId: string
-  scene: 'today_plan' | 'rescue' | 'review'
+  scene: 'today_plan' | 'rescue' | 'review' | 'brand_check'
   strategyVersion: string
   promptVersion: string
   inputSummary: unknown
@@ -698,6 +700,49 @@ export async function planReview(params: {
     model: fallbackUsed ? 'fallback_rule_v1' : getConfiguredAIModel(),
     difficultyMode: strategy.difficultyMode,
     riskLevel: strategy.riskLevel,
+    data: output,
+    confidence: output.confidence,
+    fallbackUsed,
+  }
+}
+
+export async function planBrandCheck(params: {
+  supabase: SupabaseServerClient
+  userId: string
+  locale: 'en' | 'zh'
+  draft: string
+  timezone?: string
+  persona: { title: string; detail?: string | null }[]
+}): Promise<BrandCheckApiResponse> {
+  const { supabase, userId, locale, draft, persona } = params
+  let output: BrandCheckOutput
+  let fallbackUsed = false
+  try {
+    output = await aiBrandCheck({ locale, draft, persona })
+  } catch {
+    output = buildFallbackBrandCheck(locale, draft, persona)
+    fallbackUsed = true
+  }
+
+  const recommendationId = await persistRecommendation({
+    supabase,
+    userId,
+    scene: 'brand_check',
+    strategyVersion: 'brand_v1',
+    promptVersion: 'brand_v1',
+    inputSummary: { draft, personaCount: persona.length },
+    output,
+    fallbackUsed,
+    strategySummary: null,
+  })
+
+  return {
+    ok: true,
+    scene: 'brand_check',
+    recommendationId,
+    strategyVersion: 'brand_v1',
+    promptVersion: 'brand_v1',
+    model: fallbackUsed ? 'fallback_rule_v1' : getConfiguredAIModel(),
     data: output,
     confidence: output.confidence,
     fallbackUsed,

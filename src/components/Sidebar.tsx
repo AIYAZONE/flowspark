@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarCheck, ClipboardCheck, LayoutDashboard, Lightbulb, MessageSquare, Target, User, Brain } from 'lucide-react'
+import { CalendarCheck, ClipboardCheck, LayoutDashboard, Lightbulb, MessageSquare, Target, User, Brain, Megaphone } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 import { BrandMark } from '@/components/BrandLogo'
@@ -20,6 +20,7 @@ interface SidebarProps {
       inbox: string
       profile: string
       persona: string
+      brandStudio: string
       groups: {
         core: string
         identity: string
@@ -151,6 +152,7 @@ export function Sidebar({ dict }: SidebarProps) {
     { title: dict.sidebar.review, href: '/review', icon: ClipboardCheck },
     { title: dict.sidebar.inbox, href: '/inbox', icon: Lightbulb },
     { title: dict.sidebar.persona, href: '/persona', icon: Brain },
+    { title: dict.sidebar.brandStudio, href: '/brand-studio', icon: Megaphone },
   ]
 
   // 导航图标尺寸按档位收敛

@@ -3,7 +3,9 @@
 import { revalidatePath } from 'next/cache'
 import { createClient } from '@/lib/supabase/server'
 import { getTodayInTZ, getUserTimezone } from '@/lib/time'
-import { recordChatAction, completeChatAction, recordChatFeedback } from '@/lib/chat/persistence'
+import { recordChatAction, completeChatAction, recordChatFeedback, recordPathPlan } from '@/lib/chat/persistence'
+import { planPath } from '@/lib/ai/pathPlan'
+import { createGoalModal } from '@/app/(authenticated)/goals/actions'
 import type { ChatFeedbackReason } from '@/lib/chat/types'
 
 type CreateResult = { actionId?: string; duplicate?: boolean; error?: string }
@@ -121,4 +123,82 @@ export async function cancelChatFeedback(formData: FormData): Promise<FeedbackRe
 
   if (error) return { error: String(error.message || error.code || 'delete_failed') }
   return { ok: true }
+}
+
+type CreateGoalResult = { goalId?: string; error?: string }
+
+/**
+ * B 闭环：把聊天里的「新路径」草案直接落成一条完整 5 层路径蓝图。
+ * 流程：建 goal（含标题/描述） → planPath 生成定位卡+支柱+里程碑+KR → recordPathPlan 落写子表。
+ * 对话历史由前端传入，作为 AI 规划的原料。返回新 goal 的 id，供前端跳转详情页。
+ */
+export async function createGoalFromChat(formData: FormData): Promise<CreateGoalResult> {
+  const supabase = await createClient()
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+  if (!user) return { error: 'unauthenticated' }
+
+  const title = (formData.get('title') as string | null)?.trim()
+  const reason = (formData.get('reason') as string | null) || ''
+  const localeRaw = (formData.get('locale') as string | null) || 'zh'
+  const locale: 'zh' | 'en' = localeRaw === 'en' ? 'en' : 'zh'
+  const conversationRaw = (formData.get('conversation') as string | null) || '[]'
+  let conversation: { role: 'user' | 'assistant'; content: string }[] = []
+  try {
+    const parsed = JSON.parse(conversationRaw)
+    if (Array.isArray(parsed)) {
+      conversation = parsed
+        .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+        .map((m) => ({ role: m.role, content: m.content }))
+    }
+  } catch {
+    conversation = []
+  }
+
+  if (!title) return { error: 'missing_fields' }
+
+  // 1. 建 goal（描述用 reason 兜底，给 AI 规划一点原料）
+  const goalForm = new FormData()
+  goalForm.set('title', title)
+  goalForm.set('description', reason || '')
+  goalForm.set('category', 'other')
+  goalForm.set('priority', 'medium')
+
+  let goalId: string | undefined
+  try {
+    const created = await createGoalModal(goalForm)
+    if (!created?.success || !created.goalId) {
+      return { error: 'create_goal_failed' }
+    }
+    goalId = created.goalId
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'create_goal_failed' }
+  }
+
+  // 2. AI 生成 5 层路径方案
+  let plan
+  try {
+    plan = await planPath(supabase, {
+      locale,
+      goalId,
+      goalTitle: title,
+      goalDescription: reason || null,
+      conversation
+    })
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'plan_path_failed' }
+  }
+
+  // 3. 落写定位卡 + 支柱 + 里程碑 + 关键结果
+  const record = await recordPathPlan(supabase, user.id, { goalId, plan })
+  if (record.error) return { error: record.error }
+
+  revalidatePath('/goals')
+  revalidatePath(`/goals/${goalId}`)
+  revalidatePath('/today')
+  revalidatePath('/dashboard')
+  revalidatePath('/system')
+
+  return { goalId }
 }

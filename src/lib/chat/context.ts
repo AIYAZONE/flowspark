@@ -20,6 +20,8 @@ import { type MilestoneStageInfo, computeMilestoneStage, type MilestoneLike } fr
 export type ChatContext = {
   goals: Array<{ title: string; category: string | null; priority: string | null }>
   todayActions: Array<{ title: string; type: string | null; priority: string | null }>
+  // 近期已完成的行动（黑名单）：让 AI 明确知道这些已被用户勾掉，禁止再次推荐或复活。
+  completedActions: string[]
   today: string
   // P0 个性化上下文：把已有的"人生系统大脑"接入聊天主界面，而非只给行动标题
   selfModelCards: SelfModelCard[]
@@ -147,6 +149,12 @@ export async function getChatContext(
     // 降级：里程碑查询失败不影响聊天主流程
   }
 
+  // 近期已完成的行动（黑名单）：取最近勾掉的若干条，让 AI 明确知道这些已结束，避免复活。
+  const completedActions = actionsAll
+    .filter((a) => a.completed)
+    .slice(0, 5)
+    .map((a) => a.title)
+
   const selfModelCards = buildSelfModelCards({ locale, currentStreak, completedToday, signals })
 
   const showStreakRiskBanner = !completedToday && (currentStreak > 0 || Boolean(recoverableMissDate))
@@ -162,6 +170,7 @@ export async function getChatContext(
   return {
     goals: goals.map((g) => ({ title: g.title, category: g.category, priority: g.priority })),
     todayActions: ranked.slice(0, 8).map((a) => ({ title: a.title, type: a.type, priority: a.priority })),
+    completedActions,
     today,
     selfModelCards,
     todayPersonalization,

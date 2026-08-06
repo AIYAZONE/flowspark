@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import { Sparkles, Target, Flag, ListChecks, CornerDownRight, Save, Loader2, Upload } from 'lucide-react'
+import { Sparkles, Target, Flag, ListChecks, CornerDownRight, Save, Loader2, Upload, Pencil, Trash2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -74,6 +74,44 @@ export function GoalBlueprint({
   const [importing, setImporting] = useState(false)
   const [importMsg, setImportMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+
+  // 落成后的就地编辑状态：记录正在编辑的节点 key（如 'pillar:xxx' / 'milestone:yyy' / 'kr:zzz'）
+  const [editing, setEditing] = useState<string | null>(null)
+  const [savingNode, setSavingNode] = useState(false)
+
+  type NodeOp =
+    | { op: 'update'; node: 'pillar'; id: string; title?: string; rationale?: string }
+    | { op: 'create'; node: 'pillar'; goalId: string; title: string; rationale?: string }
+    | { op: 'delete'; node: 'pillar'; id: string }
+    | { op: 'update'; node: 'milestone'; id: string; title?: string; target_date?: string }
+    | { op: 'create'; node: 'milestone'; goalId: string; title: string; target_date?: string }
+    | { op: 'delete'; node: 'milestone'; id: string }
+    | { op: 'update'; node: 'key_result'; id: string; title?: string; target?: string }
+    | { op: 'create'; node: 'key_result'; milestoneId: string; title: string; target?: string }
+    | { op: 'delete'; node: 'key_result'; id: string }
+
+  async function mutateNode(op: NodeOp): Promise<{ ok: boolean; id?: string }> {
+    setSavingNode(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/ai/path-plan/node', {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(op),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.ok) {
+        setError(json.error || '操作失败')
+        return { ok: false }
+      }
+      return { ok: true, id: json.id }
+    } catch {
+      setError('操作失败')
+      return { ok: false }
+    } finally {
+      setSavingNode(false)
+    }
+  }
 
   const hasBlueprint =
     !!data.positioning?.persona || data.pillars.length > 0 || data.milestones.length > 0
@@ -323,40 +361,203 @@ export function GoalBlueprint({
 
           {data.pillars.length > 0 ? (
             <section className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <Flag className="h-4 w-4 text-primary" /> 策略支柱
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <Flag className="h-4 w-4 text-primary" /> 策略支柱
+                </div>
+                {committed ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs text-muted-foreground"
+                    disabled={savingNode}
+                    onClick={async () => {
+                      const { ok, id } = await mutateNode({
+                        op: 'create',
+                        node: 'pillar',
+                        goalId,
+                        title: '新支柱',
+                      })
+                      if (ok && id) {
+                        setData((d) => ({
+                          ...d,
+                          pillars: [...d.pillars, { id, title: '新支柱', rationale: null }],
+                        }))
+                        setEditing(`pillar:${id}`)
+                      }
+                    }}
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" /> 新增
+                  </Button>
+                ) : null}
               </div>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                {data.pillars.map((p, i) => (
-                  <div key={i} className="rounded-xl border border-border/50 bg-muted/20 p-3">
-                    <p className="text-sm font-medium text-foreground">{p.title}</p>
-                    {p.rationale ? (
-                      <p className="mt-1 text-xs text-muted-foreground">{p.rationale}</p>
-                    ) : null}
-                  </div>
-                ))}
+                {data.pillars.map((p, i) => {
+                  const key = p.id ?? `p-${i}`
+                  const isEditing = editing === `pillar:${key}`
+                  return (
+                    <div
+                      key={key}
+                      className="group rounded-xl border border-border/50 bg-muted/20 p-3"
+                    >
+                      {isEditing ? (
+                        <div className="space-y-2">
+                          <Input
+                            defaultValue={p.title}
+                            className="h-8 text-sm"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                            }}
+                            onBlur={async (e) => {
+                              const title = e.target.value.trim() || p.title
+                              const id = p.id
+                              if (id) {
+                                const { ok } = await mutateNode({
+                                  op: 'update',
+                                  node: 'pillar',
+                                  id,
+                                  title,
+                                })
+                                if (ok)
+                                  setData((d) => ({
+                                    ...d,
+                                    pillars: d.pillars.map((x) =>
+                                      x.id === id ? { ...x, title } : x,
+                                    ),
+                                  }))
+                              } else {
+                                setData((d) => ({
+                                  ...d,
+                                  pillars: d.pillars.map((x, xi) =>
+                                    xi === i ? { ...x, title } : x,
+                                  ),
+                                }))
+                              }
+                              setEditing(null)
+                            }}
+                            autoFocus
+                          />
+                          <Textarea
+                            defaultValue={p.rationale ?? ''}
+                            rows={2}
+                            className="text-xs"
+                            placeholder="为什么（可选）"
+                            onBlur={async (e) => {
+                              const rationale = e.target.value.trim() || null
+                              const id = p.id
+                              if (id) {
+                                const { ok } = await mutateNode({
+                                  op: 'update',
+                                  node: 'pillar',
+                                  id,
+                                  rationale: rationale ?? undefined,
+                                })
+                                if (ok)
+                                  setData((d) => ({
+                                    ...d,
+                                    pillars: d.pillars.map((x) =>
+                                      x.id === id ? { ...x, rationale } : x,
+                                    ),
+                                  }))
+                              }
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-sm font-medium text-foreground">{p.title}</p>
+                          {p.rationale ? (
+                            <p className="mt-1 text-xs text-muted-foreground">{p.rationale}</p>
+                          ) : null}
+                          {committed ? (
+                            <div className="mt-2 flex gap-3 opacity-0 transition-opacity group-hover:opacity-100">
+                              <button
+                                type="button"
+                                className="text-xs text-muted-foreground hover:text-primary"
+                                onClick={() => setEditing(`pillar:${key}`)}
+                              >
+                                <Pencil className="mr-1 inline h-3 w-3" /> 编辑
+                              </button>
+                              <button
+                                type="button"
+                                className="text-xs text-muted-foreground hover:text-destructive"
+                                onClick={async () => {
+                                  if (!p.id) return
+                                  const { ok } = await mutateNode({
+                                    op: 'delete',
+                                    node: 'pillar',
+                                    id: p.id,
+                                  })
+                                  if (ok)
+                                    setData((d) => ({
+                                      ...d,
+                                      pillars: d.pillars.filter((x) => x.id !== p.id),
+                                    }))
+                                }}
+                              >
+                                <Trash2 className="mr-1 inline h-3 w-3" /> 删除
+                              </button>
+                            </div>
+                          ) : null}
+                        </>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             </section>
           ) : null}
 
           {data.milestones.length > 0 ? (
             <section className="space-y-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                <ListChecks className="h-4 w-4 text-primary" /> 里程碑 / 关键结果
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                  <ListChecks className="h-4 w-4 text-primary" /> 里程碑 / 关键结果
+                </div>
+                {committed ? (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-7 px-2 text-xs text-muted-foreground"
+                    disabled={savingNode}
+                    onClick={async () => {
+                      const { ok, id } = await mutateNode({
+                        op: 'create',
+                        node: 'milestone',
+                        goalId,
+                        title: '新里程碑',
+                      })
+                      if (ok && id) {
+                        setData((d) => ({
+                          ...d,
+                          milestones: [
+                            ...d.milestones,
+                            { id, title: '新里程碑', key_results: [], status: 'pending' },
+                          ],
+                        }))
+                        setEditing(`milestone:${id}`)
+                      }
+                    }}
+                  >
+                    <Plus className="mr-1 h-3.5 w-3.5" /> 新增
+                  </Button>
+                ) : null}
               </div>
               <ol className="space-y-3">
                 {data.milestones.map((m, i) => {
                   const isActive = m.status === 'active'
                   const isCompleted = m.status === 'completed'
+                  const mKey = m.id ?? `m-${i}`
+                  const mEditing = editing === `milestone:${mKey}`
                   return (
                     <li
-                      key={i}
+                      key={mKey}
                       className={
                         isActive
-                          ? 'rounded-xl border border-primary/30 bg-primary/5 p-3'
+                          ? 'group rounded-xl border border-primary/30 bg-primary/5 p-3'
                           : isCompleted
-                            ? 'rounded-xl border border-border/50 bg-muted/15 p-3 opacity-70'
-                            : 'rounded-xl border border-border/50 bg-muted/20 p-3'
+                            ? 'group rounded-xl border border-border/50 bg-muted/15 p-3 opacity-70'
+                            : 'group rounded-xl border border-border/50 bg-muted/20 p-3'
                       }
                     >
                       <div className="flex items-center gap-2">
@@ -371,15 +572,43 @@ export function GoalBlueprint({
                         >
                           {isCompleted ? '✓' : i + 1}
                         </span>
-                        <p
-                          className={
-                            isCompleted
-                              ? 'text-sm font-medium text-muted-foreground line-through'
-                              : 'text-sm font-medium text-foreground'
-                          }
-                        >
-                          {m.title}
-                        </p>
+                        {mEditing ? (
+                          <Input
+                            defaultValue={m.title}
+                            className="h-8 flex-1 text-sm"
+                            onBlur={async (e) => {
+                              const title = e.target.value.trim() || m.title
+                              const id = m.id
+                              if (id) {
+                                const { ok } = await mutateNode({
+                                  op: 'update',
+                                  node: 'milestone',
+                                  id,
+                                  title,
+                                })
+                                if (ok)
+                                  setData((d) => ({
+                                    ...d,
+                                    milestones: d.milestones.map((x) =>
+                                      x.id === id ? { ...x, title } : x,
+                                    ),
+                                  }))
+                              }
+                              setEditing(null)
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <p
+                            className={
+                              isCompleted
+                                ? 'text-sm font-medium text-muted-foreground line-through'
+                                : 'text-sm font-medium text-foreground'
+                            }
+                          >
+                            {m.title}
+                          </p>
+                        )}
                         {isActive ? (
                           <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
                             进行中
@@ -389,22 +618,171 @@ export function GoalBlueprint({
                             已完成
                           </span>
                         ) : null}
-                        {m.target_date ? (
+                        {m.target_date && !mEditing ? (
                           <span className="text-xs text-muted-foreground">· {m.target_date}</span>
+                        ) : null}
+                        {committed && !mEditing ? (
+                          <div className="ml-auto flex gap-3 opacity-0 transition-opacity group-hover:opacity-100">
+                            <button
+                              type="button"
+                              className="text-xs text-muted-foreground hover:text-primary"
+                              onClick={() => setEditing(`milestone:${mKey}`)}
+                            >
+                              <Pencil className="mr-1 inline h-3 w-3" /> 编辑
+                            </button>
+                            <button
+                              type="button"
+                              className="text-xs text-muted-foreground hover:text-destructive"
+                              onClick={async () => {
+                                if (!m.id) return
+                                const { ok } = await mutateNode({
+                                  op: 'delete',
+                                  node: 'milestone',
+                                  id: m.id,
+                                })
+                                if (ok)
+                                  setData((d) => ({
+                                    ...d,
+                                    milestones: d.milestones.filter((x) => x.id !== m.id),
+                                  }))
+                              }}
+                            >
+                              <Trash2 className="mr-1 inline h-3 w-3" /> 删除
+                            </button>
+                          </div>
                         ) : null}
                       </div>
                       {m.key_results.length > 0 ? (
                         <ul className="mt-2 space-y-1.5 pl-7">
-                          {m.key_results.map((kr, j) => (
-                            <li key={j} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                              <CornerDownRight className="mt-0.5 h-3 w-3 shrink-0 text-border" />
-                              <span>
-                                {kr.title}
-                                {kr.target ? <span className="text-foreground"> → {kr.target}</span> : null}
-                              </span>
-                            </li>
-                          ))}
+                          {m.key_results.map((kr, j) => {
+                            const krKey = kr.id ?? `kr-${mKey}-${j}`
+                            const krEditing = editing === `kr:${krKey}`
+                            return (
+                              <li
+                                key={krKey}
+                                className="group/kr flex items-start gap-1.5 text-xs text-muted-foreground"
+                              >
+                                <CornerDownRight className="mt-0.5 h-3 w-3 shrink-0 text-border" />
+                                {krEditing ? (
+                                  <Input
+                                    defaultValue={kr.title}
+                                    className="h-7 flex-1 text-xs"
+                                    onBlur={async (e) => {
+                                      const title = e.target.value.trim() || kr.title
+                                      const id = kr.id
+                                      if (id) {
+                                        const { ok } = await mutateNode({
+                                          op: 'update',
+                                          node: 'key_result',
+                                          id,
+                                          title,
+                                        })
+                                        if (ok)
+                                          setData((d) => ({
+                                            ...d,
+                                            milestones: d.milestones.map((x) =>
+                                              x.id === m.id
+                                                ? {
+                                                    ...x,
+                                                    key_results: x.key_results.map((k) =>
+                                                      k.id === id ? { ...k, title } : k,
+                                                    ),
+                                                  }
+                                                : x,
+                                            ),
+                                          }))
+                                      }
+                                      setEditing(null)
+                                    }}
+                                    autoFocus
+                                  />
+                                ) : (
+                                  <span className="flex-1">
+                                    {kr.title}
+                                    {kr.target ? (
+                                      <span className="text-foreground"> → {kr.target}</span>
+                                    ) : null}
+                                  </span>
+                                )}
+                                {committed && !krEditing ? (
+                                  <span className="flex gap-2 opacity-0 transition-opacity group-hover/kr:opacity-100">
+                                    <button
+                                      type="button"
+                                      className="hover:text-primary"
+                                      onClick={() => setEditing(`kr:${krKey}`)}
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="hover:text-destructive"
+                                      onClick={async () => {
+                                        if (!kr.id) return
+                                        const { ok } = await mutateNode({
+                                          op: 'delete',
+                                          node: 'key_result',
+                                          id: kr.id,
+                                        })
+                                        if (ok)
+                                          setData((d) => ({
+                                            ...d,
+                                            milestones: d.milestones.map((x) =>
+                                              x.id === m.id
+                                                ? {
+                                                    ...x,
+                                                    key_results: x.key_results.filter(
+                                                      (k) => k.id !== kr.id,
+                                                    ),
+                                                  }
+                                                : x,
+                                            ),
+                                          }))
+                                      }}
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </span>
+                                ) : null}
+                              </li>
+                            )
+                          })}
                         </ul>
+                      ) : null}
+                      {committed ? (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="mt-2 h-6 px-2 text-xs text-muted-foreground"
+                          disabled={savingNode}
+                          onClick={async () => {
+                            if (!m.id) return
+                            const { ok, id } = await mutateNode({
+                              op: 'create',
+                              node: 'key_result',
+                              milestoneId: m.id,
+                              title: '新关键结果',
+                            })
+                            if (ok && id) {
+                              setData((d) => ({
+                                ...d,
+                                milestones: d.milestones.map((x) =>
+                                  x.id === m.id
+                                    ? {
+                                        ...x,
+                                        key_results: [
+                                          ...x.key_results,
+                                          { id, title: '新关键结果', target: null, current: '0' },
+                                        ],
+                                      }
+                                    : x,
+                                ),
+                              }))
+                              setEditing(`kr:${id}`)
+                            }
+                          }}
+                        >
+                          <Plus className="mr-1 h-3 w-3" /> 加关键结果
+                        </Button>
                       ) : null}
                     </li>
                   )

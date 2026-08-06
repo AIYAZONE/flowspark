@@ -9,6 +9,7 @@ export type CoachScene =
   | 'today_plan'
   | 'rescue'
   | 'review'
+  | 'brand_check'
 
 export type CoachConfidence = 'low' | 'medium' | 'high'
 export type CoachDifficultyMode = 'starter' | 'balanced' | 'push'
@@ -124,3 +125,4 @@ export type CoachContext = {
 export type TodayPlanApiResponse = CoachApiResponse<TodayPlanOutput>
 export type RescueApiResponse = CoachApiResponse<RescueOutput>
 export type ReviewApiResponse = CoachApiResponse<ReviewOutput>
+export type BrandCheckApiResponse = CoachApiResponse<import('@/lib/ai/phase2aSchemas').BrandCheckOutput>

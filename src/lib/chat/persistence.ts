@@ -100,6 +100,107 @@ export async function recordPathPlan(
   return { ok: true }
 }
 
+export type PathNodeOp =
+  | { op: 'update'; node: 'pillar'; id: string; title?: string; rationale?: string }
+  | { op: 'create'; node: 'pillar'; goalId: string; title: string; rationale?: string }
+  | { op: 'delete'; node: 'pillar'; id: string }
+  | { op: 'update'; node: 'milestone'; id: string; title?: string; target_date?: string }
+  | { op: 'create'; node: 'milestone'; goalId: string; title: string; target_date?: string }
+  | { op: 'delete'; node: 'milestone'; id: string }
+  | { op: 'update'; node: 'key_result'; id: string; title?: string; target?: string; current?: string }
+  | { op: 'create'; node: 'key_result'; milestoneId: string; title: string; target?: string }
+  | { op: 'delete'; node: 'key_result'; id: string }
+
+/**
+ * 路径子结构的增量编辑（落成后的就地增删改）。与 recordPathPlan 的全量覆盖不同，
+ * 这里只动单个节点，避免用户改一个字段就要重新 AI 规划。
+ * 调用方需先确保 goal 归属（见 mutatePathNode 的鉴权）。
+ */
+export async function mutatePathNode(
+  supabase: SupabaseClient,
+  userId: string,
+  input: PathNodeOp,
+): Promise<{ ok?: boolean; error?: string; id?: string }> {
+  const { op, node } = input
+
+  if (node === 'pillar') {
+    if (op === 'update') {
+      const { error } = await supabase
+        .from('path_pillars')
+        .update({ title: input.title, rationale: input.rationale })
+        .eq('id', input.id)
+      return error ? { error: 'operation_failed' } : { ok: true }
+    }
+    if (op === 'create') {
+      const { data, error } = await supabase
+        .from('path_pillars')
+        .insert({
+          goal_id: input.goalId,
+          title: input.title,
+          rationale: input.rationale ?? null,
+          sort_order: 99,
+        })
+        .select('id')
+        .single()
+      return error || !data ? { error: 'operation_failed' } : { ok: true, id: data.id }
+    }
+    // delete
+    const { error } = await supabase.from('path_pillars').delete().eq('id', input.id)
+    return error ? { error: 'operation_failed' } : { ok: true }
+  }
+
+  if (node === 'milestone') {
+    if (op === 'update') {
+      const { error } = await supabase
+        .from('path_milestones')
+        .update({ title: input.title, target_date: input.target_date ?? null })
+        .eq('id', input.id)
+      return error ? { error: 'operation_failed' } : { ok: true }
+    }
+    if (op === 'create') {
+      const { data, error } = await supabase
+        .from('path_milestones')
+        .insert({
+          goal_id: input.goalId,
+          title: input.title,
+          target_date: input.target_date ?? null,
+          sort_order: 99,
+          status: 'pending',
+          started_at: null,
+        })
+        .select('id')
+        .single()
+      return error || !data ? { error: 'operation_failed' } : { ok: true, id: data.id }
+    }
+    const { error } = await supabase.from('path_milestones').delete().eq('id', input.id)
+    return error ? { error: 'operation_failed' } : { ok: true }
+  }
+
+  // key_result
+  if (op === 'update') {
+    const { error } = await supabase
+      .from('path_key_results')
+      .update({ title: input.title, target: input.target ?? null, current: input.current ?? '0' })
+      .eq('id', input.id)
+    return error ? { error: 'operation_failed' } : { ok: true }
+  }
+  if (op === 'create') {
+    const { data, error } = await supabase
+      .from('path_key_results')
+      .insert({
+        milestone_id: input.milestoneId,
+        title: input.title,
+        target: input.target ?? null,
+        current: '0',
+      })
+      .select('id')
+      .single()
+    return error || !data ? { error: 'operation_failed' } : { ok: true, id: data.id }
+  }
+  const { error } = await supabase.from('path_key_results').delete().eq('id', input.id)
+  return error ? { error: 'operation_failed' } : { ok: true }
+}
+
 /**
  * 聊天闭环的"落库"纯逻辑，从 server action 中抽出以便单测。
  * 不含 Next 运行时依赖（createClient / revalidatePath / 鉴权），只接收已认证的
@@ -170,6 +271,62 @@ export async function recordChatAction(
   if (error || !inserted) return { error: 'operation_failed' }
 
   return { actionId: inserted.id }
+}
+
+export type RecordContentIdeaInput = {
+  title: string
+  angle: string | null
+  hook: string | null
+  notes: string | null
+}
+
+export type RecordContentIdeaResult = { ideaId?: string; duplicate?: boolean; error?: string }
+
+/**
+ * 将一条聊天产出的 IP 选题写入 `content_ideas`，归属当前用户。
+ * 去重兜底：标题命中用户已有（status 非 archived）选题时直接返回已存在项。
+ */
+export async function recordContentIdea(
+  supabase: SupabaseClient,
+  userId: string,
+  input: RecordContentIdeaInput
+): Promise<RecordContentIdeaResult> {
+  const { title, angle, hook, notes } = input
+  if (!title) return { error: 'missing_fields' }
+
+  const { data: existing } = await supabase
+    .from('content_ideas')
+    .select('id,title,status')
+    .eq('user_id', userId)
+    .neq('status', 'archived')
+
+  const dup = (existing ?? []).find(
+    (i) => i.title && title && i.title.toLowerCase() === title.toLowerCase(),
+  )
+  if (dup) return { ideaId: dup.id, duplicate: true }
+
+  const rawMarkdown = [hook ? `**钩子**：${hook}` : '', angle ? `**角度**：${angle}` : '', notes || '']
+    .filter(Boolean)
+    .join('\n\n')
+
+  const { data: inserted, error } = await supabase
+    .from('content_ideas')
+    .insert({
+      user_id: userId,
+      title,
+      angle: angle ?? null,
+      hook: hook ?? null,
+      notes: notes ?? null,
+      raw_markdown: rawMarkdown || null,
+      status: 'idea',
+      source: 'chat',
+    })
+    .select('id')
+    .single()
+
+  if (error || !inserted) return { error: 'operation_failed' }
+
+  return { ideaId: inserted.id }
 }
 
 export type CompleteChatActionResult = { ok?: boolean; error?: string }

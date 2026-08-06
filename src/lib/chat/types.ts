@@ -1,6 +1,7 @@
 export type ChatRole = 'user' | 'assistant'
 export type ChatTurnStatus = 'streaming' | 'done' | 'error'
 export type ChatActionState = 'idle' | 'confirming' | 'done' | 'error' | 'duplicate'
+export type ChatIdeaState = 'idle' | 'confirming' | 'done' | 'error' | 'duplicate'
 export type ChatCompleteState = 'idle' | 'confirming' | 'done' | 'error'
 
 export type ChatActionKind = 'goal' | 'action'
@@ -10,6 +11,34 @@ export type ChatActionDraft = {
   title: string
   goalHint?: string | null
   reason?: string | null
+}
+
+export type ChatIdeaKind = 'idea'
+
+export type ChatIdeaDraft = {
+  kind: ChatIdeaKind
+  title: string
+  angle?: string | null
+  hook?: string | null
+  notes?: string | null
+}
+
+// AI 自动沉淀的内容资产（不再需要用户确认/手动归类，直接入库）
+export type ChatAssetKind =
+  | 'idea'
+  | 'script'
+  | 'note'
+  | 'data'
+  | 'strategy'
+  | 'tool'
+  | 'other'
+
+export type ChatAssetDraft = {
+  id: string
+  kind: ChatAssetKind
+  title: string
+  summary?: string | null
+  folderId?: string | null
 }
 
 export type ChatCompleteDraft = {
@@ -34,6 +63,9 @@ export type ChatTurn = {
   status: ChatTurnStatus
   action?: ChatActionDraft | null
   actionState?: ChatActionState
+  idea?: ChatIdeaDraft | null
+  ideaState?: ChatIdeaState
+  assets?: ChatAssetDraft[] | null
   completion?: ChatCompleteDraft | null
   completionState?: ChatCompleteState
   referencedActions?: ChatReferencedAction[] | null
@@ -44,6 +76,9 @@ export type ChatTurn = {
 export type ChatStreamEvent =
   | { type: 'text'; value: string }
   | { type: 'references'; actions: Array<{ id: string; title: string }> }
+  | { type: 'action'; draft: ChatActionDraft }
+  | { type: 'idea'; draft: ChatIdeaDraft }
+  | { type: 'assets'; assets: ChatAssetDraft[] }
   | { type: 'done' }
   | { type: 'error'; message: string }
 
@@ -75,11 +110,24 @@ export type ChatCopy = {
   actionKindAction: string
   actionReasonLabel: string
   actionConfirm: string
+  actionConfirmGoal: string
   actionConfirming: string
   actionDone: string
+  actionDoneGoal: string
   actionError: string
   actionDuplicate: string
   actionNoGoal: string
+  ideaCardTitle: string
+  ideaAngleLabel: string
+  ideaHookLabel: string
+  ideaNotesLabel: string
+  ideaConfirm: string
+  ideaConfirming: string
+  ideaDone: string
+  ideaError: string
+  ideaDuplicate: string
+  assetCardTitle: string
+  assetAutoSaved: string
   refTitle: string
   refGoToday: string
   refComplete: string

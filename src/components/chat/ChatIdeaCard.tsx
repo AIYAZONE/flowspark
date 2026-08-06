@@ -1,65 +1,72 @@
 'use client'
 
-import { Check, Loader2 } from 'lucide-react'
-import type { ChatActionDraft, ChatActionState, ChatCopy } from '@/lib/chat/types'
+import { Check, Loader2, Lightbulb } from 'lucide-react'
+import type { ChatIdeaDraft, ChatIdeaState, ChatCopy } from '@/lib/chat/types'
 
 type Props = {
-  action: ChatActionDraft
-  actionState: ChatActionState
+  idea: ChatIdeaDraft
+  ideaState: ChatIdeaState
   copy: ChatCopy
   onConfirm: () => void
 }
 
-export function ChatActionCard({ action, actionState, copy, onConfirm }: Props) {
-  const isGoal = action.kind === 'goal'
-  const kindLabel = isGoal ? copy.actionKindGoal : copy.actionKindAction
-  const confirmLabel = isGoal ? copy.actionConfirmGoal : copy.actionConfirm
-  const doneLabel = isGoal ? copy.actionDoneGoal : copy.actionDone
-
+export function ChatIdeaCard({ idea, ideaState, copy, onConfirm }: Props) {
   return (
     <div className="relative mt-2 rounded-2xl border border-border/70 bg-card/70 px-4 py-3.5">
       <div className="flex items-center gap-2">
-        <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[11px] font-medium tracking-wide text-primary">
-          {kindLabel}
+        <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium tracking-wide text-amber-600">
+          <Lightbulb className="mr-1 inline h-3 w-3" />
+          {copy.ideaCardTitle}
         </span>
-        <span className="text-[12px] uppercase tracking-[0.14em] text-muted-foreground/70">{copy.actionCardTitle}</span>
       </div>
-      <div className="mt-2 text-[15px] font-medium text-foreground">{action.title}</div>
-      {action.reason && (
+      <div className="mt-2 text-[15px] font-medium text-foreground">{idea.title}</div>
+      {idea.angle && (
         <p className="mt-1 text-[13px] leading-6 text-muted-foreground">
-          <span className="text-muted-foreground/60">{copy.actionReasonLabel}：</span>
-          {action.reason}
+          <span className="text-muted-foreground/60">{copy.ideaAngleLabel}：</span>
+          {idea.angle}
+        </p>
+      )}
+      {idea.hook && (
+        <p className="mt-1 text-[13px] leading-6 text-muted-foreground">
+          <span className="text-muted-foreground/60">{copy.ideaHookLabel}：</span>
+          {idea.hook}
+        </p>
+      )}
+      {idea.notes && (
+        <p className="mt-1 text-[13px] leading-6 text-muted-foreground">
+          <span className="text-muted-foreground/60">{copy.ideaNotesLabel}：</span>
+          {idea.notes}
         </p>
       )}
       <div className="mt-3">
-        {actionState === 'idle' && (
+        {ideaState === 'idle' && (
           <button
             type="button"
             onClick={onConfirm}
             className="inline-flex h-9 items-center justify-center rounded-full bg-primary px-4 text-[13px] font-medium text-primary-foreground transition hover:bg-primary/90 active:scale-[0.985]"
           >
-            {confirmLabel}
+            {copy.ideaConfirm}
           </button>
         )}
-        {actionState === 'confirming' && (
+        {ideaState === 'confirming' && (
           <button
             type="button"
             disabled
             className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary/40 px-4 text-[13px] font-medium text-primary-foreground/80"
           >
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            {copy.actionConfirming}
+            {copy.ideaConfirming}
           </button>
         )}
-        {actionState === 'done' && (
+        {ideaState === 'done' && (
           <div className="inline-flex h-9 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-4 text-[13px] font-medium text-primary">
             <Check className="h-3.5 w-3.5" />
-            {doneLabel}
+            {copy.ideaDone}
           </div>
         )}
-        {actionState === 'error' && (
+        {ideaState === 'error' && (
           <div className="flex items-center gap-2">
-            <span className="text-[13px] text-destructive">{copy.actionError}</span>
+            <span className="text-[13px] text-destructive">{copy.ideaError}</span>
             <button
               type="button"
               onClick={onConfirm}
@@ -69,10 +76,10 @@ export function ChatActionCard({ action, actionState, copy, onConfirm }: Props) 
             </button>
           </div>
         )}
-        {actionState === 'duplicate' && (
+        {ideaState === 'duplicate' && (
           <div className="inline-flex h-9 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-4 text-[13px] font-medium text-primary">
             <Check className="h-3.5 w-3.5" />
-            {copy.actionDuplicate}
+            {copy.ideaDuplicate}
           </div>
         )}
       </div>
