@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { getContentTreeView } from '@/lib/contentAsset'
+import { getContentTreeView, getCreatorDimensions } from '@/lib/contentAsset'
 
 // 视频号个人IP专项：选题库（content_ideas）与内容日历（content_calendar）最小版数据访问层。
 // 仅服务「你自己」这一个账号，所有查询经 RLS（user_id = auth.uid()）隔离，不写入任何示例数据。
@@ -191,13 +191,21 @@ export interface BrandStudioView {
   calendar: ContentCalendarEntry[]
   folders: import('@/lib/contentAsset').ContentFolder[]
   assets: import('@/lib/contentAsset').ContentAsset[]
+  dimensions: import('@/lib/contentAsset').CreatorDimension[]
 }
 
 export async function getBrandStudioView(): Promise<BrandStudioView> {
-  const [ideas, calendar, tree] = await Promise.all([
+  const [ideas, calendar, tree, dimensions] = await Promise.all([
     listContentIdeas(),
     listContentCalendar(),
     getContentTreeView(),
+    getCreatorDimensions(),
   ])
-  return { ideas, calendar, folders: tree.folders, assets: tree.assets }
+  return {
+    ideas,
+    calendar,
+    folders: tree.folders,
+    assets: tree.assets,
+    dimensions,
+  }
 }

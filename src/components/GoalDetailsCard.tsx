@@ -38,6 +38,7 @@ interface Goal {
     priority?: string
     category?: string
     is_starred?: boolean
+    tags?: string[]
 }
 
 interface GoalDetailsCardProps {
@@ -55,6 +56,7 @@ export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialS
     const [isExpanded, setIsExpanded] = useState(false)
     const [isStarring, setIsStarring] = useState(false)
     const [category, setCategory] = useState<string>(goal.category || 'other')
+    const [tagsInput, setTagsInput] = useState<string>((goal.tags || []).join(', '))
     const [shareOpen, setShareOpen] = useState(false)
     const [shareLoading, setShareLoading] = useState(false)
     const [shareSyncing, setShareSyncing] = useState(false)
@@ -229,6 +231,7 @@ export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialS
                 <form action={handleSubmit}>
                     <input type="hidden" name="id" value={goal.id} />
                     <input type="hidden" name="category" value={normalizedCategory} />
+                    <input type="hidden" name="tags" value={tagsInput} />
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-xl font-bold text-primary">{dict.common.edit}</CardTitle>
                         <div className="flex gap-2">
@@ -329,6 +332,19 @@ export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialS
                                 <Label htmlFor="category">{dict.goals.category.label}</Label>
                                 <GoalCategorySelect dict={dict} value={category} onChange={setCategory} enableBulkReplace />
                             </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="tags">{dict.goals.tags.label}</Label>
+                            <Input
+                                id="tags"
+                                name="tags"
+                                value={tagsInput}
+                                onChange={(e) => setTagsInput(e.target.value)}
+                                placeholder={dict.goals.tags.placeholder}
+                                className="bg-background/50"
+                            />
+                            <p className="text-xs text-muted-foreground">{dict.goals.tags.hint}</p>
                         </div>
 
                         <div className="space-y-2">
@@ -491,6 +507,25 @@ export function GoalDetailsCard({ goal, dict, initialShareToken = null, initialS
                                             {dict.goals.category[goal.category as keyof typeof dict.goals.category] || goal.category || 'Other'}
                                         </span>
                                     </div>
+
+                                    {goal.tags && goal.tags.length > 0 && (
+                                        <div className="flex items-start justify-between gap-3 py-2 border-b border-border/50 last:border-0">
+                                            <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+                                                <Tag className="h-4 w-4" />
+                                                <span>{dict.goals.tags.label}</span>
+                                            </div>
+                                            <div className="flex flex-wrap justify-end gap-1.5">
+                                                {goal.tags.map((t) => (
+                                                    <span
+                                                        key={t}
+                                                        className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+                                                    >
+                                                        {t}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

@@ -66,11 +66,19 @@ export type ChatTurn = {
   idea?: ChatIdeaDraft | null
   ideaState?: ChatIdeaState
   assets?: ChatAssetDraft[] | null
+  persona?: ChatPersonaDraft[] | null
   completion?: ChatCompleteDraft | null
   completionState?: ChatCompleteState
   referencedActions?: ChatReferencedAction[] | null
   feedback?: ChatTurnFeedback | null
   createdAt: string
+}
+
+export type ChatPersonaDraft = {
+  category: string
+  title: string
+  detail?: string | null
+  confidence?: string
 }
 
 export type ChatStreamEvent =
@@ -79,6 +87,7 @@ export type ChatStreamEvent =
   | { type: 'action'; draft: ChatActionDraft }
   | { type: 'idea'; draft: ChatIdeaDraft }
   | { type: 'assets'; assets: ChatAssetDraft[] }
+  | { type: 'persona'; items: ChatPersonaDraft[] }
   | { type: 'done' }
   | { type: 'error'; message: string }
 
@@ -128,6 +137,8 @@ export type ChatCopy = {
   ideaDuplicate: string
   assetCardTitle: string
   assetAutoSaved: string
+  personaCardTitle: string
+  personaAutoSaved: string
   refTitle: string
   refGoToday: string
   refComplete: string

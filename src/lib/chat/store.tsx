@@ -220,6 +220,9 @@ export function ChatProvider({
               } else if (evt.type === 'assets') {
                 // 资产已由后端直接入库，前端仅做只读展示
                 updateTurn(assistantId, { assets: evt.assets })
+              } else if (evt.type === 'persona') {
+                // 个人记忆已由后端直接入库，前端仅做只读展示
+                updateTurn(assistantId, { persona: evt.items })
               } else if (evt.type === 'error') {
                 updateTurn(assistantId, { status: 'error', text: receivedText || FALLBACK_ERROR_TEXT })
               }

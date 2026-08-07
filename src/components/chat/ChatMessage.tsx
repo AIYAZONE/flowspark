@@ -14,6 +14,7 @@ import { ChatActionCard } from './ChatActionCard'
 import { ChatCompleteCard } from './ChatCompleteCard'
 import { ChatReferenceCard } from './ChatReferenceCard'
 import { ChatAssetsCard } from './ChatAssetsCard'
+import { ChatPersonaCard } from './ChatPersonaCard'
 import { ChatFeedbackControl } from './ChatFeedbackControl'
 
 type Props = {
@@ -169,6 +170,10 @@ export function ChatMessage({
 
       {turn.assets && turn.assets.length > 0 && (
         <ChatAssetsCard assets={turn.assets} copy={copy} />
+      )}
+
+      {turn.persona && turn.persona.length > 0 && (
+        <ChatPersonaCard items={turn.persona} copy={copy} />
       )}
 
       {turn.completion && turn.completionState !== 'done' && (

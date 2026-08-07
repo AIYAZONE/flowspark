@@ -28,6 +28,20 @@ export function normalizeCategoryInput(input: unknown, maxLength = 40): string {
   return normalized.slice(0, maxLength)
 }
 
+// 将表单/接口输入解析为去重、裁剪、最多 12 个的标签数组。
+export function normalizeTagsInput(input: unknown, maxTags = 12, maxLength = 40): string[] {
+  const raw = typeof input === 'string' ? input.split(',') : Array.isArray(input) ? input : []
+  const out = new Set<string>()
+  for (const item of raw) {
+    if (out.size >= maxTags) break
+    const t = typeof item === 'string' ? item.trim().replace(/\s+/g, ' ') : ''
+    if (!t) continue
+    if (t.length <= maxLength) out.add(t)
+    else out.add(t.slice(0, maxLength))
+  }
+  return Array.from(out)
+}
+
 export function getCategoryLabel(dict: Dict, category: unknown): string {
   const value = typeof category === 'string' ? category : ''
   if (!value) return dict.goals.category.other

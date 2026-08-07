@@ -1,11 +1,13 @@
 'use client'
 
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Lightbulb, Calendar, FileText, ArrowRight } from 'lucide-react'
+import { Lightbulb, Calendar, FileText, ArrowRight, LayoutGrid, Target, FolderTree } from 'lucide-react'
 import type { Dictionary } from '@/i18n/types'
 import type { ContentIdea, ContentCalendarEntry } from '@/lib/contentBrand'
-import type { ContentFolder, ContentAsset } from '@/lib/contentAsset'
+import type { ContentFolder, ContentAsset, CreatorDimension } from '@/lib/contentAsset'
+import { useState } from 'react'
 
 export function BrandStudioClient({
   dict,
@@ -13,14 +15,17 @@ export function BrandStudioClient({
   initialCalendar,
   initialFolders: _initialFolders,
   initialAssets,
+  initialDimensions,
 }: {
   dict: Dictionary
   initialIdeas: ContentIdea[]
   initialCalendar: ContentCalendarEntry[]
   initialFolders: ContentFolder[]
   initialAssets: ContentAsset[]
+  initialDimensions: CreatorDimension[]
 }) {
   const r = dict.brandStudio
+  const [activeDim, setActiveDim] = useState<string | null>(null)
 
   // 按更新时间倒序排列所有资产
   const timelineItems: TimelineItem[] = [
@@ -36,8 +41,8 @@ export function BrandStudioClient({
     ...initialCalendar.map((entry) => ({
       id: entry.id,
       kind: 'calendar' as const,
-      title: entry.title,
-      subtitle: entry.date ? new Date(entry.date).toLocaleDateString('zh-CN', {
+      title: entry.note || entry.platform,
+      subtitle: entry.planned_date ? new Date(entry.planned_date).toLocaleDateString('zh-CN', {
         month: 'short',
         day: 'numeric',
       }) : undefined,
@@ -47,8 +52,8 @@ export function BrandStudioClient({
     ...initialAssets.map((asset) => ({
       id: asset.id,
       kind: 'asset' as const,
-      title: asset.name || asset.title || '未命名',
-      subtitle: asset.type || undefined,
+      title: asset.title || '未命名',
+      subtitle: asset.kind || undefined,
       status: 'draft',
       updatedAt: asset.updated_at || asset.created_at,
     })),
@@ -87,6 +92,108 @@ export function BrandStudioClient({
           </CardDescription>
         </CardHeader>
       </Card>
+
+      {/* 创作者维度视图：按标签聚合目标与资产 */}
+      {initialDimensions.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <LayoutGrid className="h-4 w-4 text-primary" />
+            <h2 className="text-sm font-medium text-muted-foreground">
+              {r.dimensionsTitle}
+            </h2>
+          </div>
+
+          {/* 标签云 */}
+          <div className="flex flex-wrap gap-2">
+            {initialDimensions.map((dim) => {
+              const total = dim.goalCount + dim.assetCount
+              const isActive = activeDim === dim.name
+              return (
+                <button
+                  key={dim.name}
+                  type="button"
+                  onClick={() => setActiveDim(isActive ? null : dim.name)}
+                  className={
+                    'group inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ' +
+                    (isActive
+                      ? 'border-primary/30 bg-primary/10 text-primary'
+                      : 'border-border/60 bg-card/40 text-foreground hover:border-primary/20 hover:bg-primary/5')
+                  }
+                >
+                  <span>{dim.name}</span>
+                  <span className="rounded-full bg-muted/70 px-1.5 text-[11px] text-muted-foreground">
+                    {total}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {/* 选中维度后展开的明细 */}
+          {activeDim && (() => {
+            const dim = initialDimensions.find((d) => d.name === activeDim)
+            if (!dim) return null
+            return (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Card className="border-border/50 bg-card/30">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <Target className="h-4 w-4 text-primary" />
+                      {r.dimensionsGoals}（{dim.goalCount}）
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {dim.goals.length ? (
+                      <ul className="space-y-1.5">
+                        {dim.goals.map((g) => (
+                          <li key={g.id} className="flex items-center justify-between gap-2 text-sm">
+                            <Link
+                              href={`/goals/${g.id}`}
+                              className="truncate text-foreground hover:text-primary hover:underline"
+                            >
+                              {g.title}
+                            </Link>
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {g.status}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">{r.dimensionsEmpty}</p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card className="border-border/50 bg-card/30">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm">
+                      <FolderTree className="h-4 w-4 text-emerald-500" />
+                      {r.dimensionsAssets}（{dim.assetCount}）
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {dim.assets.length ? (
+                      <ul className="space-y-1.5">
+                        {dim.assets.map((a) => (
+                          <li key={a.id} className="flex items-center justify-between gap-2 text-sm">
+                            <span className="truncate text-foreground">{a.name}</span>
+                            <span className="shrink-0 rounded bg-muted/70 px-1.5 text-[11px] text-muted-foreground">
+                              {a.kind}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">{r.dimensionsEmpty}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )
+          })()}
+        </div>
+      )}
 
       {/* 内容资产时间线 */}
       {hasAnyContent ? (

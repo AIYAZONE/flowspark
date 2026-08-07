@@ -45,6 +45,7 @@ export interface ContentAsset {
   status: ContentAssetStatus
   source: string
   chat_session_id: string | null
+  tags: string[]
   created_at: string
   updated_at: string
 }
@@ -57,6 +58,8 @@ export interface ContentAssetInput {
   status?: ContentAssetStatus
   source?: string
   chat_session_id?: string | null
+  // 自由标签（创作者维度聚合用），如 ["视频号","读书","IP定位"]
+  tags?: string[]
   // AI 提供的路径名数组（从根到叶），如 ["01-总纲与战略","视频号定位"]
   path?: string[]
 }
@@ -162,6 +165,7 @@ export async function upsertContentAssets(
       status: input.status ?? 'captured',
       source: input.source ?? 'chat',
       chat_session_id: input.chat_session_id ?? null,
+      tags: Array.isArray(input.tags) ? input.tags : [],
     })
   }
 
@@ -202,3 +206,72 @@ export async function getContentTreeView(): Promise<ContentTreeView> {
   ])
   return { folders, assets }
 }
+
+// ── 创作者维度视图：跨 goals + content_assets 的标签聚合 ──────────────────
+export interface CreatorDimension {
+  name: string
+  goalCount: number
+  assetCount: number
+  goals: Array<{ id: string; title: string; status: string }>
+  assets: Array<{ id: string; name: string; kind: string }>
+}
+
+export async function getCreatorDimensions(): Promise<CreatorDimension[]> {
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const [goalRows, assetRows] = await Promise.all([
+    supabase
+      .from('goals')
+      .select('id, title, status, tags')
+      .eq('owner_id', user.id),
+    supabase
+      .from('content_assets')
+      .select('id, name, kind, tags')
+      .eq('user_id', user.id),
+  ])
+
+  const map = new Map<string, CreatorDimension>()
+  const ensure = (name: string): CreatorDimension => {
+    let d = map.get(name)
+    if (!d) {
+      d = { name, goalCount: 0, assetCount: 0, goals: [], assets: [] }
+      map.set(name, d)
+    }
+    return d
+  }
+
+  for (const g of (goalRows.data ?? []) as Array<{
+    id: string
+    title: string
+    status: string
+    tags: string[] | null
+  }>) {
+    for (const t of g.tags ?? []) {
+      const d = ensure(t)
+      d.goalCount += 1
+      if (d.goals.length < 8) d.goals.push({ id: g.id, title: g.title, status: g.status })
+    }
+  }
+  for (const a of (assetRows.data ?? []) as Array<{
+    id: string
+    name: string | null
+    kind: string
+    tags: string[] | null
+  }>) {
+    for (const t of a.tags ?? []) {
+      const d = ensure(t)
+      d.assetCount += 1
+      if (d.assets.length < 8)
+        d.assets.push({ id: a.id, name: a.name || '未命名', kind: a.kind })
+    }
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) => b.goalCount + b.assetCount - (a.goalCount + a.assetCount)
+  )
+}
+

@@ -8,7 +8,7 @@ import {
 	mergeAITodayPlanIntoDescription
 } from '@/lib/aiTodayPlan';
 import { createClient } from '@/lib/supabase/server';
-import { normalizeCategoryInput } from '@/lib/goalCategories';
+import { normalizeCategoryInput, normalizeTagsInput } from '@/lib/goalCategories';
 import { upsertBehaviorSnapshot } from '@/lib/snapshots';
 import {
 	getUpcomingRecurringDate,
@@ -367,6 +367,7 @@ export async function createGoal(formData: FormData) {
 	const stop_criteria = formData.get('stop_criteria') as string;
 	const priority = (formData.get('priority') as string) || 'medium';
 	const category = (formData.get('category') as string) || 'other';
+	const tags = normalizeTagsInput(formData.get('tags'));
 
 	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
 		throw new Error('invalid_date_range');
@@ -385,7 +386,8 @@ export async function createGoal(formData: FormData) {
 				stop_criteria,
 				status: 'active',
 				priority,
-				category
+				category,
+				tags
 			}),
 		async () =>
 			supabase.from('goals').insert({
@@ -982,6 +984,7 @@ export async function updateGoal(formData: FormData) {
 	const status = formData.get('status') as string;
 	const priority = formData.get('priority') as string;
 	const category = formData.get('category') as string;
+	const tags = normalizeTagsInput(formData.get('tags'));
 
 	if (end_date && start_date && new Date(end_date) < new Date(start_date)) {
 		throw new Error('invalid_date_range');
@@ -1000,7 +1003,8 @@ export async function updateGoal(formData: FormData) {
 					stop_criteria,
 					status,
 					priority,
-					category
+					category,
+					tags
 				})
 				.eq('id', id)
 				.eq('owner_id', user.id)) as MutationResult,

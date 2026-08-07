@@ -1,287 +1,230 @@
-# FlowSpark 人生规划师蓝图（方案文档 v1）
+# FlowSpark 产品蓝图（商业化版 v2）
 
-> 面向：产品负责人（王洪兴）
-> 定位：把 FlowSpark 从「待办记录工具」升级为「人生规划师 / 人生系统」
-> 范围：本文档为**方案设计**，确认后进入开发。本次优先做「路径结构升级 + Chat 规划师联动」两块，并以「王洪兴读经典 / 视频号个人IP」案例打样。
-
----
-
-## 0. 两个贯穿全文的核心设计原则（来自你的补充）
-
-这两点决定了整个产品的「人格」和「记忆方式」，所有模块都要遵守：
-
-### 原则 A · 个人补充即个人记忆
-- 你在对话里**每一次对「个人」的补充**（兴趣、优势、经历、价值观、想成为的人、卡点……），都不是一次性闲聊，而是**直接沉淀为当前用户（你）的长期个人记忆 / 人设库**。
-- 这份记忆**跨路径、跨会话持续累积**，是 Chat 规划师做定位推导的底层原料。
-- 现有 `system_memory_preferences` 只存了 3 个「交互偏好」（回复长短 / 追问方式 / 专注模式），**远不够**——需要新建真正的个人记忆结构 `user_persona`。
-- 触发方式：你主动说（"我擅长把复杂事讲简单"）+ 系统在规划对话中主动补全（"你刚才说你不爱出镜，我记下了"）。
-
-### 原则 B · 规划新目标时，我是该领域全能专家
-- 一旦进入「规划一条新路径」的语境，系统**切换为该领域的资深专家 / 大咖人格**，默认全能视角。
-- 该人格**敢给结论、敢拍板、主动规划拆解**，不是中立的问答机器人。
-- 例子：你说"想做视频号个人IP但不知道怎么做" → 系统以「个人IP操盘手 + 内容策略专家」身份，直接给你定位、人设三件套、内容支柱、90天打法，而不是反问"你想做哪种IP呢？"。
+> **版本说明**：v1 蓝图（重规划人生系统：5 层路径 + 人设诊断 + 主动规划）经市场验证**已推翻**。本版基于真实市场数据 + 现有代码底座重新定位。
+> **定位一句话**：FlowSpark = 内容创作者的**私有成长 OS**——开聊就行，AI 自动把灵感/复盘/选题沉淀成结构化的人设与内容资产，数据 100% 归你、可导出、不被训练；周回顾轻提醒，零手动建结构。
+> **目标**：商业化订阅产品（单人冷启动 → 上线运营）。
 
 ---
 
-## 1. 现状诊断（为什么现在没意义）
+## 0. 战略决策与依据（为什么改方向）
 
-### 1.1 路径 = 结构化待办清单
-- `goals` 表字段：`title / description / start_date / end_date / success_criteria / stop_criteria / status / priority / category`。**没有定位 / 策略 / 里程碑 / 阶段 / 关键结果**。
-- `actions` 表：平铺勾选项（`type` 区分 core/maintenance/learning/review/rest）。**无层级、无结构**。
-- 你的「王洪兴读经典」路径现在只是：一个标题 + 一堆你自己也不知道对不对的 todo。系统没有帮你做"我是谁、为什么做视频号、怎么做"。
+### 0.1 真实市场事实（已查证，非假设）
+- **通用 agent 记忆已很强**：ChatGPT Memory 2024-04 上线，2025-04 推"全局记忆/Moonshine"跨对话永久记忆，2026-06 升级 Dreaming V3。Claude Projects / 豆包 / Kimi 均有长期记忆。**"记忆"不是壁垒。**
+- **Life OS 赛道已拥挤**：malife、TaskCoach.AI（Life OS）、Pipstario、Ari（ADHD coach）等均已存在，主打"目标+习惯+AI教练+日历+日记"。
+- **73% 的 ChatGPT 对话已是生活类**（OpenAI 2025-06 报告）——需求真实巨大，但**轻度用户已被通用 agent 吸收**。
+- **隐私/主权是真实缝隙**：JauMemory（encrypted cross-AI memory）拿到融资、邀请制排队，证明"隐私可控的人生数据"有人买单；巨头记忆在云端、可被训练、不可完全导出。
 
-### 1.2 AI 底座有，但和路径割裂
-- `coachOrchestrator` 已会注入 self-model + path-context，并有 `goal-setup / breakdown / rescue / review / potential` 一批端点。
-- 但 chat 给的建议**不会回写成路径结构**：`recordChatAction` 只能插一条 `core` action，且按标题模糊匹配落到某 goal，**没有定位/策略/里程碑的落写能力**。
-- `self-model` 现在是**基于行为信号被动推断**（采纳率/反馈），不是你主动补充的个人记忆——这正是原则 A 要补的缺口。
-- `path-context` 能推断"路径阶段"（落点/启动/铺轨/稳定/收口），但**只出文案，不结构化存储**。
+### 0.2 三个可防守的差异化（真实可落地）
+| 维度 | 通用 agent（ChatGPT） | Life OS 竞品 | **FlowSpark** |
+|---|---|---|---|
+| 结构 | 聊完即散，无回看结构 | 重，逼你填目标建系统 | **轻：对话即记录，自动长结构** |
+| 私有 | 云端、可训练、难导出 | 多为 SaaS 云端 | **Supabase 自建，可导出、不训练** |
+| 人群 | 通用 | 泛 | **聚焦内容创作者/个人IP** |
+
+### 0.3 砍掉 vs 保留
+**砍掉（v1 过度设计）**：
+- ❌ 人设诊断式提问（用户明确烦被问）
+- ❌ 主动规划流程 / "请规划"按钮（用户嫌重）
+- ❌ 每日待办打卡（反人性，改周回顾）
+- ❌ 把 path-plan 当新功能重写（**代码里已实现**，见 §2）
+
+**保留并轻量化**：
+- ✅ 对话自动沉淀人设（`recordPersonaFromChat` 已存在）
+- ✅ 对话直接生成路径结构（`pathPlan.ts` + `51_path_structure.sql` 已存在）
+- ✅ 内容资产树（`content_assets` 表已建，仅缺写入链路）
+- ✅ 周回顾式轻主动（`planReview` / `path-context.ts` 已存在）
 
 ---
 
-## 2. 目标态：人生规划师能做什么（用户故事）
+## 1. PRD（商业化版）
 
-| # | 作为用户，我希望… | 验收标准 |
+### 1.1 问题陈述
+内容创作者（个人IP/视频号主）在 ChatGPT 等通用 agent 里聊出的选题、人设思考、复盘结论**聊完即散**，无法沉淀为可回看、可复用的结构化资产；而 malife/TaskCoach 这类 Life OS 又**逼用户手动建目标、填系统**，心智负担重。创作者需要一个**开聊即记录、AI 自动归类、数据私有**的轻量成长系统，且愿意为"省心 + 私有"付费。
+
+### 1.2 目标（可衡量）
+- **G1 激活**：新用户首周内产生 ≥3 条自动沉淀的人设/内容资产（leading）。
+- **G2 留存**：订阅月留存 ≥ 40%（对标 Life OS 类目中位）。
+- **G3 付费**：上线 3 个月内付费转化率 ≥ 5%（免费→订阅）。
+- **G4 私有信任**：100% 用户数据可一键导出（合规卖点）。
+
+### 1.3 非目标（防范围蔓延）
+- ❌ 不做通用 agent（不碰"啥都能聊"）
+- ❌ 不做社交/社区/关注流（v2 后再议）
+- ❌ 不做团队协作/多租户（单人创作者优先）
+- ❌ 不做视频剪辑/发布（只做"资产沉淀与一致性"，发布交给平台）
+- ❌ 不做每日打卡/强提醒（只做周回顾）
+
+### 1.4 用户故事
+** persona：内容创作者「小王」（视频号个人IP，想做成长内容）**
+- 作为创作者，我想**开着聊天就把今天的选题灵感存下来**，而不用手动建文档 → 系统自动写入 `content_assets` 树。
+- 作为创作者，我想**聊完天发现 AI 记住了"我是谁/我的IP定位"**，而不用填表 → 日常对话自动抽人设落 `user_persona`。
+- 作为创作者，我想**周末收到一句轻提醒**："这周你囤了 4 个选题，但人设定位还模糊，要不要聊清楚？" → 周回顾轻主动。
+- 作为付费用户，我想**随时导出我全部的人设+内容资产为 Markdown/JSON**，证明数据归我 → 隐私导出。
+- 作为创作者，我想**看一张"我的内容资产地图"**：选题/脚本/人设笔记按主题自动聚类 → 资产树可视化。
+
+### 1.5 需求分级（P0 = MVP 必须有）
+**P0（MVP）**
+- R1 对话自动人设抽取：日常自由聊天识别"关于用户本人的陈述"→ 落 `user_persona`（含语义去重）。验收：发一句"我擅长把复杂事讲简单"→ 下次 persona 列表出现该条。
+- R2 对话自动内容资产沉淀：聊天中的选题/脚本/笔记 → 自动写入 `content_assets` 树（AI 动态建目录）。验收：聊出选题 → 资产树出现对应节点。
+- R3 周回顾轻提醒：每周一次，≤3 句话总结推进/卡点，不强制操作。验收：周一定时推送，可忽略。
+- R4 隐私导出：一键导出全部人设+资产+路径为 Markdown/JSON。验收：点击后下载文件含全部数据。
+- R5 订阅付费墙：免费版限制资产/人设条数，订阅解锁。验收：超限提示升级，支付后解锁。
+
+**P1（上线后 1-2 月）**
+- R6 资产树可视化视图（按主题聚类）。
+- R7 人设一致性检查：新草稿 vs `user_persona` + `goals.positioning` 打分（复用 `planBrandCheck`）。
+- R8 内容日历（补全 `content_calendar` 骨架）。
+
+**P2（更晚）**
+- R9 多平台选题分发草稿。
+- R10 创作者专属模板（视频号/小红书/播客）。
+
+### 1.6 成功指标
+| 指标 | 类型 | 目标 |
 |---|---|---|
-| US-1 | 创建路径时，系统以领域专家身份帮我做定位，而不是让我自己填 | 输入"想做视频号个人IP但不知道怎么做"→ 系统先诊断式补全人设 → 生成定位方案 → 一键落成路径结构 |
-| US-2 | 每条路径有清晰的定位卡 + 策略支柱 + 里程碑 + 关键结果 | 路径详情页展示 5 层结构，不再是平铺 todo |
-| US-3 | 我在任意对话里补充的个人信息，自动变成长期个人记忆 | 说"我擅长把复杂事讲简单"→ 写入 `user_persona`，下次规划视频号时能被引用 |
-| US-4 | chat 聊出来的结论能回写进路径 | chat 生成定位方案后，点"落成路径"→ goals 及其子结构被写入 |
-| US-5 | 路径进展能带进 chat 上下文 | chat 规划时能读到当前路径阶段/完成度（复用 path-context） |
-| US-6 | 卡住时系统主动提醒并给破局建议 | 复用 `rescue` 端点，路径停滞时主动推送 |
+| 首周自动沉淀条数 | Leading | ≥3 |
+| 周活跃聊天天数 | Leading | ≥3 天/周 |
+| 月订阅留存 | Lagging | ≥40% |
+| 付费转化率 | Lagging | ≥5% |
+| 导出使用率 | Trust | ≥15% 用户用过 |
 
 ---
 
-## 3. 数据模型方案
+## 2. 现有底座可复用清单（关键：避免重写）
 
-### 3.1 新增 `user_persona`（个人记忆表，落实原则 A）
+> 探查确认：v1 蓝图里"路径结构/人设抽取/内容资产树"**代码已实现**，本版只补缺口。
 
-复用现有 `system_memory_preferences` 的 RLS / ownership 写法，但内容从"交互偏好"升级为"个人记忆"。
-
-```sql
--- supabase/NN_user_persona.sql
-create table if not exists public.user_persona (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  category text not null,        -- values: strength / value / experience / aspiration / aversion / context
-  title text not null,           -- 简短标签，如 "擅长把复杂讲简单"
-  detail text,                   -- 展开说明
-  source text not null default 'chat',  -- chat / manual / inferred
-  confidence text not null default 'medium', -- low / medium / high
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now()
-);
-create index if not exists user_persona_user_idx on public.user_persona(user_id);
--- RLS 同 system_memory_preferences（select/insert/update/delete where auth.uid()=user_id）
-```
-
-`category` 取值：
-- `strength` 优势（"能把经典读出当代感"）
-- `value` 价值观（"认为长期主义比爆款重要"）
-- `experience` 经历（"做过 2 年线下读书会"）
-- `aspiration` 想成为的人（"知识型IP，温和但有锋芒"）
-- `aversion` 抗拒点（"不爱露脸出镜"）
-- `context` 背景上下文（"本职工作稳定，副业做IP"）
-
-### 3.2 路径子结构（落实"路径质变"）
-
-**方案：在 `goals` 上加 `positioning` JSONB 字段，子结构用独立表**，避免 goals 表过度膨胀。
-
-```sql
--- goals 增加定位卡（JSONB，存 AI 生成的定位方案）
-alter table public.goals add column if not exists positioning jsonb;
--- positioning 结构示例：
--- { persona: "知识型IP", oneLiner: "...", threePieces: [...], pillars: [...], audience: "..." }
-
--- 策略支柱（一条路径可有多个）
-create table if not exists public.path_pillars (
-  id uuid primary key default gen_random_uuid(),
-  goal_id uuid not null references public.goals(id) on delete cascade,
-  title text not null,
-  rationale text,
-  sort_order int not null default 0
-);
-
--- 里程碑 / 阶段
-create table if not exists public.path_milestones (
-  id uuid primary key default gen_random_uuid(),
-  goal_id uuid not null references public.goals(id) on delete cascade,
-  title text not null,
-  target_date date,
-  sort_order int not null default 0
-);
-
--- 关键结果（KR，挂在里程碑下）
-create table if not exists public.path_key_results (
-  id uuid primary key default gen_random_uuid(),
-  milestone_id uuid not null references public.path_milestones(id) on delete cascade,
-  title text not null,
-  target text,          -- 量化目标，如 "发布 12 条视频"
-  current text default '0'
-);
-
--- actions 增加外键，可挂到 milestone / KR（可选，向后兼容）
-alter table public.actions add column if not exists milestone_id uuid references public.path_milestones(id) on delete set null;
-```
-
-### 3.3 复用而非新建
-- 个人记忆：**扩展** `system_memory_preferences` 思路新建 `user_persona`，不碰原表。
-- 路径阶段推断：复用 `path-context.ts` 的 stage 逻辑，新增"把 stage 结构化存到 goals.status 或新字段"。
-- 回写：扩展 `recordChatAction` → 新增 `recordPathPlan`（写 goals.positioning + pillars + milestones + KRs）。
-
----
-
-## 4. Chat 规划师流程（落实原则 B + 联动）
-
-### 4.1 入口
-- Chat 新增「规划模式」入口（或识别意图）：用户说"我想做视频号个人IP但不知道怎么做"。
-- 系统切换为**个人IP操盘手**人格（原则 B）。
-
-### 4.2 对话流（诊断式补全人设 → 生成 → 落写）
-
-```
-[1] 用户："想做视频号个人IP，不知道怎么做"
-[2] 系统(专家人格)：先诊断式提问（遵循 single_clarify_question 偏好，一次只问一个关键问题）
-    → "你更想做'读经典讲干货'还是'读经典聊人生'？这决定人设方向。"
-[3] 用户回答 + 顺带补充个人信息
-    → 系统把补充写进 user_persona（原则 A，source=chat）
-[4] 当人设关键信息足够，系统生成定位方案（positioning JSON）：
-    · 人设一句话（oneLiner）
-    · 人设三件套（你是谁/为谁/解决什么）
-    · 3 个内容支柱（pillars）
-    · 受众画像（audience）
-    · 90 天四阶段打法（milestones + KRs）
-[5] 系统展示方案，用户可微调
-[6] 用户点"落成路径" → 调用 recordPathPlan 写入 goals + 子表
-[7] 路径详情页展示完整 5 层结构
-```
-
-### 4.3 人设补全的轮次控制（风险点）
-- 只追问**影响定位的关键缺口**（人设方向 / 受众 / 内容形式）。
-- 最多 3 轮诊断提问，之后即便信息不全也先给方案，方案里标注"假设"。
-- 复用 `single_clarify_question` 偏好：一次只问一个。
-
-### 4.4 打样案例（贯穿全文）
-
-「王洪兴读经典 / 视频号个人IP」落成的路径结构示例：
-
-- **定位卡**：知识型IP，经典共读 + 个人成长叙事；人设三件套 =（你：读经典的王洪兴）/（为谁：想自我提升但没时间的职场人）/（解决：把经典变成今天用得上的认知）
-- **内容支柱**：① 经典金句拆解 ② 经典×当代生活 ③ 我的践行复盘
-- **90天四阶段**：
-  - M1 定位验证（发 8 条，测 3 种开头）
-  - M2 形式固化（确定"口播+字幕"或"图文"）
-  - M3 流量爬坡（稳定周更 3 条，做 1 次话题联动）
-  - M4 人设收口（沉淀固定栏目 + 私域承接）
-
----
-
-## 5. 双向联动架构
-
-```
-Chat(规划师) ──生成──> user_persona(个人记忆)
-     │                      ▲
-     │ 读取                 │ 补全
-     ▼                      │
-goals.positioning ──阶段──> path-context(复用)
-     │
-     └── actions.milestone_id ──挂接──> path_milestones
-```
-
-- **Chat → 路径**：`recordPathPlan` 写 goals + 子表。
-- **路径 → Chat**：规划对话时注入 `buildPrimaryPathContext` + 当前 persona 摘要。
-- **Chat → 个人记忆**：任意对话补充自动写 `user_persona`。
-- **个人记忆 → Chat**：规划时作为定位推导原料。
-
----
-
-## 6. 分阶段路线
-
-### Now（本次优先，先出文档后开发）
-1. `user_persona` 表 + 写入/读取 lib（原则 A 基建）
-2. goals 加 `positioning` + `path_pillars / milestones / key_results` 表 + migration
-3. Chat 规划师端点 `api/ai/path-plan`：专家人格 + 诊断式补全人设 + 生成定位方案
-4. `recordPathPlan` 落写逻辑（扩展 persistence）
-5. 路径详情页：5 层结构展示
-6. 打样「王洪兴读经典」案例端到端跑通
-
-### Next
-- 路径阶段结构化存储 + 与 path-context 打通
-- 卡点主动提醒（rescue 端点接入路径页）
-- 个人记忆的冲突/合并（同一条信息多次补充时更新而非重复）
-
-### Later
-- 个人品牌专项：视频号选题库、内容日历、人设一致性检查
-- 复盘闭环：周期性 review 自动沉淀"学到了什么"到 user_persona
-
----
-
-## 7. 非目标（Scope 边界）
-- 不接视频号/抖音平台 API 直连（只做规划与内容策略，发布在你自己后台）
-- 不做多用户协作 / 团队空间
-- 不做付费墙 / 订阅
-- 不做通用的"AI  chatbot 闲聊"，chat 始终带人生系统人格
-
----
-
-## 8. 风险与不确定性
-| 风险 | 等级 | 缓解 |
+| 能力 | 状态 | 关键文件 |
 |---|---|---|
-| LLM 生成的定位质量不稳定 | 中 | 方案标注"假设"，人可微调；专家人格 prompt 强化领域知识 |
-| 人设补全轮次失控，用户烦 | 中 | 最多 3 轮 + single_clarify_question 偏好 |
-| 个人记忆重复/冲突 | 中 | Later 阶段做合并；Now 阶段先允许重复，UI 可手动删 |
-| 路径子表过多导致查询复杂 | 低 | 用 owner_id 兼容写法 + 必要索引 |
+| 对话抽人设并落库（语义去重合并） | ✅ 已实现 | `src/lib/persona.ts` `recordPersonaFromChat` + `supabase/50_user_persona.sql` |
+| 对话直接生成 5 层路径（零手动建结构） | ✅ 已实现 | `src/lib/ai/pathPlan.ts` + `chat/actions.ts` `createGoalFromChat` + `supabase/51_path_structure.sql` |
+| 对话建议行动/选题落库 | ✅ 已实现 | `src/lib/chat/persistence.ts` `recordChatAction`/`recordContentIdea` |
+| 内容资产树表（零手动建目录） | ✅ 表已建，⚠️ 缺写入链路 | `supabase/56_content_assets_tree.sql` + `ChatAssetsCard.tsx` |
+| 主路径阶段上下文 | ✅ 已实现 | `src/lib/path-context.ts` |
+| 目标详情页母版（定位+5层+行动） | ✅ 已实现 | `src/app/(authenticated)/goals/[id]/page.tsx` |
+| AI 编排 strategy/fallback/context | ✅ 已实现 | `src/lib/ai/coachOrchestrator.ts` + `contextBuilder.ts` |
+| 聊天 UI（行动/选题/资产卡） | ✅ 已实现 | `src/components/chat/*` |
+| 人设一致性检查（brand-check） | ✅ 已实现 | `planBrandCheck` / `brand-check/route.ts` |
+
+### 缺口（本版 MVP 真正要补的）
+1. **`content_assets` 无 AI 写入链路**：`persistence.ts` 只有 `recordContentIdea`（写 `content_ideas`），**缺 `recordContentAsset` 把对话沉淀物自动写进 `content_assets` 树**。→ MVP 核心补建点。
+2. **日常人设抽取未贯通自由聊天**：`recordPersonaFromChat` 仅在"规划新路径/导入"时触发，普通聊天不自动回写。→ 需在 chat 沉淀链路接入。
+3. **goals 无标签体系**：仅单一 `category`，内容资产缺 tag 维度，不利检索/商业化呈现。→ MVP 轻量补 `tags`（jsonb 或独立表）。
+4. **`content_calendar` 未实现**（53 号迁移为预留骨架）→ P1。
 
 ---
 
-## 9. 已确认决策（2026-07-31）
-1. **个人记忆支持页面手动编辑**：`user_persona` 除 chat 自动沉淀外，提供独立「个人记忆」页面，可手动新增 / 编辑 / 删除 / 调整 category 与 confidence。
-2. **路径 5 层结构全做**：定位卡（positioning）+ 策略支柱（pillars）+ 里程碑（milestones）+ 关键结果（KRs）+ 行动（actions）一次性完整落地，不做 MVP 裁剪。
-3. **打样用现有 goal 就地升级**：直接对「王洪兴读经典」这条已有 goal 就地升级为完整 5 层结构，不新建演示条目。
+## 3. MVP 技术方案（增量，不推倒）
+
+### 3.1 对话自动沉淀主链路（零手动）
+```
+用户自由聊天
+   └─> ChatSurface 发送
+         └─> [NEW] chat stream 沉淀调度：每轮 AI 回复后异步跑轻量抽取（不阻塞主流程）
+               ├─> [DONE] /api/chat/persona ──> recordPersonaFromChat ──> user_persona
+               ├─> [DONE] /api/chat/assets  ──> upsertContentAssets    ──> content_assets 树
+               └─> recordContentIdea（已有，选题）                      ──> content_ideas
+```
+**关键决策**：抽取**不阻塞**主聊天流，异步后台跑（参考现有 `recordChatAction` 模式），用户无感知。
+
+### 3.2 周回顾轻提醒
+- 复用 `planReview` + `path-context.ts`，改为**定时任务**（cron/周一定时）生成 ≤3 句摘要推送。
+- 不强制操作，可忽略；仅在"人设模糊/选题堆积"等信号出现时轻提示。
+
+### 3.3 隐私导出
+- 新增 `/api/export`：聚合 `user_persona` + `content_assets` + `goals`（含 5 层）+ `content_ideas` → 打包 Markdown/JSON 下载。
+- 复用现有 RLS（user_id 隔离），导出即"数据归你"的信任证明。
+
+### 3.4 订阅付费墙
+- 免费版：人设/资产条数上限（如各 50 条），超限引导订阅。
+- 订阅解锁：无限沉淀 + 资产树可视化 + 一致性检查 + 导出。
+- 支付：先接轻量方案（如 Creem/Polar 等创作者友好支付，或 Stripe），MVP 阶段可先用"假支付+手动开通"验证意愿，再接真支付。
 
 ---
 
-## 10. Now 阶段开发清单（已锁定）
+## 4. 路线图（Now / Next / Later）
 
-| # | 任务 | 关键产物 |
+> 单人开发，节奏以"周"为单位。Now = 上线前 MVP；Next = 上线后 1-2 月；Later = 增长期。
+
+### Now（MVP，目标：可上线收费）
+| 项 | 状态 | 依赖 |
 |---|---|---|
-| 1 | 个人记忆基建 | `supabase/NN_user_persona.sql` + `src/lib/persona.ts`（list/create/update/delete，含手动编辑与 chat 自动写入两套入口） |
-| 2 | 个人记忆页面 | `src/app/(authenticated)/persona/page.tsx`：列表 + 新增/编辑/删除 + category 与 confidence 调整 |
-| 3 | 路径子结构表 | `supabase/NN_path_structure.sql`：goals.positioning + path_pillars / path_milestones / path_key_results + actions.milestone_id |
-| 4 | Chat 规划师端点 | `src/app/api/ai/path-plan/route.ts`：专家人格 + 诊断式补全人设（写 user_persona）+ 生成定位方案（positioning JSON） |
-| 5 | 落写逻辑 | 扩展 `src/lib/chat/persistence.ts`：新增 `recordPathPlan` 写 goals + 子表；chat→路径回写 |
-| 6 | 路径详情页升级 | `goals/[id]/page.tsx`：5 层结构展示 + 定位卡编辑 + 支柱/里程碑/KR 增删改 |
-| 7 | 双向联动 | 规划对话注入 `buildPrimaryPathContext` + persona 摘要；路径阶段结构化复用 path-context |
-| 8 | 打样 | 「王洪兴读经典」就地升级为完整 5 层结构，端到端验证
+| 接通日常人设抽取（缺口2） | **Done** ✅ | 新增 /api/chat/persona，stream 异步触发 |
+| 补 `recordContentAsset` 写入链路（缺口1） | **Done** ✅ | /api/chat/assets 已接通 stream |
+| goals 加 `tags` 轻量标签（缺口3） | **Done** ✅ | supabase/57_tags.sql + 读写 + 检索 API |
+| 周回顾定时轻提醒 | Not Started | planReview/path-context |
+| 隐私导出 `/api/export` | Not Started | RLS 复用 |
+| 订阅付费墙（先假支付验证） | Not Started | — |
 
----
+### Next（上线后 1-2 月）
+| 项 | 状态 | 依赖 |
+|---|---|---|
+| 资产树可视化视图 | Not Started | content_assets |
+| 人设一致性检查（brand-check 接通草稿） | Not Started | planBrandCheck |
+| 内容日历补全 | Not Started | 53 骨架 |
+| 真支付接入（Stripe/Creem） | Not Started | Now 付费墙 |
 
-## 11. 产品核心定位（2026-08-03 确认）
-
-> **不要做"小号 Claude"。做"最懂你的人生 + IP 教练"——一个记住你、陪你执行、帮你把想法变成资产的私人系统。聊天是门，记忆和资产是墙，闭环是地基。**
-
-### 11.1 一句话定位
-FlowSpark 不是一个聊天机器人，而是一个**长在用户人生数据上的 AI 教练 + 个人 IP 操盘系统**。聊只是入口；真正的壁垒是：它越用越懂你（persona 记忆）、越用越知道你怎么卡住（behavior/friction）、越用能帮你把想法变成可发布的 IP 资产（content pipeline）。
-
-### 11.2 竞争对手定义（关键认知）
-- **我们的对手不是 ChatGPT / Claude，而是"用户自己在备忘录里瞎记 + 到处问 AI"的低效混乱现状。**
-- 我们替代的是那个混乱状态，不是通用大模型。
-- 通用 Agent 的弱点是结构性"失忆 + 没有领域闭环"；我们正好补上这两块。
-
-### 11.3 与通用 Agent 的差异化（我们赢的维度）
-| 通用 Agent 的"生态" | 我们该做的"专属能力"（基于已有数据） |
+### Later（增长期）
+| 项 | 状态 |
 |---|---|
-| 通用 skills 插件市场 | 人生教练场景：today_plan / rescue / review（coachOrchestrator 已做） |
-| 通用专家库 | persona 记忆 = 专属私人专家：每次都带着"你是谁"回答 |
-| 通用内容生成 | IP 资产流水线：聊天产出 → brand_check 人设校验 → 存 content_ideas → 排期 calendar |
-| 通用知识库 | friction 历史：记录每次卡住原因，AI 主动预防 |
+| 多平台选题分发草稿 | Not Started |
+| 创作者专属模板 | Not Started |
+| 社区/案例库（可选） | Not Started |
 
-**我们不去建 skills 市场 / 通用插件生态（追不上也没必要）；要拼的是"用户离开后数据还在不在、越用越懂他多少"这一维。**
+---
 
-### 11.4 三层路线图（从内到外）
-- **第 0 层（已有=护城河地基）**：persona 记忆 + coach 三场景 + recommendation 落库 + content_ideas 资产。
-- **第 1 层（进行中=验证定位）**：全站只有一个 AI 聊天入口统管一切。聊目标→写 Goals；聊 IP→产出选题存 content_ideas；聊脚本→brand_check 校验。brand-studio/persona 降级为"查看/精修"抽屉，不再是录入入口。
-- **第 2 层（差异化放大）**：主动教练。基于 friction 历史主动提醒；基于 persona 主动提示人设偏差。
+## 5. 风险与缓解
+- **R1 巨头碾压**：ChatGPT 随时可加"资产树/导出"。缓解：死守"私有+创作者聚焦+轻"三件套，巨头不做重 UI、不碰具体职业工作流。
+- **R2 单人产能**：功能多易摊薄。缓解：MVP 只做 6 项 P0，其余坚决 Next/Later。
+- **R3 付费意愿未验证**：先用"假支付+手动开通"测真实付费意向，再接真支付，避免白做。
+- **R4 抽取质量**：AI 误抽人设/资产。缓解：复用现有语义去重 + fallback 规则，用户可改可删（`user_persona` 已支持 manual 编辑）。
 
-### 11.5 不做的事
-- ❌ 建 skills 市场 / 通用插件生态
-- ❌ 拼"聊天多像人"（那是他们的强项）
-- ❌ 把 brand-studio 做成另一个独立工具（工具思维已否）
+---
+
+## 6. 与原蓝图（v1）的决裂点（给团队/自己备忘）
+1. **不再做"人设诊断式提问"**——用户烦被问，改日常对话自动抽。
+2. **不再把 path-plan 当新功能**——已实现，MVP 聚焦"资产树写入 + 人设贯通 + 周回顾 + 导出 + 付费"。
+3. **从"规划师"降级为"沉淀器+轻提醒"**——心智负担最小是第一名原则。
+
+---
+
+## 7. 开发进度（已实现）
+
+### 2026-08-06：接通「日常对话自动沉淀人设」（Now 第一项，Done ✅）
+**问题**：原 `recordPersonaFromChat` 只在"规划路径/导入文档"时触发，自由聊天不自动抽人设，违背"零手动"原则。
+
+**改动**：
+- 新增 `src/app/api/chat/persona/route.ts`：接收 transcript，LLM 抽 0~3 条高信度人设信号（7 类：优势/价值观/经历/想成为的人/抗拒点/背景/复盘洞察），逐个 `recordPersonaFromChat` 落库 `user_persona`，含去重合并。
+- 改 `src/app/api/chat/stream/route.ts`：AI 回复完整后，与内容资产沉淀**并列异步**调用 `/api/chat/persona`（不阻塞主流程）。
+- 类型：`ChatStreamEvent` 增 `persona` 事件；`ChatTurn` 增 `persona` 字段；`ChatCopy` 增 `personaCardTitle`/`personaAutoSaved`。
+- 前端：`ChatPersonaCard.tsx`（与 `ChatAssetsCard` 对称，展示"AI 已记下关于你的 X"），`ChatMessage.tsx` 渲染；`zh.json`/`en.json` 补文案。
+
+**效果**：用户开聊即被默默记住，聊完在气泡下看到"AI 已记下关于你的信息"提示卡——这是"比通用 agent 更懂你"的可见卖点，零手动、零打扰。
+
+**下一项待办**：`goals.tags` 轻量标签（缺口3），用于资产检索与创作者维度聚合。
+
+### 2026-08-06：goals / content_assets 多标签体系（缺口3，Done ✅）
+**问题**：原 goals 只有单选 `category`（主领域），无法对目标/资产打多选自由标签，导致"创作者维度视图"无法跨目标聚合。
+
+**改动**：
+- 新增 `supabase/57_tags.sql`：`goals` 与 `content_assets` 加 `tags text[] not null default '{}'`；PG 函数 `normalize_tags` + 触发器自动去重/裁剪（≤40字、≤12个）；GIN 索引支撑数组检索。
+- `lib/goalCategories.ts`：新增 `normalizeTagsInput`（逗号分隔→去重数组）。
+- `goals/actions.ts`：`createGoal`/`updateGoal` 接入 `tags`。
+- `lib/contentAsset.ts`：`ContentAssetInput` 与 `ContentAsset` 加 `tags`，`upsertContentAssets` 写入。
+- 新增 `src/app/api/assets/tags/route.ts`：① `?tag=x` 按标签检索（goals+assets）；② 无参数返回全量标签计数——支撑"创作者维度视图"聚合。
+- UI：`NewGoalForm` / `GoalDetailsCard` 编辑态加 tags 输入框（逗号分隔）；查看态 `GoalDetailsCard` 展示标签胶囊；`zh.json`/`en.json` 补 `goals.tags` 文案。
+
+**效果**：目标/资产可打"视频号/读书/IP定位"等多标签，后端已具备跨目标聚合检索能力，下一步做"创作者维度视图"页直接消费该 API。
+
+### 2026-08-06：创作者维度视图（消费 tags 聚合，Done ✅）
+**决策**：不新建独立页面。已存在 `/brand-studio/`（视频号个人IP工作台），它本就是"创作者维度"载体，新建页会重复造轮子。正确做法：把 tags 聚合能力作为 brand-studio 的新区块。
+
+**改动**：
+- `lib/contentAsset.ts`：新增 `getCreatorDimensions()`，跨 `goals` + `content_assets` 聚合标签计数（含每维度关联的 goals/资产样例）。
+- `lib/contentBrand.ts`：`getBrandStudioView` 接入 `dimensions`。
+- `components/BrandStudioClient.tsx`：新增"创作者维度"区块——标签云（按总量排序、显示计数）+ 点击展开该维度下的「相关路径」与「内容资产」两张卡片（路径可跳转）。
+- `brand-studio/page.tsx`：传入 `initialDimensions`。
+- `zh.json`/`en.json`：补 `brandStudio.dimensionsTitle/Goals/Assets/Empty`。
+
+**效果**：创作者打开 IP 工作台，一眼看到"视频号/读书/IP定位"各维度挂了多少目标与资产，点开即见明细——这是"比通用 agent 有结构、比 Life OS 轻"的可见落点。
+4. **商业化优先于功能完备**——先能收费再迭代，避免完美主义拖延上线。

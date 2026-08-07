@@ -166,7 +166,7 @@ export function WeeklyReviewClient({
                   }`}
                 >
                   {n}
-                  <span className="ml-1 text-xs opacity-70">{r[(`score${n}`) as keyof Dictionary['review']]}</span>
+                  <span className="ml-1 text-xs opacity-70">{String(r[(`score${n}`) as keyof Dictionary['review']])}</span>
                 </button>
               ))}
             </div>
@@ -266,7 +266,7 @@ export function WeeklyReviewClient({
                         <div className="min-w-0 space-y-1">
                           <div className="flex items-center gap-2">
                             <span className={`rounded-full border px-2 py-0.5 text-xs ${KIND_STYLE[item.action_kind]}`}>
-                              {r[KIND_LABEL_KEY[item.action_kind]]}
+                              {String(r[KIND_LABEL_KEY[item.action_kind]])}
                             </span>
                             <span className="truncate text-sm font-medium">{item.title}</span>
                           </div>

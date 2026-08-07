@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { UserCalendarFeedCard } from '@/components/UserCalendarFeedCard'
+import { DataExportCard } from '@/components/DataExportCard'
 import { getUnreadNotificationCount } from '@/lib/notifications/queries'
 
 export default async function ProfilePage() {
@@ -124,6 +125,15 @@ export default async function ProfilePage() {
             </Button>
           </CardContent>
         </Card>
+      </section>
+
+      <section className="space-y-4">
+        <div className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          {localeIsZh ? '隐私与数据' : 'Privacy & Data'}
+        </div>
+        <div className="grid gap-4">
+          <DataExportCard dict={dict} />
+        </div>
       </section>
 
     </div>

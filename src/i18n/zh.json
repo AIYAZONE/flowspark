@@ -599,6 +599,11 @@
 			"replaceAndRemove": "替换并移除",
 			"replaceConfirm": "将所有使用该分类的目标替换为新分类？该操作不可撤销。"
 		},
+		"tags": {
+			"label": "标签",
+			"placeholder": "如：视频号, 读书, IP定位",
+			"hint": "用逗号分隔，可多选。用于跨目标/资产的「创作者维度」聚合检索。"
+		},
 		"areas": {
 			"title": "管理领域",
 			"description": "组织目标按领域分组与排序的方式。",
@@ -756,6 +761,13 @@
 		"accountSecurityTitle": "账号与安全",
 		"accountSecurityDesc": "管理账号访问与敏感操作。",
 		"manageAccount": "进入管理",
+		"dataExport": {
+			"title": "导出我的数据",
+			"desc": "把你的个人记忆、目标、内容资产与回顾记录打包成一份 JSON 文件，可随时带走。",
+			"cta": "导出数据",
+			"exporting": "导出中…",
+			"failed": "导出失败，请稍后重试。"
+		},
 		"advancedActions": "高级操作",
 		"email": "邮箱",
 		"name": "姓名",
@@ -903,6 +915,8 @@
 		"ideaDuplicate": "选题库里已存在",
 		"assetCardTitle": "AI 已为你沉淀内容资产",
 		"assetAutoSaved": "已自动归档到对应目录，无需手动整理",
+		"personaCardTitle": "AI 已记下关于你的信息",
+		"personaAutoSaved": "已沉淀为「个人记忆」，会越聊越懂你",
 		"refTitle": "相关行动",
 		"refGoToday": "去 Today 开始",
 		"refComplete": "标记完成",
@@ -967,7 +981,12 @@
 		"saveToMemory": "存入记忆",
 		"savingToMemory": "保存中…",
 		"savedToMemory": "已保存",
-		"saveLearningError": "保存失败，请重试"
+		"saveLearningError": "保存失败，请重试",
+		"reminderBanner": {
+			"title": "该做周回顾了",
+			"body": "你已经有一阵子没回看进展了。花几分钟做一次周回顾，比一直往前冲更重要。",
+			"cta": "开始周回顾"
+		}
 	},
 	"brandCheck": {
 		"title": "视频号人设一致性检查",
@@ -984,7 +1003,11 @@
 		"subtitle": "你聊过的所有内容都会自动出现在这里。不用急着填表，一条一条来。",
 		"tabIdeas": "选题库",
 		"tabCalendar": "内容日历",
-		"tabCheck": "人设检查"
+		"tabCheck": "人设检查",
+		"dimensionsTitle": "创作者维度",
+		"dimensionsGoals": "相关路径",
+		"dimensionsAssets": "内容资产",
+		"dimensionsEmpty": "该维度下暂无内容"
 	},
 	"contentIdeas": {
 		"title": "选题库",

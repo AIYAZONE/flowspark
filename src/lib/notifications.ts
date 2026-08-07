@@ -1,4 +1,8 @@
-export type SystemNotificationKind = 'shield_granted' | 'milestone_reached' | 'recovery_success'
+export type SystemNotificationKind =
+  | 'shield_granted'
+  | 'milestone_reached'
+  | 'recovery_success'
+  | 'weekly_review_reminder'
 
 export type SystemNotificationRow =
   | {
@@ -28,6 +32,16 @@ export type SystemNotificationRow =
       payload: {
         targetDate: string
         currentStreak: number
+      }
+      read_at: string | null
+      created_at: string
+    }
+  | {
+      id: string
+      kind: 'weekly_review_reminder'
+      payload: {
+        daysSinceReview: number
+        weekKey: string
       }
       read_at: string | null
       created_at: string
@@ -75,6 +89,18 @@ export function formatSystemNotificationCopy(
       },
       opts
     )
+  }
+
+  if (notification.kind === 'weekly_review_reminder') {
+    const isZh = opts.locale === 'zh'
+    const weeks = Math.max(1, Math.floor(notification.payload.daysSinceReview / 7))
+    return {
+      tone: 'info',
+      title: isZh ? '该做周回顾了' : "Time for your weekly review",
+      body: isZh
+        ? `你已经 ${weeks} 周没做周回顾了。花几分钟看看本周的进展和下一步，比一直往前冲更重要。`
+        : `It's been ${weeks} week${weeks > 1 ? 's' : ''} since your last review. A few minutes to look back beats pushing forward blindly.`,
+    }
   }
 
   return formatStreakFeedbackCopy(

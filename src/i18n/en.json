@@ -599,6 +599,11 @@
 			"replaceAndRemove": "Replace & remove",
 			"replaceConfirm": "Replace this category for all goals? This cannot be undone."
 		},
+		"tags": {
+			"label": "Tags",
+			"placeholder": "e.g. YouTube, Reading, IP Positioning",
+			"hint": "Comma-separated, multiple allowed. Used to aggregate goals/assets into a creator view."
+		},
 		"areas": {
 			"title": "Manage Areas",
 			"description": "Organize how goals are grouped and ordered by area.",
@@ -756,6 +761,13 @@
 		"accountSecurityTitle": "Account & Security",
 		"accountSecurityDesc": "Manage account access and sensitive operations.",
 		"manageAccount": "Manage",
+		"dataExport": {
+			"title": "Export my data",
+			"desc": "Bundle your persona memories, goals, content assets, and reviews into a JSON file you can take anywhere.",
+			"cta": "Export data",
+			"exporting": "Exporting…",
+			"failed": "Export failed. Try again later."
+		},
 		"advancedActions": "Advanced",
 		"email": "Email",
 		"name": "Name",
@@ -903,6 +915,8 @@
 		"ideaDuplicate": "Already in your idea bank",
 		"assetCardTitle": "AI Captured Content Assets",
 		"assetAutoSaved": "Auto-archived to the right folder — no manual sorting needed",
+		"personaCardTitle": "AI Remembered Something About You",
+		"personaAutoSaved": "Saved to your personal memory — it learns you as you chat",
 		"refTitle": "Related actions",
 		"refGoToday": "Open in Today",
 		"refComplete": "Mark done",
@@ -967,7 +981,12 @@
 		"saveToMemory": "Save to memory",
 		"savingToMemory": "Saving…",
 		"savedToMemory": "Saved",
-		"saveLearningError": "Failed to save. Retry."
+		"saveLearningError": "Failed to save. Retry.",
+		"reminderBanner": {
+			"title": "Time for your weekly review",
+			"body": "It's been a while since you looked back. A few minutes to review beats pushing forward blindly.",
+			"cta": "Start review"
+		}
 	},
 	"brandCheck": {
 		"title": "视频号人设一致性检查",
@@ -984,7 +1003,11 @@
 		"subtitle": "Everything you talk about lands here automatically. No need to fill forms — take it one step at a time.",
 		"tabIdeas": "Idea bank",
 		"tabCalendar": "Content calendar",
-		"tabCheck": "Persona check"
+		"tabCheck": "Persona check",
+		"dimensionsTitle": "Creator Dimensions",
+		"dimensionsGoals": "Related paths",
+		"dimensionsAssets": "Content assets",
+		"dimensionsEmpty": "Nothing here yet under this dimension"
 	},
 	"contentIdeas": {
 		"title": "Idea bank",

@@ -66,6 +66,7 @@ export function NewGoalForm({ dict, onSuccess, action, fixedFooter = false }: Ne
   const [goalEnd, setGoalEnd] = useState(() => new Date().toISOString().slice(0, 10))
   const [category, setCategory] = useState<string>('other')
   const [priority, setPriority] = useState<string>('medium')
+  const [tagsInput, setTagsInput] = useState('')
   const [dateValid, setDateValid] = useState(true)
   const [goalTitle, setGoalTitle] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
@@ -86,6 +87,7 @@ export function NewGoalForm({ dict, onSuccess, action, fixedFooter = false }: Ne
     // console.log('NewGoalForm submit:', Object.fromEntries((formData as unknown as Iterable<[string, FormDataEntryValue]>)))
     formData.set('category', normalizeCategoryInput(category))
     formData.set('priority', priority)
+    formData.set('tags', tagsInput)
     const goalStartDate = ((formData.get('start_date') as string) || '').trim()
     const goalEndDate = ((formData.get('end_date') as string) || '').trim()
     let result: unknown
@@ -553,6 +555,18 @@ export function NewGoalForm({ dict, onSuccess, action, fixedFooter = false }: Ne
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="tags">{dict.goals.tags.label}</Label>
+            <Input
+              id="tags"
+              name="tags"
+              value={tagsInput}
+              onChange={(e) => setTagsInput(e.target.value)}
+              placeholder={dict.goals.tags.placeholder}
+            />
+            <p className="text-xs text-muted-foreground">{dict.goals.tags.hint}</p>
           </div>
 
           <DateRangeFields

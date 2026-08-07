@@ -4,7 +4,7 @@ import { streamAIChat, type StreamChatMessage } from '@/lib/ai/stream'
 import { buildChatSystemPrompt } from '@/lib/chat/prompt'
 import { getChatContext, getOpenActionsWithIds } from '@/lib/chat/context'
 import { findReferencedOpenActions } from '@/lib/chat/action-dedup'
-import type { ChatHistoryEntry, ChatStreamEvent, ChatAssetDraft } from '@/lib/chat/types'
+import type { ChatHistoryEntry, ChatStreamEvent, ChatAssetDraft, ChatPersonaDraft } from '@/lib/chat/types'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -113,6 +113,31 @@ export async function POST(req: NextRequest) {
           }
         } catch {
           // 资产沉淀失败不影响主聊天流程
+        }
+        // 回复完整后，从本轮对话自动沉淀「个人记忆」信号（直接入库，用户零操作）
+        try {
+          const transcript: ChatHistoryEntry[] = [
+            ...history,
+            { role: 'user', text: message },
+            { role: 'assistant', text: full }
+          ]
+          const pRes = await fetch(`${req.nextUrl.origin}/api/chat/persona`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ transcript, locale })
+          })
+          if (pRes.ok) {
+            const pJson = (await pRes.json()) as { items?: unknown[] }
+            if (Array.isArray(pJson.items) && pJson.items.length) {
+              controller.enqueue(
+                new TextEncoder().encode(
+                  sse({ type: 'persona', items: pJson.items as ChatPersonaDraft[] })
+                )
+              )
+            }
+          }
+        } catch {
+          // 人设沉淀失败不影响主聊天流程
         }
         controller.enqueue(new TextEncoder().encode(sse({ type: 'done' })))
       } catch (e) {

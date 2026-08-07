@@ -19,6 +19,8 @@ import { mergeTargetedActionIntoTodayList } from '@/lib/today-task-list'
 import { getCategoryLabel } from '@/lib/goalCategories'
 import { EmergentInsights, type StalledGoalInsight, type StaleActionInsight } from '@/components/EmergentInsights'
 import { detectStaleActions } from '@/lib/stale-detector'
+import { ensureWeeklyReviewReminder } from '@/lib/notifications/weeklyReview'
+import { WeeklyReviewReminderBanner } from '@/components/WeeklyReviewReminderBanner'
 
 export default async function TodayPage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
@@ -282,6 +284,14 @@ export default async function TodayPage(props: {
     } : null,
   }
 
+  const weeklyReviewReminder = await ensureWeeklyReviewReminder({
+    supabase,
+    userId: ownerId,
+    tz,
+    today,
+    hasActiveGoals: (activeGoals || []).length > 0,
+  })
+
   return (
     <div className="space-y-6">
       <div className="md:hidden sticky top-0 z-20 -mx-4 border-b border-white/8 bg-background/75 px-4 pb-3 pt-2 backdrop-blur-xl">
@@ -302,6 +312,8 @@ export default async function TodayPage(props: {
           </a>
         </div>
       </div>
+
+      {weeklyReviewReminder ? <WeeklyReviewReminderBanner dict={dict} locale={localeIsZh ? 'zh' : 'en'} /> : null}
 
       <div className="flex items-end justify-between gap-4">
         <div>

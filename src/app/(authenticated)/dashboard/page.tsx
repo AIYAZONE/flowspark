@@ -12,12 +12,14 @@ import { ActivityHeatmap } from '@/components/ActivityHeatmap'
 import { ScoreCard } from '@/components/ScoreCard'
 import { StreakCard } from '@/components/StreakCard'
 import { StreakFeedbackBanner } from '@/components/StreakFeedbackBanner'
+import { WeeklyReviewReminderBanner } from '@/components/WeeklyReviewReminderBanner'
 import { GoalProgressList } from '@/components/GoalProgressList'
 import { WeeklyInsightCard } from '@/components/WeeklyInsightCard'
 import { isEnvEnabled } from '@/lib/experiments'
 import { ExperimentExposureTracker } from '@/components/ExperimentExposureTracker'
 import { calcCompletionPercent, calcTimeProgressPercent, getPaceStatus } from '@/lib/progress'
 import { getStreakSnapshot } from '@/lib/streaks'
+import { ensureWeeklyReviewReminder } from '@/lib/notifications/weeklyReview'
 import { DAILY_QUOTE_CANDIDATE_COUNT, getDailyQuoteCandidates, QUOTE_TIME_ZONE } from '@/lib/daily-quote'
 import { getExperimentDecision } from '@/lib/featureFlags'
 import { queryWithOwnershipFallback } from '@/lib/ownership'
@@ -400,6 +402,13 @@ export default async function DashboardPage() {
     timeZone: tz,
     today,
   })
+  const weeklyReviewReminder = await ensureWeeklyReviewReminder({
+    supabase,
+    userId: user.id,
+    tz,
+    today,
+    hasActiveGoals: activeGoalsCount > 0,
+  })
   const streak = streakSnapshot.currentStreak
   const hasCompletedToday = streakSnapshot.completedDates.includes(today)
   const showStreakRiskBanner = !hasCompletedToday && (streakSnapshot.currentStreak > 0 || Boolean(streakSnapshot.recoverableMissDate))
@@ -483,6 +492,7 @@ export default async function DashboardPage() {
         dateBucket={today}
       />
       <StreakFeedbackBanner dict={dict} />
+      {weeklyReviewReminder ? <WeeklyReviewReminderBanner dict={dict} locale={locale} /> : null}
       <div className="grid gap-4 lg:grid-cols-[1.5fr_0.9fr]">
         <div className="rounded-3xl border border-primary/15 bg-linear-to-br from-primary/10 via-background to-background p-5 shadow-sm md:p-6">
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/15 bg-background/80 px-3 py-1 text-xs font-medium text-primary">
